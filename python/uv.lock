@@ -398,7 +398,6 @@ dependencies = [
     { name = "pydantic" },
     { name = "python-dateutil" },
     { name = "pytz" },
-    { name = "ruff" },
     { name = "uvicorn" },
 ]
 
@@ -419,7 +418,6 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
     { name = "python-dateutil", specifier = ">=2.8.2" },
     { name = "pytz", specifier = ">=2023.3" },
-    { name = "ruff", specifier = ">=0.12.11" },
     { name = "ruff", marker = "extra == 'dev'" },
     { name = "uvicorn", specifier = ">=0.24.0" },
 ]
