@@ -11,6 +11,6 @@ __description__ = "A community-driven, multi-agent platform for financial applic
 
 __all__ = [
     "__version__",
-    "__author__", 
+    "__author__",
     "__description__",
 ]

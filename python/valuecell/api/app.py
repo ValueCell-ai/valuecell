@@ -12,15 +12,15 @@ from ..config.settings import get_settings
 
 class ValueCellAPI:
     """Main API class for ValueCell."""
-    
+
     def __init__(self):
         """Initialize API application."""
         self.settings = get_settings()
         self.app = self._create_app()
-    
+
     def _create_app(self) -> FastAPI:
         """Create FastAPI application."""
-        
+
         @asynccontextmanager
         async def lifespan(app: FastAPI):
             # Startup
@@ -28,14 +28,14 @@ class ValueCellAPI:
             yield
             # Shutdown
             print("ValueCell API shutting down...")
-        
+
         app = FastAPI(
             title="ValueCell API",
             description="A community-driven, multi-agent platform for financial applications",
             version=self.settings.APP_VERSION,
-            lifespan=lifespan
+            lifespan=lifespan,
         )
-        
+
         # Add CORS middleware
         app.add_middleware(
             CORSMiddleware,
@@ -44,15 +44,15 @@ class ValueCellAPI:
             allow_methods=["*"],
             allow_headers=["*"],
         )
-        
+
         # Add routes
         self._add_routes(app)
-        
+
         return app
-    
+
     def _add_routes(self, app: FastAPI):
         """Add API routes."""
-        
+
         @app.get("/", response_model=SuccessResponse)
         async def root():
             """Root endpoint."""
@@ -62,17 +62,16 @@ class ValueCellAPI:
                     "name": self.settings.APP_NAME,
                     "version": self.settings.APP_VERSION,
                     "environment": self.settings.APP_ENVIRONMENT,
-                }
+                },
             )
-        
+
         @app.get("/health")
         async def health():
             """Health check endpoint."""
             return {"status": "healthy", "version": self.settings.APP_VERSION}
-        
+
         # Include i18n router
         app.include_router(create_i18n_router())
-    
 
 
 # Global API instance

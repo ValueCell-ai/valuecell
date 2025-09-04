@@ -13,7 +13,7 @@ SUPPORTED_LANGUAGES: List[Tuple[str, str]] = [
 # Language to Timezone Mapping
 LANGUAGE_TIMEZONE_MAPPING: Dict[str, str] = {
     "en-US": "America/New_York",
-    "en-GB": "Europe/London", 
+    "en-GB": "Europe/London",
     "zh-Hans": "Asia/Shanghai",
     "zh-Hant": "Asia/Hong_Kong",
 }

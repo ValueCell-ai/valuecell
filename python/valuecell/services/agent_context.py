@@ -1,6 +1,6 @@
 """Agent context management for ValueCell application."""
 
-from typing import Dict, Any, Optional
+from typing import Optional
 from datetime import datetime
 import threading
 from contextlib import contextmanager
@@ -12,43 +12,43 @@ from ..api.schemas import AgentI18nContext
 
 class AgentContextManager:
     """Manages context for agents to access user i18n settings."""
-    
+
     def __init__(self):
         """Initialize agent context manager."""
         self.i18n_api = get_i18n_api()
         self.i18n_service = get_i18n_service()
         self._local = threading.local()
-    
+
     def set_user_context(self, user_id: str, session_id: Optional[str] = None):
         """Set current user context for the agent."""
         user_context = self.i18n_api.get_user_context(user_id)
-        
+
         # Store in thread local storage
         self._local.user_id = user_id
         self._local.session_id = session_id
         self._local.language = user_context.get("language", "en-US")
         self._local.timezone = user_context.get("timezone", "UTC")
-        
+
         # Update i18n service
         self.i18n_service.set_language(self._local.language)
         self.i18n_service.set_timezone(self._local.timezone)
-    
+
     def get_current_user_id(self) -> Optional[str]:
         """Get current user ID."""
-        return getattr(self._local, 'user_id', None)
-    
+        return getattr(self._local, "user_id", None)
+
     def get_current_session_id(self) -> Optional[str]:
         """Get current session ID."""
-        return getattr(self._local, 'session_id', None)
-    
+        return getattr(self._local, "session_id", None)
+
     def get_current_language(self) -> str:
         """Get current user's language."""
-        return getattr(self._local, 'language', 'en-US')
-    
+        return getattr(self._local, "language", "en-US")
+
     def get_current_timezone(self) -> str:
         """Get current user's timezone."""
-        return getattr(self._local, 'timezone', 'UTC')
-    
+        return getattr(self._local, "timezone", "UTC")
+
     def get_i18n_context(self) -> AgentI18nContext:
         """Get complete i18n context for agent."""
         return AgentI18nContext(
@@ -59,34 +59,36 @@ class AgentContextManager:
             time_format=self.i18n_service._i18n_config.get_time_format(),
             number_format=self.i18n_service._i18n_config.get_number_format(),
             user_id=self.get_current_user_id(),
-            session_id=self.get_current_session_id()
+            session_id=self.get_current_session_id(),
         )
-    
+
     def translate(self, key: str, **variables) -> str:
         """Translate using current user's language."""
-        return self.i18n_service.translate(key, self.get_current_language(), **variables)
-    
+        return self.i18n_service.translate(
+            key, self.get_current_language(), **variables
+        )
+
     def format_datetime(self, dt: datetime, format_type: str = "datetime") -> str:
         """Format datetime using current user's settings."""
         return self.i18n_service.format_datetime(dt, format_type)
-    
+
     def format_number(self, number: float, decimal_places: int = 2) -> str:
         """Format number using current user's settings."""
         return self.i18n_service.format_number(number, decimal_places)
-    
+
     def format_currency(self, amount: float, decimal_places: int = 2) -> str:
         """Format currency using current user's settings."""
         return self.i18n_service.format_currency(amount, decimal_places)
-    
+
     @contextmanager
     def user_context(self, user_id: str, session_id: Optional[str] = None):
         """Context manager for temporary user context."""
         # Save current context
-        old_user_id = getattr(self._local, 'user_id', None)
-        old_session_id = getattr(self._local, 'session_id', None)
-        old_language = getattr(self._local, 'language', 'en-US')
-        old_timezone = getattr(self._local, 'timezone', 'UTC')
-        
+        old_user_id = getattr(self._local, "user_id", None)
+        old_session_id = getattr(self._local, "session_id", None)
+        old_language = getattr(self._local, "language", "en-US")
+        old_timezone = getattr(self._local, "timezone", "UTC")
+
         try:
             # Set new context
             self.set_user_context(user_id, session_id)
@@ -102,25 +104,25 @@ class AgentContextManager:
                 self.i18n_service.set_timezone(old_timezone)
             else:
                 # Clear context
-                if hasattr(self._local, 'user_id'):
-                    delattr(self._local, 'user_id')
-                if hasattr(self._local, 'session_id'):
-                    delattr(self._local, 'session_id')
-                if hasattr(self._local, 'language'):
-                    delattr(self._local, 'language')
-                if hasattr(self._local, 'timezone'):
-                    delattr(self._local, 'timezone')
-    
+                if hasattr(self._local, "user_id"):
+                    delattr(self._local, "user_id")
+                if hasattr(self._local, "session_id"):
+                    delattr(self._local, "session_id")
+                if hasattr(self._local, "language"):
+                    delattr(self._local, "language")
+                if hasattr(self._local, "timezone"):
+                    delattr(self._local, "timezone")
+
     def clear_context(self):
         """Clear current user context."""
-        if hasattr(self._local, 'user_id'):
-            delattr(self._local, 'user_id')
-        if hasattr(self._local, 'session_id'):
-            delattr(self._local, 'session_id')
-        if hasattr(self._local, 'language'):
-            delattr(self._local, 'language')
-        if hasattr(self._local, 'timezone'):
-            delattr(self._local, 'timezone')
+        if hasattr(self._local, "user_id"):
+            delattr(self._local, "user_id")
+        if hasattr(self._local, "session_id"):
+            delattr(self._local, "session_id")
+        if hasattr(self._local, "language"):
+            delattr(self._local, "language")
+        if hasattr(self._local, "timezone"):
+            delattr(self._local, "timezone")
 
 
 # Global agent context manager
