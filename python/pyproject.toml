@@ -1,9 +1,50 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
-name = "python"
+name = "valuecell"
 version = "0.1.0"
-description = "Add your description here"
+description = "ValueCell is a community-driven, multi-agent platform for financial applications."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [
-    "a2a-sdk>=0.3.4",
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=1.0.0",
+]
+
+[tool.ruff]
+line-length = 88
+indent-width = 4
+target-version = "py312"
+force-exclude = true
+exclude = [
+    "venv",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "third_party",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.hatch.build.targets.wheel]
+include = [
+    "valuecell",
+]
+exclude = [
+    "third_party/**",
+    "**/third_party/**",
+    "tests/**",
+    "**/tests/**",
 ]

@@ -1,0 +1,33 @@
+name: Python Code Style & Linting
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [ 'main' ]
+    paths:
+      - 'python/**'
+  pull_request:
+    branches: [ '*' ]
+    paths:
+      - 'python/**'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./python
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Ruff
+      uses: astral-sh/ruff-action@v3
+
+    - name: Ruff Format
+      run: ruff format --check --config ./pyproject.toml .
+
+    - name: Ruff Lint
+      run: ruff check --config ./pyproject.toml .
