@@ -1,4 +1,7 @@
 from abc import ABC, abstractmethod
+from typing import Optional
+
+from a2a.types import Task, TaskArtifactUpdateEvent, TaskStatusUpdateEvent
 from pydantic import BaseModel, Field
 
 
@@ -29,3 +32,6 @@ class BaseAgent(ABC, BaseModel):
         Abstract method to stream the agent with the provided input data.
         Must be implemented by all subclasses.
         """
+
+
+MessageResponse = tuple[Task, Optional[TaskStatusUpdateEvent | TaskArtifactUpdateEvent]]

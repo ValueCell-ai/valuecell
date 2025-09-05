@@ -1,20 +1,11 @@
-from typing import AsyncIterator, Optional
+from typing import AsyncIterator
 
 import httpx
 from a2a.client import A2ACardResolver, ClientConfig, ClientFactory
-from a2a.types import (
-    Message,
-    Part,
-    PushNotificationConfig,
-    Role,
-    Task,
-    TaskArtifactUpdateEvent,
-    TaskStatusUpdateEvent,
-    TextPart,
-)
+from a2a.types import Message, Part, PushNotificationConfig, Role, TextPart
 from valuecell.utils import generate_uuid
 
-MessageResponse = tuple[Task, Optional[TaskStatusUpdateEvent | TaskArtifactUpdateEvent]]
+from .types import MessageResponse
 
 
 class AgentClient:

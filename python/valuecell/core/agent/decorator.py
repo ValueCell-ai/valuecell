@@ -24,8 +24,8 @@ from a2a.types import (
 )
 from a2a.utils import new_task
 from a2a.utils.errors import ServerError
-from valuecell.core.agent.base import BaseAgent
 from valuecell.core.agent.registry import AgentRegistry
+from valuecell.core.agent.types import BaseAgent
 from valuecell.utils import get_next_available_port
 
 logger = logging.getLogger(__name__)
