@@ -1,0 +1,66 @@
+import asyncio
+import logging
+from typing import Callable, Optional
+
+import uvicorn
+from starlette.applications import Starlette
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+class NotificationListener:
+    def __init__(
+        self,
+        host: str = "localhost",
+        port: int = 5000,
+        notification_callback: Optional[Callable] = None,
+    ):
+        self.host = host
+        self.port = port
+        self.notification_callback = notification_callback
+        self.app = self._create_app()
+
+    def _create_app(self):
+        app = Starlette()
+        app.add_route("/notify", self.handle_notification, methods=["POST"])
+        return app
+
+    async def handle_notification(self, request: Request):
+        try:
+            data = await request.json()
+            logger.info(f"📨 Notification received on {self.host}:{self.port}: {data}")
+
+            if self.notification_callback:
+                if asyncio.iscoroutinefunction(self.notification_callback):
+                    await self.notification_callback(data)
+                else:
+                    self.notification_callback(data)
+
+            return JSONResponse({"status": "ok"})
+        except Exception as e:
+            logger.error(f"Error handling notification: {e}")
+            return JSONResponse({"error": str(e)}, status_code=500)
+
+    def start(self):
+        logger.info(f"Starting listener on {self.host}:{self.port}")
+        uvicorn.run(self.app, host=self.host, port=self.port)
+
+    async def start_async(self):
+        logger.info(f"Starting async listener on {self.host}:{self.port}")
+        config = uvicorn.Config(
+            self.app, host=self.host, port=self.port, log_level="info"
+        )
+        server = uvicorn.Server(config)
+        await server.serve()
+
+
+def main():
+    listener = NotificationListener()
+    listener.start()
+
+
+if __name__ == "__main__":
+    main()
