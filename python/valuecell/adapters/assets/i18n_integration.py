@@ -48,49 +48,42 @@ class AssetI18nService:
                 "en-GB": "Apple Inc.",
                 "zh-Hans": "苹果公司",
                 "zh-Hant": "蘋果公司",
-                "ja-JP": "アップル",
             },
             "NASDAQ:MSFT": {
                 "en-US": "Microsoft Corporation",
                 "en-GB": "Microsoft Corporation",
                 "zh-Hans": "微软公司",
                 "zh-Hant": "微軟公司",
-                "ja-JP": "マイクロソフト",
             },
             "NASDAQ:GOOGL": {
                 "en-US": "Alphabet Inc.",
                 "en-GB": "Alphabet Inc.",
                 "zh-Hans": "谷歌",
                 "zh-Hant": "谷歌",
-                "ja-JP": "アルファベット",
             },
             "NASDAQ:AMZN": {
                 "en-US": "Amazon.com Inc.",
                 "en-GB": "Amazon.com Inc.",
                 "zh-Hans": "亚马逊",
                 "zh-Hant": "亞馬遜",
-                "ja-JP": "アマゾン",
             },
             "NASDAQ:TSLA": {
                 "en-US": "Tesla Inc.",
                 "en-GB": "Tesla Inc.",
                 "zh-Hans": "特斯拉",
                 "zh-Hant": "特斯拉",
-                "ja-JP": "テスラ",
             },
             "NASDAQ:META": {
                 "en-US": "Meta Platforms Inc.",
                 "en-GB": "Meta Platforms Inc.",
                 "zh-Hans": "Meta平台",
                 "zh-Hant": "Meta平台",
-                "ja-JP": "メタ・プラットフォームズ",
             },
             "NASDAQ:NVDA": {
                 "en-US": "NVIDIA Corporation",
                 "en-GB": "NVIDIA Corporation",
                 "zh-Hans": "英伟达",
                 "zh-Hant": "輝達",
-                "ja-JP": "エヌビディア",
             },
             "NYSE:JPM": {
                 "en-US": "JPMorgan Chase & Co",
@@ -129,38 +122,32 @@ class AssetI18nService:
                 "en-US": "Tencent Holdings Ltd",
                 "zh-Hans": "腾讯控股",
                 "zh-Hant": "騰訊控股",
-                "ja-JP": "テンセント",
             },
             "HKEX:09988": {
                 "en-US": "Alibaba Group Holding Ltd",
                 "zh-Hans": "阿里巴巴集团",
                 "zh-Hant": "阿里巴巴集團",
-                "ja-JP": "アリババ",
             },
             # Cryptocurrencies
             "CRYPTO:BTC": {
                 "en-US": "Bitcoin",
                 "zh-Hans": "比特币",
                 "zh-Hant": "比特幣",
-                "ja-JP": "ビットコイン",
             },
             "CRYPTO:ETH": {
                 "en-US": "Ethereum",
                 "zh-Hans": "以太坊",
                 "zh-Hant": "以太坊",
-                "ja-JP": "イーサリアム",
             },
             "CRYPTO:USDT": {
                 "en-US": "Tether",
                 "zh-Hans": "泰达币",
                 "zh-Hant": "泰達幣",
-                "ja-JP": "テザー",
             },
             "CRYPTO:BNB": {
                 "en-US": "Binance Coin",
                 "zh-Hans": "币安币",
                 "zh-Hant": "幣安幣",
-                "ja-JP": "バイナンスコイン",
             },
         }
 
