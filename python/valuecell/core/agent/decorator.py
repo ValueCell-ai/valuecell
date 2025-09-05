@@ -24,6 +24,7 @@ from a2a.types import (
 )
 from a2a.utils import new_task
 from a2a.utils.errors import ServerError
+from valuecell.core.agent.base import BaseAgent
 from valuecell.core.agent.registry import AgentRegistry
 from valuecell.utils import get_next_available_port
 
@@ -137,7 +138,7 @@ def serve(
 
 
 class GenericAgentExecutor(AgentExecutor):
-    def __init__(self, agent):
+    def __init__(self, agent: BaseAgent):
         self.agent = agent
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
