@@ -94,7 +94,11 @@
         "days": "天",
         "weeks": "周",
         "months": "月",
-        "years": "年"
+        "years": "年",
+        "thousand": "千",
+        "million": "百万",
+        "billion": "十亿",
+        "trillion": "万亿"
     },
     "app": {
         "name": "ValueCell",
@@ -113,5 +117,55 @@
         "preferences": "偏好设置",
         "general": "常规",
         "advanced": "高级"
+    },
+    "assets": {
+        "types": {
+            "stock": "股票",
+            "crypto": "加密货币",
+            "etf": "ETF基金",
+            "bond": "债券",
+            "commodity": "商品",
+            "forex": "外汇",
+            "index": "指数",
+            "mutual_fund": "共同基金",
+            "option": "期权",
+            "future": "期货"
+        },
+        "market_status": {
+            "open": "开盘",
+            "closed": "闭市",
+            "pre_market": "盘前交易",
+            "after_hours": "盘后交易",
+            "halted": "暂停交易",
+            "unknown": "未知"
+        },
+        "watchlist": {
+            "title": "自选股",
+            "my_watchlist": "我的自选",
+            "add_asset": "添加资产",
+            "remove_asset": "移除资产",
+            "search_placeholder": "搜索股票、基金或加密货币...",
+            "no_assets": "暂无自选资产",
+            "price": "价格",
+            "change": "涨跌",
+            "change_percent": "涨跌幅",
+            "market_cap": "市值",
+            "volume": "成交量",
+            "last_updated": "最后更新",
+            "add_to_watchlist": "加入自选",
+            "remove_from_watchlist": "移出自选",
+            "notes": "备注"
+        },
+        "search": {
+            "title": "资产搜索",
+            "placeholder": "输入股票代码或公司名称...",
+            "no_results": "未找到相关资产",
+            "searching": "搜索中...",
+            "results_count": "找到 {count} 个结果",
+            "filters": "筛选条件",
+            "asset_type": "资产类型",
+            "exchange": "交易所",
+            "country": "国家/地区"
+        }
     }
 }
