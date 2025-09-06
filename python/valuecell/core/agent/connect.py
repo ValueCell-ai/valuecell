@@ -74,7 +74,7 @@ class RemoteConnections:
         agent_name: str,
         listener_host: str,
         listener_port: int = None,
-        notification_callback: int = None,
+        notification_callback: callable = None,
     ) -> str:
         """Start a NotificationListener for the agent and return its URL."""
         # Auto-assign port if not specified

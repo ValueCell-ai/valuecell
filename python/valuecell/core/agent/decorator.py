@@ -39,7 +39,7 @@ def serve(
     push_notifications: bool = True,
     description: str = None,
     version: str = "1.0.0",
-    skills: list = None,
+    skills: list[AgentSkill | dict] = None,
 ):
     def decorator(cls: Type) -> Type:
         # Build agent card (port will be assigned when server starts)
