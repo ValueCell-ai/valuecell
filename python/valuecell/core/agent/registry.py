@@ -112,7 +112,9 @@ class AgentRegistry:
             del cls._agents[key]
 
         agent_name = cls.get_agent_name(agent_class)
-        logger.info(f"Unregistered agent: '{agent_name}' (removed keys: {keys_to_remove})")
+        logger.info(
+            f"Unregistered agent: '{agent_name}' (removed keys: {keys_to_remove})"
+        )
         return True
 
     @classmethod
@@ -136,7 +138,9 @@ class AgentRegistry:
             del cls._agents[key]
 
         agent_name = cls.get_agent_name(agent_class)
-        logger.info(f"Unregistered agent: '{agent_name}' (removed keys: {keys_to_remove})")
+        logger.info(
+            f"Unregistered agent: '{agent_name}' (removed keys: {keys_to_remove})"
+        )
         return True
 
     @classmethod
