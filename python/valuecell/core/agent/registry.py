@@ -1,4 +1,7 @@
 from typing import Dict, Type, List
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class AgentRegistry:
@@ -23,9 +26,9 @@ class AgentRegistry:
         # This helps with debugging and class-based lookups
         if class_name != agent_name:
             cls._agents[class_name] = agent_class
-            print(f"Registered agent: '{agent_name}' (class: {class_name})")
+            logger.info(f"Registered agent: '{agent_name}' (class: {class_name})")
         else:
-            print(f"Registered agent: '{agent_name}'")
+            logger.info(f"Registered agent: '{agent_name}'")
 
     @classmethod
     def get_agent(cls, name: str) -> Type:
@@ -109,7 +112,7 @@ class AgentRegistry:
             del cls._agents[key]
 
         agent_name = cls.get_agent_name(agent_class)
-        print(f"Unregistered agent: '{agent_name}' (removed keys: {keys_to_remove})")
+        logger.info(f"Unregistered agent: '{agent_name}' (removed keys: {keys_to_remove})")
         return True
 
     @classmethod
@@ -133,7 +136,7 @@ class AgentRegistry:
             del cls._agents[key]
 
         agent_name = cls.get_agent_name(agent_class)
-        print(f"Unregistered agent: '{agent_name}' (removed keys: {keys_to_remove})")
+        logger.info(f"Unregistered agent: '{agent_name}' (removed keys: {keys_to_remove})")
         return True
 
     @classmethod
@@ -163,7 +166,7 @@ class AgentRegistry:
             # Unregister all
             agent_names = cls.list_agents()
             cls.clear()
-            print(f"Unregistered all agents: {agent_names}")
+            logger.info(f"Unregistered all agents: {agent_names}")
             return agent_names
 
         # Find agents matching pattern
