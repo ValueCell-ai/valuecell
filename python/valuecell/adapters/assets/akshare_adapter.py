@@ -53,25 +53,27 @@ class AKShareAdapter(BaseDataAdapter):
     def _initialize(self) -> None:
         """Initialize AKShare adapter configuration."""
         self.timeout = self.config.get("timeout", 10)  # Reduced timeout duration
-        
+
         # Different cache TTLs for different data types
-        self.price_cache_ttl = self.config.get("price_cache_ttl", 30)  # 30 seconds for real-time prices
-        self.info_cache_ttl = self.config.get("info_cache_ttl", 3600)  # 1 hour for stock info
-        self.hist_cache_ttl = self.config.get("hist_cache_ttl", 1800)  # 30 minutes for historical data
-        
+        self.price_cache_ttl = self.config.get(
+            "price_cache_ttl", 30
+        )  # 30 seconds for real-time prices
+        self.info_cache_ttl = self.config.get(
+            "info_cache_ttl", 3600
+        )  # 1 hour for stock info
+        self.hist_cache_ttl = self.config.get(
+            "hist_cache_ttl", 1800
+        )  # 30 minutes for historical data
+
         self.max_retries = self.config.get("max_retries", 2)  # Maximum retry attempts
 
         # Data caching with different TTLs
         self._cache = {}
         self._cache_lock = threading.Lock()
         self._last_cache_clear = time.time()
-        
+
         # Cache statistics for monitoring
-        self._cache_stats = {
-            "hits": 0,
-            "misses": 0,
-            "evictions": 0
-        }
+        self._cache_stats = {"hits": 0, "misses": 0, "evictions": 0}
 
         # Asset type mapping for AKShare
         self.asset_type_mapping = {
@@ -121,17 +123,20 @@ class AKShareAdapter(BaseDataAdapter):
     def _get_cached_data(self, cache_key: str, fetch_func, *args, **kwargs):
         """Get cached data or fetch new data with adaptive TTL."""
         current_time = time.time()
-        
+
         # Determine TTL based on cache key type
         ttl = self._get_cache_ttl(cache_key)
 
         with self._cache_lock:
             # Clean up expired cache periodically
-            if current_time - self._last_cache_clear > min(self.price_cache_ttl, self.info_cache_ttl):
+            if current_time - self._last_cache_clear > min(
+                self.price_cache_ttl, self.info_cache_ttl
+            ):
                 expired_keys = [
                     key
                     for key, (_, timestamp, key_ttl) in self._cache.items()
-                    if current_time - timestamp > key_ttl * 2  # Keep expired data for fallback
+                    if current_time - timestamp
+                    > key_ttl * 2  # Keep expired data for fallback
                 ]
                 for key in expired_keys:
                     del self._cache[key]
@@ -167,7 +172,7 @@ class AKShareAdapter(BaseDataAdapter):
                     logger.warning(f"Using expired cached data for {cache_key}")
                     return cached_data
             raise
-    
+
     def _get_cache_ttl(self, cache_key: str) -> int:
         """Get appropriate TTL based on cache key type."""
         if "price" in cache_key or "spot" in cache_key:
@@ -176,22 +181,20 @@ class AKShareAdapter(BaseDataAdapter):
             return self.hist_cache_ttl
         else:
             return self.info_cache_ttl
-    
+
     def get_cache_stats(self) -> dict:
         """Get cache statistics for monitoring."""
         with self._cache_lock:
             total_requests = self._cache_stats["hits"] + self._cache_stats["misses"]
             hit_rate = (
-                self._cache_stats["hits"] / total_requests 
-                if total_requests > 0 
-                else 0
+                self._cache_stats["hits"] / total_requests if total_requests > 0 else 0
             )
             return {
                 "cache_size": len(self._cache),
                 "hit_rate": hit_rate,
-                **self._cache_stats
+                **self._cache_stats,
             }
-    
+
     def clear_cache(self) -> None:
         """Clear all cached data."""
         with self._cache_lock:
@@ -433,22 +436,22 @@ class AKShareAdapter(BaseDataAdapter):
     ) -> List[AssetSearchResult]:
         """Search A-share stocks using direct queries."""
         results = []
-        
+
         # If search term looks like A-share code, try direct lookup
         if self._is_a_share_code(search_term):
             result = self._get_a_share_by_code(search_term)
             if result:
                 results.append(result)
                 return results
-        
+
         # For name searches, try fuzzy matching with common patterns
         # This is a simplified approach - in production, you might want to use
         # a search service or maintain a local index
         if len(search_term) >= 2:  # Only search if term is meaningful
             # Try some common A-share codes that might match the search term
             candidate_codes = self._generate_a_share_candidates(search_term)
-            
-            for code in candidate_codes[:query.limit]:
+
+            for code in candidate_codes[: query.limit]:
                 try:
                     result = self._get_a_share_by_code(code)
                     if result and self._matches_search_term(result, search_term):
@@ -456,46 +459,46 @@ class AKShareAdapter(BaseDataAdapter):
                 except Exception as e:
                     logger.debug(f"Failed to get A-share info for {code}: {e}")
                     continue
-        
+
         return results
-    
+
     def _is_a_share_code(self, search_term: str) -> bool:
         """Check if search term looks like an A-share code."""
         return (
-            search_term.isdigit() 
-            and len(search_term) == 6 
+            search_term.isdigit()
+            and len(search_term) == 6
             and search_term.startswith(("6", "0", "3", "8"))
         )
-    
+
     def _get_a_share_by_code(self, stock_code: str) -> Optional[AssetSearchResult]:
         """Get A-share info by stock code using direct query."""
         try:
             # Use individual stock info query
             cache_key = f"a_share_info_{stock_code}"
             df_info = self._get_cached_data(
-                cache_key, 
-                self._safe_akshare_call, 
-                ak.stock_individual_info_em, 
-                symbol=stock_code
+                cache_key,
+                self._safe_akshare_call,
+                ak.stock_individual_info_em,
+                symbol=stock_code,
             )
-            
+
             if df_info is None or df_info.empty:
                 return None
-            
+
             # Extract stock name from info
             info_dict = {}
             for _, row in df_info.iterrows():
                 info_dict[row["item"]] = row["value"]
-            
+
             stock_name = info_dict.get("股票名称", stock_code)
-            
+
             # Determine exchange from code
             exchange_info = self._get_exchange_from_a_share_code(stock_code)
             if not exchange_info:
                 return None
-            
+
             exchange, internal_ticker = exchange_info
-            
+
             return self._create_stock_search_result(
                 internal_ticker,
                 AssetType.STOCK,
@@ -506,26 +509,30 @@ class AKShareAdapter(BaseDataAdapter):
                 "CNY",
                 stock_code,
             )
-        
+
         except Exception as e:
             logger.debug(f"Error getting A-share info for {stock_code}: {e}")
             return None
-    
+
     def _generate_a_share_candidates(self, search_term: str) -> List[str]:
         """Generate candidate A-share codes based on search term."""
         candidates = []
-        
+
         # If it's a partial number, try to complete it
         if search_term.isdigit() and len(search_term) < 6:
             # Try common prefixes
             for prefix in ["6", "0", "3"]:
-                if search_term.startswith(prefix) or not search_term.startswith(("6", "0", "3", "8")):
-                    padded = search_term.ljust(6, '0')
+                if search_term.startswith(prefix) or not search_term.startswith(
+                    ("6", "0", "3", "8")
+                ):
+                    padded = search_term.ljust(6, "0")
                     if not search_term.startswith(("6", "0", "3", "8")):
-                        candidates.extend([f"{prefix}{padded[1:]}" for prefix in ["6", "0", "3"]])
+                        candidates.extend(
+                            [f"{prefix}{padded[1:]}" for prefix in ["6", "0", "3"]]
+                        )
                     else:
                         candidates.append(padded)
-        
+
         # For Chinese names, we would need a mapping service
         # For now, return some common stocks as examples
         common_stocks = [
@@ -535,25 +542,25 @@ class AKShareAdapter(BaseDataAdapter):
             "600036",  # 招商银行
             "600519",  # 贵州茅台
         ]
-        
+
         if not candidates and any("\u4e00" <= char <= "\u9fff" for char in search_term):
             candidates.extend(common_stocks)
-        
+
         return candidates[:10]  # Limit candidates
-    
+
     def _matches_search_term(self, result: AssetSearchResult, search_term: str) -> bool:
         """Check if search result matches the search term."""
         search_lower = search_term.lower()
-        
+
         # Check ticker
         if search_lower in result.ticker.lower():
             return True
-        
+
         # Check names
         for name in result.names.values():
             if name and search_lower in name.lower():
                 return True
-        
+
         return False
 
     def _search_hk_stocks_direct(
@@ -561,18 +568,18 @@ class AKShareAdapter(BaseDataAdapter):
     ) -> List[AssetSearchResult]:
         """Search Hong Kong stocks using direct queries."""
         results = []
-        
+
         # If search term looks like HK stock code, try direct lookup
         if self._is_hk_stock_code(search_term):
             result = self._get_hk_stock_by_code(search_term)
             if result:
                 results.append(result)
                 return results
-        
+
         # For other searches, try common HK stock codes
         candidate_codes = self._generate_hk_stock_candidates(search_term)
-        
-        for code in candidate_codes[:query.limit]:
+
+        for code in candidate_codes[: query.limit]:
             try:
                 result = self._get_hk_stock_by_code(code)
                 if result and self._matches_search_term(result, search_term):
@@ -580,23 +587,25 @@ class AKShareAdapter(BaseDataAdapter):
             except Exception as e:
                 logger.debug(f"Failed to get HK stock info for {code}: {e}")
                 continue
-        
+
         return results
-    
+
     def _is_hk_stock_code(self, search_term: str) -> bool:
         """Check if search term looks like a HK stock code."""
         return search_term.isdigit() and 1 <= len(search_term) <= 5
-    
+
     def _get_hk_stock_by_code(self, stock_code: str) -> Optional[AssetSearchResult]:
         """Get HK stock info by stock code using direct query."""
         try:
             # Format HK stock code
-            formatted_code = stock_code.zfill(5) if not stock_code.startswith("0") else stock_code
-            
+            formatted_code = (
+                stock_code.zfill(5) if not stock_code.startswith("0") else stock_code
+            )
+
             # Try to get HK stock data - note: AKShare may not have direct individual HK stock query
             # so we create a basic result based on code
             internal_ticker = f"HKEX:{formatted_code}"
-            
+
             # Create basic result - in production, you might want to query actual HK stock info
             return self._create_stock_search_result(
                 internal_ticker,
@@ -608,15 +617,15 @@ class AKShareAdapter(BaseDataAdapter):
                 "HKD",
                 stock_code,
             )
-        
+
         except Exception as e:
             logger.debug(f"Error getting HK stock info for {stock_code}: {e}")
             return None
-    
+
     def _generate_hk_stock_candidates(self, search_term: str) -> List[str]:
         """Generate candidate HK stock codes based on search term."""
         candidates = []
-        
+
         # Common HK stocks
         common_hk_stocks = [
             "00700",  # 腾讯
@@ -625,12 +634,12 @@ class AKShareAdapter(BaseDataAdapter):
             "02318",  # 中国平安
             "03988",  # 中国银行
         ]
-        
+
         if search_term.isdigit() and len(search_term) <= 5:
             candidates.append(search_term.zfill(5))
         else:
             candidates.extend(common_hk_stocks)
-        
+
         return candidates[:10]
 
     def _search_us_stocks_direct(
@@ -638,18 +647,18 @@ class AKShareAdapter(BaseDataAdapter):
     ) -> List[AssetSearchResult]:
         """Search US stocks using direct queries."""
         results = []
-        
+
         # If search term looks like US stock symbol, try direct lookup
         if self._is_us_stock_symbol(search_term):
             result = self._get_us_stock_by_symbol(search_term)
             if result:
                 results.append(result)
                 return results
-        
+
         # For other searches, try common US stock symbols
         candidate_symbols = self._generate_us_stock_candidates(search_term)
-        
-        for symbol in candidate_symbols[:query.limit]:
+
+        for symbol in candidate_symbols[: query.limit]:
             try:
                 result = self._get_us_stock_by_symbol(symbol)
                 if result and self._matches_search_term(result, search_term):
@@ -657,20 +666,20 @@ class AKShareAdapter(BaseDataAdapter):
             except Exception as e:
                 logger.debug(f"Failed to get US stock info for {symbol}: {e}")
                 continue
-        
+
         return results
-    
+
     def _is_us_stock_symbol(self, search_term: str) -> bool:
         """Check if search term looks like a US stock symbol."""
         return search_term.isalpha() and 1 <= len(search_term) <= 5
-    
+
     def _get_us_stock_by_symbol(self, symbol: str) -> Optional[AssetSearchResult]:
         """Get US stock info by symbol using direct query."""
         try:
             # Create basic result - AKShare may not have direct individual US stock query
             exchange = "NASDAQ"  # Default to NASDAQ
             internal_ticker = f"{exchange}:{symbol.upper()}"
-            
+
             return self._create_stock_search_result(
                 internal_ticker,
                 AssetType.STOCK,
@@ -681,29 +690,29 @@ class AKShareAdapter(BaseDataAdapter):
                 "USD",
                 symbol,
             )
-        
+
         except Exception as e:
             logger.debug(f"Error getting US stock info for {symbol}: {e}")
             return None
-    
+
     def _generate_us_stock_candidates(self, search_term: str) -> List[str]:
         """Generate candidate US stock symbols based on search term."""
         candidates = []
-        
+
         # Common US stocks
         common_us_stocks = [
             "AAPL",  # Apple
-            "GOOGL", # Google
+            "GOOGL",  # Google
             "MSFT",  # Microsoft
             "AMZN",  # Amazon
             "TSLA",  # Tesla
         ]
-        
+
         if search_term.isalpha() and len(search_term) <= 5:
             candidates.append(search_term.upper())
         else:
             candidates.extend(common_us_stocks)
-        
+
         return candidates[:10]
 
     def _search_crypto_direct(
@@ -711,18 +720,18 @@ class AKShareAdapter(BaseDataAdapter):
     ) -> List[AssetSearchResult]:
         """Search cryptocurrencies using direct queries."""
         results = []
-        
+
         # If search term looks like crypto symbol, try direct lookup
         if self._is_crypto_symbol(search_term):
             result = self._get_crypto_by_symbol(search_term)
             if result:
                 results.append(result)
                 return results
-        
+
         # For other searches, try common crypto symbols
         candidate_symbols = self._generate_crypto_candidates(search_term)
-        
-        for symbol in candidate_symbols[:query.limit]:
+
+        for symbol in candidate_symbols[: query.limit]:
             try:
                 result = self._get_crypto_by_symbol(symbol)
                 if result and self._matches_search_term(result, search_term):
@@ -730,27 +739,27 @@ class AKShareAdapter(BaseDataAdapter):
             except Exception as e:
                 logger.debug(f"Failed to get crypto info for {symbol}: {e}")
                 continue
-        
+
         return results
-    
+
     def _is_crypto_symbol(self, search_term: str) -> bool:
         """Check if search term looks like a crypto symbol."""
         common_crypto = {"BTC", "ETH", "USDT", "BNB", "ADA", "XRP", "SOL", "DOT"}
         return search_term.upper() in common_crypto or (
             search_term.isalpha() and 2 <= len(search_term) <= 10
         )
-    
+
     def _get_crypto_by_symbol(self, symbol: str) -> Optional[AssetSearchResult]:
         """Get crypto info by symbol using direct query."""
         try:
             internal_ticker = f"CRYPTO:{symbol.upper()}"
-            
+
             names = {
                 "zh-Hans": symbol.upper(),
                 "zh-Hant": symbol.upper(),
                 "en-US": symbol.upper(),
             }
-            
+
             return AssetSearchResult(
                 ticker=internal_ticker,
                 asset_type=AssetType.CRYPTO,
@@ -761,32 +770,32 @@ class AKShareAdapter(BaseDataAdapter):
                 market_status=MarketStatus.UNKNOWN,
                 relevance_score=2.0,  # High relevance for direct matches
             )
-        
+
         except Exception as e:
             logger.debug(f"Error getting crypto info for {symbol}: {e}")
             return None
-    
+
     def _generate_crypto_candidates(self, search_term: str) -> List[str]:
         """Generate candidate crypto symbols based on search term."""
         candidates = []
-        
+
         # Common cryptocurrencies
         common_cryptos = [
-            "BTC",   # Bitcoin
-            "ETH",   # Ethereum
+            "BTC",  # Bitcoin
+            "ETH",  # Ethereum
             "USDT",  # Tether
-            "BNB",   # Binance Coin
-            "ADA",   # Cardano
-            "XRP",   # Ripple
-            "SOL",   # Solana
-            "DOT",   # Polkadot
+            "BNB",  # Binance Coin
+            "ADA",  # Cardano
+            "XRP",  # Ripple
+            "SOL",  # Solana
+            "DOT",  # Polkadot
         ]
-        
+
         if search_term.isalpha() and len(search_term) <= 10:
             candidates.append(search_term.upper())
-        
+
         candidates.extend(common_cryptos)
-        
+
         return candidates[:10]
 
     def _search_etfs_direct(
@@ -794,18 +803,18 @@ class AKShareAdapter(BaseDataAdapter):
     ) -> List[AssetSearchResult]:
         """Search ETFs using direct queries."""
         results = []
-        
+
         # If search term looks like ETF code, try direct lookup
         if self._is_etf_code(search_term):
             result = self._get_etf_by_code(search_term)
             if result:
                 results.append(result)
                 return results
-        
+
         # For other searches, try common ETF codes
         candidate_codes = self._generate_etf_candidates(search_term)
-        
-        for code in candidate_codes[:query.limit]:
+
+        for code in candidate_codes[: query.limit]:
             try:
                 result = self._get_etf_by_code(code)
                 if result and self._matches_search_term(result, search_term):
@@ -813,31 +822,31 @@ class AKShareAdapter(BaseDataAdapter):
             except Exception as e:
                 logger.debug(f"Failed to get ETF info for {code}: {e}")
                 continue
-        
+
         return results
-    
+
     def _is_etf_code(self, search_term: str) -> bool:
         """Check if search term looks like an ETF code."""
         return (
-            search_term.isdigit() 
-            and len(search_term) == 6 
+            search_term.isdigit()
+            and len(search_term) == 6
             and search_term.startswith(("5", "1"))
         )
-    
+
     def _get_etf_by_code(self, fund_code: str) -> Optional[AssetSearchResult]:
         """Get ETF info by code using direct query."""
         try:
             # Determine exchange for funds
             exchange = "SSE" if fund_code.startswith("5") else "SZSE"
             internal_ticker = f"{exchange}:{fund_code}"
-            
+
             # Create basic result - in production, you might want to query actual ETF info
             names = {
                 "zh-Hans": f"ETF{fund_code}",
                 "zh-Hant": f"ETF{fund_code}",
                 "en-US": f"ETF{fund_code}",
             }
-            
+
             return AssetSearchResult(
                 ticker=internal_ticker,
                 asset_type=AssetType.ETF,
@@ -848,15 +857,15 @@ class AKShareAdapter(BaseDataAdapter):
                 market_status=MarketStatus.UNKNOWN,
                 relevance_score=2.0,  # High relevance for direct matches
             )
-        
+
         except Exception as e:
             logger.debug(f"Error getting ETF info for {fund_code}: {e}")
             return None
-    
+
     def _generate_etf_candidates(self, search_term: str) -> List[str]:
         """Generate candidate ETF codes based on search term."""
         candidates = []
-        
+
         # Common ETFs
         common_etfs = [
             "510050",  # 50ETF
@@ -865,12 +874,12 @@ class AKShareAdapter(BaseDataAdapter):
             "510500",  # 中证500ETF
             "159915",  # 创业板ETF
         ]
-        
+
         if search_term.isdigit() and len(search_term) == 6:
             candidates.append(search_term)
         else:
             candidates.extend(common_etfs)
-        
+
         return candidates[:10]
 
     def _calculate_relevance(self, search_term: str, code: str, name: str) -> float:
@@ -1123,10 +1132,7 @@ class AKShareAdapter(BaseDataAdapter):
             # Use direct real-time price query for individual stock
             cache_key = f"a_share_price_{symbol}"
             df_realtime = self._get_cached_data(
-                cache_key,
-                self._safe_akshare_call,
-                ak.stock_zh_a_spot_em,
-                symbol=symbol
+                cache_key, self._safe_akshare_call, ak.stock_zh_a_spot_em, symbol=symbol
             )
 
             if df_realtime is None or df_realtime.empty:
@@ -1153,8 +1159,8 @@ class AKShareAdapter(BaseDataAdapter):
             # Calculate change
             change = current_price - pre_close if current_price and pre_close else None
             change_percent = (
-                (change / pre_close) * 100 
-                if change and pre_close and pre_close != 0 
+                (change / pre_close) * 100
+                if change and pre_close and pre_close != 0
                 else None
             )
 
@@ -1181,18 +1187,20 @@ class AKShareAdapter(BaseDataAdapter):
         except Exception as e:
             logger.error(f"Error fetching A-share price for {symbol}: {e}")
             return None
-    
+
     def _get_a_share_price_from_info(
         self, ticker: str, exchange: str, symbol: str
     ) -> Optional[AssetPrice]:
         """Get A-share price from individual stock info as fallback."""
         try:
             # Try to get basic price info from stock individual info
-            df_info = self._safe_akshare_call(ak.stock_individual_info_em, symbol=symbol)
-            
+            df_info = self._safe_akshare_call(
+                ak.stock_individual_info_em, symbol=symbol
+            )
+
             if df_info is None or df_info.empty:
                 return None
-            
+
             # Create basic price info
             return AssetPrice(
                 ticker=ticker,
@@ -1209,11 +1217,11 @@ class AKShareAdapter(BaseDataAdapter):
                 market_cap=None,
                 source=self.source,
             )
-            
+
         except Exception as e:
             logger.error(f"Error fetching A-share info price for {symbol}: {e}")
             return None
-    
+
     def _safe_decimal_convert(self, value) -> Optional[Decimal]:
         """Safely convert value to Decimal."""
         if value is None or value == "":
@@ -1413,7 +1421,9 @@ class AKShareAdapter(BaseDataAdapter):
                 period = "daily"
 
             # Use cached data for historical prices
-            cache_key = f"a_share_hist_{symbol}_{start_date_str}_{end_date_str}_{period}"
+            cache_key = (
+                f"a_share_hist_{symbol}_{start_date_str}_{end_date_str}_{period}"
+            )
             df_hist = self._get_cached_data(
                 cache_key,
                 self._safe_akshare_call,
@@ -1469,9 +1479,11 @@ class AKShareAdapter(BaseDataAdapter):
                         source=self.source,
                     )
                     prices.append(price)
-                    
+
                 except Exception as row_error:
-                    logger.warning(f"Error processing historical data row for {symbol}: {row_error}")
+                    logger.warning(
+                        f"Error processing historical data row for {symbol}: {row_error}"
+                    )
                     continue
 
             logger.info(f"Retrieved {len(prices)} historical price points for {symbol}")

@@ -6,9 +6,9 @@ for financial data retrieval, search, and watchlist management with i18n support
 
 import logging
 
-from valuecell.adapters.assets import (
-    get_adapter_manager,
-    get_asset_api,
+from valuecell.adapters.assets import get_adapter_manager
+from valuecell.services.assets import (
+    get_asset_service,
     search_assets,
     get_asset_info,
     get_asset_price,
@@ -30,11 +30,11 @@ def setup_adapters():
     manager = get_adapter_manager()
 
     # Configure Yahoo Finance (free, no API key required)
-    # try:
-    #     manager.configure_yfinance()
-    #     logger.info("✓ Yahoo Finance adapter configured")
-    # except Exception as e:
-    #     logger.warning(f"✗ Yahoo Finance adapter failed: {e}")
+    try:
+        manager.configure_yfinance()
+        logger.info("✓ Yahoo Finance adapter configured")
+    except Exception as e:
+        logger.warning(f"✗ Yahoo Finance adapter failed: {e}")
 
     # Configure TuShare (requires API key)
     try:
@@ -61,7 +61,7 @@ def setup_adapters():
         logger.warning(f"✗ CoinMarketCap adapter failed: {e}")
 
     # Configure AKShare (free, no API key required)
-    # Now supports US stocks, Hong Kong stocks, and cryptocurrencies
+    # Now supports A-shares, US stocks, Hong Kong stocks, and cryptocurrencies
     try:
         manager.configure_akshare()
         logger.info(
@@ -83,8 +83,8 @@ def setup_adapters():
         logger.warning(f"✗ Finnhub adapter failed: {e}")
 
     # Check system health
-    api = get_asset_api()
-    health = api.get_system_health()
+    service = get_asset_service()
+    health = service.get_system_health()
     logger.info(
         f"System health: {health['overall_status']} "
         f"({health['healthy_adapters']}/{health['total_adapters']} adapters)"
@@ -215,8 +215,8 @@ def demonstrate_price_data():
 
     # Get multiple prices
     logger.info(f"\nGetting prices for multiple assets: {tickers}")
-    api = get_asset_api()
-    prices_data = api.get_multiple_prices(tickers, language="en-US")
+    service = get_asset_service()
+    prices_data = service.get_multiple_prices(tickers, language="en-US")
 
     if prices_data["success"]:
         logger.info(f"Successfully retrieved {prices_data['count']} prices:")
@@ -235,11 +235,11 @@ def demonstrate_watchlist_management():
     logger.info("\n=== Watchlist Management Demo ===")
 
     user_id = "demo_user_123"
-    api = get_asset_api()
+    service = get_asset_service()
 
     # Create a watchlist
     logger.info("Creating a new watchlist...")
-    create_result = api.create_watchlist(
+    create_result = service.create_watchlist(
         user_id=user_id,
         name="My Tech Stocks",
         description="Technology companies I'm watching",
@@ -293,7 +293,7 @@ def demonstrate_watchlist_management():
 
     # List all user watchlists
     logger.info("\nListing all user watchlists...")
-    all_watchlists = api.get_user_watchlists(user_id)
+    all_watchlists = service.get_user_watchlists(user_id)
 
     if all_watchlists["success"]:
         logger.info(f"User {user_id} has {all_watchlists['count']} watchlists:")

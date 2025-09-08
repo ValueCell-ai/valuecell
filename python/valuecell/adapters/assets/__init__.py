@@ -15,7 +15,10 @@ Key Features:
 Usage Example:
     ```python
     from valuecell.adapters.assets import (
-        get_adapter_manager, get_asset_api, search_assets, add_to_watchlist
+        get_adapter_manager, get_watchlist_manager
+    )
+    from valuecell.services.assets import (
+        get_asset_service, search_assets, add_to_watchlist
     )
 
     # Configure data adapters
@@ -23,10 +26,10 @@ Usage Example:
     manager.configure_yfinance()
     manager.configure_tushare(api_key="your_tushare_key")
 
-    # Search for assets
+    # Search for assets (now via service layer)
     results = search_assets("AAPL", language="zh-Hans")
 
-    # Add to watchlist
+    # Add to watchlist (now via service layer)
     add_to_watchlist(user_id="user123", ticker="NASDAQ:AAPL")
     ```
 """
@@ -80,17 +83,8 @@ from .i18n_integration import (
     reset_asset_i18n_service,
 )
 
-# High-level API
-from .api import (
-    AssetAPI,
-    get_asset_api,
-    reset_asset_api,
-    search_assets,
-    get_asset_info,
-    get_asset_price,
-    add_to_watchlist,
-    get_watchlist,
-)
+# Note: High-level asset service functions have been moved to valuecell.services.assets
+# Import from there for asset search, price retrieval, and watchlist operations
 
 __version__ = "1.0.0"
 
@@ -131,13 +125,4 @@ __all__ = [
     "AssetI18nService",
     "get_asset_i18n_service",
     "reset_asset_i18n_service",
-    # API
-    "AssetAPI",
-    "get_asset_api",
-    "reset_asset_api",
-    "search_assets",
-    "get_asset_info",
-    "get_asset_price",
-    "add_to_watchlist",
-    "get_watchlist",
 ]

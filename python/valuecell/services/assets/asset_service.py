@@ -1,6 +1,6 @@
-"""API interface for asset management and watchlist operations.
+"""Asset service for asset management and watchlist operations.
 
-This module provides high-level API functions for asset search, watchlist management,
+This module provides high-level service functions for asset search, watchlist management,
 and price data retrieval with i18n support.
 """
 
@@ -8,19 +8,19 @@ import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
-from .manager import get_adapter_manager, get_watchlist_manager
-from .i18n_integration import get_asset_i18n_service
-from .types import AssetSearchQuery, AssetType
-from ...i18n import get_i18n_config
+from ...adapters.assets.manager import get_adapter_manager, get_watchlist_manager
+from ...adapters.assets.i18n_integration import get_asset_i18n_service
+from ...adapters.assets.types import AssetSearchQuery, AssetType
+from ...config.i18n import get_i18n_config
 
 logger = logging.getLogger(__name__)
 
 
-class AssetAPI:
-    """High-level API for asset operations with i18n support."""
+class AssetService:
+    """High-level service for asset operations with i18n support."""
 
     def __init__(self):
-        """Initialize asset API."""
+        """Initialize asset service."""
         self.adapter_manager = get_adapter_manager()
         self.watchlist_manager = get_watchlist_manager()
         self.i18n_service = get_asset_i18n_service()
@@ -592,45 +592,45 @@ class AssetAPI:
             return {"success": False, "error": str(e), "overall_status": "error"}
 
 
-# Global API instance
-_asset_api: Optional[AssetAPI] = None
+# Global service instance
+_asset_service: Optional[AssetService] = None
 
 
-def get_asset_api() -> AssetAPI:
-    """Get global asset API instance."""
-    global _asset_api
-    if _asset_api is None:
-        _asset_api = AssetAPI()
-    return _asset_api
+def get_asset_service() -> AssetService:
+    """Get global asset service instance."""
+    global _asset_service
+    if _asset_service is None:
+        _asset_service = AssetService()
+    return _asset_service
 
 
-def reset_asset_api() -> None:
-    """Reset global asset API instance (mainly for testing)."""
-    global _asset_api
-    _asset_api = None
+def reset_asset_service() -> None:
+    """Reset global asset service instance (mainly for testing)."""
+    global _asset_service
+    _asset_service = None
 
 
-# Convenience functions for direct API access
+# Convenience functions for direct service access
 def search_assets(query: str, **kwargs) -> Dict[str, Any]:
     """Convenience function for asset search."""
-    return get_asset_api().search_assets(query, **kwargs)
+    return get_asset_service().search_assets(query, **kwargs)
 
 
 def get_asset_info(ticker: str, **kwargs) -> Dict[str, Any]:
     """Convenience function for getting asset info."""
-    return get_asset_api().get_asset_info(ticker, **kwargs)
+    return get_asset_service().get_asset_info(ticker, **kwargs)
 
 
 def get_asset_price(ticker: str, **kwargs) -> Dict[str, Any]:
     """Convenience function for getting asset price."""
-    return get_asset_api().get_asset_price(ticker, **kwargs)
+    return get_asset_service().get_asset_price(ticker, **kwargs)
 
 
 def add_to_watchlist(user_id: str, ticker: str, **kwargs) -> Dict[str, Any]:
     """Convenience function for adding to watchlist."""
-    return get_asset_api().add_to_watchlist(user_id, ticker, **kwargs)
+    return get_asset_service().add_to_watchlist(user_id, ticker, **kwargs)
 
 
 def get_watchlist(user_id: str, **kwargs) -> Dict[str, Any]:
     """Convenience function for getting watchlist."""
-    return get_asset_api().get_watchlist(user_id, **kwargs)
+    return get_asset_service().get_watchlist(user_id, **kwargs)

@@ -52,26 +52,27 @@ pip install yfinance tushare requests pydantic
 ### 2. Basic Usage
 
 ```python
-from valuecell.adapters.assets import (
-    get_adapter_manager, search_assets, add_to_watchlist, get_watchlist
+from valuecell.adapters.assets import get_adapter_manager
+from valuecell.services.assets import (
+    search_assets, add_to_watchlist, get_watchlist
 )
 
 # Configure data adapters
 manager = get_adapter_manager()
 manager.configure_yfinance()  # Free, no API key needed
 
-# Search for assets
+# Search for assets (now via service layer)
 results = search_assets("AAPL", language="zh-Hans")
 print(f"Found {results['count']} assets")
 
-# Add to watchlist
+# Add to watchlist (now via service layer)
 add_to_watchlist(
     user_id="user123", 
     ticker="NASDAQ:AAPL", 
     notes="苹果公司股票"
 )
 
-# Get watchlist with prices
+# Get watchlist with prices (now via service layer)
 watchlist = get_watchlist(user_id="user123", include_prices=True)
 ```
 
@@ -99,7 +100,7 @@ manager.configure_coinmarketcap(api_key="your_cmc_api_key")
 ### Asset Search
 
 ```python
-from valuecell.adapters.assets import search_assets
+from valuecell.services.assets import search_assets
 
 # Basic search
 results = search_assets("Apple")
@@ -118,7 +119,7 @@ results = search_assets(
 ### Asset Information
 
 ```python
-from valuecell.adapters.assets import get_asset_info, get_asset_price
+from valuecell.services.assets import get_asset_info, get_asset_price
 
 # Get detailed asset information
 info = get_asset_info("NASDAQ:AAPL", language="zh-Hans")
@@ -133,23 +134,23 @@ print(price["change_percent_formatted"])  # "+2.5%"
 ### Watchlist Management
 
 ```python
-from valuecell.adapters.assets import get_asset_api
+from valuecell.services.assets import get_asset_service
 
-api = get_asset_api()
+service = get_asset_service()
 
 # Create watchlist
-api.create_watchlist(
+service.create_watchlist(
     user_id="user123",
     name="My Tech Stocks", 
     description="Technology companies"
 )
 
 # Add assets
-api.add_to_watchlist("user123", "NASDAQ:AAPL", notes="iPhone maker")
-api.add_to_watchlist("user123", "NASDAQ:GOOGL", notes="Search engine")
+service.add_to_watchlist("user123", "NASDAQ:AAPL", notes="iPhone maker")
+service.add_to_watchlist("user123", "NASDAQ:GOOGL", notes="Search engine")
 
 # Get watchlist with prices
-watchlist = api.get_watchlist("user123", include_prices=True)
+watchlist = service.get_watchlist("user123", include_prices=True)
 ```
 
 ## Data Source Configuration
@@ -248,14 +249,14 @@ i18n_service.add_asset_translation(
 3. **Specific Adapters**: Implementation for each data source
 4. **Manager** (`manager.py`): Coordinates multiple adapters
 5. **I18n Integration** (`i18n_integration.py`): Localization support
-6. **API** (`api.py`): High-level interface
+6. **Service Layer** (`valuecell.services.assets`): High-level business logic interface
 
 ### Data Flow
 
 ```
-User Request → API Layer → Manager → Adapter → Data Source
-                ↓
-         I18n Service → Localized Response
+User Request → Service Layer → Manager → Adapter → Data Source
+                     ↓
+              I18n Service → Localized Response
 ```
 
 ### Ticker Conversion
@@ -325,10 +326,10 @@ python -m valuecell.examples.asset_adapter_example
 Monitor adapter status:
 
 ```python
-from valuecell.adapters.assets import get_asset_api
+from valuecell.services.assets import get_asset_service
 
-api = get_asset_api()
-health = api.get_system_health()
+service = get_asset_service()
+health = service.get_system_health()
 print(f"System status: {health['overall_status']}")
 ```
 
