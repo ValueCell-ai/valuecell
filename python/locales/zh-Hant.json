@@ -94,7 +94,11 @@
         "days": "天",
         "weeks": "週",
         "months": "月",
-        "years": "年"
+        "years": "年",
+        "thousand": "千",
+        "million": "百萬",
+        "billion": "十億",
+        "trillion": "萬億"
     },
     "app": {
         "name": "ValueCell",
@@ -113,5 +117,55 @@
         "preferences": "偏好設定",
         "general": "一般",
         "advanced": "高級"
+    },
+    "assets": {
+        "types": {
+            "stock": "股票",
+            "crypto": "加密貨幣",
+            "etf": "ETF基金",
+            "bond": "債券",
+            "commodity": "商品",
+            "forex": "外匯",
+            "index": "指數",
+            "mutual_fund": "共同基金",
+            "option": "期權",
+            "future": "期貨"
+        },
+        "market_status": {
+            "open": "開盤",
+            "closed": "閉市",
+            "pre_market": "盤前交易",
+            "after_hours": "盤後交易",
+            "halted": "暫停交易",
+            "unknown": "未知"
+        },
+        "watchlist": {
+            "title": "自選股",
+            "my_watchlist": "我的自選",
+            "add_asset": "新增資產",
+            "remove_asset": "移除資產",
+            "search_placeholder": "搜尋股票、基金或加密貨幣...",
+            "no_assets": "暫無自選資產",
+            "price": "價格",
+            "change": "漲跌",
+            "change_percent": "漲跌幅",
+            "market_cap": "市值",
+            "volume": "成交量",
+            "last_updated": "最後更新",
+            "add_to_watchlist": "加入自選",
+            "remove_from_watchlist": "移出自選",
+            "notes": "備註"
+        },
+        "search": {
+            "title": "資產搜尋",
+            "placeholder": "輸入股票代碼或公司名稱...",
+            "no_results": "未找到相關資產",
+            "searching": "搜尋中...",
+            "results_count": "找到 {count} 個結果",
+            "filters": "篩選條件",
+            "asset_type": "資產類型",
+            "exchange": "交易所",
+            "country": "國家/地區"
+        }
     }
 }

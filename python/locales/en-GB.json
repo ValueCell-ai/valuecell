@@ -61,7 +61,7 @@
         "data_deleted": "Data has been deleted successfully",
         "operation_failed": "Operation failed. Please try again.",
         "network_error": "Network error. Please check your connection.",
-        "unauthorized": "You are not authorised to perform this action",
+        "unauthorised": "You are not authorised to perform this action",
         "session_expired": "Your session has expired. Please login again.",
         "maintenance": "System is under maintenance. Please try again later."
     },
@@ -94,7 +94,11 @@
         "days": "Days",
         "weeks": "Weeks",
         "months": "Months",
-        "years": "Years"
+        "years": "Years",
+        "thousand": "K",
+        "million": "M",
+        "billion": "B",
+        "trillion": "T"
     },
     "app": {
         "name": "ValueCell",
@@ -104,7 +108,7 @@
     },
     "settings": {
         "language": "Language",
-        "timezone": "Timezone",
+        "timezone": "Time Zone",
         "theme": "Theme",
         "notifications": "Notifications",
         "privacy": "Privacy",
@@ -113,5 +117,55 @@
         "preferences": "Preferences",
         "general": "General",
         "advanced": "Advanced"
+    },
+    "assets": {
+        "types": {
+            "stock": "Share",
+            "crypto": "Cryptocurrency",
+            "etf": "ETF",
+            "bond": "Bond",
+            "commodity": "Commodity",
+            "forex": "Foreign Exchange",
+            "index": "Index",
+            "mutual_fund": "Unit Trust",
+            "option": "Option",
+            "future": "Future"
+        },
+        "market_status": {
+            "open": "Open",
+            "closed": "Closed",
+            "pre_market": "Pre-market",
+            "after_hours": "After Hours",
+            "halted": "Halted",
+            "unknown": "Unknown"
+        },
+        "watchlist": {
+            "title": "Watchlist",
+            "my_watchlist": "My Watchlist",
+            "add_asset": "Add Asset",
+            "remove_asset": "Remove Asset",
+            "search_placeholder": "Search shares, funds, or cryptocurrencies...",
+            "no_assets": "No assets in watchlist",
+            "price": "Price",
+            "change": "Change",
+            "change_percent": "Change %",
+            "market_cap": "Market Cap",
+            "volume": "Volume",
+            "last_updated": "Last Updated",
+            "add_to_watchlist": "Add to Watchlist",
+            "remove_from_watchlist": "Remove from Watchlist",
+            "notes": "Notes"
+        },
+        "search": {
+            "title": "Asset Search",
+            "placeholder": "Enter ticker symbol or company name...",
+            "no_results": "No assets found",
+            "searching": "Searching...",
+            "results_count": "Found {count} results",
+            "filters": "Filters",
+            "asset_type": "Asset Type",
+            "exchange": "Exchange",
+            "country": "Country"
+        }
     }
 }

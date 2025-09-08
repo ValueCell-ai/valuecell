@@ -1,0 +1,636 @@
+"""Asset service for asset management and watchlist operations.
+
+This module provides high-level service functions for asset search, watchlist management,
+and price data retrieval with i18n support.
+"""
+
+import logging
+from typing import Dict, List, Optional, Any
+from datetime import datetime
+
+from ...adapters.assets.manager import get_adapter_manager, get_watchlist_manager
+from ...adapters.assets.i18n_integration import get_asset_i18n_service
+from ...adapters.assets.types import AssetSearchQuery, AssetType
+from ...config.i18n import get_i18n_config
+
+logger = logging.getLogger(__name__)
+
+
+class AssetService:
+    """High-level service for asset operations with i18n support."""
+
+    def __init__(self):
+        """Initialize asset service."""
+        self.adapter_manager = get_adapter_manager()
+        self.watchlist_manager = get_watchlist_manager()
+        self.i18n_service = get_asset_i18n_service()
+
+    def search_assets(
+        self,
+        query: str,
+        asset_types: Optional[List[str]] = None,
+        exchanges: Optional[List[str]] = None,
+        countries: Optional[List[str]] = None,
+        limit: int = 50,
+        language: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Search for assets with localization support.
+
+        Args:
+            query: Search query string
+            asset_types: Filter by asset types (optional)
+            exchanges: Filter by exchanges (optional)
+            countries: Filter by countries (optional)
+            limit: Maximum number of results
+            language: Language for localized results
+
+        Returns:
+            Dictionary containing search results and metadata
+        """
+        try:
+            # Convert string asset types to enum
+            parsed_asset_types = None
+            if asset_types:
+                parsed_asset_types = []
+                for asset_type_str in asset_types:
+                    try:
+                        parsed_asset_types.append(AssetType(asset_type_str.lower()))
+                    except ValueError:
+                        logger.warning(f"Invalid asset type: {asset_type_str}")
+
+            # Create search query
+            search_query = AssetSearchQuery(
+                query=query,
+                asset_types=parsed_asset_types,
+                exchanges=exchanges,
+                countries=countries,
+                limit=limit,
+                language=language or get_i18n_config().language,
+            )
+
+            # Perform search
+            results = self.adapter_manager.search_assets(search_query)
+
+            # Localize results
+            localized_results = self.i18n_service.localize_search_results(
+                results, language
+            )
+
+            # Convert to dictionary format
+            result_dicts = []
+            for result in localized_results:
+                result_dict = {
+                    "ticker": result.ticker,
+                    "asset_type": result.asset_type.value,
+                    "asset_type_display": self.i18n_service.get_asset_type_display_name(
+                        result.asset_type, language
+                    ),
+                    "names": result.names,
+                    "display_name": result.get_display_name(
+                        language or get_i18n_config().language
+                    ),
+                    "exchange": result.exchange,
+                    "country": result.country,
+                    "currency": result.currency,
+                    "market_status": result.market_status.value,
+                    "market_status_display": self.i18n_service.get_market_status_display_name(
+                        result.market_status, language
+                    ),
+                    "relevance_score": result.relevance_score,
+                }
+                result_dicts.append(result_dict)
+
+            return {
+                "success": True,
+                "results": result_dicts,
+                "count": len(result_dicts),
+                "query": query,
+                "filters": {
+                    "asset_types": asset_types,
+                    "exchanges": exchanges,
+                    "countries": countries,
+                    "limit": limit,
+                },
+                "language": language or get_i18n_config().language,
+            }
+
+        except Exception as e:
+            logger.error(f"Error searching assets: {e}")
+            return {"success": False, "error": str(e), "results": [], "count": 0}
+
+    def get_asset_info(
+        self, ticker: str, language: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Get detailed asset information with localization.
+
+        Args:
+            ticker: Asset ticker in internal format
+            language: Language for localized content
+
+        Returns:
+            Dictionary containing asset information
+        """
+        try:
+            asset = self.adapter_manager.get_asset_info(ticker)
+
+            if not asset:
+                return {"success": False, "error": "Asset not found", "ticker": ticker}
+
+            # Localize asset
+            localized_asset = self.i18n_service.localize_asset(asset, language)
+
+            # Convert to dictionary
+            asset_dict = {
+                "success": True,
+                "ticker": localized_asset.ticker,
+                "asset_type": localized_asset.asset_type.value,
+                "asset_type_display": self.i18n_service.get_asset_type_display_name(
+                    localized_asset.asset_type, language
+                ),
+                "names": localized_asset.names.names,
+                "display_name": localized_asset.get_localized_name(
+                    language or get_i18n_config().language
+                ),
+                "descriptions": localized_asset.descriptions,
+                "market_info": {
+                    "exchange": localized_asset.market_info.exchange,
+                    "country": localized_asset.market_info.country,
+                    "currency": localized_asset.market_info.currency,
+                    "timezone": localized_asset.market_info.timezone,
+                    "trading_hours": localized_asset.market_info.trading_hours,
+                    "market_status": localized_asset.market_info.market_status.value,
+                },
+                "source_mappings": {
+                    k.value: v for k, v in localized_asset.source_mappings.items()
+                },
+                "properties": localized_asset.properties,
+                "created_at": localized_asset.created_at.isoformat(),
+                "updated_at": localized_asset.updated_at.isoformat(),
+                "is_active": localized_asset.is_active,
+            }
+
+            return asset_dict
+
+        except Exception as e:
+            logger.error(f"Error getting asset info for {ticker}: {e}")
+            return {"success": False, "error": str(e), "ticker": ticker}
+
+    def get_asset_price(
+        self, ticker: str, language: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Get current price for an asset with localized formatting.
+
+        Args:
+            ticker: Asset ticker in internal format
+            language: Language for localized formatting
+
+        Returns:
+            Dictionary containing price information
+        """
+        try:
+            price_data = self.adapter_manager.get_real_time_price(ticker)
+
+            if not price_data:
+                return {
+                    "success": False,
+                    "error": "Price data not available",
+                    "ticker": ticker,
+                }
+
+            # Format price data with localization
+            formatted_price = {
+                "success": True,
+                "ticker": price_data.ticker,
+                "price": float(price_data.price),
+                "price_formatted": self.i18n_service.format_currency_amount(
+                    float(price_data.price), price_data.currency, language
+                ),
+                "currency": price_data.currency,
+                "timestamp": price_data.timestamp.isoformat(),
+                "volume": float(price_data.volume) if price_data.volume else None,
+                "open_price": float(price_data.open_price)
+                if price_data.open_price
+                else None,
+                "high_price": float(price_data.high_price)
+                if price_data.high_price
+                else None,
+                "low_price": float(price_data.low_price)
+                if price_data.low_price
+                else None,
+                "close_price": float(price_data.close_price)
+                if price_data.close_price
+                else None,
+                "change": float(price_data.change) if price_data.change else None,
+                "change_percent": float(price_data.change_percent)
+                if price_data.change_percent
+                else None,
+                "change_percent_formatted": self.i18n_service.format_percentage_change(
+                    float(price_data.change_percent), language
+                )
+                if price_data.change_percent
+                else None,
+                "market_cap": float(price_data.market_cap)
+                if price_data.market_cap
+                else None,
+                "market_cap_formatted": self.i18n_service.format_market_cap(
+                    float(price_data.market_cap), price_data.currency, language
+                )
+                if price_data.market_cap
+                else None,
+                "source": price_data.source.value if price_data.source else None,
+            }
+
+            return formatted_price
+
+        except Exception as e:
+            logger.error(f"Error getting price for {ticker}: {e}")
+            return {"success": False, "error": str(e), "ticker": ticker}
+
+    def get_multiple_prices(
+        self, tickers: List[str], language: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Get prices for multiple assets efficiently.
+
+        Args:
+            tickers: List of asset tickers
+            language: Language for localized formatting
+
+        Returns:
+            Dictionary containing price data for all tickers
+        """
+        try:
+            price_data = self.adapter_manager.get_multiple_prices(tickers)
+
+            formatted_prices = {}
+
+            for ticker, price in price_data.items():
+                if price:
+                    formatted_prices[ticker] = {
+                        "price": float(price.price),
+                        "price_formatted": self.i18n_service.format_currency_amount(
+                            float(price.price), price.currency, language
+                        ),
+                        "currency": price.currency,
+                        "timestamp": price.timestamp.isoformat(),
+                        "change": float(price.change) if price.change else None,
+                        "change_percent": float(price.change_percent)
+                        if price.change_percent
+                        else None,
+                        "change_percent_formatted": self.i18n_service.format_percentage_change(
+                            float(price.change_percent), language
+                        )
+                        if price.change_percent
+                        else None,
+                        "volume": float(price.volume) if price.volume else None,
+                        "market_cap": float(price.market_cap)
+                        if price.market_cap
+                        else None,
+                        "market_cap_formatted": self.i18n_service.format_market_cap(
+                            float(price.market_cap), price.currency, language
+                        )
+                        if price.market_cap
+                        else None,
+                        "source": price.source.value if price.source else None,
+                    }
+                else:
+                    formatted_prices[ticker] = None
+
+            return {
+                "success": True,
+                "prices": formatted_prices,
+                "count": len([p for p in formatted_prices.values() if p is not None]),
+                "requested_count": len(tickers),
+            }
+
+        except Exception as e:
+            logger.error(f"Error getting multiple prices: {e}")
+            return {"success": False, "error": str(e), "prices": {}}
+
+    def create_watchlist(
+        self,
+        user_id: str,
+        name: str = "My Watchlist",
+        description: str = "",
+        is_default: bool = False,
+    ) -> Dict[str, Any]:
+        """Create a new watchlist for a user.
+
+        Args:
+            user_id: User identifier
+            name: Watchlist name
+            description: Watchlist description
+            is_default: Whether this is the default watchlist
+
+        Returns:
+            Dictionary containing created watchlist information
+        """
+        try:
+            watchlist = self.watchlist_manager.create_watchlist(
+                user_id, name, description, is_default
+            )
+
+            return {
+                "success": True,
+                "watchlist": {
+                    "user_id": watchlist.user_id,
+                    "name": watchlist.name,
+                    "description": watchlist.description,
+                    "created_at": watchlist.created_at.isoformat(),
+                    "updated_at": watchlist.updated_at.isoformat(),
+                    "is_default": watchlist.is_default,
+                    "is_public": watchlist.is_public,
+                    "items_count": len(watchlist.items),
+                },
+            }
+
+        except Exception as e:
+            logger.error(f"Error creating watchlist: {e}")
+            return {"success": False, "error": str(e)}
+
+    def add_to_watchlist(
+        self,
+        user_id: str,
+        ticker: str,
+        watchlist_name: Optional[str] = None,
+        notes: str = "",
+    ) -> Dict[str, Any]:
+        """Add an asset to a watchlist.
+
+        Args:
+            user_id: User identifier
+            ticker: Asset ticker to add
+            watchlist_name: Watchlist name (uses default if None)
+            notes: User notes about the asset
+
+        Returns:
+            Dictionary containing operation result
+        """
+        try:
+            success = self.watchlist_manager.add_asset_to_watchlist(
+                user_id, ticker, watchlist_name, notes
+            )
+
+            if success:
+                return {
+                    "success": True,
+                    "message": "Asset added to watchlist successfully",
+                    "ticker": ticker,
+                    "user_id": user_id,
+                    "watchlist_name": watchlist_name,
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": "Failed to add asset to watchlist",
+                    "ticker": ticker,
+                }
+
+        except Exception as e:
+            logger.error(f"Error adding {ticker} to watchlist: {e}")
+            return {"success": False, "error": str(e), "ticker": ticker}
+
+    def remove_from_watchlist(
+        self, user_id: str, ticker: str, watchlist_name: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Remove an asset from a watchlist.
+
+        Args:
+            user_id: User identifier
+            ticker: Asset ticker to remove
+            watchlist_name: Watchlist name (uses default if None)
+
+        Returns:
+            Dictionary containing operation result
+        """
+        try:
+            success = self.watchlist_manager.remove_asset_from_watchlist(
+                user_id, ticker, watchlist_name
+            )
+
+            if success:
+                return {
+                    "success": True,
+                    "message": "Asset removed from watchlist successfully",
+                    "ticker": ticker,
+                    "user_id": user_id,
+                    "watchlist_name": watchlist_name,
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": "Asset not found in watchlist or watchlist not found",
+                    "ticker": ticker,
+                }
+
+        except Exception as e:
+            logger.error(f"Error removing {ticker} from watchlist: {e}")
+            return {"success": False, "error": str(e), "ticker": ticker}
+
+    def get_watchlist(
+        self,
+        user_id: str,
+        watchlist_name: Optional[str] = None,
+        include_prices: bool = True,
+        language: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Get watchlist with asset information and prices.
+
+        Args:
+            user_id: User identifier
+            watchlist_name: Watchlist name (uses default if None)
+            include_prices: Whether to include current prices
+            language: Language for localized content
+
+        Returns:
+            Dictionary containing watchlist data
+        """
+        try:
+            # Get watchlist
+            if watchlist_name:
+                watchlist = self.watchlist_manager.get_watchlist(
+                    user_id, watchlist_name
+                )
+            else:
+                watchlist = self.watchlist_manager.get_default_watchlist(user_id)
+
+            if not watchlist:
+                return {
+                    "success": False,
+                    "error": "Watchlist not found",
+                    "user_id": user_id,
+                    "watchlist_name": watchlist_name,
+                }
+
+            # Get asset information and prices
+            assets_data = []
+            tickers = watchlist.get_tickers()
+
+            # Get prices if requested
+            prices_data = {}
+            if include_prices and tickers:
+                prices_result = self.get_multiple_prices(tickers, language)
+                if prices_result["success"]:
+                    prices_data = prices_result["prices"]
+
+            # Build asset data
+            for item in sorted(watchlist.items, key=lambda x: x.order):
+                asset_data = {
+                    "ticker": item.ticker,
+                    "display_name": self.i18n_service.get_localized_asset_name(
+                        item.ticker, language
+                    ),
+                    "added_at": item.added_at.isoformat(),
+                    "order": item.order,
+                    "notes": item.notes,
+                    "alerts": item.alerts,
+                }
+
+                # Add price data if available
+                if item.ticker in prices_data and prices_data[item.ticker]:
+                    asset_data["price_data"] = prices_data[item.ticker]
+
+                assets_data.append(asset_data)
+
+            return {
+                "success": True,
+                "watchlist": {
+                    "user_id": watchlist.user_id,
+                    "name": watchlist.name,
+                    "description": watchlist.description,
+                    "created_at": watchlist.created_at.isoformat(),
+                    "updated_at": watchlist.updated_at.isoformat(),
+                    "is_default": watchlist.is_default,
+                    "is_public": watchlist.is_public,
+                    "items_count": len(watchlist.items),
+                    "assets": assets_data,
+                },
+            }
+
+        except Exception as e:
+            logger.error(f"Error getting watchlist: {e}")
+            return {"success": False, "error": str(e), "user_id": user_id}
+
+    def get_user_watchlists(self, user_id: str) -> Dict[str, Any]:
+        """Get all watchlists for a user.
+
+        Args:
+            user_id: User identifier
+
+        Returns:
+            Dictionary containing all user watchlists
+        """
+        try:
+            watchlists = self.watchlist_manager.get_user_watchlists(user_id)
+
+            watchlists_data = []
+            for watchlist in watchlists:
+                watchlist_data = {
+                    "name": watchlist.name,
+                    "description": watchlist.description,
+                    "created_at": watchlist.created_at.isoformat(),
+                    "updated_at": watchlist.updated_at.isoformat(),
+                    "is_default": watchlist.is_default,
+                    "is_public": watchlist.is_public,
+                    "items_count": len(watchlist.items),
+                }
+                watchlists_data.append(watchlist_data)
+
+            return {
+                "success": True,
+                "user_id": user_id,
+                "watchlists": watchlists_data,
+                "count": len(watchlists_data),
+            }
+
+        except Exception as e:
+            logger.error(f"Error getting user watchlists: {e}")
+            return {"success": False, "error": str(e), "user_id": user_id}
+
+    def get_system_health(self) -> Dict[str, Any]:
+        """Get system health status for all data adapters.
+
+        Returns:
+            Dictionary containing health status for all adapters
+        """
+        try:
+            health_data = self.adapter_manager.health_check()
+
+            # Convert enum keys to strings
+            health_status = {}
+            for source, status in health_data.items():
+                health_status[source.value] = status
+
+            # Calculate overall health
+            healthy_count = sum(
+                1
+                for status in health_status.values()
+                if status.get("status") == "healthy"
+            )
+            total_count = len(health_status)
+
+            # Determine overall status
+            if total_count == 0:
+                overall_status = "no_adapters"
+            elif healthy_count == total_count:
+                overall_status = "healthy"
+            elif healthy_count > 0:
+                overall_status = "degraded"
+            else:
+                overall_status = "unhealthy"
+
+            return {
+                "success": True,
+                "overall_status": overall_status,
+                "healthy_adapters": healthy_count,
+                "total_adapters": total_count,
+                "adapters": health_status,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+
+        except Exception as e:
+            logger.error(f"Error getting system health: {e}")
+            return {"success": False, "error": str(e), "overall_status": "error"}
+
+
+# Global service instance
+_asset_service: Optional[AssetService] = None
+
+
+def get_asset_service() -> AssetService:
+    """Get global asset service instance."""
+    global _asset_service
+    if _asset_service is None:
+        _asset_service = AssetService()
+    return _asset_service
+
+
+def reset_asset_service() -> None:
+    """Reset global asset service instance (mainly for testing)."""
+    global _asset_service
+    _asset_service = None
+
+
+# Convenience functions for direct service access
+def search_assets(query: str, **kwargs) -> Dict[str, Any]:
+    """Convenience function for asset search."""
+    return get_asset_service().search_assets(query, **kwargs)
+
+
+def get_asset_info(ticker: str, **kwargs) -> Dict[str, Any]:
+    """Convenience function for getting asset info."""
+    return get_asset_service().get_asset_info(ticker, **kwargs)
+
+
+def get_asset_price(ticker: str, **kwargs) -> Dict[str, Any]:
+    """Convenience function for getting asset price."""
+    return get_asset_service().get_asset_price(ticker, **kwargs)
+
+
+def add_to_watchlist(user_id: str, ticker: str, **kwargs) -> Dict[str, Any]:
+    """Convenience function for adding to watchlist."""
+    return get_asset_service().add_to_watchlist(user_id, ticker, **kwargs)
+
+
+def get_watchlist(user_id: str, **kwargs) -> Dict[str, Any]:
+    """Convenience function for getting watchlist."""
+    return get_asset_service().get_watchlist(user_id, **kwargs)
