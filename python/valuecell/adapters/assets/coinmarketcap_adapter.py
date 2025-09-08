@@ -404,7 +404,7 @@ class CoinMarketCapAdapter(BaseDataAdapter):
             exchange, symbol = ticker.split(":", 1)
 
             # CoinMarketCap supports crypto tickers
-            supported_exchanges = ["CRYPTO", "BINANCE", "COINBASE"]
+            supported_exchanges = ["CRYPTO"]
 
             return exchange in supported_exchanges
 
@@ -472,6 +472,6 @@ class CoinMarketCapAdapter(BaseDataAdapter):
 
     def is_market_open(self, exchange: str) -> bool:
         """Cryptocurrency markets are always open."""
-        if exchange in ["CRYPTO", "BINANCE", "COINBASE"]:
+        if exchange in ["CRYPTO"]:
             return True
         return False

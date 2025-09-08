@@ -57,22 +57,16 @@ class AdapterManager:
                 DataSource.FINNHUB,
                 DataSource.AKSHARE,
             ],
-            AssetType.CRYPTO: [DataSource.COINMARKETCAP, DataSource.YFINANCE],
+            AssetType.CRYPTO: [
+                DataSource.COINMARKETCAP,
+                DataSource.YFINANCE,
+                DataSource.AKSHARE,
+            ],
             AssetType.INDEX: [
                 DataSource.YFINANCE,
                 DataSource.TUSHARE,
                 DataSource.AKSHARE,
             ],
-            AssetType.FOREX: [DataSource.YFINANCE],
-            AssetType.BOND: [
-                DataSource.TUSHARE,
-                DataSource.AKSHARE,
-                DataSource.YFINANCE,
-            ],
-            AssetType.MUTUAL_FUND: [DataSource.YFINANCE, DataSource.FINNHUB],
-            AssetType.COMMODITY: [DataSource.YFINANCE],
-            AssetType.OPTION: [DataSource.YFINANCE],
-            AssetType.FUTURE: [DataSource.YFINANCE],
         }
 
     def register_adapter(self, adapter: BaseDataAdapter) -> None:
@@ -202,7 +196,6 @@ class AdapterManager:
                 "SZSE": AssetType.STOCK,
                 "HKEX": AssetType.STOCK,
                 "CRYPTO": AssetType.CRYPTO,
-                "BINANCE": AssetType.CRYPTO,
             }
 
             asset_type = exchange_asset_mapping.get(exchange, AssetType.STOCK)

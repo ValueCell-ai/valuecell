@@ -13,18 +13,21 @@ from pydantic import BaseModel, Field, validator
 
 
 class AssetType(str, Enum):
-    """Enumeration of supported asset types."""
+    """Enumeration of supported asset types.
+
+    The other asset types are not supported yet.
+    """
 
     STOCK = "stock"
     CRYPTO = "crypto"
     ETF = "etf"
-    BOND = "bond"
-    COMMODITY = "commodity"
-    FOREX = "forex"
+    # BOND = "bond"
+    # COMMODITY = "commodity"
+    # FOREX = "forex"
     INDEX = "index"
-    MUTUAL_FUND = "mutual_fund"
-    OPTION = "option"
-    FUTURE = "future"
+    # MUTUAL_FUND = "mutual_fund"
+    # OPTION = "option"
+    # FUTURE = "future"
 
 
 class MarketStatus(str, Enum):
@@ -54,7 +57,7 @@ class DataSource(str, Enum):
 class MarketInfo:
     """Market information for an asset."""
 
-    exchange: str  # Exchange identifier (e.g., "NASDAQ", "NYSE", "SSE", "BINANCE")
+    exchange: str  # Exchange identifier (e.g., "NASDAQ", "NYSE", "SSE", "CRYPTO")
     country: str  # ISO country code (e.g., "US", "CN", "HK")
     currency: str  # Currency code (e.g., "USD", "CNY", "HKD", "BTC")
     timezone: str  # Market timezone (e.g., "America/New_York", "Asia/Shanghai")

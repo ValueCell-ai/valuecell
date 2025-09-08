@@ -107,8 +107,8 @@ def demonstrate_asset_search():
             )
 
     # Search in Chinese
-    logger.info("\nSearching for 'Apple' in Chinese...")
-    results_zh = search_assets("Apple", language="zh-Hans", limit=5)
+    logger.info("\nSearching for '00700.HK' in Chinese...")
+    results_zh = search_assets("00700.HK", language="zh-Hans", limit=5)
 
     if results_zh["success"]:
         logger.info(f"找到 {results_zh['count']} 个结果:")
@@ -120,7 +120,7 @@ def demonstrate_asset_search():
 
     # Search for Chinese stocks
     logger.info("\nSearching for Chinese stocks...")
-    results_cn = search_assets("茅台", asset_types=["stock"], limit=3)
+    results_cn = search_assets("600519", asset_types=["stock"], limit=3)
 
     if results_cn["success"]:
         logger.info(f"Found {results_cn['count']} Chinese stocks:")
@@ -129,7 +129,7 @@ def demonstrate_asset_search():
 
     # Search for cryptocurrencies
     logger.info("\nSearching for cryptocurrencies...")
-    results_crypto = search_assets("Bitcoin", asset_types=["crypto"], limit=3)
+    results_crypto = search_assets("BTC-USD", asset_types=["crypto"], limit=3)
 
     if results_crypto["success"]:
         logger.info(f"Found {results_crypto['count']} cryptocurrencies:")
@@ -142,7 +142,7 @@ def demonstrate_asset_info():
     logger.info("\n=== Asset Information Demo ===")
 
     # Get info for Apple stock
-    tickers = ["NASDAQ:AAPL", "SSE:600519", "CRYPTO:BTC"]
+    tickers = ["NASDAQ:AAPL", "HKEX:700", "SSE:600519", "CRYPTO:BTC"]
 
     for ticker in tickers:
         logger.info(f"\nGetting info for {ticker}...")
@@ -169,18 +169,18 @@ def demonstrate_price_data():
     """Demonstrate real-time price data retrieval."""
     logger.info("\n=== Price Data Demo ===")
 
-    tickers = ["NASDAQ:AAPL", "NASDAQ:MSFT", "NASDAQ:GOOGL"]
+    tickers = ["NASDAQ:AAPL", "HKEX:700", "SSE:600519", "CRYPTO:BTC"]
 
     # Get individual price
     logger.info("Getting individual price for AAPL...")
-    price_data = get_asset_price("NASDAQ:AAPL", language="zh-Hans")
+    price_data = get_asset_price("NASDAQ:AAPL", language="en-US")
 
     if price_data["success"]:
-        logger.info(f"  价格: {price_data['price_formatted']}")
+        logger.info(f"  Price: {price_data['price_formatted']}")
         if price_data["change_percent_formatted"]:
-            logger.info(f"  涨跌幅: {price_data['change_percent_formatted']}")
+            logger.info(f"  Change: {price_data['change_percent_formatted']}")
         if price_data["market_cap_formatted"]:
-            logger.info(f"  市值: {price_data['market_cap_formatted']}")
+            logger.info(f"  Market Cap: {price_data['market_cap_formatted']}")
 
     # Get multiple prices
     logger.info(f"\nGetting prices for multiple assets: {tickers}")
@@ -221,9 +221,9 @@ def demonstrate_watchlist_management():
     # Add assets to watchlist
     assets_to_add = [
         ("NASDAQ:AAPL", "Apple - iPhone maker"),
-        ("NASDAQ:MSFT", "Microsoft - Cloud and software"),
-        ("NASDAQ:GOOGL", "Google - Search and ads"),
-        ("NASDAQ:TSLA", "Tesla - Electric vehicles"),
+        ("HKEX:700", "Tencent - Chinese tech giant"),
+        ("SSE:600519", "Kweichow Moutai - Chinese liquor company"),
+        ("CRYPTO:BTC", "Bitcoin - First and largest cryptocurrency"),
     ]
 
     logger.info("Adding assets to watchlist...")
@@ -242,8 +242,8 @@ def demonstrate_watchlist_management():
 
     if watchlist_data["success"]:
         watchlist = watchlist_data["watchlist"]
-        logger.info(f"观察列表: {watchlist['name']}")
-        logger.info(f"资产数量: {watchlist['items_count']}")
+        logger.info(f"Watchlist: {watchlist['name']}")
+        logger.info(f"Number of assets: {watchlist['items_count']}")
 
         for asset in watchlist["assets"]:
             display_name = asset["display_name"]
@@ -258,17 +258,19 @@ def demonstrate_watchlist_management():
 
             logger.info(f"  • {display_name}{price_info}")
             if notes:
-                logger.info(f"    备注: {notes}")
+                logger.info(f"    Notes: {notes}")
 
     # List all user watchlists
     logger.info("\nListing all user watchlists...")
     all_watchlists = api.get_user_watchlists(user_id)
 
     if all_watchlists["success"]:
-        logger.info(f"用户 {user_id} 有 {all_watchlists['count']} 个观察列表:")
+        logger.info(f"User {user_id} has {all_watchlists['count']} watchlists:")
         for wl in all_watchlists["watchlists"]:
-            default_marker = " (默认)" if wl["is_default"] else ""
-            logger.info(f"  • {wl['name']}{default_marker} - {wl['items_count']} 资产")
+            default_marker = " (Default)" if wl["is_default"] else ""
+            logger.info(
+                f"  • {wl['name']}{default_marker} - {wl['items_count']} assets"
+            )
 
 
 def demonstrate_i18n_features():
@@ -287,19 +289,19 @@ def demonstrate_i18n_features():
         set_i18n_config(config)
 
         # Search for assets
-        results = search_assets("Apple", language=lang, limit=1)
+        results = search_assets("APPL", language=lang, limit=1)
         if results["success"] and results["results"]:
             result = results["results"][0]
             logger.info(
-                f"  搜索结果: {result['display_name']} ({result['asset_type_display']})"
+                f"  Search result: {result['display_name']} ({result['asset_type_display']})"
             )
 
         # Get price with localized formatting
         price_data = get_asset_price(ticker, language=lang)
         if price_data["success"]:
-            logger.info(f"  价格: {price_data['price_formatted']}")
+            logger.info(f"  Price: {price_data['price_formatted']}")
             if price_data.get("change_percent_formatted"):
-                logger.info(f"  涨跌: {price_data['change_percent_formatted']}")
+                logger.info(f"  Change: {price_data['change_percent_formatted']}")
 
 
 def main():

@@ -51,9 +51,7 @@ class YFinanceAdapter(BaseDataAdapter):
         self.asset_type_mapping = {
             "EQUITY": AssetType.STOCK,
             "ETF": AssetType.ETF,
-            "MUTUALFUND": AssetType.MUTUAL_FUND,
             "INDEX": AssetType.INDEX,
-            "CURRENCY": AssetType.FOREX,
             "CRYPTOCURRENCY": AssetType.CRYPTO,
         }
 
@@ -65,6 +63,7 @@ class YFinanceAdapter(BaseDataAdapter):
         Note: Yahoo Finance doesn't have a direct search API, so this implementation
         uses common ticker patterns and known symbols. For production use, consider
         integrating with a dedicated search service.
+        TODO: Implement a dedicated search service.
         """
         results = []
         search_term = query.query.upper().strip()
@@ -354,10 +353,28 @@ class YFinanceAdapter(BaseDataAdapter):
             # Convert to source tickers
             source_tickers = [self.convert_to_source_ticker(t) for t in tickers]
 
-            # Use yfinance's download function for batch requests
-            data = yf.download(
-                source_tickers, period="1d", interval="1m", group_by="ticker"
-            )
+            # Try minute data first, then fall back to daily data
+            data = None
+            for interval, period in [("1m", "1d"), ("1d", "5d")]:
+                try:
+                    data = yf.download(
+                        source_tickers,
+                        period=period,
+                        interval=interval,
+                        group_by="ticker",
+                    )
+                    if not data.empty:
+                        break
+                    logger.warning(f"No data with {interval} interval, trying next...")
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to fetch data with {interval} interval: {e}"
+                    )
+                    continue
+
+            if data is None or data.empty:
+                logger.error("Failed to fetch data with all intervals")
+                return {ticker: None for ticker in tickers}
 
             results = {}
 
@@ -379,18 +396,48 @@ class YFinanceAdapter(BaseDataAdapter):
                     # Get the most recent data point
                     latest = ticker_data.iloc[-1]
 
+                    # Check if we have valid price data
+                    import pandas as pd
+
+                    if pd.isna(latest["Close"]) or latest["Close"] is None:
+                        # Try to find the most recent valid data point
+                        valid_data = ticker_data.dropna(subset=["Close"])
+                        if valid_data.empty:
+                            logger.warning(f"No valid price data found for {ticker}")
+                            results[ticker] = None
+                            continue
+                        latest = valid_data.iloc[-1]
+
                     # Get additional info for currency and market cap
                     ticker_obj = yf.Ticker(source_ticker)
                     info = ticker_obj.info
 
-                    current_price = Decimal(str(latest["Close"]))
-                    previous_close = Decimal(
-                        str(info.get("previousClose", latest["Close"]))
+                    # Safe Decimal conversion with NaN check
+                    def safe_decimal(value, default=None):
+                        if pd.isna(value) or value is None:
+                            return default
+                        try:
+                            return Decimal(str(float(value)))
+                        except (ValueError, TypeError, OverflowError):
+                            return default
+
+                    current_price = safe_decimal(latest["Close"])
+                    if current_price is None:
+                        logger.warning(f"Invalid price data for {ticker}")
+                        results[ticker] = None
+                        continue
+
+                    previous_close = safe_decimal(
+                        info.get("previousClose"), current_price
                     )
-                    change = current_price - previous_close
+                    change = (
+                        current_price - previous_close
+                        if previous_close
+                        else Decimal("0")
+                    )
                     change_percent = (
                         (change / previous_close) * 100
-                        if previous_close
+                        if previous_close and previous_close != 0
                         else Decimal("0")
                     )
 
@@ -399,18 +446,14 @@ class YFinanceAdapter(BaseDataAdapter):
                         price=current_price,
                         currency=info.get("currency", "USD"),
                         timestamp=latest.name.to_pydatetime(),
-                        volume=Decimal(str(latest["Volume"]))
-                        if latest["Volume"]
-                        else None,
-                        open_price=Decimal(str(latest["Open"])),
-                        high_price=Decimal(str(latest["High"])),
-                        low_price=Decimal(str(latest["Low"])),
+                        volume=safe_decimal(latest["Volume"]),
+                        open_price=safe_decimal(latest["Open"]),
+                        high_price=safe_decimal(latest["High"]),
+                        low_price=safe_decimal(latest["Low"]),
                         close_price=current_price,
                         change=change,
                         change_percent=change_percent,
-                        market_cap=Decimal(str(info["marketCap"]))
-                        if info.get("marketCap")
-                        else None,
+                        market_cap=safe_decimal(info.get("marketCap")),
                         source=self.source,
                     )
 
@@ -430,12 +473,8 @@ class YFinanceAdapter(BaseDataAdapter):
         return [
             AssetType.STOCK,
             AssetType.ETF,
-            AssetType.MUTUAL_FUND,
             AssetType.INDEX,
-            AssetType.FOREX,
             AssetType.CRYPTO,
-            AssetType.OPTION,
-            AssetType.FUTURE,
         ]
 
     def _perform_health_check(self) -> Any:
@@ -475,6 +514,7 @@ class YFinanceAdapter(BaseDataAdapter):
                 "EURONEXT",  # Europe
                 "TSX",  # Toronto
                 "ASX",  # Australia
+                "CRYPTO",  # Crypto
             ]
 
             return exchange in supported_exchanges

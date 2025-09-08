@@ -55,7 +55,7 @@ class AKShareAdapter(BaseDataAdapter):
         self.asset_type_mapping = {
             "stock": AssetType.STOCK,
             "fund": AssetType.ETF,
-            "bond": AssetType.BOND,
+            # "bond": AssetType.BOND,
             "index": AssetType.INDEX,
         }
 
@@ -484,7 +484,7 @@ class AKShareAdapter(BaseDataAdapter):
         return [
             AssetType.STOCK,
             AssetType.ETF,
-            AssetType.BOND,
+            # AssetType.BOND,
             AssetType.INDEX,
         ]
 

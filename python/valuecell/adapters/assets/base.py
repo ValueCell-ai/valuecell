@@ -56,7 +56,6 @@ class TickerConverter:
             },
             DataSource.COINMARKETCAP: {
                 "CRYPTO": "",  # Crypto symbols are used as-is
-                "BINANCE": "",  # Binance symbols are used as-is
             },
         }
 
@@ -77,6 +76,36 @@ class TickerConverter:
         """
         try:
             exchange, symbol = internal_ticker.split(":", 1)
+
+            # Special handling for crypto tickers in yfinance
+            if exchange == "CRYPTO" and source == DataSource.YFINANCE:
+                # Map common crypto symbols to yfinance format
+                crypto_mapping = {
+                    "BTC": "BTC-USD",
+                    "ETH": "ETH-USD",
+                    "ADA": "ADA-USD",
+                    "DOT": "DOT-USD",
+                    "SOL": "SOL-USD",
+                    "MATIC": "MATIC-USD",
+                    "LINK": "LINK-USD",
+                    "UNI": "UNI-USD",
+                    "AVAX": "AVAX-USD",
+                    "ATOM": "ATOM-USD",
+                }
+                return crypto_mapping.get(symbol, f"{symbol}-USD")
+
+            # Special handling for Hong Kong stocks in yfinance
+            if exchange == "HKEX" and source == DataSource.YFINANCE:
+                # Hong Kong stock codes need to be padded to 4 digits
+                # e.g., "700" -> "0700.HK", "1234" -> "1234.HK"
+                if symbol.isdigit():
+                    padded_symbol = symbol.zfill(
+                        4
+                    )  # Pad with leading zeros to 4 digits
+                    return f"{padded_symbol}.HK"
+                else:
+                    # For non-numeric symbols, use as-is with .HK suffix
+                    return f"{symbol}.HK"
 
             if source not in self.exchange_mappings:
                 logger.warning(f"No mapping found for data source: {source}")
@@ -106,6 +135,19 @@ class TickerConverter:
             Ticker in internal format (e.g., "SZSE:000001")
         """
         try:
+            # Special handling for Hong Kong stocks from yfinance
+            if source == DataSource.YFINANCE and source_ticker.endswith(".HK"):
+                symbol = source_ticker[:-3]  # Remove .HK suffix
+                # Remove leading zeros for internal format (0700 -> 700)
+                if symbol.isdigit():
+                    symbol = str(int(symbol))  # This removes leading zeros
+                return f"HKEX:{symbol}"
+
+            # Special handling for crypto from yfinance
+            if source == DataSource.YFINANCE and "-USD" in source_ticker:
+                crypto_symbol = source_ticker.replace("-USD", "")
+                return f"CRYPTO:{crypto_symbol}"
+
             # Check for known suffixes
             if source in self.reverse_mappings:
                 for suffix, exchange in self.reverse_mappings[source].items():
@@ -122,8 +164,6 @@ class TickerConverter:
             # For crypto and other assets without clear exchange mapping
             if source == DataSource.COINMARKETCAP:
                 return f"CRYPTO:{source_ticker}"
-            elif source == DataSource.BINANCE:
-                return f"BINANCE:{source_ticker}"
 
             # Fallback to using the source as exchange
             return f"{source.value.upper()}:{source_ticker}"
@@ -290,7 +330,7 @@ class BaseDataAdapter(ABC):
             return 1 <= hour < 7
 
         # For crypto markets, assume always open
-        elif exchange in ["CRYPTO", "BINANCE"]:
+        elif exchange in ["CRYPTO"]:
             return True
 
         return False
