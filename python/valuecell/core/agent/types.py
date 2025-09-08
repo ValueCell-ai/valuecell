@@ -16,15 +16,10 @@ class StreamResponse(BaseModel):
     )
 
 
-class BaseAgent(ABC, BaseModel):
+class BaseAgent(ABC):
     """
     Abstract base class for all agents.
     """
-
-    agent_name: str = Field(..., description="Unique name of the agent")
-    description: str = Field(
-        ..., description="Description of the agent's purpose and functionality"
-    )
 
     @abstractmethod
     async def stream(self, query, session_id, task_id) -> StreamResponse:

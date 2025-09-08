@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)  # Get a logger instance
 
 
-async def _main(tickers, initial_cash, model_provider, model_name):
+async def _main(tickers, initial_cash, model_provider, model_name, selected_analysts):
     base_url = "http://localhost:10001"
     print(f"{tickers=}")
 
@@ -27,21 +27,14 @@ async def _main(tickers, initial_cash, model_provider, model_name):
         resolver = A2ACardResolver(httpx_client=httpx_client, base_url=base_url)
 
         try:
-            logger.info(
-                "Attempting to fetch public agent card from: "
-                f"{base_url}{AGENT_CARD_WELL_KNOWN_PATH}"
-            )
+            logger.info("Attempting to fetch public agent card from: " f"{base_url}{AGENT_CARD_WELL_KNOWN_PATH}")
             agent_card = await resolver.get_agent_card()
             logger.info("Successfully fetched public agent card:")
             # logger.info(agent_card.model_dump_json(indent=2, exclude_none=True))
 
         except Exception as e:
-            logger.error(
-                f"Critical error fetching public agent card: {e}", exc_info=True
-            )
-            raise RuntimeError(
-                "Failed to fetch the public agent card. Cannot continue."
-            ) from e
+            logger.error(f"Critical error fetching public agent card: {e}", exc_info=True)
+            raise RuntimeError("Failed to fetch the public agent card. Cannot continue.") from e
 
         client = A2AClient(httpx_client=httpx_client, agent_card=agent_card)
         logger.info("A2AClient initialized.")
@@ -78,7 +71,7 @@ async def _main(tickers, initial_cash, model_provider, model_name):
             "portfolio": portfolio,
             "model_name": model_name,
             "model_provider": model_provider,
-            "selected_analysts": [value for _, value in ANALYST_ORDER],
+            "selected_analysts": selected_analysts,
         }
 
         payload = {
@@ -89,9 +82,7 @@ async def _main(tickers, initial_cash, model_provider, model_name):
                 "contextId": uuid4().hex,
             },
         }
-        request = SendMessageRequest(
-            id=str(uuid4()), params=MessageSendParams(**payload)
-        )
+        request = SendMessageRequest(id=str(uuid4()), params=MessageSendParams(**payload))
 
         response = await client.send_message(request, http_kwargs={"timeout": None})
         print(response.model_dump(mode="json", exclude_none=True))
@@ -102,9 +93,19 @@ async def _main(tickers, initial_cash, model_provider, model_name):
 @click.option("--initial-cash", "initial_cash", default=10000.00)
 @click.option("--model-provider", "model_provider", default="OpenRouter")
 @click.option("--model-name", "model_name", default="openai/gpt-4o-mini")
-def main(tickers, initial_cash, model_provider, model_name) -> None:
+@click.option("--analysts", "analysts", default="all")
+def main(tickers, initial_cash, model_provider, model_name, analysts) -> None:
+    supported_analysts = [name for name, _ in sorted(ANALYST_ORDER.items(), key=lambda x: x[1])]
     tickers = [ticker.strip().upper() for ticker in tickers.split(",")]
-    asyncio.run(_main(tickers, initial_cash, model_provider, model_name))
+    if analysts == "all":
+        analysts = [name for name, _ in supported_analysts]
+    else:
+        analysts = [name.strip() for name in analysts.split(",")]
+        for name in analysts:
+            if name not in supported_analysts:
+                raise ValueError(f"Unknown analyst name: {name}. Supported analysts: {supported_analysts}")
+
+    asyncio.run(_main(tickers, initial_cash, model_provider, model_name, analysts))
 
 
 if __name__ == "__main__":

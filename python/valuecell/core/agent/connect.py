@@ -1,10 +1,15 @@
 import asyncio
+import json
 import logging
+from pathlib import Path
 from typing import Dict, List
 
+from a2a.client import A2ACardResolver
+from a2a.types import AgentCard
+import httpx
 from valuecell.core.agent.client import AgentClient
-from valuecell.core.agent.registry import AgentRegistry
 from valuecell.core.agent.listener import NotificationListener
+from valuecell.core.agent.registry import AgentRegistry
 from valuecell.utils import get_next_available_port
 
 logger = logging.getLogger(__name__)
@@ -19,6 +24,75 @@ class RemoteConnections:
         self._agent_instances: Dict[str, object] = {}
         self._listeners: Dict[str, asyncio.Task] = {}
         self._listener_urls: Dict[str, str] = {}
+        # Remote agent cards loaded from config files
+        self._remote_agent_cards: Dict[str, AgentCard] = {}
+
+    async def load_remote_agents(self, config_dir: str = None) -> None:
+        """Load remote agent cards from configuration directory."""
+        if config_dir is None:
+            # Default to python/configs/agent_cards relative to current file
+            current_file = Path(__file__)
+            config_dir = (
+                current_file.parent.parent.parent.parent / "configs" / "agent_cards"
+            )
+        else:
+            config_dir = Path(config_dir)
+
+        if not config_dir.exists():
+            logger.warning(f"Remote agent config directory not found: {config_dir}")
+            return
+
+        async with httpx.AsyncClient() as httpx_client:
+            loaded_count = 0
+            for json_file in config_dir.glob("*.json"):
+                try:
+                    with open(json_file, "r", encoding="utf-8") as f:
+                        card_data = json.load(f)
+
+                    agent_name = card_data.get("name")
+                    if not agent_name:
+                        logger.warning(f"No 'name' field in {json_file}, skipping")
+                        continue
+
+                    # Validate required fields
+                    required_fields = ["name", "url"]
+                    if not all(field in card_data for field in required_fields):
+                        logger.warning(
+                            f"Missing required fields in {json_file}, skipping"
+                        )
+                        continue
+
+                    resolver = A2ACardResolver(
+                        httpx_client=httpx_client, base_url=card_data["url"]
+                    )
+                    self._remote_agent_cards[
+                        agent_name
+                    ] = await resolver.get_agent_card()
+                    loaded_count += 1
+                    logger.info(
+                        f"Loaded remote agent card: {agent_name} from {json_file.name}"
+                    )
+
+                except (json.JSONDecodeError, FileNotFoundError, KeyError) as e:
+                    logger.error(
+                        f"Failed to load remote agent card from {json_file}: {e}"
+                    )
+
+        logger.info(f"Loaded {loaded_count} remote agent cards from {config_dir}")
+
+    async def connect_remote_agent(self, agent_name: str) -> str:
+        """Connect to a remote agent (no lifecycle management)."""
+        if agent_name not in self._remote_agent_cards:
+            raise ValueError(f"Remote agent '{agent_name}' not found in loaded cards")
+
+        card_data = self._remote_agent_cards[agent_name]
+        agent_url = card_data.url
+
+        # Create client connection for remote agent
+        self._connections[agent_name] = AgentClient(agent_url)
+
+        logger.info(f"Connected to remote agent '{agent_name}' at {agent_url}")
+        return agent_url
 
     async def start_agent(
         self,
@@ -156,7 +230,11 @@ class RemoteConnections:
     async def get_client(self, agent_name: str) -> AgentClient:
         """Get Agent client connection"""
         if agent_name not in self._connections:
-            await self.start_agent(agent_name)
+            # Try to connect to remote agent first, then fallback to local
+            if agent_name in self._remote_agent_cards:
+                await self.connect_remote_agent(agent_name)
+            else:
+                await self.start_agent(agent_name)
 
         return self._connections[agent_name]
 
@@ -170,8 +248,10 @@ class RemoteConnections:
         return list(self._running_agents.keys())
 
     def list_available_agents(self) -> List[str]:
-        """List all available agents from registry"""
-        return AgentRegistry.list_agents()
+        """List all available agents from registry and remote cards"""
+        local_agents = AgentRegistry.list_agents()
+        remote_agents = list(self._remote_agent_cards.keys())
+        return local_agents + remote_agents
 
     async def stop_all(self):
         """Stop all running agents"""
@@ -180,15 +260,38 @@ class RemoteConnections:
 
     def get_agent_info(self, agent_name: str) -> dict:
         """Get agent information including listener info"""
-        if agent_name not in self._agent_instances:
-            return None
+        # Check if it's a local agent
+        if agent_name in self._agent_instances:
+            agent_instance = self._agent_instances[agent_name]
+            return {
+                "name": agent_name,
+                "type": "local",
+                "url": agent_instance.agent_card.url,
+                "listener_url": self._listener_urls.get(agent_name),
+                "card": agent_instance.agent_card.model_dump(exclude_none=True),
+                "running": agent_name in self._running_agents,
+                "has_listener": agent_name in self._listeners,
+            }
 
-        agent_instance = self._agent_instances[agent_name]
-        return {
-            "name": agent_name,
-            "url": agent_instance.agent_card.url,
-            "listener_url": self._listener_urls.get(agent_name),
-            "card": agent_instance.agent_card.model_dump(exclude_none=True),
-            "running": agent_name in self._running_agents,
-            "has_listener": agent_name in self._listeners,
-        }
+        # Check if it's a remote agent
+        if agent_name in self._remote_agent_cards:
+            card_data = self._remote_agent_cards[agent_name]
+            return {
+                "name": agent_name,
+                "type": "remote",
+                "url": card_data.url,
+                "card": card_data,
+                "connected": agent_name in self._connections,
+                "running": False,  # Remote agents are not managed by us
+                "has_listener": False,
+            }
+
+        return None
+
+    def list_remote_agents(self) -> List[str]:
+        """List remote agents loaded from config files"""
+        return list(self._remote_agent_cards.keys())
+
+    def get_remote_agent_card(self, agent_name: str) -> dict:
+        """Get remote agent card data"""
+        return self._remote_agent_cards.get(agent_name)
