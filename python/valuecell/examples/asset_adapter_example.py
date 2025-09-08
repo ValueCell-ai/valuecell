@@ -30,11 +30,11 @@ def setup_adapters():
     manager = get_adapter_manager()
 
     # Configure Yahoo Finance (free, no API key required)
-    try:
-        manager.configure_yfinance()
-        logger.info("✓ Yahoo Finance adapter configured")
-    except Exception as e:
-        logger.warning(f"✗ Yahoo Finance adapter failed: {e}")
+    # try:
+    #     manager.configure_yfinance()
+    #     logger.info("✓ Yahoo Finance adapter configured")
+    # except Exception as e:
+    #     logger.warning(f"✗ Yahoo Finance adapter failed: {e}")
 
     # Configure TuShare (requires API key)
     try:
@@ -61,9 +61,12 @@ def setup_adapters():
         logger.warning(f"✗ CoinMarketCap adapter failed: {e}")
 
     # Configure AKShare (free, no API key required)
+    # Now supports US stocks, Hong Kong stocks, and cryptocurrencies
     try:
         manager.configure_akshare()
-        logger.info("✓ AKShare adapter configured")
+        logger.info(
+            "✓ AKShare adapter configured (supports A-shares, HK stocks, US stocks, and crypto)"
+        )
     except Exception as e:
         logger.warning(f"✗ AKShare adapter failed: {e}")
 
@@ -135,6 +138,34 @@ def demonstrate_asset_search():
         logger.info(f"Found {results_crypto['count']} cryptocurrencies:")
         for result in results_crypto["results"]:
             logger.info(f"  - {result['ticker']}: {result['display_name']}")
+
+    # Demonstrate enhanced AKShare multi-market search
+    logger.info("\n=== Enhanced Multi-Market Search (AKShare) ===")
+
+    # Search Hong Kong stocks
+    logger.info("Searching for Hong Kong stocks (Tencent)...")
+    hk_results = search_assets("00700", limit=3)
+    if hk_results["success"]:
+        for result in hk_results["results"]:
+            logger.info(f"  - HK Stock: {result['ticker']}: {result['display_name']}")
+
+    # Search US stocks through AKShare
+    logger.info("\nSearching for US stocks through AKShare...")
+    us_results = search_assets("AAPL", exchanges=["NASDAQ", "NYSE"], limit=3)
+    if us_results["success"]:
+        for result in us_results["results"]:
+            logger.info(f"  - US Stock: {result['ticker']}: {result['display_name']}")
+
+    # Direct ticker lookup fallback
+    logger.info("\nDemonstrating semantic search fallback...")
+    direct_results = search_assets(
+        "000001", limit=3
+    )  # Should find through direct lookup
+    if direct_results["success"]:
+        for result in direct_results["results"]:
+            logger.info(
+                f"  - Direct Match: {result['ticker']}: {result['display_name']}"
+            )
 
 
 def demonstrate_asset_info():

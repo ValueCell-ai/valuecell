@@ -233,7 +233,7 @@ class AdapterManager:
         # Search in parallel across adapters
         if not target_adapters:
             return []
-            
+
         with ThreadPoolExecutor(max_workers=len(target_adapters)) as executor:
             future_to_adapter = {
                 executor.submit(adapter.search_assets, query): adapter
