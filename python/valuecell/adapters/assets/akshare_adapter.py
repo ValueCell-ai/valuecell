@@ -57,6 +57,7 @@ class AKShareAdapter(BaseDataAdapter):
             "fund": AssetType.ETF,
             # "bond": AssetType.BOND,
             "index": AssetType.INDEX,
+            "crypto": AssetType.CRYPTO,
         }
 
         # Exchange mapping for AKShare

@@ -231,6 +231,9 @@ class AdapterManager:
                 target_adapters.update(self.adapters.values())
 
         # Search in parallel across adapters
+        if not target_adapters:
+            return []
+            
         with ThreadPoolExecutor(max_workers=len(target_adapters)) as executor:
             future_to_adapter = {
                 executor.submit(adapter.search_assets, query): adapter
@@ -325,6 +328,10 @@ class AdapterManager:
         # Fetch prices in parallel from each adapter
         all_results = {}
 
+        if not adapter_tickers:
+            # If no adapters found for any tickers, return None for all
+            return {ticker: None for ticker in tickers}
+
         with ThreadPoolExecutor(max_workers=len(adapter_tickers)) as executor:
             future_to_adapter = {
                 executor.submit(adapter.get_multiple_prices, ticker_list): adapter
@@ -384,6 +391,10 @@ class AdapterManager:
             Dictionary mapping data sources to health status
         """
         health_results = {}
+
+        # If no adapters are registered, return empty results
+        if not self.adapters:
+            return health_results
 
         with ThreadPoolExecutor(max_workers=len(self.adapters)) as executor:
             future_to_source = {

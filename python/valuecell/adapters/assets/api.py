@@ -568,13 +568,15 @@ class AssetAPI:
             )
             total_count = len(health_status)
 
-            overall_status = (
-                "healthy"
-                if healthy_count == total_count
-                else "degraded"
-                if healthy_count > 0
-                else "unhealthy"
-            )
+            # Determine overall status
+            if total_count == 0:
+                overall_status = "no_adapters"
+            elif healthy_count == total_count:
+                overall_status = "healthy"
+            elif healthy_count > 0:
+                overall_status = "degraded"
+            else:
+                overall_status = "unhealthy"
 
             return {
                 "success": True,
