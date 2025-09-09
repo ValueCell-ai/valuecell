@@ -8,7 +8,6 @@ This script demonstrates how to:
 """
 
 import asyncio
-import json
 import logging
 
 from valuecell.core.agent.connect import RemoteConnections

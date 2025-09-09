@@ -13,12 +13,20 @@ from valuecell.core.agent.types import BaseAgent
 from src.main import run_hedge_fund
 from src.utils.analysts import ANALYST_ORDER
 
-allowed_analysts = set(key for display_name, key in sorted(ANALYST_ORDER, key=lambda x: x[1]))
+allowed_analysts = set(
+    key for display_name, key in sorted(ANALYST_ORDER, key=lambda x: x[1])
+)
 
 
 class HedgeFundRequest(BaseModel):
-    tickers: List[str] = Field(..., description="List of stock tickers to analyze. Must be from: [AAPL, GOOGL, MSFT, NVDA, TSLA]")
-    selected_analysts: List[str] = Field(default=[], description=f"List of analysts to use for analysis. If empty, all analysts will be used. Must be from {allowed_analysts}")
+    tickers: List[str] = Field(
+        ...,
+        description="List of stock tickers to analyze. Must be from: [AAPL, GOOGL, MSFT, NVDA, TSLA]",
+    )
+    selected_analysts: List[str] = Field(
+        default=[],
+        description=f"List of analysts to use for analysis. If empty, all analysts will be used. Must be from {allowed_analysts}",
+    )
 
     @field_validator("tickers")
     @classmethod
@@ -26,7 +34,9 @@ class HedgeFundRequest(BaseModel):
         allowed_tickers = {"AAPL", "GOOGL", "MSFT", "NVDA", "TSLA"}
         invalid_tickers = set(v) - allowed_tickers
         if invalid_tickers:
-            raise ValueError(f"Invalid tickers: {invalid_tickers}. Allowed: {allowed_tickers}")
+            raise ValueError(
+                f"Invalid tickers: {invalid_tickers}. Allowed: {allowed_tickers}"
+            )
         return v
 
     @field_validator("selected_analysts")
@@ -35,7 +45,9 @@ class HedgeFundRequest(BaseModel):
         if v:  # Only validate if not empty
             invalid_analysts = set(v) - allowed_analysts
             if invalid_analysts:
-                raise ValueError(f"Invalid analysts: {invalid_analysts}. Allowed: {allowed_analysts}")
+                raise ValueError(
+                    f"Invalid analysts: {invalid_analysts}. Allowed: {allowed_analysts}"
+                )
         return v
 
 
@@ -50,7 +62,9 @@ class AIHedgeFundAgent(BaseAgent):
 
     async def stream(self, query, session_id, task_id):
         try:
-            run_response = self.agno_agent.run(f"Parse the following hedge fund analysis request and extract the parameters: {query}")
+            run_response = self.agno_agent.run(
+                f"Parse the following hedge fund analysis request and extract the parameters: {query}"
+            )
             hedge_fund_request = run_response.content
 
             end_date = datetime.now().strftime("%Y-%m-%d")
