@@ -57,9 +57,7 @@ async def main():
             logger.info(f"Updated info for '{agent_name}': {updated_info}")
 
             async for resp in await client.send_message(
-                json.dumps(
-                    {"text": "Hello from remote agent example!"},
-                ),
+                "analyze apple stock with buffett and damodaran",
                 exhaustive=True,
             ):
                 logger.info(f"Response from {agent_name}: {resp}")
