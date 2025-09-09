@@ -22,7 +22,7 @@ from a2a.types import (
     TextPart,
     UnsupportedOperationError,
 )
-from a2a.utils import new_task
+from a2a.utils import new_task, new_agent_text_message
 from a2a.utils.errors import ServerError
 from valuecell.core.agent.registry import AgentRegistry
 from valuecell.core.agent.types import BaseAgent
@@ -186,8 +186,15 @@ class GenericAgentExecutor(AgentExecutor):
                     await updater.complete()
                     break
         except Exception as e:
-            # Convert unexpected errors into server errors so callers can handle them uniformly
-            raise ServerError(error=e) from e
+            message = (
+                f"Error during {self.agent.__class__.__name__} agent execution : {e}"
+            )
+            logger.error(message)
+            await updater.update_status(
+                TaskState.failed,
+                message=new_agent_text_message(message, task.context_id, task.id),
+                final=True,
+            )
 
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
         # Default cancel operation
