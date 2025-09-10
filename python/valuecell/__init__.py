@@ -15,4 +15,5 @@ __all__ = [
     "__description__",
 ]
 
-import valuecell.agents
+# registers agents on import
+import valuecell.agents as _  # noqa: F401
