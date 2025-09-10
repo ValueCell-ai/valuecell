@@ -5,4 +5,4 @@ lint:
 	ruff check --config ./python/pyproject.toml ./python/
 
 test:
-	uv run pytest python/tests/
+	uv run pytest ./python

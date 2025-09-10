@@ -64,3 +64,15 @@ exclude = [
     "docs/**",
     "**/docs/**",
 ]
+
+[tool.pytest.ini_options]
+norecursedirs = [
+    ".venv",
+    "venv",
+    "build",
+    "dist",
+    "logs",
+    "third_party",
+    "examples",
+    "docs",
+]
