@@ -46,7 +46,12 @@ class CalculatorAgent:
             }
 
 
-@serve(name="Weather Agent", port=9101, push_notifications=True, description="Provides weather information")
+@serve(
+    name="Weather Agent",
+    port=9101,
+    push_notifications=True,
+    description="Provides weather information",
+)
 class WeatherAgent:
     """A weather information agent"""
 

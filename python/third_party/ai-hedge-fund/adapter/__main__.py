@@ -7,7 +7,7 @@ from agno.agent import Agent
 from agno.models.openrouter import OpenRouter
 from dateutil.relativedelta import relativedelta
 from pydantic import BaseModel, Field, field_validator
-from valuecell.core.agent.decorator import serve
+from valuecell.core.agent.decorator import create_wrapped_agent
 from valuecell.core.agent.types import BaseAgent
 
 from src.main import run_hedge_fund
@@ -111,5 +111,5 @@ class AIHedgeFundAgent(BaseAgent):
 
 
 if __name__ == "__main__":
-    agent = serve(port=10001)(AIHedgeFundAgent)()
+    agent = create_wrapped_agent(AIHedgeFundAgent)
     asyncio.run(agent.serve())
