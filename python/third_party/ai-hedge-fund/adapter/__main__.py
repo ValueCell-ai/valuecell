@@ -16,12 +16,13 @@ from src.utils.analysts import ANALYST_ORDER
 allowed_analysts = set(
     key for display_name, key in sorted(ANALYST_ORDER, key=lambda x: x[1])
 )
+allowed_tickers = {"AAPL", "GOOGL", "MSFT", "NVDA", "TSLA"}
 
 
 class HedgeFundRequest(BaseModel):
     tickers: List[str] = Field(
         ...,
-        description="List of stock tickers to analyze. Must be from: [AAPL, GOOGL, MSFT, NVDA, TSLA]",
+        description=f"List of stock tickers to analyze. Must be from: {allowed_tickers}",
     )
     selected_analysts: List[str] = Field(
         default=[],
@@ -31,7 +32,6 @@ class HedgeFundRequest(BaseModel):
     @field_validator("tickers")
     @classmethod
     def validate_tickers(cls, v):
-        allowed_tickers = {"AAPL", "GOOGL", "MSFT", "NVDA", "TSLA"}
         invalid_tickers = set(v) - allowed_tickers
         if invalid_tickers:
             raise ValueError(
