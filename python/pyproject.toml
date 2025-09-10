@@ -59,4 +59,8 @@ exclude = [
     "**/third_party/**",
     "tests/**",
     "**/tests/**",
+    "examples/**",
+    "**/examples/**",
+    "docs/**",
+    "**/docs/**",
 ]
