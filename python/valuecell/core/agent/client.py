@@ -48,9 +48,13 @@ class AgentClient:
         self._client = client_factory.create(card)
 
     async def send_message(
-        self, text: str, context_id: str = None, exhaustive: bool = False
+        self, text: str, context_id: str = None, streaming: bool = False
     ) -> MessageResponse | AsyncIterator[MessageResponse]:
-        """Send message to Agent"""
+        """Send message to Agent.
+
+        If `streaming` is True, return an async iterator producing (task, event) pairs.
+        If `streaming` is False, return the first (task, event) pair (and close the generator).
+        """
         await self._ensure_initialized()
 
         message = Message(
@@ -61,7 +65,7 @@ class AgentClient:
         )
 
         generator = self._client.send_message(message)
-        if exhaustive:
+        if streaming:
             return generator
 
         task, event = await generator.__anext__()

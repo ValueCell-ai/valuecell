@@ -57,7 +57,7 @@ async def main():
 
             async for resp in await client.send_message(
                 "analyze apple stock with buffett and damodaran",
-                exhaustive=True,
+                streaming=True,
             ):
                 logger.info(f"Response from {agent_name}: {resp}")
 
