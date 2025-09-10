@@ -36,7 +36,7 @@ def serve(
     host: str = "localhost",
     port: int = None,
     streaming: bool = True,
-    push_notifications: bool = True,
+    push_notifications: bool = False,
     description: str = None,
     version: str = "1.0.0",
     skills: list[AgentSkill | dict] = None,

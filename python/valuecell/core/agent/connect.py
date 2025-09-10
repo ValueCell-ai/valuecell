@@ -136,7 +136,7 @@ class RemoteConnections:
     async def start_agent(
         self,
         agent_name: str,
-        with_listener: bool = True,
+        with_listener: bool = False,
         listener_port: int = None,
         listener_host: str = "localhost",
         notification_callback: callable = None,

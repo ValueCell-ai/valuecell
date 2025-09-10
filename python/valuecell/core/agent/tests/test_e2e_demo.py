@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 # Demo agents using the @serve decorator
-@serve(name="Calculator Agent")
+@serve(name="Calculator Agent", push_notifications=True)
 class CalculatorAgent:
     """A calculator agent that can do basic math"""
 
@@ -46,7 +46,7 @@ class CalculatorAgent:
             }
 
 
-@serve(name="Weather Agent", port=9101, description="Provides weather information")
+@serve(name="Weather Agent", port=9101, push_notifications=True, description="Provides weather information")
 class WeatherAgent:
     """A weather information agent"""
 
@@ -83,7 +83,7 @@ class WeatherAgent:
             }
 
 
-@serve(name="Simple Agent", streaming=False, push_notifications=False)
+@serve(name="Simple Agent")
 class SimpleAgent:
     """A simple non-streaming agent"""
 
