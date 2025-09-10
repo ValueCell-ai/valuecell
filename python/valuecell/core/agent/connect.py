@@ -4,13 +4,13 @@ import logging
 from pathlib import Path
 from typing import Dict, List
 
+import httpx
 from a2a.client import A2ACardResolver
 from a2a.types import AgentCard
-import httpx
 from valuecell.core.agent.client import AgentClient
 from valuecell.core.agent.listener import NotificationListener
 from valuecell.core.agent.registry import AgentRegistry
-from valuecell.utils import get_next_available_port
+from valuecell.utils import get_agent_card_path, get_next_available_port
 
 logger = logging.getLogger(__name__)
 
@@ -65,11 +65,7 @@ class RemoteConnections:
     async def load_remote_agents(self, config_dir: str = None) -> None:
         """Load remote agent cards from configuration directory."""
         if config_dir is None:
-            # Default to python/configs/agent_cards relative to current file
-            current_file = Path(__file__)
-            config_dir = (
-                current_file.parent.parent.parent.parent / "configs" / "agent_cards"
-            )
+            config_dir = get_agent_card_path()
         else:
             config_dir = Path(config_dir)
 
