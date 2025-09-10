@@ -23,10 +23,17 @@ class BaseAgent(ABC):
 
     @abstractmethod
     async def stream(self, query, session_id, task_id) -> StreamResponse:
-        """
-        Abstract method to stream the agent with the provided input data.
-        Must be implemented by all subclasses.
-        """
+         """
+         Process user queries and return streaming responses
+
+         Args:
+             query: User query content
+             session_id: Session ID
+             task_id: Task ID
+
+         Yields:
+             dict: Dictionary containing 'content' and 'is_task_complete'
+         """
 
 
 MessageResponse = tuple[Task, Optional[TaskStatusUpdateEvent | TaskArtifactUpdateEvent]]
