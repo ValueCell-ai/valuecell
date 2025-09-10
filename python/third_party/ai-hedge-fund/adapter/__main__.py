@@ -61,60 +61,53 @@ class AIHedgeFundAgent(BaseAgent):
         )
 
     async def stream(self, query, session_id, task_id):
-        try:
-            run_response = self.agno_agent.run(
-                f"Parse the following hedge fund analysis request and extract the parameters: {query}"
-            )
-            hedge_fund_request = run_response.content
+        run_response = self.agno_agent.run(
+            f"Parse the following hedge fund analysis request and extract the parameters: {query}"
+        )
+        hedge_fund_request = run_response.content
 
-            end_date = datetime.now().strftime("%Y-%m-%d")
-            end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
-            start_date = (end_date_obj - relativedelta(months=3)).strftime("%Y-%m-%d")
+        end_date = datetime.now().strftime("%Y-%m-%d")
+        end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
+        start_date = (end_date_obj - relativedelta(months=3)).strftime("%Y-%m-%d")
 
-            initial_cash = 10000.00
-            portfolio = {
-                "cash": initial_cash,
-                "margin_requirement": 0,
-                "margin_used": 0.0,
-                "positions": {
-                    ticker: {
-                        "long": 0,
-                        "short": 0,
-                        "long_cost_basis": 0.0,
-                        "short_cost_basis": 0.0,
-                        "short_margin_used": 0.0,
-                    }
-                    for ticker in hedge_fund_request.tickers
-                },
-                "realized_gains": {
-                    ticker: {
-                        "long": 0.0,
-                        "short": 0.0,
-                    }
-                    for ticker in hedge_fund_request.tickers
-                },
-            }
+        initial_cash = 10000.00
+        portfolio = {
+            "cash": initial_cash,
+            "margin_requirement": 0,
+            "margin_used": 0.0,
+            "positions": {
+                ticker: {
+                    "long": 0,
+                    "short": 0,
+                    "long_cost_basis": 0.0,
+                    "short_cost_basis": 0.0,
+                    "short_margin_used": 0.0,
+                }
+                for ticker in hedge_fund_request.tickers
+            },
+            "realized_gains": {
+                ticker: {
+                    "long": 0.0,
+                    "short": 0.0,
+                }
+                for ticker in hedge_fund_request.tickers
+            },
+        }
 
-            result = run_hedge_fund(
-                tickers=hedge_fund_request.tickers,
-                start_date=start_date,
-                end_date=end_date,
-                portfolio=portfolio,
-                model_name="openai/gpt-4o-mini",
-                model_provider="OpenRouter",
-                selected_analysts=hedge_fund_request.selected_analysts,
-            )
+        result = run_hedge_fund(
+            tickers=hedge_fund_request.tickers,
+            start_date=start_date,
+            end_date=end_date,
+            portfolio=portfolio,
+            model_name="openai/gpt-4o-mini",
+            model_provider="OpenRouter",
+            selected_analysts=hedge_fund_request.selected_analysts,
+        )
 
-            yield {
-                "content": json.dumps(result),
-                "is_task_complete": True,
-            }
-
-        except Exception as e:
-            yield {
-                "content": json.dumps({"error": str(e)}),
-                "is_task_complete": True,
-            }
+        yield {
+            "content": json.dumps(result),
+            "is_task_complete": True,
+        }
 
 
 if __name__ == "__main__":
