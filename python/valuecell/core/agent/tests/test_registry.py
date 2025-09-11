@@ -494,7 +494,6 @@ class TestEdgeCases:
 
         agents = []
         for i in range(100):
-
             # Create dynamic agent classes using type() - cleaner than exec
             def make_stream_method(agent_num):
                 async def stream(self, query, session_id, task_id):
