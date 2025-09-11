@@ -1831,7 +1831,7 @@ name = "langgraph-checkpoint"
 version = "2.0.26"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "langchain-core", marker = "python_full_version < '4.0'" },
+    { name = "langchain-core", marker = "python_full_version < '4'" },
     { name = "ormsgpack" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c5/61/e2518ac9216a4e9f4efda3ac61595e3c9e9ac00833141c9688e8d56bd7eb/langgraph_checkpoint-2.0.26.tar.gz", hash = "sha256:2b800195532d5efb079db9754f037281225ae175f7a395523f4bf41223cbc9d6", size = 37874, upload-time = "2025-05-15T17:31:22.466Z" }
@@ -4708,6 +4708,7 @@ dependencies = [
     { name = "pandas" },
     { name = "parsel" },
     { name = "praw" },
+    { name = "python-dotenv" },
     { name = "pytz" },
     { name = "questionary" },
     { name = "redis" },
@@ -4738,6 +4739,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.3.0" },
     { name = "parsel", specifier = ">=1.10.0" },
     { name = "praw", specifier = ">=7.8.1" },
+    { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "pytz", specifier = ">=2025.2" },
     { name = "questionary", specifier = ">=2.1.0" },
     { name = "redis", specifier = ">=6.2.0" },

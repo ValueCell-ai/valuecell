@@ -1,3 +1,4 @@
+import os
 import chromadb
 from chromadb.config import Settings
 from openai import OpenAI
@@ -7,19 +8,63 @@ class FinancialSituationMemory:
     def __init__(self, name, config):
         if config["backend_url"] == "http://localhost:11434/v1":
             self.embedding = "nomic-embed-text"
+            self.client = OpenAI(base_url=config["backend_url"])
         else:
             self.embedding = "text-embedding-3-small"
-        self.client = OpenAI(base_url=config["backend_url"])
+            # For embeddings, handle different providers appropriately
+            # Many providers like OpenRouter, Anthropic, Google don't support embeddings API
+            if "openrouter.ai" in config["backend_url"] or "anthropic.com" in config["backend_url"] or "generativelanguage.googleapis.com" in config["backend_url"]:
+                # Use a dedicated OpenAI API key for embeddings, or fall back to the main key
+                embeddings_api_key = os.getenv("OPENAI_EMBEDDINGS_API_KEY") or os.getenv("OPENAI_API_KEY")
+                
+                # Check if the API key is from OpenRouter (starts with sk-or-v1-)
+                if embeddings_api_key and embeddings_api_key.startswith("sk-or-v1-"):
+                    print("⚠️  Warning: OpenRouter API key detected for embeddings.")
+                    print("💡 OpenRouter doesn't support embeddings API. Please set OPENAI_EMBEDDINGS_API_KEY")
+                    print("   with a real OpenAI API key, or the memory functionality will be disabled.")
+                    # Try to use it anyway, but it will likely fail and trigger fallback
+                
+                self.client = OpenAI(api_key=embeddings_api_key)
+            else:
+                self.client = OpenAI(base_url=config["backend_url"])
         self.chroma_client = chromadb.Client(Settings(allow_reset=True))
         self.situation_collection = self.chroma_client.create_collection(name=name)
 
     def get_embedding(self, text):
         """Get OpenAI embedding for a text"""
-        
-        response = self.client.embeddings.create(
-            model=self.embedding, input=text
-        )
-        return response.data[0].embedding
+        try:
+            response = self.client.embeddings.create(
+                model=self.embedding, input=text
+            )
+            return response.data[0].embedding
+        except Exception as e:
+            # If the current client fails (e.g., OpenRouter doesn't support embeddings),
+            # try alternative approaches
+            print(f"⚠️  Embedding request failed with current provider: {str(e)}")
+            
+            # Try with a dedicated embeddings API key
+            embeddings_key = os.getenv("OPENAI_EMBEDDINGS_API_KEY")
+            if embeddings_key and not embeddings_key.startswith("sk-or-v1-"):
+                print("🔄 Trying with dedicated OPENAI_EMBEDDINGS_API_KEY...")
+                try:
+                    fallback_client = OpenAI(api_key=embeddings_key)
+                    response = fallback_client.embeddings.create(
+                        model="text-embedding-3-small", input=text
+                    )
+                    return response.data[0].embedding
+                except Exception as fallback_error:
+                    print(f"❌ Dedicated embeddings key also failed: {str(fallback_error)}")
+            
+            # Final fallback: return a dummy embedding vector
+            print("🔧 Using dummy embedding vector (memory functionality will be limited)")
+            print("💡 To fix this issue:")
+            print("   1. Get a real OpenAI API key from https://platform.openai.com/api-keys")
+            print("   2. Set it as: export OPENAI_EMBEDDINGS_API_KEY=sk-your-real-openai-key")
+            print("   3. Or switch to Ollama for local embeddings")
+            
+            # Return a dummy embedding vector of the expected dimension (1536 for text-embedding-3-small)
+            import random
+            return [random.random() for _ in range(1536)]
 
     def add_situations(self, situations_and_advice):
         """Add financial situations and their corresponding advice. Parameter is a list of tuples (situation, rec)"""
