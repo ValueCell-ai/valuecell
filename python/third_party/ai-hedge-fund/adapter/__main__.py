@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from datetime import datetime
 from typing import List
 
@@ -18,6 +19,8 @@ allowed_analysts = set(
     key for display_name, key in sorted(ANALYST_ORDER, key=lambda x: x[1])
 )
 allowed_tickers = {"AAPL", "GOOGL", "MSFT", "NVDA", "TSLA"}
+
+logger = logging.getLogger(__name__)
 
 
 class HedgeFundRequest(BaseModel):
@@ -64,6 +67,7 @@ class AIHedgeFundAgent(BaseAgent):
         )
 
     async def stream(self, query, session_id, task_id):
+        logger.info(f"Parsing query: {query}. Task ID: {task_id}, Session ID: {session_id}")
         run_response = self.agno_agent.run(
             f"Parse the following hedge fund analysis request and extract the parameters: {query}"
         )
@@ -99,7 +103,10 @@ class AIHedgeFundAgent(BaseAgent):
             },
         }
 
-        for chunk in run_hedge_fund_stream(
+        logger.info(
+            f"Start analyzing. Task ID: {task_id}, Session ID: {session_id}"
+        )
+        for stream_type, chunk in run_hedge_fund_stream(
             tickers=hedge_fund_request.tickers,
             start_date=start_date,
             end_date=end_date,
@@ -108,6 +115,8 @@ class AIHedgeFundAgent(BaseAgent):
             model_provider="OpenRouter",
             selected_analysts=hedge_fund_request.selected_analysts,
         ):
+            if not isinstance(chunk, str):
+                continue
             yield {
                 "content": chunk,
                 "is_task_complete": False,
@@ -156,12 +165,7 @@ def run_hedge_fund_stream(
                 "model_provider": model_provider,
             },
         }
-        yield from _agent.stream(inputs, stream_mode="custom")
-
-        # yield {
-        #     "decisions": parse_hedge_fund_response(final_state["messages"][-1].content),
-        #     "analyst_signals": final_state["data"]["analyst_signals"],
-        # }
+        yield from _agent.stream(inputs, stream_mode=["custom", "messages"])
     finally:
         # Stop progress tracking
         progress.stop()
