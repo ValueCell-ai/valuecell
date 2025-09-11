@@ -1,5 +1,4 @@
 import asyncio
-import json
 from datetime import datetime
 from typing import List
 
@@ -111,6 +110,7 @@ class AIHedgeFundAgent(BaseAgent):
         ):
             yield {
                 "content": chunk,
+                "is_task_complete": False,
             }
 
         yield {
