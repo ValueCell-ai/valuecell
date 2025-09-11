@@ -6,12 +6,14 @@ from typing import List
 from agno.agent import Agent
 from agno.models.openrouter import OpenRouter
 from dateutil.relativedelta import relativedelta
+from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, Field, field_validator
 from valuecell.core.agent.decorator import create_wrapped_agent
 from valuecell.core.agent.types import BaseAgent
 
-from src.main import run_hedge_fund
+from src.main import create_workflow
 from src.utils.analysts import ANALYST_ORDER
+from src.utils.progress import progress
 
 allowed_analysts = set(
     key for display_name, key in sorted(ANALYST_ORDER, key=lambda x: x[1])
@@ -98,7 +100,7 @@ class AIHedgeFundAgent(BaseAgent):
             },
         }
 
-        result = run_hedge_fund(
+        for chunk in run_hedge_fund_stream(
             tickers=hedge_fund_request.tickers,
             start_date=start_date,
             end_date=end_date,
@@ -106,12 +108,63 @@ class AIHedgeFundAgent(BaseAgent):
             model_name="openai/gpt-4o-mini",
             model_provider="OpenRouter",
             selected_analysts=hedge_fund_request.selected_analysts,
-        )
+        ):
+            yield {
+                "content": chunk,
+            }
 
         yield {
-            "content": json.dumps(result),
+            "content": "",
             "is_task_complete": True,
         }
+
+
+def run_hedge_fund_stream(
+    tickers: list[str],
+    start_date: str,
+    end_date: str,
+    portfolio: dict,
+    selected_analysts: list[str],
+    show_reasoning: bool = False,
+    model_name: str = "gpt-4.1",
+    model_provider: str = "OpenAI",
+):
+    # Start progress tracking
+    progress.start()
+
+    try:
+        # Create a new workflow if analysts are customized
+        workflow = create_workflow(selected_analysts)
+        _agent = workflow.compile()
+
+        inputs = {
+            "messages": [
+                HumanMessage(
+                    content="Make trading decisions based on the provided data.",
+                )
+            ],
+            "data": {
+                "tickers": tickers,
+                "portfolio": portfolio,
+                "start_date": start_date,
+                "end_date": end_date,
+                "analyst_signals": {},
+            },
+            "metadata": {
+                "show_reasoning": show_reasoning,
+                "model_name": model_name,
+                "model_provider": model_provider,
+            },
+        }
+        yield from _agent.stream(inputs, stream_mode="custom")
+
+        # yield {
+        #     "decisions": parse_hedge_fund_response(final_state["messages"][-1].content),
+        #     "analyst_signals": final_state["data"]["analyst_signals"],
+        # }
+    finally:
+        # Stop progress tracking
+        progress.stop()
 
 
 if __name__ == "__main__":

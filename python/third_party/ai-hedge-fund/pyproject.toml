@@ -12,7 +12,7 @@ dependencies = [
     "langchain-openai>=0.3.5,<0.4",
     "langchain-deepseek>=0.1.2,<0.2",
     "langchain-ollama==0.3.6",
-    "langgraph==0.2.56",
+    "langgraph==0.3.34",
     "pandas>=2.1.0,<3",
     "numpy>=1.24.0,<2",
     "python-dotenv==1.0.0",
@@ -30,7 +30,6 @@ dependencies = [
     "alembic>=1.12.0,<2",
     "langchain-gigachat>=0.3.12,<0.4",
     "langchain-xai>=0.2.5,<0.3",
-    "a2a-sdk[http-server]>=0.3.0,<0.4.0",
 ]
 
 [dependency-groups]

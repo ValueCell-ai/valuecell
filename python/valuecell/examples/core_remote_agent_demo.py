@@ -56,7 +56,7 @@ async def main():
             logger.info(f"Updated info for '{agent_name}': {updated_info}")
 
             async for resp in await client.send_message(
-                "analyze apple stock with buffett and damodaran",
+                "analyze apple stock with buffett",
                 streaming=True,
             ):
                 logger.info(f"Response from {agent_name}: {resp}")
