@@ -1,6 +1,7 @@
 from src.graph.state import AgentState, show_agent_reasoning
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
+from langgraph.config import get_stream_writer
 from pydantic import BaseModel
 import json
 from typing_extensions import Literal
@@ -24,13 +25,16 @@ def warren_buffett_agent(state: AgentState, agent_id: str = "warren_buffett_agen
     # Collect all analysis for LLM reasoning
     analysis_data = {}
     buffett_analysis = {}
+    writer = get_stream_writer()
 
     for ticker in tickers:
         progress.update_status(agent_id, ticker, "Fetching financial metrics")
+        writer(f"Fetching financial metrics for {ticker}...\n")
         # Fetch required data - request more periods for better trend analysis
         metrics = get_financial_metrics(ticker, end_date, period="ttm", limit=10, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Gathering financial line items")
+        writer(f"Gathering financial line items for {ticker}...\n")
         financial_line_items = search_line_items(
             ticker,
             [
@@ -54,29 +58,37 @@ def warren_buffett_agent(state: AgentState, agent_id: str = "warren_buffett_agen
         )
 
         progress.update_status(agent_id, ticker, "Getting market cap")
+        writer(f"Getting market cap for {ticker}...\n")
         # Get current market cap
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Analyzing fundamentals")
+        writer(f"Analyzing fundamentals for {ticker}...\n")
         # Analyze fundamentals
         fundamental_analysis = analyze_fundamentals(metrics)
 
         progress.update_status(agent_id, ticker, "Analyzing consistency")
+        writer(f"Analyzing consistency for {ticker}...\n")
         consistency_analysis = analyze_consistency(financial_line_items)
 
         progress.update_status(agent_id, ticker, "Analyzing competitive moat")
+        writer(f"Analyzing competitive moat for {ticker}...\n")
         moat_analysis = analyze_moat(metrics)
 
         progress.update_status(agent_id, ticker, "Analyzing pricing power")
+        writer(f"Analyzing pricing power for {ticker}...\n")
         pricing_power_analysis = analyze_pricing_power(financial_line_items, metrics)
 
         progress.update_status(agent_id, ticker, "Analyzing book value growth")
+        writer(f"Analyzing book value growth for {ticker}...\n")
         book_value_analysis = analyze_book_value_growth(financial_line_items)
 
         progress.update_status(agent_id, ticker, "Analyzing management quality")
+        writer(f"Analyzing management quality for {ticker}...\n")
         mgmt_analysis = analyze_management_quality(financial_line_items)
 
         progress.update_status(agent_id, ticker, "Calculating intrinsic value")
+        writer(f"Calculating intrinsic value for {ticker}...\n")
         intrinsic_value_analysis = calculate_intrinsic_value(financial_line_items)
 
         # Calculate total score without circle of competence (LLM will handle that)
@@ -121,6 +133,7 @@ def warren_buffett_agent(state: AgentState, agent_id: str = "warren_buffett_agen
         }
 
         progress.update_status(agent_id, ticker, "Generating Warren Buffett analysis")
+        writer(f"Generating Warren Buffett analysis for {ticker}...\n")
         buffett_output = generate_buffett_output(
             ticker=ticker,
             analysis_data=analysis_data,
@@ -136,6 +149,10 @@ def warren_buffett_agent(state: AgentState, agent_id: str = "warren_buffett_agen
         }
 
         progress.update_status(agent_id, ticker, "Done", analysis=buffett_output.reasoning)
+        writer(
+            f"Analysis output: {buffett_output.signal} with confidence {buffett_output.confidence:.1%}\n"
+            f"{buffett_output.reasoning}\n\n"
+        )
 
     # Create the message
     message = HumanMessage(content=json.dumps(buffett_analysis), name=agent_id)

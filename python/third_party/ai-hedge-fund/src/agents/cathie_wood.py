@@ -2,6 +2,7 @@ from src.graph.state import AgentState, show_agent_reasoning
 from src.tools.api import get_financial_metrics, get_market_cap, search_line_items
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
+from langgraph.config import get_stream_writer
 from pydantic import BaseModel
 import json
 from typing_extensions import Literal
@@ -31,11 +32,18 @@ def cathie_wood_agent(state: AgentState, agent_id: str = "cathie_wood_agent"):
     analysis_data = {}
     cw_analysis = {}
 
+    writer = get_stream_writer()
+
     for ticker in tickers:
         progress.update_status(agent_id, ticker, "Fetching financial metrics")
+
+        writer(f"Fetching financial metrics for {ticker}...\n")
         metrics = get_financial_metrics(ticker, end_date, period="annual", limit=5, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Gathering financial line items")
+
+
+        writer(f"Gathering financial line items for {ticker}...\n")
         # Request multiple periods of data (annual or TTM) for a more robust view.
         financial_line_items = search_line_items(
             ticker,
@@ -60,15 +68,27 @@ def cathie_wood_agent(state: AgentState, agent_id: str = "cathie_wood_agent"):
         )
 
         progress.update_status(agent_id, ticker, "Getting market cap")
+
+
+        writer(f"Getting market cap for {ticker}...\n")
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Analyzing disruptive potential")
+
+
+        writer(f"Analyzing for {ticker}...\n")
         disruptive_analysis = analyze_disruptive_potential(metrics, financial_line_items)
 
         progress.update_status(agent_id, ticker, "Analyzing innovation-driven growth")
+
+
+        writer(f"Analyzing for {ticker}...\n")
         innovation_analysis = analyze_innovation_growth(metrics, financial_line_items)
 
         progress.update_status(agent_id, ticker, "Calculating valuation & high-growth scenario")
+
+
+        writer(f"Calculating for {ticker}...\n")
         valuation_analysis = analyze_cathie_wood_valuation(financial_line_items, market_cap)
 
         # Combine partial scores or signals
@@ -85,6 +105,9 @@ def cathie_wood_agent(state: AgentState, agent_id: str = "cathie_wood_agent"):
         analysis_data[ticker] = {"signal": signal, "score": total_score, "max_score": max_possible_score, "disruptive_analysis": disruptive_analysis, "innovation_analysis": innovation_analysis, "valuation_analysis": valuation_analysis}
 
         progress.update_status(agent_id, ticker, "Generating Cathie Wood analysis")
+
+
+        writer(f"Generating for {ticker}...\n")
         cw_output = generate_cathie_wood_output(
             ticker=ticker,
             analysis_data=analysis_data,

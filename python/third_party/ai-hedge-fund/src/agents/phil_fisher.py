@@ -7,6 +7,7 @@ from src.tools.api import (
 )
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
+from langgraph.config import get_stream_writer
 from pydantic import BaseModel
 import json
 from typing_extensions import Literal
@@ -39,9 +40,11 @@ def phil_fisher_agent(state: AgentState, agent_id: str = "phil_fisher_agent"):
     api_key = get_api_key_from_state(state, "FINANCIAL_DATASETS_API_KEY")
     analysis_data = {}
     fisher_analysis = {}
+    writer = get_stream_writer()
 
     for ticker in tickers:
         progress.update_status(agent_id, ticker, "Gathering financial line items")
+        writer(f"Gathering financial line items for {ticker}...\n")
         # Include relevant line items for Phil Fisher's approach:
         #   - Growth & Quality: revenue, net_income, earnings_per_share, R&D expense
         #   - Margins & Stability: operating_income, operating_margin, gross_margin
@@ -71,30 +74,39 @@ def phil_fisher_agent(state: AgentState, agent_id: str = "phil_fisher_agent"):
         )
 
         progress.update_status(agent_id, ticker, "Getting market cap")
+        writer(f"Getting market cap for {ticker}...\n")
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Fetching insider trades")
+        writer(f"Fetching insider trades for {ticker}...\n")
         insider_trades = get_insider_trades(ticker, end_date, limit=50, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Fetching company news")
+        writer(f"Fetching company news for {ticker}...\n")
         company_news = get_company_news(ticker, end_date, limit=50, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Analyzing growth & quality")
+        writer(f"Analyzing growth & quality for {ticker}...\n")
         growth_quality = analyze_fisher_growth_quality(financial_line_items)
 
         progress.update_status(agent_id, ticker, "Analyzing margins & stability")
+        writer(f"Analyzing margins & stability for {ticker}...\n")
         margins_stability = analyze_margins_stability(financial_line_items)
 
         progress.update_status(agent_id, ticker, "Analyzing management efficiency & leverage")
+        writer(f"Analyzing management efficiency & leverage for {ticker}...\n")
         mgmt_efficiency = analyze_management_efficiency_leverage(financial_line_items)
 
         progress.update_status(agent_id, ticker, "Analyzing valuation (Fisher style)")
+        writer(f"Analyzing valuation (Fisher style) for {ticker}...\n")
         fisher_valuation = analyze_fisher_valuation(financial_line_items, market_cap)
 
         progress.update_status(agent_id, ticker, "Analyzing insider activity")
+        writer(f"Analyzing insider activity for {ticker}...\n")
         insider_activity = analyze_insider_activity(insider_trades)
 
         progress.update_status(agent_id, ticker, "Analyzing sentiment")
+        writer(f"Analyzing sentiment for {ticker}...\n")
         sentiment_analysis = analyze_sentiment(company_news)
 
         # Combine partial scores with weights typical for Fisher:
@@ -136,6 +148,7 @@ def phil_fisher_agent(state: AgentState, agent_id: str = "phil_fisher_agent"):
         }
 
         progress.update_status(agent_id, ticker, "Generating Phil Fisher-style analysis")
+        writer(f"Generating Phil Fisher-style analysis for {ticker}...\n")
         fisher_output = generate_fisher_output(
             ticker=ticker,
             analysis_data=analysis_data,
@@ -150,6 +163,7 @@ def phil_fisher_agent(state: AgentState, agent_id: str = "phil_fisher_agent"):
         }
 
         progress.update_status(agent_id, ticker, "Done", analysis=fisher_output.reasoning)
+        writer(f"Completed analysis for {ticker} with signal: {fisher_output.signal} and confidence: {fisher_output.confidence:.1%}\n\n")
 
     # Wrap results in a single message
     message = HumanMessage(content=json.dumps(fisher_analysis), name=agent_id)

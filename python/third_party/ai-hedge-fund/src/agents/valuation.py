@@ -9,6 +9,7 @@ configurable weights.
 import json
 import statistics
 from langchain_core.messages import HumanMessage
+from langgraph.config import get_stream_writer
 from src.graph.state import AgentState, show_agent_reasoning
 from src.utils.progress import progress
 from src.utils.api_key import get_api_key_from_state
@@ -26,9 +27,11 @@ def valuation_analyst_agent(state: AgentState, agent_id: str = "valuation_analys
     tickers = data["tickers"]
     api_key = get_api_key_from_state(state, "FINANCIAL_DATASETS_API_KEY")
     valuation_analysis: dict[str, dict] = {}
+    writer = get_stream_writer()
 
     for ticker in tickers:
         progress.update_status(agent_id, ticker, "Fetching financial data")
+        writer(f"Fetching financial data for {ticker}...\n")
 
         # --- Historical financial metrics ---
         financial_metrics = get_financial_metrics(
@@ -45,6 +48,7 @@ def valuation_analyst_agent(state: AgentState, agent_id: str = "valuation_analys
 
         # --- Enhanced line‑items ---
         progress.update_status(agent_id, ticker, "Gathering comprehensive line items")
+        writer(f"Gathering comprehensive line items for {ticker}...\n")
         line_items = search_line_items(
             ticker=ticker,
             line_items=[
@@ -87,6 +91,7 @@ def valuation_analyst_agent(state: AgentState, agent_id: str = "valuation_analys
 
         # Enhanced Discounted Cash Flow with WACC and scenarios
         progress.update_status(agent_id, ticker, "Calculating WACC and enhanced DCF")
+        writer(f"Calculating WACC and enhanced DCF for {ticker}...\n")
         
         # Calculate WACC
         wacc = calculate_wacc(
@@ -133,8 +138,10 @@ def valuation_analyst_agent(state: AgentState, agent_id: str = "valuation_analys
         # Aggregate & signal
         # ------------------------------------------------------------------
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
+        writer(f"Fetching market cap for {ticker}...\n")
         if not market_cap:
             progress.update_status(agent_id, ticker, "Failed: Market cap unavailable")
+            writer(f"Failed to fetch market cap for {ticker}\n")
             continue
 
         method_values = {
@@ -202,6 +209,7 @@ def valuation_analyst_agent(state: AgentState, agent_id: str = "valuation_analys
             "reasoning": reasoning,
         }
         progress.update_status(agent_id, ticker, "Done", analysis=json.dumps(reasoning, indent=4))
+        writer(f"Completed analysis for {ticker} with signal: {signal} and confidence: {confidence:.1%}\n")
 
     # ---- Emit message (for LLM tool chain) ----
     msg = HumanMessage(content=json.dumps(valuation_analysis), name=agent_id)

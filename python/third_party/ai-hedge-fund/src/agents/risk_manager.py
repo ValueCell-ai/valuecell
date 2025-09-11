@@ -1,4 +1,5 @@
 from langchain_core.messages import HumanMessage
+from langgraph.config import get_stream_writer
 from src.graph.state import AgentState, show_agent_reasoning
 from src.utils.progress import progress
 from src.tools.api import get_prices, prices_to_df
@@ -23,9 +24,11 @@ def risk_management_agent(state: AgentState, agent_id: str = "risk_management_ag
 
     # First, fetch prices and calculate volatility for all relevant tickers
     all_tickers = set(tickers) | set(portfolio.get("positions", {}).keys())
+    writer = get_stream_writer()
     
     for ticker in all_tickers:
         progress.update_status(agent_id, ticker, "Fetching price data and calculating volatility")
+        writer(f"Fetching price data and calculating volatility for {ticker}...\n")
         
         prices = get_prices(
             ticker=ticker,
@@ -105,6 +108,7 @@ def risk_management_agent(state: AgentState, agent_id: str = "risk_management_ag
     # Calculate volatility- and correlation-adjusted risk limits for each ticker
     for ticker in tickers:
         progress.update_status(agent_id, ticker, "Calculating volatility- and correlation-adjusted limits")
+        writer(f"Calculating volatility- and correlation-adjusted limits for {ticker}...\n")
         
         if ticker not in current_prices or current_prices[ticker] <= 0:
             progress.update_status(agent_id, ticker, "Failed: No valid price data")
@@ -201,6 +205,7 @@ def risk_management_agent(state: AgentState, agent_id: str = "risk_management_ag
         )
 
     progress.update_status(agent_id, None, "Done")
+    writer("Risk management analysis complete.\n\n")
 
     message = HumanMessage(
         content=json.dumps(risk_analysis),

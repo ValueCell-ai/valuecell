@@ -1,6 +1,7 @@
 from src.graph.state import AgentState, show_agent_reasoning
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
+from langgraph.config import get_stream_writer
 from pydantic import BaseModel
 import json
 from typing_extensions import Literal
@@ -24,10 +25,14 @@ def rakesh_jhunjhunwala_agent(state: AgentState, agent_id: str = "rakesh_jhunjhu
     analysis_data = {}
     jhunjhunwala_analysis = {}
 
+    writer = get_stream_writer()
+
     for ticker in tickers:
 
         # Core Data
         progress.update_status(agent_id, ticker, "Fetching financial metrics")
+
+        writer(f"Fetching financial metrics for {ticker}...\n")
         metrics = get_financial_metrics(ticker, end_date, period="ttm", limit=5, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Fetching financial line items")
@@ -53,25 +58,45 @@ def rakesh_jhunjhunwala_agent(state: AgentState, agent_id: str = "rakesh_jhunjhu
         )
 
         progress.update_status(agent_id, ticker, "Getting market cap")
+
+
+        writer(f"Getting market cap for {ticker}...\n")
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
 
         # ─── Analyses ───────────────────────────────────────────────────────────
         progress.update_status(agent_id, ticker, "Analyzing growth")
+
+        writer(f"Analyzing for {ticker}...\n")
         growth_analysis = analyze_growth(financial_line_items)
 
         progress.update_status(agent_id, ticker, "Analyzing profitability")
+
+
+        writer(f"Analyzing for {ticker}...\n")
         profitability_analysis = analyze_profitability(financial_line_items)
         
         progress.update_status(agent_id, ticker, "Analyzing balance sheet")
+
+        
+        writer(f"Analyzing for {ticker}...\n")
         balancesheet_analysis = analyze_balance_sheet(financial_line_items)
         
         progress.update_status(agent_id, ticker, "Analyzing cash flow")
+
+        
+        writer(f"Analyzing for {ticker}...\n")
         cashflow_analysis = analyze_cash_flow(financial_line_items)
         
         progress.update_status(agent_id, ticker, "Analyzing management actions")
+
+        
+        writer(f"Analyzing for {ticker}...\n")
         management_analysis = analyze_management_actions(financial_line_items)
         
         progress.update_status(agent_id, ticker, "Calculating intrinsic value")
+
+        
+        writer(f"Calculating for {ticker}...\n")
         # Calculate intrinsic value once
         intrinsic_value = calculate_intrinsic_value(financial_line_items, market_cap)
 
@@ -136,6 +161,8 @@ def rakesh_jhunjhunwala_agent(state: AgentState, agent_id: str = "rakesh_jhunjhu
 
         # ─── LLM: craft Jhunjhunwala‑style narrative ──────────────────────────────
         progress.update_status(agent_id, ticker, "Generating Jhunjhunwala analysis")
+
+        writer(f"Generating for {ticker}...\n")
         jhunjhunwala_output = generate_jhunjhunwala_output(
             ticker=ticker,
             analysis_data=analysis_data[ticker],

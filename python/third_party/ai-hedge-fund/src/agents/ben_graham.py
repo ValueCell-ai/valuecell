@@ -2,6 +2,7 @@ from src.graph.state import AgentState, show_agent_reasoning
 from src.tools.api import get_financial_metrics, get_market_cap, search_line_items
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
+from langgraph.config import get_stream_writer
 from pydantic import BaseModel
 import json
 from typing_extensions import Literal
@@ -32,25 +33,32 @@ def ben_graham_agent(state: AgentState, agent_id: str = "ben_graham_agent"):
     
     analysis_data = {}
     graham_analysis = {}
+    writer = get_stream_writer()
 
     for ticker in tickers:
         progress.update_status(agent_id, ticker, "Fetching financial metrics")
+        writer(f"Fetching financial metrics for {ticker}...\n")
         metrics = get_financial_metrics(ticker, end_date, period="annual", limit=10, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Gathering financial line items")
+        writer(f"Gathering financial line items for {ticker}...\n")
         financial_line_items = search_line_items(ticker, ["earnings_per_share", "revenue", "net_income", "book_value_per_share", "total_assets", "total_liabilities", "current_assets", "current_liabilities", "dividends_and_other_cash_distributions", "outstanding_shares"], end_date, period="annual", limit=10, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Getting market cap")
+        writer(f"Getting market cap for {ticker}...\n")
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
 
         # Perform sub-analyses
         progress.update_status(agent_id, ticker, "Analyzing earnings stability")
+        writer(f"Analyzing earnings stability for {ticker}...\n")
         earnings_analysis = analyze_earnings_stability(metrics, financial_line_items)
 
         progress.update_status(agent_id, ticker, "Analyzing financial strength")
+        writer(f"Analyzing financial strength for {ticker}...\n")
         strength_analysis = analyze_financial_strength(financial_line_items)
 
         progress.update_status(agent_id, ticker, "Analyzing Graham valuation")
+        writer(f"Analyzing Graham valuation for {ticker}...\n")
         valuation_analysis = analyze_valuation_graham(financial_line_items, market_cap)
 
         # Aggregate scoring
@@ -68,6 +76,7 @@ def ben_graham_agent(state: AgentState, agent_id: str = "ben_graham_agent"):
         analysis_data[ticker] = {"signal": signal, "score": total_score, "max_score": max_possible_score, "earnings_analysis": earnings_analysis, "strength_analysis": strength_analysis, "valuation_analysis": valuation_analysis}
 
         progress.update_status(agent_id, ticker, "Generating Ben Graham analysis")
+        writer(f"Generating Ben Graham analysis for {ticker}...\n")
         graham_output = generate_graham_output(
             ticker=ticker,
             analysis_data=analysis_data,
@@ -78,6 +87,10 @@ def ben_graham_agent(state: AgentState, agent_id: str = "ben_graham_agent"):
         graham_analysis[ticker] = {"signal": graham_output.signal, "confidence": graham_output.confidence, "reasoning": graham_output.reasoning}
 
         progress.update_status(agent_id, ticker, "Done", analysis=graham_output.reasoning)
+        writer(
+            f"Analysis output: {graham_output.signal} with confidence {graham_output.confidence:.1%}\n"
+            f"{graham_output.reasoning}\n\n"
+        )
 
     # Wrap results in a single message for the chain
     message = HumanMessage(content=json.dumps(graham_analysis), name=agent_id)

@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from src.graph.state import AgentState, show_agent_reasoning
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
+from langgraph.config import get_stream_writer
 
 from src.tools.api import (
     get_financial_metrics,
@@ -40,13 +41,16 @@ def aswath_damodaran_agent(state: AgentState, agent_id: str = "aswath_damodaran_
 
     analysis_data: dict[str, dict] = {}
     damodaran_signals: dict[str, dict] = {}
+    writer = get_stream_writer()
 
     for ticker in tickers:
         # ─── Fetch core data ────────────────────────────────────────────────────
         progress.update_status(agent_id, ticker, "Fetching financial metrics")
+        writer(f"Fetching financial metrics for {ticker}...\n")
         metrics = get_financial_metrics(ticker, end_date, period="ttm", limit=5, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Fetching financial line items")
+        writer(f"Fetching financial line items for {ticker}...\n")
         line_items = search_line_items(
             ticker,
             [
@@ -64,19 +68,24 @@ def aswath_damodaran_agent(state: AgentState, agent_id: str = "aswath_damodaran_
         )
 
         progress.update_status(agent_id, ticker, "Getting market cap")
+        writer(f"Getting market cap for {ticker}...\n")
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
 
         # ─── Analyses ───────────────────────────────────────────────────────────
         progress.update_status(agent_id, ticker, "Analyzing growth and reinvestment")
+        writer(f"Analyzing growth and reinvestment for {ticker}...\n")
         growth_analysis = analyze_growth_and_reinvestment(metrics, line_items)
 
         progress.update_status(agent_id, ticker, "Analyzing risk profile")
+        writer(f"Analyzing risk profile for {ticker}...\n")
         risk_analysis = analyze_risk_profile(metrics, line_items)
 
         progress.update_status(agent_id, ticker, "Calculating intrinsic value (DCF)")
+        writer(f"Calculating intrinsic value (DCF) for {ticker}...\n")
         intrinsic_val_analysis = calculate_intrinsic_value_dcf(metrics, line_items, risk_analysis)
 
         progress.update_status(agent_id, ticker, "Assessing relative valuation")
+        writer(f"Assessing relative valuation for {ticker}...\n")
         relative_val_analysis = analyze_relative_valuation(metrics)
 
         # ─── Score & margin of safety ──────────────────────────────────────────
@@ -114,6 +123,7 @@ def aswath_damodaran_agent(state: AgentState, agent_id: str = "aswath_damodaran_
 
         # ─── LLM: craft Damodaran-style narrative ──────────────────────────────
         progress.update_status(agent_id, ticker, "Generating Damodaran analysis")
+        writer(f"Generating Damodaran analysis for {ticker}...\n")
         damodaran_output = generate_damodaran_output(
             ticker=ticker,
             analysis_data=analysis_data,
@@ -124,6 +134,10 @@ def aswath_damodaran_agent(state: AgentState, agent_id: str = "aswath_damodaran_
         damodaran_signals[ticker] = damodaran_output.model_dump()
 
         progress.update_status(agent_id, ticker, "Done", analysis=damodaran_output.reasoning)
+        writer(
+            f"Analysis output: {damodaran_output.signal} with confidence {damodaran_output.confidence:.1%}\n"
+            f"{damodaran_output.reasoning}\n\n"
+        )
 
     # ─── Push message back to graph state ──────────────────────────────────────
     message = HumanMessage(content=json.dumps(damodaran_signals), name=agent_id)

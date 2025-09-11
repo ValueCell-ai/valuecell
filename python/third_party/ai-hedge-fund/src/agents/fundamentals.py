@@ -1,4 +1,5 @@
 from langchain_core.messages import HumanMessage
+from langgraph.config import get_stream_writer
 from src.graph.state import AgentState, show_agent_reasoning
 from src.utils.api_key import get_api_key_from_state
 from src.utils.progress import progress
@@ -16,9 +17,11 @@ def fundamentals_analyst_agent(state: AgentState, agent_id: str = "fundamentals_
     api_key = get_api_key_from_state(state, "FINANCIAL_DATASETS_API_KEY")
     # Initialize fundamental analysis for each ticker
     fundamental_analysis = {}
+    writer = get_stream_writer()
 
     for ticker in tickers:
         progress.update_status(agent_id, ticker, "Fetching financial metrics")
+        writer(f"Fetching financial metrics for {ticker}...\n")
 
         # Get the financial metrics
         financial_metrics = get_financial_metrics(
@@ -31,6 +34,7 @@ def fundamentals_analyst_agent(state: AgentState, agent_id: str = "fundamentals_
 
         if not financial_metrics:
             progress.update_status(agent_id, ticker, "Failed: No financial metrics found")
+            writer(f"Failed to fetch financial metrics for {ticker}. Skipping...\n")
             continue
 
         # Pull the most recent financial metrics
@@ -41,6 +45,7 @@ def fundamentals_analyst_agent(state: AgentState, agent_id: str = "fundamentals_
         reasoning = {}
 
         progress.update_status(agent_id, ticker, "Analyzing profitability")
+        writer(f"Analyzing profitability for {ticker}...\n")
         # 1. Profitability Analysis
         return_on_equity = metrics.return_on_equity
         net_margin = metrics.net_margin
@@ -79,6 +84,7 @@ def fundamentals_analyst_agent(state: AgentState, agent_id: str = "fundamentals_
         }
 
         progress.update_status(agent_id, ticker, "Analyzing financial health")
+        writer(f"Analyzing financial health for {ticker}...\n")
         # 3. Financial Health
         current_ratio = metrics.current_ratio
         debt_to_equity = metrics.debt_to_equity
@@ -119,6 +125,7 @@ def fundamentals_analyst_agent(state: AgentState, agent_id: str = "fundamentals_
         }
 
         progress.update_status(agent_id, ticker, "Calculating final signal")
+        writer(f"Calculating final signal for {ticker}...\n")
         # Determine overall signal
         bullish_signals = signals.count("bullish")
         bearish_signals = signals.count("bearish")
@@ -141,6 +148,7 @@ def fundamentals_analyst_agent(state: AgentState, agent_id: str = "fundamentals_
         }
 
         progress.update_status(agent_id, ticker, "Done", analysis=json.dumps(reasoning, indent=4))
+        writer(f"Completed analysis for {ticker} with signal: {overall_signal} and confidence: {confidence:.1f}%\n\n")
 
     # Create the fundamental analysis message
     message = HumanMessage(
