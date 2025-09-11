@@ -18,7 +18,7 @@ The ValueCell Agent System is a distributed intelligent agent framework based on
 ```python
 from valuecell.core.agent.decorator import serve
 
-@serve(name="Calculator Agent", push_notifications=True)
+@serve(push_notifications=True)
 class CalculatorAgent:
     """An agent that can perform basic math calculations"""
     
@@ -84,7 +84,6 @@ The `@serve` decorator is the core tool for creating Agents, providing the follo
 
 ```python
 @serve(
-    name="My Agent",           # Agent name
     host="localhost",          # Service host
     port=9100,                 # Service port (optional, auto-allocated)
     streaming=True,            # Whether to support streaming response
@@ -187,14 +186,14 @@ from valuecell.core.agent.connect import RemoteConnections
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-@serve(name="Calculator Agent", push_notifications=True)
+@serve(push_notifications=True)
 class CalculatorAgent:
     async def stream(self, query, session_id, task_id):
         yield {"is_task_complete": False, "content": f"🧮 Calculating: {query}"}
         await asyncio.sleep(0.5)
         yield {"is_task_complete": True, "content": "✅ Calculation complete"}
 
-@serve(name="Weather Agent", port=9101, push_notifications=True)
+@serve(port=9101, push_notifications=True)
 class WeatherAgent:
     async def stream(self, query, session_id, task_id):
         yield {"is_task_complete": False, "content": f"🌤️ Checking weather: {query}"}

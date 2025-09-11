@@ -9,7 +9,7 @@ from a2a.client import A2ACardResolver
 from a2a.types import AgentCard
 from valuecell.core.agent.client import AgentClient
 from valuecell.core.agent.listener import NotificationListener
-from valuecell.core.agent.registry import AgentRegistry
+from valuecell.core.agent.registry import get_agent, list_agents
 from valuecell.utils import get_agent_card_path, get_next_available_port
 
 logger = logging.getLogger(__name__)
@@ -143,7 +143,7 @@ class RemoteConnections:
             return await self._handle_remote_agent(agent_name)
 
         # Handle local agent
-        agent_class = AgentRegistry.get_agent(agent_name)
+        agent_class = get_agent(agent_name)
         if not agent_class:
             raise ValueError(f"Agent '{agent_name}' not found in registry")
 
@@ -314,7 +314,7 @@ class RemoteConnections:
         if not self._remote_agent_configs:
             self._load_remote_agent_configs()
 
-        local_agents = AgentRegistry.list_agents()
+        local_agents = list_agents()
         remote_agents = list(self._remote_agent_configs.keys())
         return local_agents + remote_agents
 

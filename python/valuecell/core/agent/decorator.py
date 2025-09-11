@@ -26,7 +26,7 @@ from a2a.types import (
 )
 from a2a.utils import new_agent_text_message, new_task
 from a2a.utils.errors import ServerError
-from valuecell.core.agent.registry import AgentRegistry
+from valuecell.core.agent.registry import register_agent
 from valuecell.core.agent.types import BaseAgent
 from valuecell.utils import (
     get_agent_card_path,
@@ -38,7 +38,6 @@ logger = logging.getLogger(__name__)
 
 
 def serve(
-    name: str = None,
     host: str = "localhost",
     port: int = None,
     streaming: bool = True,
@@ -64,7 +63,7 @@ def serve(
                     agent_skills.append(skill)
 
         # Determine the agent name consistently
-        agent_name = name or cls.__name__
+        agent_name = cls.__name__
 
         # Create decorated class
         class DecoratedAgent(cls):
@@ -132,12 +131,9 @@ def serve(
         DecoratedAgent.__name__ = cls.__name__
         DecoratedAgent.__qualname__ = cls.__qualname__
 
-        # Store agent name as class attribute for registry management
-        DecoratedAgent.__agent_name__ = agent_name
-
         # Register to registry
         try:
-            AgentRegistry.register(DecoratedAgent, agent_name)
+            register_agent(DecoratedAgent, agent_name)
         except ImportError:
             # Registry not available, skip registration
             logger.warning(

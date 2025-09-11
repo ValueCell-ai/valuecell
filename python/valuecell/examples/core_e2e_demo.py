@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 # Demo agents using the @serve decorator
-@serve(name="Calculator Agent", push_notifications=True)
+@serve(push_notifications=True)
 class CalculatorAgent:
     """A calculator agent that can do basic math"""
 
@@ -47,7 +47,6 @@ class CalculatorAgent:
 
 
 @serve(
-    name="Weather Agent",
     port=9101,
     push_notifications=True,
     description="Provides weather information",
@@ -88,7 +87,7 @@ class WeatherAgent:
             }
 
 
-@serve(name="Simple Agent")
+@serve()
 class SimpleAgent:
     """A simple non-streaming agent"""
 
@@ -147,7 +146,7 @@ async def demo_complete_system():
         task, event = await client.send_message("Hello simple agent")
         logger.info(f"Simple agent result: {task.status}")
 
-        await asyncio.sleep(10)
+        await asyncio.sleep(5)
         # Show agent information
         for agent_name in running:
             info = connections.get_agent_info(agent_name)
