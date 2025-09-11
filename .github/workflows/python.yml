@@ -44,7 +44,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version-file: "pyproject.toml"
+        python-version-file: "./python/pyproject.toml"
 
     - name: Install the project
       run: uv sync --locked --all-extras --dev
