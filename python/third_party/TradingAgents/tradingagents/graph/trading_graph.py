@@ -125,7 +125,8 @@ class TradingAgentsGraph:
             "social": ToolNode(
                 [
                     # online tools
-                    self.toolkit.get_stock_news_openai,
+                    # TODO: Add free stock news api
+                    # self.toolkit.get_stock_news_openai,
                     # offline tools
                     self.toolkit.get_reddit_stock_info,
                 ]
@@ -133,7 +134,8 @@ class TradingAgentsGraph:
             "news": ToolNode(
                 [
                     # online tools
-                    self.toolkit.get_global_news_openai,
+                    # TODO: Add free global news api
+                    #self.toolkit.get_global_news_openai,
                     self.toolkit.get_google_news,
                     # offline tools
                     self.toolkit.get_finnhub_news,
