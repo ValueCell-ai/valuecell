@@ -9,17 +9,17 @@ from valuecell.core.agent.registry import (
     AgentRegistry,
     clear_registry,
     count,
-    get_agent,
-    get_agent_name,
+    get_agent_class_by_name,
     get_all_agents,
     get_default_registry,
+    get_name_for_class,
     get_registry_info,
     is_registered,
-    list_agents,
-    register_agent,
-    unregister,
+    list_agent_names,
+    register,
     unregister_all,
     unregister_by_class,
+    unregister_by_name,
 )
 from valuecell.core.agent.types import BaseAgent
 
@@ -58,7 +58,7 @@ class TestAgentRegistryInstance:
         assert self._registry.is_registered("TestAgent")
 
         # Test retrieval
-        retrieved = self._registry.get_agent("TestAgent")
+        retrieved = self._registry.get_agent_class_by_name("TestAgent")
         assert retrieved == TestAgent
 
     def test_get_agent_name_simplified(self):
@@ -68,11 +68,11 @@ class TestAgentRegistryInstance:
             pass
 
         # Should always return class name
-        assert self._registry.get_agent_name(SimpleAgent) == "SimpleAgent"
+        assert self._registry.get_name_for_class(SimpleAgent) == "SimpleAgent"
 
         # Even if we manually add __agent_name__, it should be ignored
         SimpleAgent.__agent_name__ = "SomeOtherName"
-        assert self._registry.get_agent_name(SimpleAgent) == "SimpleAgent"
+        assert self._registry.get_name_for_class(SimpleAgent) == "SimpleAgent"
 
     def test_register_multiple_keys_same_class(self):
         """Test registering the same class with multiple keys."""
@@ -86,14 +86,14 @@ class TestAgentRegistryInstance:
         self._registry.register(MultiKeyAgent, "Alias2")
 
         # All keys should work
-        assert self._registry.get_agent("MultiKeyAgent") == MultiKeyAgent
-        assert self._registry.get_agent("Alias1") == MultiKeyAgent
-        assert self._registry.get_agent("Alias2") == MultiKeyAgent
+        assert self._registry.get_agent_class_by_name("MultiKeyAgent") == MultiKeyAgent
+        assert self._registry.get_agent_class_by_name("Alias1") == MultiKeyAgent
+        assert self._registry.get_agent_class_by_name("Alias2") == MultiKeyAgent
 
         # Should be counted as one unique agent
         assert self._registry.count() == 1
-        assert len(self._registry.list_agents()) == 1
-        assert "MultiKeyAgent" in self._registry.list_agents()
+        assert len(self._registry.list_agent_names()) == 1
+        assert "MultiKeyAgent" in self._registry.list_agent_names()
 
     def test_list_agents_unique(self):
         """Test that list_agents returns unique agent names."""
@@ -110,7 +110,7 @@ class TestAgentRegistryInstance:
         self._registry.register(AgentB, "AgentB")
 
         # Should only return unique class names
-        agent_list = self._registry.list_agents()
+        agent_list = self._registry.list_agent_names()
         assert len(agent_list) == 2
         assert "AgentA" in agent_list
         assert "AgentB" in agent_list
@@ -162,9 +162,9 @@ class TestAgentRegistryInstance:
         assert self._registry.is_registered("TestAgent")
         assert self._registry.is_registered("Alias")
 
-        # Unregister by one key
-        result = self._registry.unregister("TestAgent")
-        assert result is True
+        # Unregister by one key (returns list of removed keys)
+        result = self._registry.unregister_by_name("TestAgent")
+        assert result == ["TestAgent", "Alias"]
 
         # Both keys should be removed
         assert not self._registry.is_registered("TestAgent")
@@ -179,9 +179,9 @@ class TestAgentRegistryInstance:
         self._registry.register(TestAgent, "TestAgent")
         self._registry.register(TestAgent, "Alias")
 
-        # Unregister by class
+        # Unregister by class (returns list of removed keys)
         result = self._registry.unregister_by_class(TestAgent)
-        assert result is True
+        assert result == ["TestAgent", "Alias"]
 
         # Should be completely removed
         assert not self._registry.is_registered("TestAgent")
@@ -190,14 +190,14 @@ class TestAgentRegistryInstance:
     def test_unregister_nonexistent(self):
         """Test unregistering nonexistent agents returns False."""
 
-        result = self._registry.unregister("NonExistent")
-        assert result is False
+        result = self._registry.unregister_by_name("NonExistent")
+        assert result == []
 
         class UnregisteredAgent(MockAgent):
             pass
 
         result = self._registry.unregister_by_class(UnregisteredAgent)
-        assert result is False
+        assert result == []
 
     def test_unregister_all_with_pattern(self):
         """Test pattern-based unregistration."""
@@ -298,8 +298,8 @@ class TestAgentRegistryInstance:
         """Test operations on empty registry."""
 
         assert self._registry.count() == 0
-        assert self._registry.list_agents() == []
-        assert self._registry.get_agent("NonExistent") is None
+        assert self._registry.list_agent_names() == []
+        assert self._registry.get_agent_class_by_name("NonExistent") is None
         assert not self._registry.is_registered("NonExistent")
         assert self._registry.get_all_agents() == {}
         assert self._registry.get_registry_info() == {}
@@ -331,10 +331,10 @@ class TestDefaultRegistry:
         class TestAgent(MockAgent):
             pass
 
-        register_agent(TestAgent, "TestAgent")
+        register(TestAgent, "TestAgent")
         assert is_registered("TestAgent")
 
-        retrieved = get_agent("TestAgent")
+        retrieved = get_agent_class_by_name("TestAgent")
         assert retrieved == TestAgent
 
     def test_module_functions_delegation(self):
@@ -347,20 +347,20 @@ class TestDefaultRegistry:
             pass
 
         # Test registration and basic functions
-        register_agent(Agent1, "Agent1")
-        register_agent(Agent2, "Agent2")
-        register_agent(Agent1, "Agent1Alias")  # Multiple keys
+        register(Agent1, "Agent1")
+        register(Agent2, "Agent2")
+        register(Agent1, "Agent1Alias")  # Multiple keys
 
         # Test all module functions
         assert count() == 2
-        agents = list_agents()
+        agents = list_agent_names()
         assert len(agents) == 2
         assert "Agent1" in agents
         assert "Agent2" in agents
 
-        assert get_agent("Agent1") == Agent1
-        assert get_agent("Agent1Alias") == Agent1
-        assert get_agent_name(Agent1) == "Agent1"
+        assert get_agent_class_by_name("Agent1") == Agent1
+        assert get_agent_class_by_name("Agent1Alias") == Agent1
+        assert get_name_for_class(Agent1) == "Agent1"
 
         all_agents = get_all_agents()
         assert len(all_agents) == 3  # 3 keys total
@@ -372,14 +372,13 @@ class TestDefaultRegistry:
         assert is_registered("Agent1Alias")
         assert not is_registered("NonExistent")
 
-        # Test unregistration
-        result = unregister("Agent1")
-        assert result is True
+        # Test unregistration (module-level functions return list of removed keys)
+        result = unregister_by_name("Agent1")
+        assert result == ["Agent1", "Agent1Alias"]
         assert not is_registered("Agent1")
         assert not is_registered("Agent1Alias")  # Should remove all keys
-
         result = unregister_by_class(Agent2)
-        assert result is True
+        assert result == ["Agent2"]
         assert not is_registered("Agent2")
 
         assert count() == 0
@@ -393,9 +392,9 @@ class TestDefaultRegistry:
         class TestAgent2(MockAgent):
             pass
 
-        register_agent(TestAgent1, "Test_1")
-        register_agent(TestAgent2, "Test_2")
-        register_agent(TestAgent1, "Other")
+        register(TestAgent1, "Test_1")
+        register(TestAgent2, "Test_2")
+        register(TestAgent1, "Other")
 
         # Test pattern unregistration
         unregistered = unregister_all("Test")
@@ -406,7 +405,7 @@ class TestDefaultRegistry:
         assert not is_registered("Other")  # Changed expectation
 
         # Register again for next test
-        register_agent(TestAgent1, "Remaining")
+        register(TestAgent1, "Remaining")
 
         # Test unregister all without pattern
         unregistered = unregister_all()
@@ -420,8 +419,8 @@ class TestDefaultRegistry:
         class InfoTestAgent(MockAgent):
             pass
 
-        register_agent(InfoTestAgent, "InfoTestAgent")
-        register_agent(InfoTestAgent, "InfoAlias")
+        register(InfoTestAgent, "InfoTestAgent")
+        register(InfoTestAgent, "InfoAlias")
 
         info = get_registry_info()
         assert len(info) == 1
@@ -450,15 +449,15 @@ class TestEdgeCases:
 
         # Should only be counted once
         assert self._registry.count() == 1
-        assert len(self._registry.list_agents()) == 1
+        assert len(self._registry.list_agent_names()) == 1
         assert len(self._registry.get_all_agents()) == 1
 
     def test_none_values(self):
         """Test handling of None values."""
 
         # get_agent with None or empty string
-        assert self._registry.get_agent(None) is None
-        assert self._registry.get_agent("") is None
+        assert self._registry.get_agent_class_by_name(None) is None
+        assert self._registry.get_agent_class_by_name("") is None
 
         # is_registered with None or empty string
         assert not self._registry.is_registered(None)
@@ -471,7 +470,7 @@ class TestEdgeCases:
             pass
 
         # Test normal behavior first
-        assert self._registry.get_agent_name(TestAgent) == "TestAgent"
+        assert self._registry.get_name_for_class(TestAgent) == "TestAgent"
 
         # We can't delete __name__ from a class, so let's test with None __name__
         # This is more of a theoretical edge case
@@ -483,7 +482,7 @@ class TestEdgeCases:
         # Remove __name__ after creation (only works with certain objects)
         try:
             # This will likely fail, which is expected behavior
-            result = self._registry.get_agent_name(MockClassWithoutName)
+            result = self._registry.get_name_for_class(MockClassWithoutName)
             assert result == "MockClassWithoutName"
         except AttributeError:
             # This is the expected behavior for malformed classes
@@ -516,7 +515,7 @@ class TestEdgeCases:
 
         # Test operations on large registry
         assert self._registry.count() == 100
-        assert len(self._registry.list_agents()) == 100
+        assert len(self._registry.list_agent_names()) == 100
         assert len(self._registry.get_all_agents()) == 150  # 100 + 50 aliases
 
         # When unregistering by pattern "Alias", all agent classes with an alias matching the pattern are found,

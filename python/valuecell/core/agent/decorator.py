@@ -26,7 +26,7 @@ from a2a.types import (
 )
 from a2a.utils import new_agent_text_message, new_task
 from a2a.utils.errors import ServerError
-from valuecell.core.agent.registry import register_agent
+from valuecell.core.agent import registry
 from valuecell.core.agent.types import BaseAgent
 from valuecell.utils import (
     get_agent_card_path,
@@ -133,7 +133,7 @@ def serve(
 
         # Register to registry
         try:
-            register_agent(DecoratedAgent, agent_name)
+            registry.register(DecoratedAgent, agent_name)
         except ImportError:
             # Registry not available, skip registration
             logger.warning(

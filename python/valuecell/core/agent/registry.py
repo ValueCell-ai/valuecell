@@ -1,5 +1,5 @@
-from typing import Dict, Type, List
 import logging
+from typing import Dict, List, Type
 
 logger = logging.getLogger(__name__)
 
@@ -21,15 +21,15 @@ class AgentRegistry:
         self._agents[agent_name] = agent_class
         logger.info(f"Registered agent: '{agent_name}'")
 
-    def get_agent(self, name: str) -> Type:
+    def get_agent_class_by_name(self, name: str) -> Type:
         """Get a registered Agent class by name"""
         return self._agents.get(name)
 
-    def get_agent_name(self, agent_class: Type) -> str:
+    def get_name_for_class(self, agent_class: Type) -> str:
         """Get the agent name for a given class"""
         return agent_class.__name__
 
-    def list_agents(self) -> List[str]:
+    def list_agent_names(self) -> List[str]:
         """List all registered agent names (primary names only)"""
         # Get unique agent class names (avoid duplicate entries for same class)
         seen_classes = set()
@@ -38,7 +38,7 @@ class AgentRegistry:
             class_id = id(agent_class)
             if class_id not in seen_classes:
                 seen_classes.add(class_id)
-                unique_names.append(self.get_agent_name(agent_class))
+                unique_names.append(self.get_name_for_class(agent_class))
         return unique_names
 
     def get_all_agents(self) -> Dict[str, Type]:
@@ -56,7 +56,7 @@ class AgentRegistry:
                 continue
 
             processed_classes.add(class_id)
-            agent_name = self.get_agent_name(agent_class)
+            agent_name = self.get_name_for_class(agent_class)
 
             info[agent_name] = {
                 "class_name": agent_class.__name__,
@@ -69,7 +69,7 @@ class AgentRegistry:
 
         return info
 
-    def unregister(self, name: str) -> bool:
+    def unregister_by_name(self, name: str) -> List[str]:
         """Unregister an agent by name (agent_name or class_name)
 
         Args:
@@ -80,7 +80,7 @@ class AgentRegistry:
         """
         agent_class = self._agents.get(name)
         if not agent_class:
-            return False
+            return []
 
         # Find all keys that point to this agent class
         keys_to_remove = [k for k, v in self._agents.items() if v is agent_class]
@@ -89,13 +89,13 @@ class AgentRegistry:
         for key in keys_to_remove:
             del self._agents[key]
 
-        agent_name = self.get_agent_name(agent_class)
+        agent_name = self.get_name_for_class(agent_class)
         logger.info(
             f"Unregistered agent: '{agent_name}' (removed keys: {keys_to_remove})"
         )
-        return True
+        return keys_to_remove
 
-    def unregister_by_class(self, agent_class: Type) -> bool:
+    def unregister_by_class(self, agent_class: Type) -> List[str]:
         """Unregister an agent by class reference
 
         Args:
@@ -108,17 +108,17 @@ class AgentRegistry:
         keys_to_remove = [k for k, v in self._agents.items() if v is agent_class]
 
         if not keys_to_remove:
-            return False
+            return []
 
         # Remove all keys for this agent
         for key in keys_to_remove:
             del self._agents[key]
 
-        agent_name = self.get_agent_name(agent_class)
+        agent_name = self.get_name_for_class(agent_class)
         logger.info(
             f"Unregistered agent: '{agent_name}' (removed keys: {keys_to_remove})"
         )
-        return True
+        return keys_to_remove
 
     def is_registered(self, name: str) -> bool:
         """Check if an agent is registered by name
@@ -143,21 +143,21 @@ class AgentRegistry:
         """
         if pattern is None:
             # Unregister all
-            agent_names = self.list_agents()
+            agent_names = self.list_agent_names()
             self.clear()
             logger.info(f"Unregistered all agents: {agent_names}")
             return agent_names
 
         # Find registration keys matching pattern
         matching_keys = []
-        for key in self._agents.keys():
+        for key in self._agents:
             if pattern in key:
                 matching_keys.append(key)
 
         # Unregister matching agents by key
         unregistered = []
         for key in matching_keys:
-            if self.unregister(key):
+            if self.unregister_by_name(key):
                 # Get the agent name for reporting
                 unregistered.append(key)
 
@@ -169,7 +169,7 @@ class AgentRegistry:
         Returns:
             int: Number of unique agents (not counting duplicate keys)
         """
-        return len(self.list_agents())
+        return len(self.list_agent_names())
 
     def clear(self) -> None:
         """Clear all registered agents (useful for testing)"""
@@ -181,24 +181,24 @@ _default_registry = AgentRegistry()
 
 
 # Convenience functions that delegate to the default instance
-def register_agent(agent_class: Type, agent_name: str) -> None:
+def register(agent_class: Type, agent_name: str) -> None:
     """Register an agent in the default registry"""
     _default_registry.register(agent_class, agent_name)
 
 
-def get_agent(name: str) -> Type:
+def get_agent_class_by_name(name: str) -> Type:
     """Get an agent from the default registry"""
-    return _default_registry.get_agent(name)
+    return _default_registry.get_agent_class_by_name(name)
 
 
-def get_agent_name(agent_class: Type) -> str:
+def get_name_for_class(agent_class: Type) -> str:
     """Get agent name from the default registry"""
-    return _default_registry.get_agent_name(agent_class)
+    return _default_registry.get_name_for_class(agent_class)
 
 
-def list_agents() -> List[str]:
+def list_agent_names() -> List[str]:
     """List agents from the default registry"""
-    return _default_registry.list_agents()
+    return _default_registry.list_agent_names()
 
 
 def get_all_agents() -> Dict[str, Type]:
@@ -211,12 +211,12 @@ def get_registry_info() -> Dict[str, dict]:
     return _default_registry.get_registry_info()
 
 
-def unregister(name: str) -> bool:
+def unregister_by_name(name: str) -> List[str]:
     """Unregister an agent from the default registry"""
-    return _default_registry.unregister(name)
+    return _default_registry.unregister_by_name(name)
 
 
-def unregister_by_class(agent_class: Type) -> bool:
+def unregister_by_class(agent_class: Type) -> List[str]:
     """Unregister an agent by class from the default registry"""
     return _default_registry.unregister_by_class(agent_class)
 

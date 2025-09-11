@@ -9,7 +9,7 @@ from a2a.client import A2ACardResolver
 from a2a.types import AgentCard
 from valuecell.core.agent.client import AgentClient
 from valuecell.core.agent.listener import NotificationListener
-from valuecell.core.agent.registry import get_agent, list_agents
+from valuecell.core.agent import registry
 from valuecell.utils import get_agent_card_path, get_next_available_port
 
 logger = logging.getLogger(__name__)
@@ -96,9 +96,9 @@ class RemoteConnections:
                     resolver = A2ACardResolver(
                         httpx_client=httpx_client, base_url=card_data["url"]
                     )
-                    self._remote_agent_cards[
-                        agent_name
-                    ] = await resolver.get_agent_card()
+                    self._remote_agent_cards[agent_name] = (
+                        await resolver.get_agent_card()
+                    )
                     loaded_count += 1
                     logger.info(
                         f"Loaded remote agent card: {agent_name} from {json_file.name}"
@@ -143,7 +143,7 @@ class RemoteConnections:
             return await self._handle_remote_agent(agent_name)
 
         # Handle local agent
-        agent_class = get_agent(agent_name)
+        agent_class = registry.get_agent_class_by_name(agent_name)
         if not agent_class:
             raise ValueError(f"Agent '{agent_name}' not found in registry")
 
@@ -314,7 +314,7 @@ class RemoteConnections:
         if not self._remote_agent_configs:
             self._load_remote_agent_configs()
 
-        local_agents = list_agents()
+        local_agents = registry.list_agent_names()
         remote_agents = list(self._remote_agent_configs.keys())
         return local_agents + remote_agents
 
@@ -346,9 +346,11 @@ class RemoteConnections:
                 "name": agent_name,
                 "type": "remote",
                 "url": config_data.get("url"),
-                "card": agent_card.model_dump(exclude_none=True)
-                if agent_card
-                else config_data,
+                "card": (
+                    agent_card.model_dump(exclude_none=True)
+                    if agent_card
+                    else config_data
+                ),
                 "connected": agent_name in self._connections,
                 "running": False,  # Remote agents are not managed by us
                 "has_listener": False,
