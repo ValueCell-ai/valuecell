@@ -199,7 +199,7 @@ class GenericAgentExecutor(AgentExecutor):
                     break
         except Exception as e:
             message = (
-                f"Error during {self.agent.__class__.__name__} agent execution : {e}"
+                f"Error during {self.agent.__class__.__name__} agent execution: {e}"
             )
             logger.error(message)
             await updater.update_status(

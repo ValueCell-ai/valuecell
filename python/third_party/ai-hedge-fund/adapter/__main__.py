@@ -22,7 +22,7 @@ allowed_tickers = {"AAPL", "GOOGL", "MSFT", "NVDA", "TSLA"}
 class HedgeFundRequest(BaseModel):
     tickers: List[str] = Field(
         ...,
-        description=f"List of stock tickers to analyze. Must be from: {allowed_tickers}",
+        description=f"List of stock tickers to analyze. Must be from: {allowed_tickers}. Otherwise, empty.",
     )
     selected_analysts: List[str] = Field(
         default=[],
@@ -32,6 +32,8 @@ class HedgeFundRequest(BaseModel):
     @field_validator("tickers")
     @classmethod
     def validate_tickers(cls, v):
+        if not v:
+            raise ValueError("No valid tickers are recognized.")
         invalid_tickers = set(v) - allowed_tickers
         if invalid_tickers:
             raise ValueError(
@@ -65,6 +67,8 @@ class AIHedgeFundAgent(BaseAgent):
             f"Parse the following hedge fund analysis request and extract the parameters: {query}"
         )
         hedge_fund_request = run_response.content
+        if not isinstance(hedge_fund_request, HedgeFundRequest):
+            raise ValueError(f"Unable to parse query: {query}")
 
         end_date = datetime.now().strftime("%Y-%m-%d")
         end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
