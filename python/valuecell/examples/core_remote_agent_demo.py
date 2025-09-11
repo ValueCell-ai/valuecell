@@ -55,11 +55,11 @@ async def main():
             updated_info = connections.get_agent_info(agent_name)
             logger.info(f"Updated info for '{agent_name}': {updated_info}")
 
-            async for resp in await client.send_message(
+            async for task, event in await client.send_message(
                 "analyze apple stock with buffett",
                 streaming=True,
             ):
-                logger.info(f"Response from {agent_name}: {resp}")
+                logger.info(f"Response from {agent_name}:\n{task}\n{event}")
 
         except Exception as e:
             logger.error(f"Failed to start {agent_name}: {e}")
