@@ -3,7 +3,7 @@ name = "ai-hedge-fund"
 version = "0.1.0"
 description = "An AI-powered hedge fund that uses multiple agents to make trading decisions"
 authors = [{ name = "Your Name", email = "your.email@example.com" }]
-requires-python = "~=3.11"
+requires-python = "~=3.12"
 readme = "README.md"
 dependencies = [
     "langchain>=0.3.7,<0.4",
@@ -22,7 +22,7 @@ dependencies = [
     "questionary>=2.1.0,<3",
     "rich>=13.9.4,<14",
     "langchain-google-genai>=2.0.11,<3",
-    "fastapi[standard]>=0.104.0,<0.105",
+#    "fastapi[standard]>=0.104.0,<0.105",
     "fastapi-cli>=0.0.7,<0.0.8",
     "pydantic>=2.4.2,<3",
     "httpx>=0.28.0,<0.29.0",
@@ -30,7 +30,7 @@ dependencies = [
     "alembic>=1.12.0,<2",
     "langchain-gigachat>=0.3.12,<0.4",
     "langchain-xai>=0.2.5,<0.3",
-    "a2a-sdk[http-server]>=0.3.0,<0.4.0",
+    "valuecell",
 ]
 
 [dependency-groups]
@@ -69,3 +69,6 @@ include = '\.pyi?$'
 [tool.isort]
 profile = "black"
 force_alphabetical_sort_within_sections = true
+
+[tool.uv.sources]
+valuecell = { path = "../../", editable = true }

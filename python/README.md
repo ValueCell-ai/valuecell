@@ -45,8 +45,7 @@ cd third_party/ai-hedge-fund
 echo "uv: $(which uv)"
 echo "python: $(which python)"
 
-uv venv --python 3.12 && uv sync && uv pip install -e "../..[dev]"
-uv pip list
+uv venv --python 3.12 && uv sync && uv pip list
 ```
 
 ## Requirements
