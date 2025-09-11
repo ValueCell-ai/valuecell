@@ -96,9 +96,9 @@ class RemoteConnections:
                     resolver = A2ACardResolver(
                         httpx_client=httpx_client, base_url=card_data["url"]
                     )
-                    self._remote_agent_cards[agent_name] = (
-                        await resolver.get_agent_card()
-                    )
+                    self._remote_agent_cards[
+                        agent_name
+                    ] = await resolver.get_agent_card()
                     loaded_count += 1
                     logger.info(
                         f"Loaded remote agent card: {agent_name} from {json_file.name}"
