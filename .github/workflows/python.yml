@@ -1,4 +1,4 @@
-name: Python Code Style & Linting
+name: Python Linting & Unit Tests
 
 permissions:
   contents: read
