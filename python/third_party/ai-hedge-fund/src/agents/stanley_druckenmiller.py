@@ -107,19 +107,19 @@ def stanley_druckenmiller_agent(state: AgentState, agent_id: str = "stanley_druc
         progress.update_status(agent_id, ticker, "Analyzing growth & momentum")
 
 
-        writer(f"Analyzing for {ticker}...\n")
+        writer(f"Analyzing growth & momentum for {ticker}...\n")
         growth_momentum_analysis = analyze_growth_and_momentum(financial_line_items, prices)
 
         progress.update_status(agent_id, ticker, "Analyzing sentiment")
 
 
-        writer(f"Analyzing for {ticker}...\n")
+        writer(f"Analyzing sentiment for {ticker}...\n")
         sentiment_analysis = analyze_sentiment(company_news)
 
         progress.update_status(agent_id, ticker, "Analyzing insider activity")
 
 
-        writer(f"Analyzing for {ticker}...\n")
+        writer(f"Analyzing insider activity for {ticker}...\n")
         insider_activity = analyze_insider_activity(insider_trades)
 
         progress.update_status(agent_id, ticker, "Analyzing risk-reward")
