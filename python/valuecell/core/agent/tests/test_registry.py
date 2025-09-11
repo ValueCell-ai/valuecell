@@ -519,9 +519,8 @@ class TestEdgeCases:
         assert len(self._registry.list_agents()) == 100
         assert len(self._registry.get_all_agents()) == 150  # 100 + 50 aliases
 
-        # Test pattern unregistration
-        # When we unregister by pattern "Alias", it removes the agent classes that match
-        # But since unregister removes ALL keys for an agent, it will remove more than expected
+        # When unregistering by pattern "Alias", all agent classes with an alias matching the pattern are found,
+        # and for each, all associated keys (including primary names and all aliases) are removed from the registry.
         unregistered = self._registry.unregister_all("Alias")
         assert len(unregistered) == 50  # 50 alias keys matched
 
