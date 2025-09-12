@@ -13,9 +13,13 @@
     "@react-router/node": "^7.8.2",
     "@tauri-apps/api": "^2.8.0",
     "@tauri-apps/plugin-opener": "^2.5.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "isbot": "^5",
+    "lucide-react": "^0.544.0",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
@@ -26,9 +30,11 @@
     "@tauri-apps/cli": "^2.8.4",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
-    "@vitejs/plugin-react-swc": "^4.0.1",
+    "shadcn": "^3.2.1",
     "tailwindcss": "^4.1.13",
+    "tw-animate-css": "^1.3.8",
     "typescript": "~5.9.2",
-    "vite": "^7.0.4"
+    "vite": "^7.0.4",
+    "vite-tsconfig-paths": "^5.1.4"
   }
 }
