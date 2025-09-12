@@ -1,4 +1,7 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
+import AppSidebar from "@/components/app_sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+
 import "./global.css";
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -22,5 +25,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function Root() {
-  return <Outlet />;
+  return (
+    <SidebarProvider
+      open={false}
+      className="fixed flex h-full w-full overflow-hidden"
+    >
+      <AppSidebar />
+
+      <main className="flex-1 overflow-hidden rounded-tl-3xl">
+        <Outlet />
+      </main>
+    </SidebarProvider>
+  );
 }

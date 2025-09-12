@@ -1,5 +1,5 @@
-function App() {
+function Home() {
   return <main>ValueCell</main>;
 }
 
-export default App;
+export default Home;
