@@ -1,4 +1,6 @@
+import type { ScrollAreaProps } from "@radix-ui/react-scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   cn,
   formatChangePercent,
@@ -30,7 +32,7 @@ interface StockMenuHeaderProps
   children: React.ReactNode;
 }
 
-interface StockMenuContentProps extends React.HTMLAttributes<HTMLDivElement> {
+interface StockMenuContentProps extends ScrollAreaProps {
   children: React.ReactNode;
 }
 
@@ -67,21 +69,18 @@ function StockMenuContent({
   ...props
 }: StockMenuContentProps) {
   return (
-    <div
-      className={cn(
-        "flex flex-col gap-6 overflow-y-auto overflow-x-hidden",
-        className,
-      )}
-      {...props}
-    >
+    <ScrollArea className={cn("min-h-0 w-full", className)} {...props}>
       {children}
-    </div>
+    </ScrollArea>
   );
 }
 
 function StockMenu({ className, children, ...props }: StockMenuProps) {
   return (
-    <div className={cn("flex flex-col gap-6 px-5 py-6", className)} {...props}>
+    <div
+      className={cn("flex min-h-20 flex-1 flex-col gap-6 px-5 py-6", className)}
+      {...props}
+    >
       {children}
     </div>
   );
@@ -93,7 +92,10 @@ function StockMenuGroup({
   ...props
 }: StockMenuGroupProps) {
   return (
-    <div className={cn("flex flex-col gap-2", className)} {...props}>
+    <div
+      className={cn("not-last:mb-6 flex flex-col gap-2", className)}
+      {...props}
+    >
       {children}
     </div>
   );

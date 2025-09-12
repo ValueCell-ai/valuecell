@@ -12,11 +12,11 @@ import { stockData } from "@/mock/stock-data";
 
 function Home() {
   return (
-    <div className="flex h-full w-full overflow-hidden">
+    <div className="flex size-full">
       <main className="flex-1"></main>
 
-      <aside className="flex flex-col justify-between border-l">
-        <StockMenu className="flex-1 overflow-hidden">
+      <aside className="flex h-full flex-col justify-between border-l">
+        <StockMenu>
           <StockMenuHeader>My Stocks</StockMenuHeader>
           <StockMenuContent>
             {stockData.map((group) => (

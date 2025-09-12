@@ -112,9 +112,6 @@
 
 @layer base {
   * {
-    scrollbar-color: oklch(0.85 0 0) transparent;
-    /* Firefox 全局滚动条样式 */
-    scrollbar-width: thin;
     @apply border-border outline-ring/50;
   }
 

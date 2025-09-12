@@ -26,10 +26,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function Root() {
   return (
-    <SidebarProvider
-      open={false}
-      className="fixed h-full w-full overflow-hidden"
-    >
+    <SidebarProvider open={false} className="fixed size-full overflow-hidden">
       <AppSidebar />
 
       <Outlet />

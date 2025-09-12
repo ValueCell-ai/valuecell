@@ -12,6 +12,7 @@
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tooltip": "^1.2.8",
@@ -41,5 +42,6 @@
     "typescript": "~5.9.2",
     "vite": "^7.0.4",
     "vite-tsconfig-paths": "^5.1.4"
-  }
+  },
+  "packageManager": "bun@1.2.21"
 }
