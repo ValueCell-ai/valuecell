@@ -4,3 +4,57 @@ import { twMerge } from "tailwind-merge";
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+/**
+ * Formats a numeric price with currency symbol
+ * @param price - The numeric price value
+ * @param currency - Currency symbol (e.g., "$", "¥", "€")
+ * @param decimals - Number of decimal places (default: 2)
+ * @returns Formatted price string with currency symbol
+ * @example formatPrice(1234.567, "$") // "$1234.57"
+ */
+export function formatPrice(
+  price: number,
+  currency: string,
+  decimals: number = 2,
+): string {
+  return `${currency}${price.toFixed(decimals)}`;
+}
+
+/**
+ * Formats a percentage change with appropriate sign and styling
+ * @param changePercent - The percentage change value (can be positive, negative, or zero)
+ * @param decimals - Number of decimal places (default: 2)
+ * @returns Formatted percentage string with sign
+ * @example
+ * formatChangePercent(5.67) // "+ 5.67%"
+ * formatChangePercent(-2.34) // "- 2.34%"
+ * formatChangePercent(0) // "0.00%"
+ */
+export function formatChangePercent(
+  changePercent: number,
+  decimals: number = 2,
+): string {
+  if (changePercent === 0) {
+    return `${changePercent.toFixed(decimals)}%`;
+  }
+
+  const sign = changePercent > 0 ? "+ " : "- ";
+  const value = Math.abs(changePercent).toFixed(decimals);
+  return `${sign}${value}%`;
+}
+
+/**
+ * Determines the type of change based on percentage value
+ * @param changePercent - The percentage change value
+ * @returns Change type: "positive", "negative", or "neutral"
+ */
+export function getChangeType(
+  changePercent: number,
+): "positive" | "negative" | "neutral" {
+  return changePercent > 0
+    ? "positive"
+    : changePercent < 0
+      ? "negative"
+      : "neutral";
+}
