@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import type { StockChangeType } from "@/types/stock";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -25,23 +26,21 @@ export function formatPrice(
  * Formats a percentage change with appropriate sign and styling
  * @param changePercent - The percentage change value (can be positive, negative, or zero)
  * @param decimals - Number of decimal places (default: 2)
+ * @param suffix - Suffix to add to the percentage string (default: "")
  * @returns Formatted percentage string with sign
- * @example
- * formatChangePercent(5.67) // "+ 5.67%"
- * formatChangePercent(-2.34) // "- 2.34%"
- * formatChangePercent(0) // "0.00%"
  */
-export function formatChangePercent(
+export function formatChange(
   changePercent: number,
+  suffix: string = "",
   decimals: number = 2,
 ): string {
   if (changePercent === 0) {
-    return `${changePercent.toFixed(decimals)}%`;
+    return `${changePercent.toFixed(decimals)}${suffix}`;
   }
 
-  const sign = changePercent > 0 ? "+ " : "- ";
+  const sign = changePercent > 0 ? "+" : "-";
   const value = Math.abs(changePercent).toFixed(decimals);
-  return `${sign}${value}%`;
+  return `${sign}${value}${suffix}`;
 }
 
 /**
@@ -49,9 +48,7 @@ export function formatChangePercent(
  * @param changePercent - The percentage change value
  * @returns Change type: "positive", "negative", or "neutral"
  */
-export function getChangeType(
-  changePercent: number,
-): "positive" | "negative" | "neutral" {
+export function getChangeType(changePercent: number): StockChangeType {
   return changePercent > 0
     ? "positive"
     : changePercent < 0

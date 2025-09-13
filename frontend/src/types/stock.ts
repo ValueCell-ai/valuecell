@@ -1,0 +1,1 @@
+export type StockChangeType = "positive" | "negative" | "neutral";

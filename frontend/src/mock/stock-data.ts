@@ -1,3 +1,4 @@
+import type { SparklineStock } from "@/components/menus/sparkline-stock-menus";
 import type { StockGroup } from "@/components/menus/stock-menus";
 
 export const stockData: StockGroup[] = [
@@ -168,5 +169,47 @@ export const stockData: StockGroup[] = [
         iconBgColor: "#F3BA2F",
       },
     ],
+  },
+];
+
+// 生成随机 sparkline 数据
+function generateSparklineData(): number[] {
+  const data = [];
+  let value = 100 + Math.random() * 50; // 起始值在 100-150 之间
+
+  for (let i = 0; i < 30; i++) {
+    // 添加随机波动，幅度在 -5% 到 +5% 之间
+    const change = (Math.random() - 0.5) * 0.1 * value;
+    value = Math.max(0, value + change);
+    data.push(value);
+  }
+
+  return data;
+}
+
+export const sparklineStockData: SparklineStock[] = [
+  {
+    symbol: "DJI",
+    price: 38808.72,
+    currency: "$",
+    changeAmount: 66.84,
+    changePercent: 1.75,
+    sparklineData: generateSparklineData(),
+  },
+  {
+    symbol: "IXIC",
+    price: 12063.17,
+    currency: "$",
+    changeAmount: -66.84,
+    changePercent: -1.75,
+    sparklineData: generateSparklineData(),
+  },
+  {
+    symbol: "SPX",
+    price: 2770.94,
+    currency: "$",
+    changeAmount: -128.43,
+    changePercent: -4.43,
+    sparklineData: generateSparklineData(),
   },
 ];

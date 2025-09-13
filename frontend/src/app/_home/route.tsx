@@ -1,4 +1,5 @@
 import { Plus } from "lucide-react";
+import { SparklineStockList } from "@/components/menus/sparkline-stock-menus";
 import {
   StockMenu,
   StockMenuContent,
@@ -8,12 +9,16 @@ import {
   StockMenuListItem,
 } from "@/components/menus/stock-menus";
 import { Button } from "@/components/ui/button";
-import { stockData } from "@/mock/stock-data";
+import { sparklineStockData, stockData } from "@/mock/stock-data";
 
 function Home() {
   return (
     <div className="flex size-full">
-      <main className="flex-1"></main>
+      <main className="flex flex-1 flex-col gap-6 p-8">
+        <h1 className="font-medium text-3xl">👋 Welcome to ValueCell !</h1>
+
+        <SparklineStockList stocks={sparklineStockData} />
+      </main>
 
       <aside className="flex h-full flex-col justify-between border-l">
         <StockMenu>

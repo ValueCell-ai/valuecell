@@ -1,12 +1,7 @@
 import type { ScrollAreaProps } from "@radix-ui/react-scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  cn,
-  formatChangePercent,
-  formatPrice,
-  getChangeType,
-} from "@/lib/utils";
+import { cn, formatChange, formatPrice, getChangeType } from "@/lib/utils";
 
 interface Stock {
   symbol: string;
@@ -174,7 +169,7 @@ function StockMenuListItem({
             { "text-red-700": changeType === "negative" },
           )}
         >
-          {formatChangePercent(stock.changePercent)}
+          {formatChange(stock.changePercent, "%")}
         </p>
       </div>
     </button>
