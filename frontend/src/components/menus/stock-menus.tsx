@@ -130,7 +130,7 @@ function StockMenuListItem({
         {/* icon */}
         <div
           className="flex h-10 w-10 items-center justify-center rounded-full"
-          style={{ backgroundColor: stock.iconBgColor || "#EEF0F3" }}
+          style={{ backgroundColor: stock.iconBgColor }}
         >
           {stock.icon ? (
             <Avatar>
