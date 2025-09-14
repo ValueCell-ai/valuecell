@@ -26,6 +26,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@valuecell/*": [
+        "./src/components/valuecell/*"
       ]
     }
   },

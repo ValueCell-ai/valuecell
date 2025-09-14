@@ -1,6 +1,9 @@
 import { Plus } from "lucide-react";
-import { AgentSuggestionsList } from "@/app/_home/components/agent-suggestions-list";
-import { SparklineStockList } from "@/app/_home/components/sparkline-stock-list";
+import {
+  AgentSuggestionsList,
+  SparklineStockList,
+} from "@/app/_home/components";
+import { Button } from "@/components/ui/button";
 import {
   StockMenu,
   StockMenuContent,
@@ -8,8 +11,7 @@ import {
   StockMenuGroupHeader,
   StockMenuHeader,
   StockMenuListItem,
-} from "@/components/menus/stock-menus";
-import { Button } from "@/components/ui/button";
+} from "@/components/valuecell/menus/stock-menus";
 import { agentSuggestions } from "@/mock/agent-data";
 import { sparklineStockData, stockData } from "@/mock/stock-data";
 

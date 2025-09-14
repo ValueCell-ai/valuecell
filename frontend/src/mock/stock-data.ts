@@ -1,5 +1,5 @@
 import type { SparklineStock } from "@/app/_home/components/sparkline-stock-list";
-import type { StockGroup } from "@/components/menus/stock-menus";
+import type { StockGroup } from "@/components/valuecell/menus/stock-menus";
 
 export const stockData: StockGroup[] = [
   {

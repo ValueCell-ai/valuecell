@@ -4,7 +4,7 @@ import {
   AgentMenuIcon,
   AgentMenuSuffix,
   AgentMenuTitle,
-} from "@/components/menus/agent-menus";
+} from "@valuecell/menus/agent-menus";
 import { cn } from "@/lib/utils";
 
 export interface AgentSuggestion {
