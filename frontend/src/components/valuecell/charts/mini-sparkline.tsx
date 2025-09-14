@@ -3,7 +3,7 @@ import { GridComponent } from "echarts/components";
 import type { ECharts, EChartsCoreOption } from "echarts/core";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 // 注册必要的组件
@@ -29,13 +29,8 @@ export function MiniSparkline({
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<ECharts | null>(null);
 
-  useEffect(() => {
-    if (!chartRef.current) return;
-
-    // 初始化图表
-    chartInstance.current = echarts.init(chartRef.current);
-
-    const option: EChartsCoreOption = {
+  const option: EChartsCoreOption = useMemo(() => {
+    return {
       grid: {
         left: 0,
         right: 0,
@@ -77,25 +72,28 @@ export function MiniSparkline({
       ],
       animation: true,
     };
+  }, [data, color, gradientColors]);
+
+  useEffect(() => {
+    if (!chartRef.current) return;
+    chartInstance.current = echarts.init(chartRef.current);
 
     chartInstance.current.setOption(option);
 
-    // 响应式处理
     const handleResize = () => {
       chartInstance.current?.resize();
     };
 
     window.addEventListener("resize", handleResize);
 
-    // 清理函数
     return () => {
       window.removeEventListener("resize", handleResize);
       chartInstance.current?.dispose();
     };
-  }, [data, color, gradientColors]);
+  }, [option]);
 
   useEffect(() => {
-    // 当数据变化时更新图表
+    // update chart when data changes
     if (chartInstance.current) {
       chartInstance.current.setOption({
         series: [{ data }],
