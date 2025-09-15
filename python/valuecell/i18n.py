@@ -4,7 +4,13 @@ This module provides convenient imports for i18n functionality.
 Import from here to access all i18n features in one place.
 """
 
-# Core i18n functionality removed
+# Core i18n functionality
+from .services.i18n_service import (
+    get_i18n_service,
+    t,
+    translate,
+    reset_i18n_service,
+)
 
 # Configuration
 from .config.settings import get_settings
