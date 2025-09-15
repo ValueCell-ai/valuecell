@@ -1,4 +1,5 @@
 from langchain_core.messages import HumanMessage
+from langgraph.config import get_stream_writer
 from src.graph.state import AgentState, show_agent_reasoning
 from src.utils.progress import progress
 import pandas as pd
@@ -17,9 +18,11 @@ def sentiment_analyst_agent(state: AgentState, agent_id: str = "sentiment_analys
     api_key = get_api_key_from_state(state, "FINANCIAL_DATASETS_API_KEY")
     # Initialize sentiment analysis for each ticker
     sentiment_analysis = {}
+    writer = get_stream_writer()
 
     for ticker in tickers:
         progress.update_status(agent_id, ticker, "Fetching insider trades")
+        writer(f"Fetching insider trades for {ticker}...\n")
 
         # Get the insider trades
         insider_trades = get_insider_trades(
@@ -30,12 +33,14 @@ def sentiment_analyst_agent(state: AgentState, agent_id: str = "sentiment_analys
         )
 
         progress.update_status(agent_id, ticker, "Analyzing trading patterns")
+        writer(f"Analyzing trading patterns for {ticker}...\n")
 
         # Get the signals from the insider trades
         transaction_shares = pd.Series([t.transaction_shares for t in insider_trades]).dropna()
         insider_signals = np.where(transaction_shares < 0, "bearish", "bullish").tolist()
 
         progress.update_status(agent_id, ticker, "Fetching company news")
+        writer(f"Fetching company news for {ticker}...\n")
 
         # Get the company news
         company_news = get_company_news(ticker, end_date, limit=100, api_key=api_key)
@@ -46,6 +51,7 @@ def sentiment_analyst_agent(state: AgentState, agent_id: str = "sentiment_analys
                               np.where(sentiment == "positive", "bullish", "neutral")).tolist()
         
         progress.update_status(agent_id, ticker, "Combining signals")
+        writer(f"Combining signals for {ticker}...\n")
         # Combine signals from both sources with weights
         insider_weight = 0.3
         news_weight = 0.7
@@ -116,6 +122,7 @@ def sentiment_analyst_agent(state: AgentState, agent_id: str = "sentiment_analys
         }
 
         progress.update_status(agent_id, ticker, "Done", analysis=json.dumps(reasoning, indent=4))
+        writer(f"Completed sentiment analysis for {ticker} with signal: {overall_signal} and confidence: {confidence:.1f}%\n\n")
 
     # Create the sentiment message
     message = HumanMessage(

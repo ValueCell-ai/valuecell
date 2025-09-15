@@ -9,6 +9,7 @@ from src.tools.api import (
 )
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
+from langgraph.config import get_stream_writer
 from pydantic import BaseModel
 import json
 from typing_extensions import Literal
@@ -41,11 +42,18 @@ def stanley_druckenmiller_agent(state: AgentState, agent_id: str = "stanley_druc
     analysis_data = {}
     druck_analysis = {}
 
+    writer = get_stream_writer()
+
     for ticker in tickers:
         progress.update_status(agent_id, ticker, "Fetching financial metrics")
+
+        writer(f"Fetching financial metrics for {ticker}...\n")
         metrics = get_financial_metrics(ticker, end_date, period="annual", limit=5, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Gathering financial line items")
+
+
+        writer(f"Gathering financial line items for {ticker}...\n")
         # Include relevant line items for Stan Druckenmiller's approach:
         #   - Growth & momentum: revenue, EPS, operating_income, ...
         #   - Valuation: net_income, free_cash_flow, ebit, ebitda
@@ -76,27 +84,48 @@ def stanley_druckenmiller_agent(state: AgentState, agent_id: str = "stanley_druc
         )
 
         progress.update_status(agent_id, ticker, "Getting market cap")
+
+
+        writer(f"Getting market cap for {ticker}...\n")
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Fetching insider trades")
+
+
+        writer(f"Fetching insider trades for {ticker}...\n")
         insider_trades = get_insider_trades(ticker, end_date, limit=50, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Fetching company news")
+
+
+        writer(f"Fetching company news for {ticker}...\n")
         company_news = get_company_news(ticker, end_date, limit=50, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Fetching recent price data for momentum")
         prices = get_prices(ticker, start_date=start_date, end_date=end_date, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Analyzing growth & momentum")
+
+
+        writer(f"Analyzing growth & momentum for {ticker}...\n")
         growth_momentum_analysis = analyze_growth_and_momentum(financial_line_items, prices)
 
         progress.update_status(agent_id, ticker, "Analyzing sentiment")
+
+
+        writer(f"Analyzing sentiment for {ticker}...\n")
         sentiment_analysis = analyze_sentiment(company_news)
 
         progress.update_status(agent_id, ticker, "Analyzing insider activity")
+
+
+        writer(f"Analyzing insider activity for {ticker}...\n")
         insider_activity = analyze_insider_activity(insider_trades)
 
         progress.update_status(agent_id, ticker, "Analyzing risk-reward")
+
+
+        writer(f"Analyzing for {ticker}...\n")
         risk_reward_analysis = analyze_risk_reward(financial_line_items, prices)
 
         progress.update_status(agent_id, ticker, "Performing Druckenmiller-style valuation")
@@ -135,6 +164,9 @@ def stanley_druckenmiller_agent(state: AgentState, agent_id: str = "stanley_druc
         }
 
         progress.update_status(agent_id, ticker, "Generating Stanley Druckenmiller analysis")
+
+
+        writer(f"Generating for {ticker}...\n")
         druck_output = generate_druckenmiller_output(
             ticker=ticker,
             analysis_data=analysis_data,

@@ -1,6 +1,7 @@
 import math
 
 from langchain_core.messages import HumanMessage
+from langgraph.config import get_stream_writer
 
 from src.graph.state import AgentState, show_agent_reasoning
 from src.utils.api_key import get_api_key_from_state
@@ -48,9 +49,11 @@ def technical_analyst_agent(state: AgentState, agent_id: str = "technical_analys
     api_key = get_api_key_from_state(state, "FINANCIAL_DATASETS_API_KEY")
     # Initialize analysis for each ticker
     technical_analysis = {}
+    writer = get_stream_writer()
 
     for ticker in tickers:
         progress.update_status(agent_id, ticker, "Analyzing price data")
+        writer(f"Analyzing price data for {ticker}...\n")
 
         # Get the historical price data
         prices = get_prices(
@@ -68,18 +71,23 @@ def technical_analyst_agent(state: AgentState, agent_id: str = "technical_analys
         prices_df = prices_to_df(prices)
 
         progress.update_status(agent_id, ticker, "Calculating trend signals")
+        writer(f"Calculating trend signals for {ticker}...\n")
         trend_signals = calculate_trend_signals(prices_df)
 
         progress.update_status(agent_id, ticker, "Calculating mean reversion")
+        writer(f"Calculating mean reversion for {ticker}...\n")
         mean_reversion_signals = calculate_mean_reversion_signals(prices_df)
 
         progress.update_status(agent_id, ticker, "Calculating momentum")
+        writer(f"Calculating momentum for {ticker}...\n")
         momentum_signals = calculate_momentum_signals(prices_df)
 
         progress.update_status(agent_id, ticker, "Analyzing volatility")
+        writer(f"Analyzing volatility for {ticker}...\n")
         volatility_signals = calculate_volatility_signals(prices_df)
 
         progress.update_status(agent_id, ticker, "Statistical analysis")
+        writer(f"Performing statistical analysis for {ticker}...\n")
         stat_arb_signals = calculate_stat_arb_signals(prices_df)
 
         # Combine all signals using a weighted ensemble approach
@@ -92,6 +100,7 @@ def technical_analyst_agent(state: AgentState, agent_id: str = "technical_analys
         }
 
         progress.update_status(agent_id, ticker, "Combining signals")
+        writer(f"Combining signals for {ticker}...\n")
         combined_signal = weighted_signal_combination(
             {
                 "trend": trend_signals,
@@ -136,6 +145,7 @@ def technical_analyst_agent(state: AgentState, agent_id: str = "technical_analys
             },
         }
         progress.update_status(agent_id, ticker, "Done", analysis=json.dumps(technical_analysis, indent=4))
+        writer(f"Completed analysis for {ticker} with signal: {combined_signal['signal']} and confidence: {combined_signal['confidence']:.1%}\n\n")
 
     # Create the technical analyst message
     message = HumanMessage(

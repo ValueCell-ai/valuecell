@@ -1,5 +1,6 @@
 import json
 from langchain_core.messages import HumanMessage
+from langgraph.config import get_stream_writer
 from langchain_core.prompts import ChatPromptTemplate
 
 from src.graph.state import AgentState, show_agent_reasoning
@@ -28,6 +29,7 @@ def portfolio_management_agent(state: AgentState, agent_id: str = "portfolio_man
     portfolio = state["data"]["portfolio"]
     analyst_signals = state["data"]["analyst_signals"]
     tickers = state["data"]["tickers"]
+    writer = get_stream_writer()
 
     # Get position limits, current prices, and signals for every ticker
     position_limits = {}
@@ -67,6 +69,7 @@ def portfolio_management_agent(state: AgentState, agent_id: str = "portfolio_man
     state["data"]["current_prices"] = current_prices
 
     progress.update_status(agent_id, None, "Generating trading decisions")
+    writer("Generating trading decisions...\n")
 
     # Generate the trading decision
     result = generate_trading_decision(
@@ -90,6 +93,8 @@ def portfolio_management_agent(state: AgentState, agent_id: str = "portfolio_man
         show_agent_reasoning({ticker: decision.model_dump() for ticker, decision in result.decisions.items()}, "Portfolio Manager")
 
     progress.update_status(agent_id, None, "Done")
+    for ticker, decision in result.decisions.items():
+        writer(f"Decision for {ticker}:\naction: {decision.action}, quantity: {decision.quantity}, confidence: {decision.confidence}, reason: {decision.reasoning}\n")
 
     return {
         "messages": state["messages"] + [message],

@@ -1,0 +1,5 @@
+{
+    "name": "AIHedgeFundAgent",
+    "url": "http://localhost:10001/",
+    "enabled": true
+}

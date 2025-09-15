@@ -2,6 +2,7 @@ from src.graph.state import AgentState, show_agent_reasoning
 from src.tools.api import get_financial_metrics, get_market_cap, search_line_items, get_insider_trades, get_company_news
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
+from langgraph.config import get_stream_writer
 from pydantic import BaseModel
 import json
 from typing_extensions import Literal
@@ -26,12 +27,15 @@ def charlie_munger_agent(state: AgentState, agent_id: str = "charlie_munger_agen
     api_key = get_api_key_from_state(state, "FINANCIAL_DATASETS_API_KEY")
     analysis_data = {}
     munger_analysis = {}
+    writer = get_stream_writer()
     
     for ticker in tickers:
         progress.update_status(agent_id, ticker, "Fetching financial metrics")
+        writer(f"Fetching financial metrics for {ticker}...\n")
         metrics = get_financial_metrics(ticker, end_date, period="annual", limit=10, api_key=api_key)  # Munger looks at longer periods
         
         progress.update_status(agent_id, ticker, "Gathering financial line items")
+        writer(f"Gathering financial line items for {ticker}...\n")
         financial_line_items = search_line_items(
             ticker,
             [
@@ -57,9 +61,11 @@ def charlie_munger_agent(state: AgentState, agent_id: str = "charlie_munger_agen
         )
         
         progress.update_status(agent_id, ticker, "Getting market cap")
+        writer(f"Getting market cap for {ticker}...\n")
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
         
         progress.update_status(agent_id, ticker, "Fetching insider trades")
+        writer(f"Fetching insider trades for {ticker}...\n")
         # Munger values management with skin in the game
         insider_trades = get_insider_trades(
             ticker,
@@ -71,6 +77,7 @@ def charlie_munger_agent(state: AgentState, agent_id: str = "charlie_munger_agen
         )
         
         progress.update_status(agent_id, ticker, "Fetching company news")
+        writer(f"Fetching company news for {ticker}...\n")
         # Munger avoids businesses with frequent negative press
         company_news = get_company_news(
             ticker,
@@ -82,15 +89,19 @@ def charlie_munger_agent(state: AgentState, agent_id: str = "charlie_munger_agen
         )
         
         progress.update_status(agent_id, ticker, "Analyzing moat strength")
+        writer(f"Analyzing moat strength for {ticker}...\n")
         moat_analysis = analyze_moat_strength(metrics, financial_line_items)
         
         progress.update_status(agent_id, ticker, "Analyzing management quality")
+        writer(f"Analyzing management quality for {ticker}...\n")
         management_analysis = analyze_management_quality(financial_line_items, insider_trades)
         
         progress.update_status(agent_id, ticker, "Analyzing business predictability")
+        writer(f"Analyzing business predictability for {ticker}...\n")
         predictability_analysis = analyze_predictability(financial_line_items)
         
         progress.update_status(agent_id, ticker, "Calculating Munger-style valuation")
+        writer(f"Calculating Munger-style valuation for {ticker}...\n")
         valuation_analysis = calculate_munger_valuation(financial_line_items, market_cap)
         
         # Combine partial scores with Munger's weighting preferences
@@ -125,6 +136,7 @@ def charlie_munger_agent(state: AgentState, agent_id: str = "charlie_munger_agen
         }
         
         progress.update_status(agent_id, ticker, "Generating Charlie Munger analysis")
+        writer(f"Generating Charlie Munger analysis for {ticker}...\n")
         munger_output = generate_munger_output(
             ticker=ticker, 
             analysis_data=analysis_data,
@@ -139,6 +151,10 @@ def charlie_munger_agent(state: AgentState, agent_id: str = "charlie_munger_agen
         }
         
         progress.update_status(agent_id, ticker, "Done", analysis=munger_output.reasoning)
+        writer(
+            f"Analysis output: {munger_output.signal} with confidence {munger_output.confidence:.1%}\n"
+            f"{munger_output.reasoning}\n\n"
+        )
     
     # Wrap results in a single message for the chain
     message = HumanMessage(

@@ -7,6 +7,7 @@ from typing_extensions import Literal
 from src.graph.state import AgentState, show_agent_reasoning
 from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
+from langgraph.config import get_stream_writer
 from pydantic import BaseModel
 
 from src.tools.api import (
@@ -41,15 +42,18 @@ def michael_burry_agent(state: AgentState, agent_id: str = "michael_burry_agent"
 
     analysis_data: dict[str, dict] = {}
     burry_analysis: dict[str, dict] = {}
+    writer = get_stream_writer()
 
     for ticker in tickers:
         # ------------------------------------------------------------------
         # Fetch raw data
         # ------------------------------------------------------------------
         progress.update_status(agent_id, ticker, "Fetching financial metrics")
+        writer(f"Fetching financial metrics for {ticker}...\n")
         metrics = get_financial_metrics(ticker, end_date, period="ttm", limit=5, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Fetching line items")
+        writer(f"Fetching line items for {ticker}...\n")
         line_items = search_line_items(
             ticker,
             [
@@ -67,12 +71,15 @@ def michael_burry_agent(state: AgentState, agent_id: str = "michael_burry_agent"
         )
 
         progress.update_status(agent_id, ticker, "Fetching insider trades")
+        writer(f"Fetching insider trades for {ticker}...\n")
         insider_trades = get_insider_trades(ticker, end_date=end_date, start_date=start_date)
 
         progress.update_status(agent_id, ticker, "Fetching company news")
+        writer(f"Fetching company news for {ticker}...\n")
         news = get_company_news(ticker, end_date=end_date, start_date=start_date, limit=250)
 
         progress.update_status(agent_id, ticker, "Fetching market cap")
+        writer(f"Fetching market cap for {ticker}...\n")
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
 
         # ------------------------------------------------------------------

@@ -2,6 +2,7 @@ from src.graph.state import AgentState, show_agent_reasoning
 from src.tools.api import get_financial_metrics, get_market_cap, search_line_items
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
+from langgraph.config import get_stream_writer
 from pydantic import BaseModel
 import json
 from typing_extensions import Literal
@@ -28,12 +29,15 @@ def bill_ackman_agent(state: AgentState, agent_id: str = "bill_ackman_agent"):
     api_key = get_api_key_from_state(state, "FINANCIAL_DATASETS_API_KEY")
     analysis_data = {}
     ackman_analysis = {}
+    writer = get_stream_writer()
     
     for ticker in tickers:
         progress.update_status(agent_id, ticker, "Fetching financial metrics")
+        writer(f"Fetching financial metrics for {ticker}...\n")
         metrics = get_financial_metrics(ticker, end_date, period="annual", limit=5, api_key=api_key)
         
         progress.update_status(agent_id, ticker, "Gathering financial line items")
+        writer(f"Gathering financial line items for {ticker}...\n")
         # Request multiple periods of data (annual or TTM) for a more robust long-term view.
         financial_line_items = search_line_items(
             ticker,
@@ -56,18 +60,23 @@ def bill_ackman_agent(state: AgentState, agent_id: str = "bill_ackman_agent"):
         )
         
         progress.update_status(agent_id, ticker, "Getting market cap")
+        writer(f"Getting market cap for {ticker}...\n")
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
         
         progress.update_status(agent_id, ticker, "Analyzing business quality")
+        writer(f"Analyzing business quality for {ticker}...\n")
         quality_analysis = analyze_business_quality(metrics, financial_line_items)
         
         progress.update_status(agent_id, ticker, "Analyzing balance sheet and capital structure")
+        writer(f"Analyzing balance sheet and capital structure for {ticker}...\n")
         balance_sheet_analysis = analyze_financial_discipline(metrics, financial_line_items)
         
         progress.update_status(agent_id, ticker, "Analyzing activism potential")
+        writer(f"Analyzing activism potential for {ticker}...\n")
         activism_analysis = analyze_activism_potential(financial_line_items)
         
         progress.update_status(agent_id, ticker, "Calculating intrinsic value & margin of safety")
+        writer(f"Calculating intrinsic value & margin of safety for {ticker}...\n")
         valuation_analysis = analyze_valuation(financial_line_items, market_cap)
         
         # Combine partial scores or signals

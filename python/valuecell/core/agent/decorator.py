@@ -1,5 +1,7 @@
+import json
 import logging
-from typing import Type
+from pathlib import Path
+from typing import Dict, Optional, Type
 
 import httpx
 import uvicorn
@@ -22,26 +24,35 @@ from a2a.types import (
     TextPart,
     UnsupportedOperationError,
 )
-from a2a.utils import new_task
+from a2a.utils import new_agent_text_message, new_task
 from a2a.utils.errors import ServerError
-from valuecell.core.agent.registry import AgentRegistry
+from valuecell.core.agent import registry
 from valuecell.core.agent.types import BaseAgent
-from valuecell.utils import get_next_available_port
+from valuecell.utils import (
+    get_agent_card_path,
+    get_next_available_port,
+    parse_host_port,
+)
 
 logger = logging.getLogger(__name__)
 
 
 def serve(
-    name: str = None,
     host: str = "localhost",
     port: int = None,
     streaming: bool = True,
-    push_notifications: bool = True,
+    push_notifications: bool = False,
     description: str = None,
     version: str = "1.0.0",
     skills: list[AgentSkill | dict] = None,
+    **extra_kwargs,
 ):
     def decorator(cls: Type) -> Type:
+        if extra_kwargs:
+            logger.warning(
+                f"Extra kwargs {extra_kwargs} are not used in the @serve decorator"
+            )
+
         # Build agent card (port will be assigned when server starts)
         agent_skills = []
         if skills:
@@ -52,7 +63,7 @@ def serve(
                     agent_skills.append(skill)
 
         # Determine the agent name consistently
-        agent_name = name or cls.__name__
+        agent_name = cls.__name__
 
         # Create decorated class
         class DecoratedAgent(cls):
@@ -120,12 +131,9 @@ def serve(
         DecoratedAgent.__name__ = cls.__name__
         DecoratedAgent.__qualname__ = cls.__qualname__
 
-        # Store agent name as class attribute for registry management
-        DecoratedAgent.__agent_name__ = agent_name
-
         # Register to registry
         try:
-            AgentRegistry.register(DecoratedAgent, agent_name)
+            registry.register(DecoratedAgent, agent_name)
         except ImportError:
             # Registry not available, skip registration
             logger.warning(
@@ -186,8 +194,15 @@ class GenericAgentExecutor(AgentExecutor):
                     await updater.complete()
                     break
         except Exception as e:
-            # Convert unexpected errors into server errors so callers can handle them uniformly
-            raise ServerError(error=e) from e
+            message = (
+                f"Error during {self.agent.__class__.__name__} agent execution: {e}"
+            )
+            logger.error(message)
+            await updater.update_status(
+                TaskState.failed,
+                message=new_agent_text_message(message, task.context_id, task.id),
+                final=True,
+            )
 
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
         # Default cancel operation
@@ -196,3 +211,58 @@ class GenericAgentExecutor(AgentExecutor):
 
 def _create_agent_executor(agent_instance):
     return GenericAgentExecutor(agent_instance)
+
+
+def _get_serve_params_by_agent_name(name: str) -> Optional[Dict]:
+    """
+    Reads JSON files from agent_cards directory and returns the first one where name matches.
+
+    Args:
+        name: The agent name to search for
+
+    Returns:
+        Dict: The agent configuration dictionary if found, None otherwise
+    """
+    agent_cards_path = Path(get_agent_card_path())
+
+    # Check if the agent_cards directory exists
+    if not agent_cards_path.exists():
+        return None
+
+    # Iterate through all JSON files in the agent_cards directory
+    for json_file in agent_cards_path.glob("*.json"):
+        try:
+            with open(json_file, "r", encoding="utf-8") as f:
+                agent_config = json.load(f)
+
+            # Check if this agent config has the matching name
+            if not isinstance(agent_config, dict):
+                continue
+            if agent_config.get("name") != name:
+                continue
+            if "url" in agent_config and agent_config["url"]:
+                host, port = parse_host_port(
+                    agent_config.get("url"), default_scheme="http"
+                )
+                agent_config["host"] = host
+                agent_config["port"] = port
+
+            return agent_config
+
+        except (json.JSONDecodeError, IOError):
+            # Skip files that can't be read or parsed
+            continue
+
+    # Return None if no matching agent is found
+    return None
+
+
+def create_wrapped_agent(agent_class: Type[BaseAgent]):
+    # Get agent configuration from agent cards
+    agent_config = _get_serve_params_by_agent_name(agent_class.__name__)
+    if not agent_config:
+        raise ValueError(
+            f"No agent configuration found for {agent_class.__name__} in agent cards"
+        )
+
+    return serve(**agent_config)(agent_class)()

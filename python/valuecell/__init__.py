@@ -14,3 +14,6 @@ __all__ = [
     "__author__",
     "__description__",
 ]
+
+# registers agents on import
+import valuecell.agents as _  # noqa: F401

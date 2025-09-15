@@ -7,6 +7,7 @@ from src.tools.api import (
 )
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
+from langgraph.config import get_stream_writer
 from pydantic import BaseModel
 import json
 from typing_extensions import Literal
@@ -45,9 +46,11 @@ def peter_lynch_agent(state: AgentState, agent_id: str = "peter_lynch_agent"):
     api_key = get_api_key_from_state(state, "FINANCIAL_DATASETS_API_KEY")
     analysis_data = {}
     lynch_analysis = {}
+    writer = get_stream_writer()
 
     for ticker in tickers:
         progress.update_status(agent_id, ticker, "Gathering financial line items")
+        writer(f"Gathering financial line items for {ticker}...\n")
         # Relevant line items for Peter Lynch's approach
         financial_line_items = search_line_items(
             ticker,
@@ -72,28 +75,36 @@ def peter_lynch_agent(state: AgentState, agent_id: str = "peter_lynch_agent"):
         )
 
         progress.update_status(agent_id, ticker, "Getting market cap")
+        writer(f"Getting market cap for {ticker}...\n")
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Fetching insider trades")
+        writer(f"Fetching insider trades for {ticker}...\n")
         insider_trades = get_insider_trades(ticker, end_date, limit=50, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Fetching company news")
+        writer(f"Fetching company news for {ticker}...\n")
         company_news = get_company_news(ticker, end_date, limit=50, api_key=api_key)
 
         # Perform sub-analyses:
         progress.update_status(agent_id, ticker, "Analyzing growth")
+        writer(f"Analyzing growth for {ticker}...\n")
         growth_analysis = analyze_lynch_growth(financial_line_items)
 
         progress.update_status(agent_id, ticker, "Analyzing fundamentals")
+        writer(f"Analyzing fundamentals for {ticker}...\n")
         fundamentals_analysis = analyze_lynch_fundamentals(financial_line_items)
 
         progress.update_status(agent_id, ticker, "Analyzing valuation (focus on PEG)")
+        writer(f"Analyzing valuation (focus on PEG) for {ticker}...\n")
         valuation_analysis = analyze_lynch_valuation(financial_line_items, market_cap)
 
         progress.update_status(agent_id, ticker, "Analyzing sentiment")
+        writer(f"Analyzing sentiment for {ticker}...\n")
         sentiment_analysis = analyze_sentiment(company_news)
 
         progress.update_status(agent_id, ticker, "Analyzing insider activity")
+        writer(f"Analyzing insider activity for {ticker}...\n")
         insider_activity = analyze_insider_activity(insider_trades)
 
         # Combine partial scores with weights typical for Peter Lynch:
@@ -129,6 +140,7 @@ def peter_lynch_agent(state: AgentState, agent_id: str = "peter_lynch_agent"):
         }
 
         progress.update_status(agent_id, ticker, "Generating Peter Lynch analysis")
+        writer(f"Generating Peter Lynch analysis for {ticker}...\n")
         lynch_output = generate_lynch_output(
             ticker=ticker,
             analysis_data=analysis_data[ticker],
@@ -143,6 +155,10 @@ def peter_lynch_agent(state: AgentState, agent_id: str = "peter_lynch_agent"):
         }
 
         progress.update_status(agent_id, ticker, "Done", analysis=lynch_output.reasoning)
+        writer(
+            f"Analysis output: {lynch_output.signal} with confidence {lynch_output.confidence:.1%}\n"
+            f"{lynch_output.reasoning}\n\n"
+        )
 
     # Wrap up results
     message = HumanMessage(content=json.dumps(lynch_analysis), name=agent_id)

@@ -2,6 +2,7 @@ from src.graph.state import AgentState, show_agent_reasoning
 from src.tools.api import get_financial_metrics, get_market_cap, search_line_items
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
+from langgraph.config import get_stream_writer
 from pydantic import BaseModel
 import json
 from typing_extensions import Literal
@@ -25,14 +26,17 @@ def mohnish_pabrai_agent(state: AgentState, agent_id: str = "mohnish_pabrai_agen
 
     analysis_data: dict[str, any] = {}
     pabrai_analysis: dict[str, any] = {}
+    writer = get_stream_writer()
 
     # Pabrai focuses on: downside protection, simple business, moat via unit economics, FCF yield vs alternatives,
     # and potential for doubling in 2-3 years at low risk.
     for ticker in tickers:
         progress.update_status(agent_id, ticker, "Fetching financial metrics")
+        writer(f"Fetching financial metrics for {ticker}...\n")
         metrics = get_financial_metrics(ticker, end_date, period="annual", limit=8, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Gathering financial line items")
+        writer(f"Gathering financial line items for {ticker}...\n")
         line_items = search_line_items(
             ticker,
             [
@@ -63,15 +67,19 @@ def mohnish_pabrai_agent(state: AgentState, agent_id: str = "mohnish_pabrai_agen
         )
 
         progress.update_status(agent_id, ticker, "Getting market cap")
+        writer(f"Getting market cap for {ticker}...\n")
         market_cap = get_market_cap(ticker, end_date, api_key=api_key)
 
         progress.update_status(agent_id, ticker, "Analyzing downside protection")
+        writer(f"Analyzing downside protection for {ticker}...\n")
         downside = analyze_downside_protection(line_items)
 
         progress.update_status(agent_id, ticker, "Analyzing cash yield and valuation")
+        writer(f"Analyzing cash yield and valuation for {ticker}...\n")
         valuation = analyze_pabrai_valuation(line_items, market_cap)
 
         progress.update_status(agent_id, ticker, "Assessing potential to double")
+        writer(f"Assessing potential to double for {ticker}...\n")
         double_potential = analyze_double_potential(line_items, market_cap)
 
         # Combine to an overall score in spirit of Pabrai: heavily weight downside and cash yield
@@ -100,6 +108,7 @@ def mohnish_pabrai_agent(state: AgentState, agent_id: str = "mohnish_pabrai_agen
         }
 
         progress.update_status(agent_id, ticker, "Generating Pabrai analysis")
+        writer(f"Generating Pabrai analysis for {ticker}...\n")
         pabrai_output = generate_pabrai_output(
             ticker=ticker,
             analysis_data=analysis_data,
@@ -114,6 +123,7 @@ def mohnish_pabrai_agent(state: AgentState, agent_id: str = "mohnish_pabrai_agen
         }
 
         progress.update_status(agent_id, ticker, "Done", analysis=pabrai_output.reasoning)
+        writer(f"Analysis output: {pabrai_output.signal} with confidence {pabrai_output.confidence:.1%}\n{pabrai_output.reasoning}\n\n")
 
     message = HumanMessage(content=json.dumps(pabrai_analysis), name=agent_id)
 
