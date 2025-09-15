@@ -53,5 +53,5 @@ def _add_middleware(app: FastAPI, settings) -> None:
 
 def _add_routes(app: FastAPI) -> None:
     """Add routes to the application."""
-    app.include_router(health.router, prefix="/health", tags=["health"])
-    app.include_router(agents.router, prefix="/api/v1", tags=["agents"])
+    # app.include_router(health.router, prefix="/health", tags=["health"])
+    # app.include_router(agents.router, prefix="/api/v1", tags=["agents"])
