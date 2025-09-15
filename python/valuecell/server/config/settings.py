@@ -1,7 +1,6 @@
 """Settings configuration for ValueCell Server."""
 
 import os
-from typing import List, Optional
 from pathlib import Path
 from functools import lru_cache
 
