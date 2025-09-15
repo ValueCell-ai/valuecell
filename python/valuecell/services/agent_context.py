@@ -5,8 +5,6 @@ from datetime import datetime
 import threading
 from contextlib import contextmanager
 
-from ..api.i18n_api import get_i18n_api
-from ..services.i18n_service import get_i18n_service
 from ..api.schemas import AgentI18nContext
 
 
@@ -15,23 +13,15 @@ class AgentContextManager:
 
     def __init__(self):
         """Initialize agent context manager."""
-        self.i18n_api = get_i18n_api()
-        self.i18n_service = get_i18n_service()
         self._local = threading.local()
 
     def set_user_context(self, user_id: str, session_id: Optional[str] = None):
         """Set current user context for the agent."""
-        user_context = self.i18n_api.get_user_context(user_id)
-
-        # Store in thread local storage
+        # Store in thread local storage with default values
         self._local.user_id = user_id
         self._local.session_id = session_id
-        self._local.language = user_context.get("language", "en-US")
-        self._local.timezone = user_context.get("timezone", "UTC")
-
-        # Update i18n service
-        self.i18n_service.set_language(self._local.language)
-        self.i18n_service.set_timezone(self._local.timezone)
+        self._local.language = "en-US"  # Default language
+        self._local.timezone = "UTC"  # Default timezone
 
     def get_current_user_id(self) -> Optional[str]:
         """Get current user ID."""
@@ -54,31 +44,33 @@ class AgentContextManager:
         return AgentI18nContext(
             language=self.get_current_language(),
             timezone=self.get_current_timezone(),
-            currency_symbol=self.i18n_service._i18n_config.get_currency_symbol(),
-            date_format=self.i18n_service._i18n_config.get_date_format(),
-            time_format=self.i18n_service._i18n_config.get_time_format(),
-            number_format=self.i18n_service._i18n_config.get_number_format(),
+            currency_symbol="$",  # Default currency symbol
+            date_format="YYYY-MM-DD",  # Default date format
+            time_format="HH:mm:ss",  # Default time format
+            number_format="en-US",  # Default number format
             user_id=self.get_current_user_id(),
             session_id=self.get_current_session_id(),
         )
 
     def translate(self, key: str, **variables) -> str:
         """Translate using current user's language."""
-        return self.i18n_service.translate(
-            key, self.get_current_language(), **variables
-        )
+        # i18n service removed, return key as fallback
+        return key
 
     def format_datetime(self, dt: datetime, format_type: str = "datetime") -> str:
         """Format datetime using current user's settings."""
-        return self.i18n_service.format_datetime(dt, format_type)
+        # i18n service removed, return basic format
+        return dt.isoformat()
 
     def format_number(self, number: float, decimal_places: int = 2) -> str:
         """Format number using current user's settings."""
-        return self.i18n_service.format_number(number, decimal_places)
+        # i18n service removed, return basic format
+        return f"{number:.{decimal_places}f}"
 
     def format_currency(self, amount: float, decimal_places: int = 2) -> str:
         """Format currency using current user's settings."""
-        return self.i18n_service.format_currency(amount, decimal_places)
+        # i18n service removed, return basic format
+        return f"${amount:.{decimal_places}f}"
 
     @contextmanager
     def user_context(self, user_id: str, session_id: Optional[str] = None):

@@ -5,7 +5,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from ..config.settings import get_settings
-from .routers import health, agents, assets, i18n
 
 
 def create_app() -> FastAPI:
@@ -55,6 +54,4 @@ def _add_middleware(app: FastAPI, settings) -> None:
 def _add_routes(app: FastAPI) -> None:
     """Add routes to the application."""
     app.include_router(health.router, prefix="/health", tags=["health"])
-    app.include_router(agents.router, prefix="/api/v1/agents", tags=["agents"])
-    app.include_router(assets.router, prefix="/api/v1/assets", tags=["assets"])
-    app.include_router(i18n.router, prefix="/api/v1", tags=["i18n"])
+    app.include_router(agents.router, prefix="/api/v1", tags=["agents"])
