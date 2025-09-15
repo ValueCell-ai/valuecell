@@ -25,7 +25,6 @@
       "devDependencies": {
         "@biomejs/biome": "^2.2.4",
         "@react-router/dev": "^7.8.2",
-        "@react-router/fs-routes": "^7.8.2",
         "@react-router/serve": "^7.8.2",
         "@tailwindcss/vite": "^4.1.13",
         "@tauri-apps/cli": "^2.8.4",
@@ -307,8 +306,6 @@
     "@react-router/dev": ["@react-router/dev@7.8.2", "", { "dependencies": { "@babel/core": "^7.27.7", "@babel/generator": "^7.27.5", "@babel/parser": "^7.27.7", "@babel/plugin-syntax-jsx": "^7.27.1", "@babel/preset-typescript": "^7.27.1", "@babel/traverse": "^7.27.7", "@babel/types": "^7.27.7", "@npmcli/package-json": "^4.0.1", "@react-router/node": "7.8.2", "@vitejs/plugin-rsc": "0.4.11", "arg": "^5.0.1", "babel-dead-code-elimination": "^1.0.6", "chokidar": "^4.0.0", "dedent": "^1.5.3", "es-module-lexer": "^1.3.1", "exit-hook": "2.2.1", "isbot": "^5.1.11", "jsesc": "3.0.2", "lodash": "^4.17.21", "pathe": "^1.1.2", "picocolors": "^1.1.1", "prettier": "^3.6.2", "react-refresh": "^0.14.0", "semver": "^7.3.7", "set-cookie-parser": "^2.6.0", "tinyglobby": "^0.2.14", "valibot": "^0.41.0", "vite-node": "^3.2.2" }, "peerDependencies": { "@react-router/serve": "^7.8.2", "react-router": "^7.8.2", "typescript": "^5.1.0", "vite": "^5.1.0 || ^6.0.0 || ^7.0.0", "wrangler": "^3.28.2 || ^4.0.0" }, "optionalPeers": ["@react-router/serve", "typescript", "wrangler"], "bin": { "react-router": "bin.js" } }, "sha512-9ilgQoNhvgvUyQKDapALt9qVO3GpSw9ng5X2BwIhLIwqh8CTyRM/jz5cK53p5yzGiVeyx9njXXfeuxUlvQgJuA=="],
 
     "@react-router/express": ["@react-router/express@7.8.2", "", { "dependencies": { "@react-router/node": "7.8.2" }, "peerDependencies": { "express": "^4.17.1 || ^5", "react-router": "7.8.2", "typescript": "^5.1.0" }, "optionalPeers": ["typescript"] }, "sha512-AJUNsE5Q+vD8TsNlKTw2MGUUnp/QJGlRV1jG2ItV30lwIx2wE7d4NHx/jWkGZIEblHQBTpodcp6MFirZXbisJw=="],
-
-    "@react-router/fs-routes": ["@react-router/fs-routes@7.8.2", "", { "dependencies": { "minimatch": "^9.0.0" }, "peerDependencies": { "@react-router/dev": "^7.8.2", "typescript": "^5.1.0" }, "optionalPeers": ["typescript"] }, "sha512-lNIbSIoLum2Pv6ftUuf8GjlnE9+IlCnBfyHsdxKQ5cZSIkan3bFNUzg5Q5KUCZGpfUGftCkn9vYMWiZhduSooQ=="],
 
     "@react-router/node": ["@react-router/node@7.8.2", "", { "dependencies": { "@mjackson/node-fetch-server": "^0.2.0" }, "peerDependencies": { "react-router": "7.8.2", "typescript": "^5.1.0" }, "optionalPeers": ["typescript"] }, "sha512-FNepNg4Aya6V0ZxD/+uObtqxtMXcsBGa0ax9PznUh5qr8g4M6Xo9IN+soLb1tghz6iS/F9djFyhJ/lDkF77dEw=="],
 

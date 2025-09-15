@@ -1,4 +1,5 @@
 import type { ScrollAreaProps } from "@radix-ui/react-scroll-area";
+import { Link, type LinkProps } from "react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, formatChange, formatPrice, getChangeType } from "@/lib/utils";
@@ -40,10 +41,8 @@ interface StockMenuGroupHeaderProps
   children: React.ReactNode;
 }
 
-interface StockMenuListItemProps
-  extends Omit<React.HTMLAttributes<HTMLButtonElement>, "onClick"> {
+interface StockMenuListItemProps extends LinkProps {
   stock: Stock;
-  onClick?: (stock: Stock) => void;
 }
 
 function StockMenuHeader({
@@ -117,13 +116,12 @@ function StockMenuListItem({
   const changeType = getChangeType(stock.changePercent);
 
   return (
-    <button
+    <Link
       className={cn(
         "flex items-center justify-between gap-4 rounded-xl p-2",
         "cursor-pointer transition-colors hover:bg-accent/80",
         className,
       )}
-      onClick={() => onClick?.(stock)}
       {...props}
     >
       <div className="flex flex-1 items-center gap-2.5">
@@ -172,7 +170,7 @@ function StockMenuListItem({
           {formatChange(stock.changePercent, "%")}
         </p>
       </div>
-    </button>
+    </Link>
   );
 }
 

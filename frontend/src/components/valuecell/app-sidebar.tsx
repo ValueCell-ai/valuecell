@@ -1,4 +1,10 @@
-import { type FC, type HTMLAttributes, type ReactNode, useMemo } from "react";
+import {
+  type FC,
+  type HTMLAttributes,
+  memo,
+  type ReactNode,
+  useMemo,
+} from "react";
 import { NavLink, useLocation } from "react-router";
 import { BookOpen, ChartBarVertical, Logo, Setting, User } from "@/assets/svg";
 import { Separator } from "@/components/ui/separator";
@@ -193,4 +199,4 @@ const AppSidebar: FC = () => {
   );
 };
 
-export default AppSidebar;
+export default memo(AppSidebar);
