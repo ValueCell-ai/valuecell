@@ -9,7 +9,7 @@ def main():
     """Start the server."""
     settings = get_settings()
     app = create_app()
-    
+
     uvicorn.run(
         app,
         host=settings.API_HOST,
