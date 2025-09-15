@@ -67,12 +67,6 @@ class TradingAgentsGraph:
             azure_api_key = os.getenv("OPENAI_API_KEY")
             azure_api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21")
             
-            print(f"🔧 Azure OpenAI Configuration:")
-            print(f"   - Endpoint: {azure_endpoint}")
-            print(f"   - API Version: {azure_api_version}")
-            print(f"   - Deep Think Model: {self.config['deep_think_llm']}")
-            print(f"   - Quick Think Model: {self.config['quick_think_llm']}")
-            
             if not azure_endpoint:
                 raise ValueError("TRADINGAGENTS_BACKEND_URL environment variable is required for Azure OpenAI provider")
             if not azure_api_key:
@@ -83,8 +77,6 @@ class TradingAgentsGraph:
                 azure_endpoint = azure_endpoint.replace("/openai/v1", "")
             if not azure_endpoint.endswith("/"):
                 azure_endpoint = azure_endpoint + "/"
-            
-            print(f"   - Cleaned Endpoint: {azure_endpoint}")
             
             try:
                 self.deep_thinking_llm = AzureChatOpenAI(
