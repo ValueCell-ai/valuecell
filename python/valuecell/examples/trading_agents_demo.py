@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class TradingAgentsDemo:    
+class TradingAgentsDemo:
     """TradingAgents interactive demo class"""
 
     def __init__(self):
@@ -77,9 +77,9 @@ class TradingAgentsDemo:
                         for artifact in task.artifacts:
                             if artifact.parts:
                                 for part in artifact.parts:
-                                    if hasattr(part.root, 'text') and part.root.text:
+                                    if hasattr(part.root, "text") and part.root.text:
                                         print(part.root.text, end="", flush=True)
-                    
+
                     # Check event content
                     elif event and hasattr(event, "content") and event.content:
                         print(event.content, end="", flush=True)
@@ -121,9 +121,9 @@ class TradingAgentsDemo:
                         for artifact in task.artifacts:
                             if artifact.parts:
                                 for part in artifact.parts:
-                                    if hasattr(part.root, 'text') and part.root.text:
+                                    if hasattr(part.root, "text") and part.root.text:
                                         print(part.root.text, end="", flush=True)
-                    
+
                     # Check event content
                     elif event and hasattr(event, "content") and event.content:
                         print(event.content, end="", flush=True)
@@ -153,7 +153,9 @@ async def main():
 
     # Set up connection
     if not await demo.setup():
-        print("❌ Cannot connect to TradingAgents, please ensure the service is running")
+        print(
+            "❌ Cannot connect to TradingAgents, please ensure the service is running"
+        )
         return
 
     try:
