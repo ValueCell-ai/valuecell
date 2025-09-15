@@ -1,4 +1,4 @@
-import { MiniSparkline } from "@valuecell/charts/mini-sparkline";
+import MiniSparkline from "@valuecell/charts/mini-sparkline";
 import { cn, formatChange, formatPrice, getChangeType } from "@/lib/utils";
 import type { StockChangeType } from "@/types/stock";
 

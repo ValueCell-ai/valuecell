@@ -17,7 +17,7 @@ interface MiniSparklineProps {
   className?: string;
 }
 
-export function MiniSparkline({
+function MiniSparkline({
   data,
   color = "#22c55e",
   gradientColors = ["rgba(34, 197, 94, 0.8)", "rgba(34, 197, 94, 0.1)"],

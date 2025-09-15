@@ -10,8 +10,8 @@ import {
   TrendingUp,
   User,
 } from "lucide-react";
-import type { AgentRecommendation } from "@/app/_home/components/agent-recommend-list";
-import type { AgentSuggestion } from "@/app/_home/components/agent-suggestions-list";
+import type { AgentRecommendation } from "@/app/home/components/agent-recommend-list";
+import type { AgentSuggestion } from "@/app/home/components/agent-suggestions-list";
 
 const UserAvatar = ({ bgColor, text }: { bgColor: string; text: string }) => (
   <div
