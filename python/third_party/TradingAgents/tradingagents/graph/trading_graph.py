@@ -6,7 +6,7 @@ import json
 from datetime import date
 from typing import Dict, Any, Tuple, List, Optional
 
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, AzureChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
 
@@ -61,6 +61,48 @@ class TradingAgentsGraph:
         if self.config["llm_provider"].lower() == "openai" or self.config["llm_provider"] == "ollama" or self.config["llm_provider"] == "openrouter":
             self.deep_thinking_llm = ChatOpenAI(model=self.config["deep_think_llm"], base_url=self.config["backend_url"])
             self.quick_thinking_llm = ChatOpenAI(model=self.config["quick_think_llm"], base_url=self.config["backend_url"])
+        elif self.config["llm_provider"].lower() == "azure" or self.config["llm_provider"].lower() == "azure_openai":
+            # Azure OpenAI configuration
+            azure_endpoint = os.getenv("TRADINGAGENTS_BACKEND_URL")
+            azure_api_key = os.getenv("OPENAI_API_KEY")
+            azure_api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21")
+            
+            print(f"🔧 Azure OpenAI Configuration:")
+            print(f"   - Endpoint: {azure_endpoint}")
+            print(f"   - API Version: {azure_api_version}")
+            print(f"   - Deep Think Model: {self.config['deep_think_llm']}")
+            print(f"   - Quick Think Model: {self.config['quick_think_llm']}")
+            
+            if not azure_endpoint:
+                raise ValueError("TRADINGAGENTS_BACKEND_URL environment variable is required for Azure OpenAI provider")
+            if not azure_api_key:
+                raise ValueError("OPENAI_API_KEY environment variable is required for Azure OpenAI provider")
+            
+            # Ensure endpoint has correct format without trailing /openai/v1
+            if azure_endpoint.endswith("/openai/v1"):
+                azure_endpoint = azure_endpoint.replace("/openai/v1", "")
+            if not azure_endpoint.endswith("/"):
+                azure_endpoint = azure_endpoint + "/"
+            
+            print(f"   - Cleaned Endpoint: {azure_endpoint}")
+            
+            try:
+                self.deep_thinking_llm = AzureChatOpenAI(
+                    azure_endpoint=azure_endpoint,
+                    azure_deployment=self.config["deep_think_llm"],
+                    api_key=azure_api_key,
+                    api_version=azure_api_version
+                )
+                self.quick_thinking_llm = AzureChatOpenAI(
+                    azure_endpoint=azure_endpoint,
+                    azure_deployment=self.config["quick_think_llm"],
+                    api_key=azure_api_key,
+                    api_version=azure_api_version
+                )
+                print("Azure OpenAI clients initialized successfully")
+            except Exception as e:
+                print(f"Failed to initialize Azure OpenAI clients: {e}")
+                raise
         elif self.config["llm_provider"].lower() == "anthropic":
             self.deep_thinking_llm = ChatAnthropic(model=self.config["deep_think_llm"], base_url=self.config["backend_url"])
             self.quick_thinking_llm = ChatAnthropic(model=self.config["quick_think_llm"], base_url=self.config["backend_url"])
