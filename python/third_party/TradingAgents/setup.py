@@ -26,7 +26,7 @@ setup(
         "rich>=13.0.0",
         "questionary>=2.0.1",
     ],
-    python_requires=">=3.10",
+    python_requires=">=3.12",
     entry_points={
         "console_scripts": [
             "tradingagents=cli.main:app",
@@ -37,7 +37,7 @@ setup(
         "Intended Audience :: Financial and Trading Industry",
         "License :: OSI Approved :: Apache Software License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Office/Business :: Financial :: Investment",
     ],
 )

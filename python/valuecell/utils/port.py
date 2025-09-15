@@ -2,7 +2,7 @@ import socket
 from urllib.parse import urlsplit
 
 
-def get_next_available_port(start: int = 9000, num: int = 1000) -> int:
+def get_next_available_port(start: int = 10000, num: int = 1000) -> int:
     for port in range(start, start + num):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             try:

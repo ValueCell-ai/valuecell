@@ -1,0 +1,1 @@
+# TradingAgents Adapter Package

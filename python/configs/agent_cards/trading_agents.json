@@ -1,0 +1,17 @@
+{
+    "name": "TradingAgentsAdapter",
+    "url": "http://localhost:10002",
+    "description": "TradingAgents - Multi-agent trading analysis system with market, sentiment, news and fundamentals analysis",
+    "capabilities": {
+        "streaming": true,
+        "push_notifications": false
+    },
+    "metadata": {
+        "version": "1.0.0",
+        "author": "ValueCell Team",
+        "tags": ["trading", "analysis", "multi-agent", "stocks", "finance"],
+        "supported_tickers": ["AAPL", "GOOGL", "MSFT", "NVDA", "TSLA", "AMZN", "META", "NFLX", "SPY"],
+        "supported_analysts": ["market", "social", "news", "fundamentals"],
+        "supported_llm_providers": ["openai", "anthropic", "google", "ollama", "openrouter"]
+    }
+}
