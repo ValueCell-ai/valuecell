@@ -120,7 +120,7 @@ function StockMenuListItem({
     <button
       className={cn(
         "flex items-center justify-between gap-4 rounded-xl p-2",
-        "transition-colors hover:bg-accent/80",
+        "cursor-pointer transition-colors hover:bg-accent/80",
         className,
       )}
       onClick={() => onClick?.(stock)}
@@ -158,7 +158,7 @@ function StockMenuListItem({
       </div>
 
       {/* price info */}
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col items-end gap-1">
         <p className="font-semibold text-sm">
           {formatPrice(stock.price, stock.currency)}
         </p>
