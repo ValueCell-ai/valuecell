@@ -1,5 +1,4 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
-import { SidebarProvider } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/valuecell/app-sidebar";
 
 import "./global.css";
@@ -26,10 +25,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function Root() {
   return (
-    <SidebarProvider open={false} className="fixed size-full overflow-hidden">
+    <div className="fixed flex size-full overflow-hidden">
       <AppSidebar />
 
       <Outlet />
-    </SidebarProvider>
+    </div>
   );
 }

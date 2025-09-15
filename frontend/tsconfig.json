@@ -30,7 +30,10 @@
       "@valuecell/*": [
         "./src/components/valuecell/*"
       ]
-    }
+    },
+    "types": [
+      "vite-plugin-svg-sprite/typings/vanilla"
+    ]
   },
   "include": [
     "src",
