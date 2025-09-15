@@ -6,7 +6,6 @@ import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useMemo, useRef } from "react";
 import { cn } from "@/lib/utils";
 
-// 注册必要的组件
 echarts.use([LineChart, GridComponent, CanvasRenderer]);
 
 interface MiniSparklineProps {

@@ -84,13 +84,11 @@ const SidebarMenuItem: FC<SidebarItemProps> = ({
       className={cn(
         "box-border flex size-12 items-center justify-center rounded-full",
         "cursor-pointer p-3 transition-all",
-        // button 类型的基础样式和 hover 效果
         type === "button" && [
           "bg-neutral-200",
           "hover:data-[active=false]:bg-neutral-300",
           "data-[active=true]:bg-black data-[active=true]:text-white",
         ],
-        // agent 类型的基础样式和 hover 效果
         type === "agent" && [
           "border border-neutral-200 bg-white",
           "hover:data-[active=false]:border-neutral-300",

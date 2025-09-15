@@ -47,7 +47,6 @@ function SparklineStockItem({
       )}
       {...props}
     >
-      {/* 左侧信息 */}
       <div className="flex flex-col items-start gap-1">
         <div className="flex items-center gap-1">
           <p className="font-semibold text-[#707070] text-[14px] leading-[20px]">

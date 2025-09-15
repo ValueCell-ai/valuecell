@@ -13,7 +13,6 @@ import {
 import type { AgentRecommendation } from "@/app/_home/components/agent-recommend-list";
 import type { AgentSuggestion } from "@/app/_home/components/agent-suggestions-list";
 
-// 头像组件 - 使用简单的背景色代替真实图片
 const UserAvatar = ({ bgColor, text }: { bgColor: string; text: string }) => (
   <div
     className="flex h-full w-full items-center justify-center rounded-full font-medium text-white text-xs"

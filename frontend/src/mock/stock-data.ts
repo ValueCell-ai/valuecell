@@ -172,13 +172,13 @@ export const stockData: StockGroup[] = [
   },
 ];
 
-// 生成随机 sparkline 数据
+// generate random sparkline data
 function generateSparklineData(): number[] {
   const data = [];
-  let value = 100 + Math.random() * 50; // 起始值在 100-150 之间
+  let value = 100 + Math.random() * 50; // start value between 100-150
 
   for (let i = 0; i < 30; i++) {
-    // 添加随机波动，幅度在 -5% 到 +5% 之间
+    // add random fluctuation, between -5% and +5%
     const change = (Math.random() - 0.5) * 0.1 * value;
     value = Math.max(0, value + change);
     data.push(value);
