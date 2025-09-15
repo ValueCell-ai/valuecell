@@ -21,3 +21,4 @@ dist-ssr
 # custom
 !lib
 .react-router
+.vite
