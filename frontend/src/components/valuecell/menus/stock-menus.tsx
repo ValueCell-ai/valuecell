@@ -43,6 +43,7 @@ interface StockMenuGroupHeaderProps
 
 interface StockMenuListItemProps extends LinkProps {
   stock: Stock;
+  isActive?: boolean;
 }
 
 function StockMenuHeader({
@@ -111,6 +112,7 @@ function StockMenuListItem({
   className,
   stock,
   onClick,
+  isActive,
   ...props
 }: StockMenuListItemProps) {
   const changeType = getChangeType(stock.changePercent);
@@ -121,6 +123,7 @@ function StockMenuListItem({
         "flex items-center justify-between gap-4 rounded-xl p-2",
         "cursor-pointer transition-colors hover:bg-accent/80",
         className,
+        { "bg-accent/80": isActive },
       )}
       {...props}
     >

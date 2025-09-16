@@ -111,7 +111,7 @@ const SidebarMenuItem: FC<SidebarItemProps> = ({
 
 const AppSidebar: FC = () => {
   const { pathname } = useLocation();
-  const prefixPath = pathname.split("/")[0];
+  const prefixPath = pathname.split("/")[1];
 
   const navItems = useMemo(() => {
     return {

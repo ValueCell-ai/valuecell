@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import { Outlet } from "react-router";
+import { Outlet, useLocation } from "react-router";
 import { Button } from "@/components/ui/button";
 import {
   StockMenu,
@@ -12,6 +12,11 @@ import {
 import { stockData } from "@/mock/stock-data";
 
 export default function HomeLayout() {
+  const { pathname } = useLocation();
+
+  // Extract stock symbol (e.g., AAPL) from path like /stock/AAPL
+  const stockSymbol = pathname.split("/")[2];
+
   return (
     <div className="flex flex-1 overflow-hidden">
       <main className="flex-1 overflow-hidden">
@@ -30,6 +35,7 @@ export default function HomeLayout() {
                     key={stock.symbol}
                     stock={stock}
                     to={`/stock/${stock.symbol}`}
+                    isActive={stockSymbol === stock.symbol}
                   />
                 ))}
               </StockMenuGroup>
