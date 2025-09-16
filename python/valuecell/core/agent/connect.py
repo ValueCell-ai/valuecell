@@ -29,6 +29,14 @@ class RemoteConnections:
         self._remote_agent_cards: Dict[str, AgentCard] = {}
         # Remote agent configs (JSON data from config files)
         self._remote_agent_configs: Dict[str, dict] = {}
+        # Per-agent locks for concurrent start_agent calls
+        self._agent_locks: Dict[str, asyncio.Lock] = {}
+
+    def _get_agent_lock(self, agent_name: str) -> asyncio.Lock:
+        """Get or create a lock for a specific agent (thread-safe)"""
+        if agent_name not in self._agent_locks:
+            self._agent_locks[agent_name] = asyncio.Lock()
+        return self._agent_locks[agent_name]
 
     def _load_remote_agent_configs(self, config_dir: str = None) -> None:
         """Load remote agent configs from JSON files (sync operation)."""
@@ -139,52 +147,87 @@ class RemoteConnections:
         notification_callback: NotificationCallbackType = None,
     ) -> AgentCard:
         """Start an agent, optionally with a notification listener."""
-        # Check if it's a remote agent first
-        if agent_name in self._remote_agent_configs:
-            return await self._handle_remote_agent(
-                agent_name,
-                with_listener=with_listener,
-                listener_host=listener_host,
-                listener_port=listener_port,
-                notification_callback=notification_callback,
-            )
+        # Use agent-specific lock to prevent concurrent starts of the same agent
+        agent_lock = self._get_agent_lock(agent_name)
+        async with agent_lock:
+            # Check if agent is already running
+            if agent_name in self._running_agents or agent_name in self._connections:
+                logger.info(
+                    f"Agent '{agent_name}' is already running, returning existing instance"
+                )
+                # Return existing agent card
+                if agent_name in self._agent_instances:
+                    return self._agent_instances[agent_name].agent_card
+                elif agent_name in self._remote_agent_cards:
+                    return self._remote_agent_cards[agent_name]
+                else:
+                    # Fallback: reload agent card
+                    logger.warning(
+                        f"Agent '{agent_name}' running but no cached card, reloading..."
+                    )
 
-        # Handle local agent
-        agent_class = registry.get_agent_class_by_name(agent_name)
-        if not agent_class:
-            raise ValueError(f"Agent '{agent_name}' not found in registry")
+            # Check if it's a remote agent first
+            if agent_name in self._remote_agent_configs:
+                return await self._handle_remote_agent(
+                    agent_name,
+                    with_listener=with_listener,
+                    listener_host=listener_host,
+                    listener_port=listener_port,
+                    notification_callback=notification_callback,
+                )
 
-        # Create Agent instance
-        agent_instance = agent_class()
-        self._agent_instances[agent_name] = agent_instance
-        agent_card = agent_instance.agent_card
+            # Handle local agent
+            agent_class = registry.get_agent_class_by_name(agent_name)
+            if not agent_class:
+                raise ValueError(f"Agent '{agent_name}' not found in registry")
 
-        # Setup listener if needed
-        try:
-            listener_url = await self._setup_listener_if_needed(
-                agent_name,
-                agent_card,
-                with_listener,
-                listener_host,
-                listener_port,
-                notification_callback,
-            )
-        except Exception:
-            await self._cleanup_agent(agent_name)
-            raise
+            # Create Agent instance only if not already exists
+            if agent_name not in self._agent_instances:
+                agent_instance = agent_class()
+                self._agent_instances[agent_name] = agent_instance
+                logger.info(f"Created new instance for agent '{agent_name}'")
+            else:
+                agent_instance = self._agent_instances[agent_name]
+                logger.info(f"Reusing existing instance for agent '{agent_name}'")
 
-        # Start agent service
-        try:
-            await self._start_agent_service(agent_name, agent_instance)
-        except Exception as e:
-            logger.error(f"Failed to start agent '{agent_name}': {e}")
-            await self._cleanup_agent(agent_name)
-            raise RuntimeError(f"Failed to start agent '{agent_name}'") from e
+            agent_card = agent_instance.agent_card
 
-        # Create client connection with listener URL
-        self._create_client_for_agent(agent_name, agent_card.url, listener_url)
+            # Setup listener if needed
+            try:
+                listener_url = await self._setup_listener_if_needed(
+                    agent_name,
+                    agent_card,
+                    with_listener,
+                    listener_host,
+                    listener_port,
+                    notification_callback,
+                )
+            except Exception:
+                await self._cleanup_agent(agent_name)
+                raise
 
-        return agent_card
+            # Start agent service only if not already running
+            try:
+                if agent_name not in self._running_agents:
+                    await self._start_agent_service(agent_name, agent_instance)
+                    logger.info(f"Started service for agent '{agent_name}'")
+                else:
+                    logger.info(f"Service for agent '{agent_name}' already running")
+            except Exception as e:
+                logger.error(f"Failed to start agent '{agent_name}': {e}")
+                await self._cleanup_agent(agent_name)
+                raise RuntimeError(f"Failed to start agent '{agent_name}'") from e
+
+            # Create client connection with listener URL only if not exists
+            if agent_name not in self._connections:
+                self._create_client_for_agent(agent_name, agent_card.url, listener_url)
+                logger.info(f"Created client connection for agent '{agent_name}'")
+            else:
+                logger.info(
+                    f"Client connection for agent '{agent_name}' already exists"
+                )
+
+            return agent_card
 
     async def _setup_listener_if_needed(
         self,
@@ -223,21 +266,29 @@ class RemoteConnections:
         notification_callback: NotificationCallbackType = None,
     ) -> AgentCard:
         """Handle remote agent connection and card loading."""
+        # Check if remote agent is already connected
+        if agent_name in self._connections:
+            logger.info(f"Remote agent '{agent_name}' already connected")
+            return self._remote_agent_cards.get(agent_name)
+
         config_data = self._remote_agent_configs[agent_name]
         agent_url = config_data["url"]
 
-        # Load actual agent card using A2ACardResolver
-        agent_card = None
-        async with httpx.AsyncClient() as httpx_client:
-            try:
-                resolver = A2ACardResolver(
-                    httpx_client=httpx_client, base_url=agent_url
-                )
-                agent_card = await resolver.get_agent_card()
-                self._remote_agent_cards[agent_name] = agent_card
-                logger.info(f"Loaded agent card for remote agent: {agent_name}")
-            except Exception as e:
-                logger.error(f"Failed to get agent card for {agent_name}: {e}")
+        # Load actual agent card using A2ACardResolver only if not cached
+        agent_card = self._remote_agent_cards.get(agent_name)
+        if not agent_card:
+            async with httpx.AsyncClient() as httpx_client:
+                try:
+                    resolver = A2ACardResolver(
+                        httpx_client=httpx_client, base_url=agent_url
+                    )
+                    agent_card = await resolver.get_agent_card()
+                    self._remote_agent_cards[agent_name] = agent_card
+                    logger.info(f"Loaded agent card for remote agent: {agent_name}")
+                except Exception as e:
+                    logger.error(f"Failed to get agent card for {agent_name}: {e}")
+        else:
+            logger.info(f"Using cached agent card for remote agent: {agent_name}")
 
         # Setup listener if needed
         listener_url = await self._setup_listener_if_needed(
@@ -249,13 +300,16 @@ class RemoteConnections:
             notification_callback,
         )
 
-        # Create client connection with listener URL
-        self._connections[agent_name] = AgentClient(
-            agent_url, push_notification_url=listener_url
-        )
-        logger.info(f"Connected to remote agent '{agent_name}' at {agent_url}")
-        if listener_url:
-            logger.info(f"  └─ with listener at {listener_url}")
+        # Create client connection with listener URL only if not exists
+        if agent_name not in self._connections:
+            self._connections[agent_name] = AgentClient(
+                agent_url, push_notification_url=listener_url
+            )
+            logger.info(f"Connected to remote agent '{agent_name}' at {agent_url}")
+            if listener_url:
+                logger.info(f"  └─ with listener at {listener_url}")
+        else:
+            logger.info(f"Already connected to remote agent '{agent_name}'")
 
         return agent_card
 

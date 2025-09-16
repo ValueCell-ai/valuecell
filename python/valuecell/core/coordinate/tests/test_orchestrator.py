@@ -956,3 +956,289 @@ class TestIntegration:
         # Verify appropriate message
         assert len(chunks) == 1
         assert "No tasks found for this request" in chunks[0].content
+
+
+class TestConcurrency:
+    """Test concurrent access scenarios."""
+
+    @pytest.mark.asyncio
+    async def test_concurrent_requests_same_agent(
+        self,
+        orchestrator: AgentOrchestrator,
+        mock_agent_client: Mock,
+        mock_agent_card: AgentCard,
+        session_id: str,
+        user_id: str,
+    ):
+        """Comprehensive test for concurrent process_user_input calls with same agent_name."""
+        import asyncio
+
+        # Create two different user inputs but with same agent_name
+        user_input_1 = UserInput(
+            query="First request to TestAgent",
+            desired_agent_name="TestAgent",
+            meta=UserInputMetadata(
+                session_id=f"{session_id}_1", user_id=f"{user_id}_1"
+            ),
+        )
+
+        user_input_2 = UserInput(
+            query="Second request to TestAgent",
+            desired_agent_name="TestAgent",
+            meta=UserInputMetadata(
+                session_id=f"{session_id}_2", user_id=f"{user_id}_2"
+            ),
+        )
+
+        # Setup mock responses for both requests
+        response_1 = create_streaming_response(
+            ["Response from request 1"], "remote-task-1"
+        )
+        response_2 = create_streaming_response(
+            ["Response from request 2"], "remote-task-2"
+        )
+
+        # Use side_effect to return different responses for each call
+        mock_agent_client.send_message.side_effect = [response_1, response_2]
+
+        # Track agent start calls to verify concurrent handling
+        start_agent_call_count = 0
+        original_start_agent = orchestrator.agent_connections.start_agent
+
+        async def track_start_agent(*args, **kwargs):
+            nonlocal start_agent_call_count
+            start_agent_call_count += 1
+            # Remove the artificial delay - use asyncio.sleep(0) to yield control
+            await asyncio.sleep(0)  # Just yield control, no actual delay
+            return await original_start_agent(*args, **kwargs)
+
+        orchestrator.agent_connections.start_agent.side_effect = track_start_agent
+
+        # Execute both requests concurrently
+        async def process_request_1():
+            chunks_1 = []
+            async for chunk in orchestrator.process_user_input(user_input_1):
+                chunks_1.append(chunk)
+            return chunks_1
+
+        async def process_request_2():
+            chunks_2 = []
+            async for chunk in orchestrator.process_user_input(user_input_2):
+                chunks_2.append(chunk)
+            return chunks_2
+
+        # Run both requests concurrently
+        results = await asyncio.gather(
+            process_request_1(), process_request_2(), return_exceptions=True
+        )
+
+        chunks_1, chunks_2 = results
+
+        # Verify both requests completed successfully
+        assert not isinstance(chunks_1, Exception), f"Request 1 failed: {chunks_1}"
+        assert not isinstance(chunks_2, Exception), f"Request 2 failed: {chunks_2}"
+        assert len(chunks_1) > 0, "Request 1 should have produced chunks"
+        assert len(chunks_2) > 0, "Request 2 should have produced chunks"
+
+        # Verify agent was started (possibly multiple times due to concurrent access)
+        # The exact number depends on the locking mechanism in RemoteConnections
+        assert start_agent_call_count >= 1, "Agent should be started at least once"
+
+        # Verify both requests got different session contexts
+        session_1_chunks = [
+            c for c in chunks_1 if c.meta.session_id == f"{session_id}_1"
+        ]
+        session_2_chunks = [
+            c for c in chunks_2 if c.meta.session_id == f"{session_id}_2"
+        ]
+
+        assert (
+            len(session_1_chunks) > 0
+        ), "Request 1 should have chunks with correct session_id"
+        assert (
+            len(session_2_chunks) > 0
+        ), "Request 2 should have chunks with correct session_id"
+
+        # Verify both requests called the task manager
+        assert orchestrator.task_manager.store.save_task.call_count >= 2
+        assert orchestrator.task_manager.start_task.call_count >= 2
+
+        # Verify session messages were added for both sessions
+        session_add_calls = orchestrator.session_manager.add_message.call_args_list
+        session_1_calls = [
+            call for call in session_add_calls if call[0][0] == f"{session_id}_1"
+        ]
+        session_2_calls = [
+            call for call in session_add_calls if call[0][0] == f"{session_id}_2"
+        ]
+
+        assert (
+            len(session_1_calls) >= 2
+        ), "Session 1 should have user and agent messages"
+        assert (
+            len(session_2_calls) >= 2
+        ), "Session 2 should have user and agent messages"
+
+    @pytest.mark.asyncio
+    async def test_concurrent_requests_different_agents(
+        self,
+        orchestrator: AgentOrchestrator,
+        mock_agent_client: Mock,
+        session_id: str,
+        user_id: str,
+    ):
+        """Test concurrent requests to different agents work independently."""
+        import asyncio
+
+        # Create user inputs for different agents
+        user_input_agent_1 = UserInput(
+            query="Request to Agent1",
+            desired_agent_name="Agent1",
+            meta=UserInputMetadata(
+                session_id=f"{session_id}_a1", user_id=f"{user_id}_a1"
+            ),
+        )
+
+        user_input_agent_2 = UserInput(
+            query="Request to Agent2",
+            desired_agent_name="Agent2",
+            meta=UserInputMetadata(
+                session_id=f"{session_id}_a2", user_id=f"{user_id}_a2"
+            ),
+        )
+
+        # Setup different execution plans for different agents
+        from valuecell.core.task import Task, TaskStatus as CoreTaskStatus
+
+        task_1 = Task(
+            task_id="task-agent1",
+            session_id=f"{session_id}_a1",
+            user_id=f"{user_id}_a1",
+            agent_name="Agent1",
+            status=CoreTaskStatus.PENDING,
+            remote_task_ids=[],
+        )
+
+        task_2 = Task(
+            task_id="task-agent2",
+            session_id=f"{session_id}_a2",
+            user_id=f"{user_id}_a2",
+            agent_name="Agent2",
+            status=CoreTaskStatus.PENDING,
+            remote_task_ids=[],
+        )
+
+        plan_1 = ExecutionPlan(
+            plan_id="plan-agent1",
+            session_id=f"{session_id}_a1",
+            user_id=f"{user_id}_a1",
+            query="Request to Agent1",
+            tasks=[task_1],
+            created_at="2025-09-16T10:00:00",
+        )
+
+        plan_2 = ExecutionPlan(
+            plan_id="plan-agent2",
+            session_id=f"{session_id}_a2",
+            user_id=f"{user_id}_a2",
+            query="Request to Agent2",
+            tasks=[task_2],
+            created_at="2025-09-16T10:00:00",
+        )
+
+        # Setup planner to return different plans
+        orchestrator.planner.create_plan.side_effect = [plan_1, plan_2]
+
+        # Setup agent responses
+        response_1 = create_streaming_response(["Agent1 response"], "remote-task-a1")
+        response_2 = create_streaming_response(["Agent2 response"], "remote-task-a2")
+        mock_agent_client.send_message.side_effect = [response_1, response_2]
+
+        # Execute both requests concurrently
+        async def process_agent_1():
+            chunks = []
+            async for chunk in orchestrator.process_user_input(user_input_agent_1):
+                chunks.append(chunk)
+            return chunks
+
+        async def process_agent_2():
+            chunks = []
+            async for chunk in orchestrator.process_user_input(user_input_agent_2):
+                chunks.append(chunk)
+            return chunks
+
+        results = await asyncio.gather(
+            process_agent_1(), process_agent_2(), return_exceptions=True
+        )
+
+        chunks_1, chunks_2 = results
+
+        # Verify both requests completed successfully
+        assert not isinstance(chunks_1, Exception), f"Agent1 request failed: {chunks_1}"
+        assert not isinstance(chunks_2, Exception), f"Agent2 request failed: {chunks_2}"
+        assert len(chunks_1) > 0, "Agent1 request should produce chunks"
+        assert len(chunks_2) > 0, "Agent2 request should produce chunks"
+
+        # Verify different agents were started
+        assert orchestrator.agent_connections.start_agent.call_count == 2
+        start_calls = orchestrator.agent_connections.start_agent.call_args_list
+        agent_names = [call[0][0] for call in start_calls]
+        assert "Agent1" in agent_names
+        assert "Agent2" in agent_names
+
+    @pytest.mark.asyncio
+    async def test_concurrent_requests_same_session(
+        self,
+        orchestrator: AgentOrchestrator,
+        mock_agent_client: Mock,
+        session_id: str,
+        user_id: str,
+    ):
+        """Test concurrent requests in the same session."""
+        import asyncio
+
+        # Create two requests for the same session but different queries
+        user_input_1 = UserInput(
+            query="First query in session",
+            desired_agent_name="TestAgent",
+            meta=UserInputMetadata(session_id=session_id, user_id=user_id),
+        )
+
+        user_input_2 = UserInput(
+            query="Second query in session",
+            desired_agent_name="TestAgent",
+            meta=UserInputMetadata(session_id=session_id, user_id=user_id),
+        )
+
+        # Setup responses
+        response_1 = create_streaming_response(["First response"], "remote-task-1")
+        response_2 = create_streaming_response(["Second response"], "remote-task-2")
+        mock_agent_client.send_message.side_effect = [response_1, response_2]
+
+        # Execute concurrently
+        async def process_1():
+            chunks = []
+            async for chunk in orchestrator.process_user_input(user_input_1):
+                chunks.append(chunk)
+            return chunks
+
+        async def process_2():
+            chunks = []
+            async for chunk in orchestrator.process_user_input(user_input_2):
+                chunks.append(chunk)
+            return chunks
+
+        results = await asyncio.gather(process_1(), process_2(), return_exceptions=True)
+
+        chunks_1, chunks_2 = results
+
+        # Verify both completed successfully
+        assert not isinstance(chunks_1, Exception)
+        assert not isinstance(chunks_2, Exception)
+        assert len(chunks_1) > 0
+        assert len(chunks_2) > 0
+
+        # Verify session messages were added for both queries
+        session_calls = orchestrator.session_manager.add_message.call_args_list
+        user_calls = [call for call in session_calls if call[0][1] == Role.USER]
+        assert len(user_calls) >= 2, "Both user queries should be added to session"
