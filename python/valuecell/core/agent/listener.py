@@ -32,7 +32,9 @@ class NotificationListener:
     async def handle_notification(self, request: Request):
         try:
             task_json = await request.json()
-            logger.info(f"📨 Notification received on {self.host}:{self.port}: {task_json}")
+            logger.info(
+                f"📨 Notification received on {self.host}:{self.port}: {task_json}"
+            )
 
             if self.notification_callback:
                 task = Task.model_validate_json(task_json)

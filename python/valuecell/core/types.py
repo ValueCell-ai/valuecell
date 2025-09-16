@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator, Callable, Optional
 
 from a2a.types import Task, TaskArtifactUpdateEvent, TaskStatusUpdateEvent
 from pydantic import BaseModel, Field
@@ -115,3 +115,5 @@ class BaseAgent(ABC):
 RemoteAgentResponse = tuple[
     Task, Optional[TaskStatusUpdateEvent | TaskArtifactUpdateEvent]
 ]
+
+NotificationCallbackType = Callable[[Task], None]

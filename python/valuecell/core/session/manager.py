@@ -125,3 +125,10 @@ class SessionManager:
         session.is_active = True
         await self.update_session(session)
         return True
+
+
+_session_manager = SessionManager()
+
+
+def get_default_session_manager() -> SessionManager:
+    return _session_manager

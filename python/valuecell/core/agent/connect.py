@@ -7,9 +7,10 @@ from typing import Dict, List
 import httpx
 from a2a.client import A2ACardResolver
 from a2a.types import AgentCard
+from valuecell.core.agent import registry
 from valuecell.core.agent.client import AgentClient
 from valuecell.core.agent.listener import NotificationListener
-from valuecell.core.agent import registry
+from valuecell.core.types import NotificationCallbackType
 from valuecell.utils import get_agent_card_path, get_next_available_port
 
 logger = logging.getLogger(__name__)
@@ -135,7 +136,7 @@ class RemoteConnections:
         with_listener: bool = True,
         listener_port: int = None,
         listener_host: str = "localhost",
-        notification_callback: callable = None,
+        notification_callback: NotificationCallbackType = None,
     ) -> str:
         """Start an agent, optionally with a notification listener."""
         # Check if it's a remote agent first

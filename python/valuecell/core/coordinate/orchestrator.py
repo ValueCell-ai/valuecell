@@ -3,15 +3,16 @@ from typing import AsyncGenerator
 
 from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
 from valuecell.core.agent.connect import get_default_remote_connections
-from valuecell.core.session import Role, SessionManager
+from valuecell.core.session import Role, get_default_session_manager
 from valuecell.core.task import TaskManager
 from valuecell.core.types import (
+    MessageChunk,
     MessageChunkMetadata,
     MessageDataKind,
     UserInput,
-    MessageChunk,
 )
 
+from .callback import store_task_in_session
 from .models import ExecutionPlan
 from .planner import ExecutionPlanner
 
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 class AgentOrchestrator:
     def __init__(self):
-        self.session_manager = SessionManager()
+        self.session_manager = get_default_session_manager()
         self.task_manager = TaskManager()
         self.agent_connections = get_default_remote_connections()
 
@@ -115,6 +116,9 @@ class AgentOrchestrator:
             await self.task_manager.start_task(task.task_id)
 
             # Get agent client
+            await self.agent_connections.start_agent(
+                task.agent_name, notification_callback=store_task_in_session
+            )
             client = await self.agent_connections.get_client(task.agent_name)
             if not client:
                 raise RuntimeError(f"Could not connect to agent {task.agent_name}")
