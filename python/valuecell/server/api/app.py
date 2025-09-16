@@ -1,6 +1,7 @@
 """FastAPI application factory for ValueCell Server."""
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from .exceptions import (
@@ -13,7 +14,7 @@ from .exceptions import (
 from ..config.settings import get_settings
 from .routers.i18n import create_i18n_router
 from .routers.system import create_system_router
-
+from .schemas import SuccessResponse, AppInfoData
 
 
 def create_app() -> FastAPI:
@@ -46,7 +47,7 @@ def create_app() -> FastAPI:
     _add_middleware(app, settings)
 
     # Add routes
-    _add_routes(app)
+    _add_routes(app, settings)
 
     return app
 
@@ -64,13 +65,15 @@ def _add_middleware(app: FastAPI, settings) -> None:
 
     # Custom logging middleware removed
 
+
 def _add_exception_handlers(self, app: FastAPI):
     """Add exception handlers."""
     app.add_exception_handler(APIException, api_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(Exception, general_exception_handler)
 
-def _add_routes(app: FastAPI) -> None:
+
+def _add_routes(app: FastAPI, settings) -> None:
     """Add routes to the application."""
 
     @app.get(
@@ -83,9 +86,9 @@ def _add_routes(app: FastAPI) -> None:
     async def root():
         """Root endpoint - Get application basic information."""
         app_info = AppInfoData(
-            name=self.settings.APP_NAME,
-            version=self.settings.APP_VERSION,
-            environment=self.settings.APP_ENVIRONMENT,
+            name=settings.APP_NAME,
+            version=settings.APP_VERSION,
+            environment=settings.APP_ENVIRONMENT,
         )
         return SuccessResponse.create(data=app_info, msg="Welcome to ValueCell API")
 
@@ -94,6 +97,7 @@ def _add_routes(app: FastAPI) -> None:
 
     # Include system router
     app.include_router(create_system_router())
+
 
 # For uvicorn
 app = create_app()
