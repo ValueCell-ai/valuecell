@@ -1,5 +1,5 @@
 from valuecell.core.agent.decorator import serve
-from valuecell.core.agent.types import BaseAgent
+from valuecell.core.types import BaseAgent
 
 
 @serve()
@@ -9,7 +9,7 @@ class HelloWorldAgent(BaseAgent):
     """
 
     async def stream(self, query, session_id, task_id):
-        return {
+        yield {
             "content": f"Hello! You said: {query}",
             "is_task_complete": True,
         }

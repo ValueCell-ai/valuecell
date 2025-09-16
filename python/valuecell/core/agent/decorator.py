@@ -27,7 +27,7 @@ from a2a.types import (
 from a2a.utils import new_agent_text_message, new_task
 from a2a.utils.errors import ServerError
 from valuecell.core.agent import registry
-from valuecell.core.agent.types import BaseAgent
+from valuecell.core.types import BaseAgent
 from valuecell.utils import (
     get_agent_card_path,
     get_next_available_port,

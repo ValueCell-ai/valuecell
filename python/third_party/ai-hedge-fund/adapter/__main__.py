@@ -9,7 +9,7 @@ from dateutil.relativedelta import relativedelta
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, Field, field_validator
 from valuecell.core.agent.decorator import create_wrapped_agent
-from valuecell.core.agent.types import BaseAgent
+from valuecell.core import BaseAgent
 
 from src.main import create_workflow
 from src.utils.analysts import ANALYST_ORDER

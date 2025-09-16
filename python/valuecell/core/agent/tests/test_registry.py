@@ -21,7 +21,7 @@ from valuecell.core.agent.registry import (
     unregister_by_class,
     unregister_by_name,
 )
-from valuecell.core.agent.types import BaseAgent
+from valuecell.core.types import BaseAgent
 
 
 class MockAgent(BaseAgent):

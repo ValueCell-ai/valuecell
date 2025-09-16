@@ -9,7 +9,7 @@ import pkgutil
 from pathlib import Path
 from typing import List
 
-from valuecell.core.agent.types import BaseAgent
+from valuecell.core.types import BaseAgent
 
 
 def _discover_and_import_agents() -> List[str]:
