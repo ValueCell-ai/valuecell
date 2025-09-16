@@ -43,11 +43,6 @@ class Agent(Base):
     )
 
     # Agent configuration
-    url = Column(
-        String(500),
-        nullable=False,
-        comment="Base URL where the agent service is hosted",
-    )
     version = Column(
         String(50), nullable=True, default="1.0.0", comment="Agent version"
     )
@@ -83,22 +78,6 @@ class Agent(Base):
         JSON, nullable=True, comment="Agent-specific configuration parameters"
     )
 
-    # Performance and usage tracking
-    last_health_check = Column(
-        DateTime(timezone=True),
-        nullable=True,
-        comment="Timestamp of last successful health check",
-    )
-    total_requests = Column(
-        Integer,
-        default=0,
-        nullable=False,
-        comment="Total number of requests processed by this agent",
-    )
-    success_rate = Column(
-        String(10), nullable=True, comment="Success rate percentage (e.g., '95.5%')"
-    )
-
     # Timestamps
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -120,18 +99,12 @@ class Agent(Base):
             "name": self.name,
             "display_name": self.display_name,
             "description": self.description,
-            "url": self.url,
             "version": self.version,
             "enabled": self.enabled,
             "is_active": self.is_active,
             "capabilities": self.capabilities,
-            "metadata": self.agent_metadata,
+            "agent_metadata": self.agent_metadata,
             "config": self.config,
-            "last_health_check": self.last_health_check.isoformat()
-            if self.last_health_check
-            else None,
-            "total_requests": self.total_requests,
-            "success_rate": self.success_rate,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
@@ -143,7 +116,6 @@ class Agent(Base):
             name=config_data.get("name"),
             display_name=config_data.get("display_name", config_data.get("name")),
             description=config_data.get("description"),
-            url=config_data.get("url"),
             version=config_data.get("version", "1.0.0"),
             enabled=config_data.get("enabled", True),
             is_active=config_data.get("is_active", True),
