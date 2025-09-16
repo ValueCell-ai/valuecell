@@ -440,7 +440,7 @@ class TestCoreFlow:
         # For push notification agents, no chunks should be yielded from streaming
         # since they return early and rely on notifications
         # The only chunks should be final session messages
-        
+
         # Verify agent is started with notification callback
         orchestrator.agent_connections.start_agent.assert_called_once()
         call_args = orchestrator.agent_connections.start_agent.call_args
