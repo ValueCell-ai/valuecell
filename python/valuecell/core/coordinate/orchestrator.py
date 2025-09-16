@@ -2,6 +2,7 @@ import logging
 from typing import AsyncGenerator
 
 from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
+from a2a.utils import get_message_text
 from valuecell.core.agent.connect import get_default_remote_connections
 from valuecell.core.session import Role, get_default_session_manager
 from valuecell.core.task import get_default_task_manager
@@ -159,14 +160,30 @@ class AgentOrchestrator:
                     # and event.status.state == TaskState.input_required
                 ):
                     logger.info(f"Task status update: {event.status.state}")
+                    if event.status.state == TaskState.failed:
+                        err_msg = get_message_text(event.status.message)
+                        await self.task_manager.fail_task(task.task_id, err_msg)
+                        yield self._create_message_chunk(
+                            err_msg,
+                            task.session_id,
+                            task.user_id,
+                            is_final=True,
+                        )
+                        return
+
                     continue
                 if isinstance(event, TaskArtifactUpdateEvent):
                     yield self._create_message_chunk(
-                        event.artifact.parts[0].root.text, task.session_id, task.user_id
+                        get_message_text(event.artifact, ""),
+                        task.session_id,
+                        task.user_id,
                     )
 
             # Complete task
             await self.task_manager.complete_task(task.task_id)
+            yield self._create_message_chunk(
+                "", task.session_id, task.user_id, is_final=True
+            )
 
         except Exception as e:
             # Fail task
