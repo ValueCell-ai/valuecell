@@ -270,8 +270,8 @@ class DatabaseInitializer:
                             "market_cap": "large",
                             "dividend_yield": 0.5,
                             "beta": 1.2,
-                            "tags": ["blue-chip", "dividend", "growth"]
-                        }
+                            "tags": ["blue-chip", "dividend", "growth"],
+                        },
                     },
                     {
                         "symbol": "GOOGL",
@@ -283,8 +283,8 @@ class DatabaseInitializer:
                             "market_cap": "large",
                             "dividend_yield": 0.0,
                             "beta": 1.1,
-                            "tags": ["growth", "tech-giant", "ai"]
-                        }
+                            "tags": ["growth", "tech-giant", "ai"],
+                        },
                     },
                     {
                         "symbol": "MSFT",
@@ -296,8 +296,8 @@ class DatabaseInitializer:
                             "market_cap": "large",
                             "dividend_yield": 0.7,
                             "beta": 0.9,
-                            "tags": ["blue-chip", "dividend", "cloud", "ai"]
-                        }
+                            "tags": ["blue-chip", "dividend", "cloud", "ai"],
+                        },
                     },
                     {
                         "symbol": "SPY",
@@ -308,8 +308,8 @@ class DatabaseInitializer:
                         "metadata": {
                             "expense_ratio": 0.0945,
                             "aum": "400B+",
-                            "tags": ["index", "diversified", "low-cost"]
-                        }
+                            "tags": ["index", "diversified", "low-cost"],
+                        },
                     },
                     {
                         "symbol": "BTC-USD",
@@ -320,9 +320,9 @@ class DatabaseInitializer:
                         "metadata": {
                             "market_cap": "large",
                             "volatility": "high",
-                            "tags": ["crypto", "store-of-value", "digital-gold"]
-                        }
-                    }
+                            "tags": ["crypto", "store-of-value", "digital-gold"],
+                        },
+                    },
                 ]
 
                 # Insert default assets
@@ -341,11 +341,21 @@ class DatabaseInitializer:
                         logger.info(f"Added default asset: {asset_symbol}")
                     else:
                         # Update existing asset with default data
-                        existing_asset.name = asset_data.get("name", existing_asset.name)
-                        existing_asset.asset_type = asset_data.get("asset_type", existing_asset.asset_type)
-                        existing_asset.sector = asset_data.get("sector", existing_asset.sector)
-                        existing_asset.is_active = asset_data.get("is_active", existing_asset.is_active)
-                        existing_asset.asset_metadata = asset_data.get("metadata", existing_asset.asset_metadata)
+                        existing_asset.name = asset_data.get(
+                            "name", existing_asset.name
+                        )
+                        existing_asset.asset_type = asset_data.get(
+                            "asset_type", existing_asset.asset_type
+                        )
+                        existing_asset.sector = asset_data.get(
+                            "sector", existing_asset.sector
+                        )
+                        existing_asset.is_active = asset_data.get(
+                            "is_active", existing_asset.is_active
+                        )
+                        existing_asset.asset_metadata = asset_data.get(
+                            "metadata", existing_asset.asset_metadata
+                        )
                         logger.info(f"Updated default asset: {asset_symbol}")
 
                 session.commit()

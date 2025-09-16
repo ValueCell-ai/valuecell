@@ -32,9 +32,7 @@ class Asset(Base):
         index=True,
         comment="Asset symbol/ticker (e.g., AAPL, BTC, etc.)",
     )
-    name = Column(
-        String(200), nullable=False, comment="Full name of the asset"
-    )
+    name = Column(String(200), nullable=False, comment="Full name of the asset")
     description = Column(
         Text,
         nullable=True,
