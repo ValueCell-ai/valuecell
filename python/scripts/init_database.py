@@ -2,15 +2,21 @@
 """Standalone database initialization script for ValueCell."""
 
 import sys
-import os
 from pathlib import Path
 
-# Add the project root to Python path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
 
-# Now import from valuecell
-from valuecell.server.db.init_db import main
+def setup_path_and_run():
+    """Setup Python path and run the database initialization."""
+    # Add the project root to Python path
+    project_root = Path(__file__).parent.parent
+    sys.path.insert(0, str(project_root))
+
+    # Import after path setup to avoid import errors
+    import valuecell.server.db.init_db as init_db_module
+
+    # Run the main function
+    init_db_module.main()
+
 
 if __name__ == "__main__":
-    main()
+    setup_path_and_run()

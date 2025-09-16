@@ -1,6 +1,5 @@
 """Database connection and session management for ValueCell Server."""
 
-import os
 from typing import Generator
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import sessionmaker, Session

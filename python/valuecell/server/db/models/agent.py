@@ -4,8 +4,7 @@ ValueCell Server - Agent Models
 This module defines the database models for agents in the ValueCell system.
 """
 
-from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Dict, Any
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, JSON
 from sqlalchemy.sql import func
 

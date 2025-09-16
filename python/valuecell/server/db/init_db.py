@@ -119,9 +119,9 @@ class DatabaseInitializer:
             return False
 
     def initialize_basic_data(self) -> bool:
-        """Initialize agent data from configuration files."""
+        """Initialize default agent data."""
         try:
-            logger.info("Initializing agent data...")
+            logger.info("Initializing default agent data...")
 
             # Get a database session
             session = self.db_manager.get_session()
@@ -129,81 +129,141 @@ class DatabaseInitializer:
             try:
                 # Import models here to avoid circular imports
                 from .models.agent import Agent
-                import json
-                import os
-                from pathlib import Path
 
-                # Get the project root directory
-                project_root = Path(__file__).parent.parent.parent.parent
-                agent_configs_dir = project_root / "configs" / "agent_cards"
+                # Define default agents
+                default_agents = [
+                    {
+                        "name": "AIHedgeFundAgent",
+                        "display_name": "AI Hedge Fund Agent",
+                        "description": "AI-powered hedge fund analysis and trading agent",
+                        "version": "1.0.0",
+                        "enabled": True,
+                        "is_active": True,
+                        "capabilities": {
+                            "streaming": False,
+                            "push_notifications": False,
+                        },
+                        "metadata": {
+                            "version": "1.0.0",
+                            "author": "ValueCell Team",
+                            "tags": ["hedge-fund", "ai", "trading"],
+                        },
+                    },
+                    {
+                        "name": "Sec13FundAgent",
+                        "display_name": "SEC 13F Fund Agent",
+                        "description": "SEC 13F fund analysis and tracking agent",
+                        "version": "1.0.0",
+                        "enabled": True,
+                        "is_active": True,
+                        "capabilities": {
+                            "streaming": False,
+                            "push_notifications": False,
+                        },
+                        "metadata": {
+                            "version": "1.0.0",
+                            "author": "ValueCell Team",
+                            "tags": ["sec", "13f", "fund-analysis"],
+                        },
+                    },
+                    {
+                        "name": "TradingAgentsAdapter",
+                        "display_name": "Trading Agents Adapter",
+                        "description": "TradingAgents - Multi-agent trading analysis system with market, sentiment, news and fundamentals analysis",
+                        "version": "1.0.0",
+                        "enabled": True,
+                        "is_active": True,
+                        "capabilities": {
+                            "streaming": True,
+                            "push_notifications": False,
+                        },
+                        "metadata": {
+                            "version": "1.0.0",
+                            "author": "ValueCell Team",
+                            "tags": [
+                                "trading",
+                                "analysis",
+                                "multi-agent",
+                                "stocks",
+                                "finance",
+                            ],
+                            "supported_tickers": [
+                                "AAPL",
+                                "GOOGL",
+                                "MSFT",
+                                "NVDA",
+                                "TSLA",
+                                "AMZN",
+                                "META",
+                                "NFLX",
+                                "SPY",
+                            ],
+                            "supported_analysts": [
+                                "market",
+                                "social",
+                                "news",
+                                "fundamentals",
+                            ],
+                            "supported_llm_providers": [
+                                "openai",
+                                "anthropic",
+                                "google",
+                                "ollama",
+                                "openrouter",
+                            ],
+                        },
+                    },
+                ]
 
-                if not agent_configs_dir.exists():
-                    logger.warning(
-                        f"Agent configs directory not found: {agent_configs_dir}"
+                # Insert default agents
+                for agent_data in default_agents:
+                    agent_name = agent_data["name"]
+
+                    # Check if agent already exists
+                    existing_agent = (
+                        session.query(Agent).filter_by(name=agent_name).first()
                     )
-                    return True
 
-                # Load agent configurations from JSON files
-                for config_file in agent_configs_dir.glob("*.json"):
-                    try:
-                        with open(config_file, "r", encoding="utf-8") as f:
-                            config_data = json.load(f)
-
-                        agent_name = config_data.get("name")
-                        if not agent_name:
-                            logger.warning(
-                                f"Agent config missing 'name' field: {config_file}"
-                            )
-                            continue
-
-                        # Check if agent already exists
-                        existing_agent = (
-                            session.query(Agent).filter_by(name=agent_name).first()
+                    if not existing_agent:
+                        # Create new agent
+                        agent = Agent.from_config(agent_data)
+                        session.add(agent)
+                        logger.info(f"Added default agent: {agent_name}")
+                    else:
+                        # Update existing agent with default data
+                        existing_agent.display_name = agent_data.get(
+                            "display_name", existing_agent.display_name
                         )
-                        if not existing_agent:
-                            # Create new agent from config
-                            agent = Agent.from_config(config_data)
-                            session.add(agent)
-                            logger.info(f"Added agent: {agent_name}")
-                        else:
-                            # Update existing agent with new config data
-                            existing_agent.display_name = config_data.get(
-                                "display_name", existing_agent.display_name
-                            )
-                            existing_agent.description = config_data.get(
-                                "description", existing_agent.description
-                            )
-                            existing_agent.url = config_data.get(
-                                "url", existing_agent.url
-                            )
-                            existing_agent.version = config_data.get(
-                                "version", existing_agent.version
-                            )
-                            existing_agent.enabled = config_data.get(
-                                "enabled", existing_agent.enabled
-                            )
-                            existing_agent.capabilities = config_data.get(
-                                "capabilities", existing_agent.capabilities
-                            )
-                            existing_agent.agent_metadata = config_data.get(
-                                "metadata", existing_agent.agent_metadata
-                            )
-                            existing_agent.config = config_data.get(
-                                "config", existing_agent.config
-                            )
-                            logger.info(f"Updated agent: {agent_name}")
-
-                    except Exception as e:
-                        logger.error(f"Error loading agent config {config_file}: {e}")
-                        continue
+                        existing_agent.description = agent_data.get(
+                            "description", existing_agent.description
+                        )
+                        existing_agent.version = agent_data.get(
+                            "version", existing_agent.version
+                        )
+                        existing_agent.enabled = agent_data.get(
+                            "enabled", existing_agent.enabled
+                        )
+                        existing_agent.is_active = agent_data.get(
+                            "is_active", existing_agent.is_active
+                        )
+                        existing_agent.capabilities = agent_data.get(
+                            "capabilities", existing_agent.capabilities
+                        )
+                        existing_agent.agent_metadata = agent_data.get(
+                            "metadata", existing_agent.agent_metadata
+                        )
+                        existing_agent.config = agent_data.get(
+                            "config", existing_agent.config
+                        )
+                        logger.info(f"Updated default agent: {agent_name}")
 
                 session.commit()
-                logger.info("Agent data initialization completed")
+                logger.info("Default agent data initialization completed")
                 return True
 
             except Exception as e:
                 session.rollback()
-                logger.error(f"Error initializing agent data: {e}")
+                logger.error(f"Error initializing default agent data: {e}")
                 return False
             finally:
                 session.close()

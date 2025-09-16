@@ -78,23 +78,33 @@ The Agent model stores information about all available AI agents in the ValueCel
 2. **Create database file**: Create new database file if it doesn't exist
 3. **Create table structure**: Create agents table based on model definitions
 4. **Initialize Agent data**:
-   - Load all JSON configuration files from `configs/agent_cards/` directory
-   - Create corresponding Agent records for each configuration file
+   - Insert default Agent records directly from code
+   - Create three default agents: AIHedgeFundAgent, Sec13FundAgent, and TradingAgentsAdapter
    - Support updating existing Agent configuration information
 5. **Verify initialization**: Confirm database connection and table structure are correct
 
-### Agent Configuration Files
+### Default Agent Records
 
-The initialization script automatically loads all JSON configuration files from the `configs/agent_cards/` directory:
+The initialization script automatically creates default Agent records directly in the code:
 
-**Configuration file example**:
-```json
+**Default agents created**:
+
+1. **AIHedgeFundAgent**: AI-powered hedge fund analysis and trading agent
+2. **Sec13FundAgent**: SEC 13F fund analysis and tracking agent  
+3. **TradingAgentsAdapter**: Multi-agent trading analysis system with market, sentiment, news and fundamentals analysis
+
+**Agent data structure example**:
+```python
 {
     "name": "TradingAgentsAdapter",
+    "display_name": "Trading Agents Adapter",
     "description": "TradingAgents - Multi-agent trading analysis system",
+    "version": "1.0.0",
+    "enabled": True,
+    "is_active": True,
     "capabilities": {
-        "streaming": true,
-        "push_notifications": false
+        "streaming": True,
+        "push_notifications": False
     },
     "metadata": {
         "version": "1.0.0",
@@ -105,11 +115,6 @@ The initialization script automatically loads all JSON configuration files from 
     }
 }
 ```
-
-**Currently supported Agents**:
-- `AIHedgeFundAgent`: AI hedge fund agent
-- `Sec13FundAgent`: SEC 13F fund analysis agent  
-- `TradingAgentsAdapter`: Multi-agent trading analysis system
 
 ## Usage in Code
 
