@@ -1,6 +1,7 @@
 import MiniSparkline from "@valuecell/charts/mini-sparkline";
 import { STOCK_COLORS } from "@/constants/stock";
 import { cn, formatChange, formatPrice, getChangeType } from "@/lib/utils";
+import type { SparklineData } from "@/types/chart";
 
 export interface SparklineStock {
   symbol: string;
@@ -8,7 +9,7 @@ export interface SparklineStock {
   currency: string;
   changeAmount: number;
   changePercent: number;
-  sparklineData: number[];
+  sparklineData: SparklineData;
 }
 
 interface SparklineStockListProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -42,18 +43,27 @@ function SparklineStockItem({
           </p>
         </div>
         <p
-          className={`font-semibold text-[20px] leading-[26px] text-[${STOCK_COLORS[changeType]}]`}
+          className={`font-semibold text-[20px] leading-[26px]`}
+          style={{
+            color: STOCK_COLORS[changeType],
+          }}
         >
           {formatPrice(stock.price, stock.currency)}
         </p>
         <div className="flex items-start gap-1">
           <span
-            className={`font-normal text-[12px] leading-[16px] text-[${STOCK_COLORS[changeType]}]`}
+            className={`font-normal text-[12px] leading-[16px]`}
+            style={{
+              color: STOCK_COLORS[changeType],
+            }}
           >
             {formatChange(stock.changeAmount)}
           </span>
           <span
-            className={`font-normal text-[12px] leading-[16px] text-[${STOCK_COLORS[changeType]}]`}
+            className={`font-normal text-[12px] leading-[16px]`}
+            style={{
+              color: STOCK_COLORS[changeType],
+            }}
           >
             {formatChange(stock.changePercent, "%")}
           </span>

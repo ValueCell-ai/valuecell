@@ -7,12 +7,13 @@ import { useEffect, useMemo, useRef } from "react";
 import { STOCK_COLORS, STOCK_GRADIENT_COLORS } from "@/constants/stock";
 import { useChartResize } from "@/hooks/use-chart-resize";
 import { cn } from "@/lib/utils";
+import type { SparklineData } from "@/types/chart";
 import type { StockChangeType } from "@/types/stock";
 
 echarts.use([LineChart, GridComponent, CanvasRenderer]);
 
 interface MiniSparklineProps {
-  data: number[];
+  data: SparklineData;
   changeType: StockChangeType;
   width?: number | string;
   height?: number | string;
@@ -44,8 +45,11 @@ function MiniSparkline({
         bottom: 0,
       },
       xAxis: {
-        type: "category",
+        type: "time",
         show: false,
+        axisLabel: {
+          show: false,
+        },
       },
       yAxis: {
         type: "value",

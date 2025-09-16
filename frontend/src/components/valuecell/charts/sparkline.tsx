@@ -4,13 +4,16 @@ import {
   GridComponent,
   TooltipComponent,
 } from "echarts/components";
-import type { ECharts, EChartsCoreOption } from "echarts/core";
+import type { ECharts } from "echarts/core";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
+import type { EChartsOption } from "echarts/types/dist/shared";
 import { useEffect, useMemo, useRef } from "react";
 import { STOCK_COLORS, STOCK_GRADIENT_COLORS } from "@/constants/stock";
 import { useChartResize } from "@/hooks/use-chart-resize";
+import { format } from "@/lib/time";
 import { cn } from "@/lib/utils";
+import type { SparklineData } from "@/types/chart";
 import type { StockChangeType } from "@/types/stock";
 
 echarts.use([
@@ -21,13 +24,8 @@ echarts.use([
   CanvasRenderer,
 ]);
 
-interface DataPoint {
-  timestamp: string;
-  value: number;
-}
-
 interface SparklineProps {
-  data: DataPoint[];
+  data: SparklineData;
   changeType: StockChangeType;
   width?: number | string;
   height?: number | string;
@@ -48,56 +46,24 @@ function Sparkline({
   const color = STOCK_COLORS[changeType];
   const gradientColors = STOCK_GRADIENT_COLORS[changeType];
 
-  // Format data for ECharts
-  const chartData = useMemo(() => {
-    return data.map((item) => [item.timestamp, item.value]);
-  }, [data]);
-
-  // Calculate Y axis range with padding
-  const calculatedYRange = useMemo(() => {
-    const values = data.map((item) => item.value);
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const padding = (max - min) * 0.1; // 10% padding
-
-    return [Math.max(0, min - padding), max + padding];
-  }, [data]);
-
-  const option: EChartsCoreOption = useMemo(() => {
+  const option: EChartsOption = useMemo(() => {
     return {
       grid: {
-        left: 60,
-        right: 40,
-        top: 40,
-        bottom: 40,
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: 0,
       },
       xAxis: {
         type: "time",
         show: false,
-        boundaryGap: false,
+        axisLabel: {
+          show: false,
+        },
       },
       yAxis: {
         type: "value",
-        show: true,
-        min: calculatedYRange[0],
-        max: calculatedYRange[1],
-        splitNumber: 5,
-        axisLine: {
-          show: false,
-        },
-        axisTick: {
-          show: false,
-        },
-        axisLabel: {
-          show: true,
-          color: "rgba(18, 18, 18, 0.7)",
-          fontSize: 14,
-          fontFamily: "SF Pro Text, sans-serif",
-          fontWeight: 500,
-          formatter: (value: number) => {
-            return value.toLocaleString();
-          },
-        },
+        scale: true,
         splitLine: {
           show: true,
           lineStyle: {
@@ -110,11 +76,14 @@ function Sparkline({
       series: [
         {
           type: "line",
-          data: chartData,
-          symbol: "none",
-          lineStyle: {
+          data: data,
+          symbol: "circle",
+          symbolSize: 12,
+          showSymbol: false,
+          itemStyle: {
             color: color,
-            width: 2,
+            borderColor: "#fff",
+            borderWidth: 4,
           },
           areaStyle: {
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
@@ -128,16 +97,6 @@ function Sparkline({
               },
             ]),
           },
-          emphasis: {
-            focus: "series",
-            itemStyle: {
-              color: color,
-              borderColor: "white",
-              borderWidth: 4,
-              shadowBlur: 10,
-              shadowColor: "rgba(0, 0, 0, 0.3)",
-            },
-          },
           animationDuration: 500,
           animationEasing: "quadraticOut",
         },
@@ -145,35 +104,24 @@ function Sparkline({
       tooltip: {
         trigger: "axis",
         backgroundColor: "rgba(0, 0, 0, 0.7)",
-        borderColor: "transparent",
         textStyle: {
           color: "#fff",
           fontSize: 12,
-          fontFamily: "SF Pro Text, sans-serif",
         },
         padding: [14, 16],
         borderRadius: 12,
         formatter: (params: unknown) => {
           if (!Array.isArray(params) || params.length === 0) return "";
 
-          const param = params[0] as { data: [string, number] };
+          const param = params[0] as { data: [number, number] };
           if (!param || !param.data) return "";
 
           const timestamp = param.data[0];
           const value = param.data[1];
 
-          // default formatting
-          const date = new Date(timestamp);
-          const formatDate = date.toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          });
-          const formatTime = date.toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: true,
-          });
+          // Use our time utility for formatting
+          const formatDate = format(timestamp, "MMM D");
+          const formatTime = format(timestamp, "h:mm:ss A");
 
           return `
             <div style="font-weight: 500; font-size: 12px; margin-bottom: 8px; letter-spacing: -0.42px;">
@@ -185,20 +133,11 @@ function Sparkline({
           `;
         },
         axisPointer: {
-          type: "cross",
-          crossStyle: {
-            color: color,
-            opacity: 0.6,
-          },
-          lineStyle: {
-            color: color,
-            opacity: 0.6,
-          },
+          type: "none",
         },
       },
-      animation: true,
     };
-  }, [chartData, color, gradientColors, calculatedYRange]);
+  }, [data, color, gradientColors]);
 
   useChartResize(chartInstance);
 
@@ -216,10 +155,10 @@ function Sparkline({
   useEffect(() => {
     if (chartInstance.current) {
       chartInstance.current.setOption({
-        series: [{ data: chartData }],
+        series: [{ data }],
       });
     }
-  }, [chartData]);
+  }, [data]);
 
   return (
     <div

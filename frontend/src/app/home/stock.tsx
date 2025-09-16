@@ -8,10 +8,14 @@ import { Button } from "@/components/ui/button";
 import { STOCK_BADGE_COLORS } from "@/constants/stock";
 import { formatChange, formatPrice, getChangeType } from "@/lib/utils";
 import { stockData } from "@/mock/stock-data";
+import type { SparklineData } from "@/types/chart";
 
-// Generate historical price data
-function generateHistoricalData(basePrice: number, days: number = 30) {
-  const data = [];
+// Generate historical price data in [timestamp, value] format
+function generateHistoricalData(
+  basePrice: number,
+  days: number = 30,
+): SparklineData {
+  const data: SparklineData = [];
   const now = new Date();
 
   for (let i = days; i >= 0; i--) {
@@ -22,10 +26,11 @@ function generateHistoricalData(basePrice: number, days: number = 30) {
     const variation = (Math.random() - 0.5) * 0.1;
     const price = basePrice * (1 + variation * (i / days)); // Add trend
 
-    data.push({
-      timestamp: date.toISOString(),
-      value: Math.max(0, price),
-    });
+    // Use [timestamp, value] format to match SparklineData
+    data.push([
+      date.valueOf(), // Use timestamp number instead of ISO string
+      Math.max(0, Number(price.toFixed(2))),
+    ]);
   }
 
   return data;
