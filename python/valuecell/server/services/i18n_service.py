@@ -6,8 +6,8 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 
 from ..config.settings import get_settings
-from ..config.i18n import get_i18n_config
-from ..core.constants import SUPPORTED_LANGUAGE_CODES, DEFAULT_LANGUAGE
+from ...config.i18n import get_i18n_config
+from ...core.constants import SUPPORTED_LANGUAGE_CODES, DEFAULT_LANGUAGE
 
 
 class TranslationManager:
