@@ -46,6 +46,9 @@ class Settings:
         self.LOGS_DIR = self.BASE_DIR / "logs"
         self.LOGS_DIR.mkdir(exist_ok=True)
 
+        # I18n Configuration
+        self.LOCALE_DIR = self.BASE_DIR / "locales"
+
         # Agent Configuration
         self.AGENT_TIMEOUT = int(os.getenv("AGENT_TIMEOUT", "300"))  # 5 minutes
         self.MAX_CONCURRENT_AGENTS = int(os.getenv("MAX_CONCURRENT_AGENTS", "10"))
@@ -77,6 +80,26 @@ class Settings:
         return {
             "url": self.REDIS_URL,
         }
+
+    def update_language(self, language: str) -> None:
+        """Update current language setting.
+
+        Args:
+            language: Language code to set
+        """
+        # In a production environment, this might update a database or config file
+        # For now, we'll just log the change
+        pass
+
+    def update_timezone(self, timezone: str) -> None:
+        """Update current timezone setting.
+
+        Args:
+            timezone: Timezone to set
+        """
+        # In a production environment, this might update a database or config file
+        # For now, we'll just log the change
+        pass
 
 
 @lru_cache()

@@ -5,9 +5,8 @@ from datetime import datetime
 import threading
 from contextlib import contextmanager
 
-from ..api.i18n_api import get_i18n_api
 from ..services.i18n_service import get_i18n_service
-from ..api.schemas import AgentI18nContext
+from ..api.schemas.i18n import AgentI18nContextData
 
 
 class AgentContextManager:
@@ -15,19 +14,23 @@ class AgentContextManager:
 
     def __init__(self):
         """Initialize agent context manager."""
-        self.i18n_api = get_i18n_api()
         self.i18n_service = get_i18n_service()
         self._local = threading.local()
+        self._user_contexts = {}  # Store user contexts locally
 
-    def set_user_context(self, user_id: str, session_id: Optional[str] = None):
+    def set_user_context(
+        self,
+        user_id: str,
+        session_id: Optional[str] = None,
+        language: str = "en-US",
+        timezone: str = "UTC",
+    ):
         """Set current user context for the agent."""
-        user_context = self.i18n_api.get_user_context(user_id)
-
         # Store in thread local storage
         self._local.user_id = user_id
         self._local.session_id = session_id
-        self._local.language = user_context.get("language", "en-US")
-        self._local.timezone = user_context.get("timezone", "UTC")
+        self._local.language = language
+        self._local.timezone = timezone
 
         # Update i18n service
         self.i18n_service.set_language(self._local.language)
@@ -49,9 +52,9 @@ class AgentContextManager:
         """Get current user's timezone."""
         return getattr(self._local, "timezone", "UTC")
 
-    def get_i18n_context(self) -> AgentI18nContext:
+    def get_i18n_context(self) -> AgentI18nContextData:
         """Get complete i18n context for agent."""
-        return AgentI18nContext(
+        return AgentI18nContextData(
             language=self.get_current_language(),
             timezone=self.get_current_timezone(),
             currency_symbol=self.i18n_service._i18n_config.get_currency_symbol(),
@@ -154,7 +157,7 @@ def get_current_user_id() -> Optional[str]:
     return get_agent_context().get_current_user_id()
 
 
-def get_i18n_context() -> AgentI18nContext:
+def get_i18n_context() -> AgentI18nContextData:
     """Get i18n context (convenience function)."""
     return get_agent_context().get_i18n_context()
 

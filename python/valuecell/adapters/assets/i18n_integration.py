@@ -7,8 +7,8 @@ localized asset names, descriptions, and other text content.
 import logging
 from typing import Dict, List, Optional
 
-from ...i18n import get_i18n_service, t, get_i18n_config
-from ...config.i18n import I18nConfig
+from ...server.api.i18n_api import get_i18n_service, t, get_i18n_config
+from ...server.config.i18n import I18nConfig
 from .types import Asset, AssetSearchResult, AssetType, MarketStatus
 from .manager import AdapterManager
 
