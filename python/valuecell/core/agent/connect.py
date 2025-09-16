@@ -196,7 +196,11 @@ class RemoteConnections:
         notification_callback: NotificationCallbackType,
     ) -> str:
         """Setup listener for agent if needed and supported. Returns listener URL or None."""
-        if not with_listener or not agent_card or not agent_card.capabilities.push_notifications:
+        if (
+            not with_listener
+            or not agent_card
+            or not agent_card.capabilities.push_notifications
+        ):
             return None
 
         try:
@@ -208,9 +212,7 @@ class RemoteConnections:
             )
         except Exception as e:
             logger.error(f"Failed to start listener for '{agent_name}': {e}")
-            raise RuntimeError(
-                f"Failed to start listener for '{agent_name}'"
-            ) from e
+            raise RuntimeError(f"Failed to start listener for '{agent_name}'") from e
 
     async def _handle_remote_agent(
         self,
@@ -248,7 +250,9 @@ class RemoteConnections:
         )
 
         # Create client connection with listener URL
-        self._connections[agent_name] = AgentClient(agent_url, push_notification_url=listener_url)
+        self._connections[agent_name] = AgentClient(
+            agent_url, push_notification_url=listener_url
+        )
         logger.info(f"Connected to remote agent '{agent_name}' at {agent_url}")
         if listener_url:
             logger.info(f"  └─ with listener at {listener_url}")

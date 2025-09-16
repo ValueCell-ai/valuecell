@@ -123,19 +123,20 @@ class AgentOrchestrator:
             if not client:
                 raise RuntimeError(f"Could not connect to agent {task.agent_name}")
 
-            streaming = agent_card.capabilities.streaming
             response = await client.send_message(
                 query,
                 context_id=task.session_id,
                 metadata=metadata,
-                streaming=streaming,
+                streaming=agent_card.capabilities.streaming,
             )
 
             # Process streaming responses
             remote_task, event = await anext(response)
             if remote_task.status.state == TaskState.submitted:
                 task.remote_task_ids.append(remote_task.id)
-            if not streaming:
+
+            # For push notification agents, return early and let listener handle the response
+            if agent_card.capabilities.push_notifications:
                 return
 
             async for remote_task, event in response:
