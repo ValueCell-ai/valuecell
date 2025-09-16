@@ -11,7 +11,7 @@ function ScrollContainer({ children, ...props }: ScrollContainerProps) {
   return (
     <OverlayScrollbarsComponent
       defer
-      options={{ scrollbars: { autoHide: "leave" } }}
+      options={{ scrollbars: { autoHide: "leave", autoHideDelay: 100 } }}
       {...props}
     >
       {children}

@@ -36,6 +36,7 @@ export default function HomeLayout() {
                     stock={stock}
                     to={`/stock/${stock.symbol}`}
                     isActive={stockSymbol === stock.symbol}
+                    replace={!!stockSymbol}
                   />
                 ))}
               </StockMenuGroup>

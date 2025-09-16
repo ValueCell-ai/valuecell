@@ -35,6 +35,10 @@ interface StockMenuGroupHeaderProps
   children: React.ReactNode;
 }
 
+interface StockIconProps extends React.HTMLAttributes<HTMLDivElement> {
+  stock: Stock;
+}
+
 interface StockMenuListItemProps extends LinkProps {
   stock: Stock;
   isActive?: boolean;
@@ -90,6 +94,25 @@ function StockMenuGroupHeader({
   );
 }
 
+function StockIcon({ className, stock, ...props }: StockIconProps) {
+  return (
+    <div
+      className={cn(
+        "flex size-10 items-center justify-center rounded-full",
+        className,
+      )}
+      {...props}
+    >
+      <Avatar className="size-full">
+        <AvatarImage src={stock.icon} alt={stock.symbol} />
+        <AvatarFallback className="font-medium text-muted-foreground text-xs">
+          {stock.symbol.slice(0, 2)}
+        </AvatarFallback>
+      </Avatar>
+    </div>
+  );
+}
+
 function StockMenuListItem({
   className,
   stock,
@@ -111,23 +134,7 @@ function StockMenuListItem({
     >
       <div className="flex flex-1 items-center gap-2.5">
         {/* icon */}
-        <div
-          className="flex h-10 w-10 items-center justify-center rounded-full"
-          style={{ backgroundColor: stock.iconBgColor }}
-        >
-          {stock.icon ? (
-            <Avatar>
-              <AvatarImage src={stock.icon} alt={stock.symbol} />
-              <AvatarFallback className="font-medium text-xs">
-                {stock.symbol.slice(0, 2)}
-              </AvatarFallback>
-            </Avatar>
-          ) : (
-            <span className="font-medium text-muted-foreground text-xs">
-              {stock.symbol.slice(0, 2)}
-            </span>
-          )}
-        </div>
+        <StockIcon stock={stock} />
 
         {/* stock info */}
         <div className="flex flex-col items-start gap-1">
@@ -165,4 +172,5 @@ export {
   StockMenuGroup,
   StockMenuGroupHeader,
   StockMenuListItem,
+  StockIcon,
 };
