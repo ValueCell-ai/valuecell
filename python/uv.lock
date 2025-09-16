@@ -461,21 +461,6 @@ wheels = [
 ]
 
 [[package]]
-name = "edgar"
-version = "5.6.3"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "lxml" },
-    { name = "rapidfuzz" },
-    { name = "requests" },
-    { name = "tqdm" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/fc/62/6aad0e8c98c11935b90e4c256bdc209fd38ebfe4c4dfd4ffe7a4f14cad07/edgar-5.6.3.tar.gz", hash = "sha256:6e8ca83809a72ee3872736fac211b01fada7d3228052a088437717147f445a07", size = 24883, upload-time = "2024-10-13T08:13:39.657Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d0/b4/36966cabbaddc606111c59adb6b0fa25b615679089fcbc9bbfc167e2f582/edgar-5.6.3-py3-none-any.whl", hash = "sha256:4f4d1c299c8ef61e4be40812d24588ff6d230ed16e884083204a5601f6a465ba", size = 23632, upload-time = "2024-10-13T08:13:36.82Z" },
-]
-
-[[package]]
 name = "edgartools"
 version = "4.12.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2048,7 +2033,6 @@ dependencies = [
     { name = "a2a-sdk", extra = ["http-server"] },
     { name = "agno", extra = ["openai"] },
     { name = "akshare" },
-    { name = "edgar" },
     { name = "edgartools" },
     { name = "fastapi" },
     { name = "pydantic" },
@@ -2073,7 +2057,6 @@ requires-dist = [
     { name = "a2a-sdk", extras = ["http-server"], specifier = ">=0.3.4" },
     { name = "agno", extras = ["openai"], specifier = ">=1.8.2,<2.0" },
     { name = "akshare", specifier = ">=1.17.44" },
-    { name = "edgar", specifier = ">=5.0.0" },
     { name = "edgartools", specifier = ">=4.12.2" },
     { name = "fastapi", specifier = ">=0.104.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
