@@ -4,7 +4,7 @@ from typing import AsyncGenerator
 from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
 from valuecell.core.agent.connect import get_default_remote_connections
 from valuecell.core.session import Role, get_default_session_manager
-from valuecell.core.task import TaskManager
+from valuecell.core.task import get_default_task_manager
 from valuecell.core.types import (
     MessageChunk,
     MessageChunkMetadata,
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class AgentOrchestrator:
     def __init__(self):
         self.session_manager = get_default_session_manager()
-        self.task_manager = TaskManager()
+        self.task_manager = get_default_task_manager()
         self.agent_connections = get_default_remote_connections()
 
         self.planner = ExecutionPlanner(self.agent_connections)
