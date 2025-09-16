@@ -27,6 +27,33 @@ class AgentOrchestrator:
 
         self.planner = ExecutionPlanner(self.agent_connections)
 
+    def _create_message_chunk(
+        self,
+        content: str,
+        session_id: str,
+        user_id: str,
+        kind: MessageDataKind = MessageDataKind.TEXT,
+        is_final: bool = False,
+    ) -> MessageChunk:
+        """Create a MessageChunk with common metadata"""
+        return MessageChunk(
+            content=content,
+            kind=kind,
+            meta=MessageChunkMetadata(session_id=session_id, user_id=user_id),
+            is_final=is_final,
+        )
+
+    def _create_error_message_chunk(
+        self, error_msg: str, session_id: str, user_id: str
+    ) -> MessageChunk:
+        """Create an error MessageChunk with standardized format"""
+        return self._create_message_chunk(
+            content=f"(Error): {error_msg}",
+            session_id=session_id,
+            user_id=user_id,
+            is_final=True,
+        )
+
     async def process_user_input(
         self, user_input: UserInput
     ) -> AsyncGenerator[MessageChunk, None]:
@@ -54,13 +81,8 @@ class AgentOrchestrator:
         except Exception as e:
             error_msg = f"Error processing request: {str(e)}"
             await self.session_manager.add_message(session_id, Role.SYSTEM, error_msg)
-            yield MessageChunk(
-                content=f"(Error): {error_msg}",
-                kind=MessageDataKind.TEXT,
-                meta=MessageChunkMetadata(
-                    session_id=session_id, user_id=user_input.meta.user_id
-                ),
-                is_final=True,
+            yield self._create_error_message_chunk(
+                error_msg, session_id, user_input.meta.user_id
             )
 
     async def _execute_plan(
@@ -70,11 +92,8 @@ class AgentOrchestrator:
 
         session_id, user_id = metadata["session_id"], metadata["user_id"]
         if not plan.tasks:
-            yield MessageChunk(
-                content="No tasks found for this request.",
-                kind=MessageDataKind.TEXT,
-                meta=MessageChunkMetadata(session_id=session_id, user_id=user_id),
-                is_final=True,
+            yield self._create_message_chunk(
+                "No tasks found for this request.", session_id, user_id, is_final=True
             )
             return
 
@@ -90,19 +109,14 @@ class AgentOrchestrator:
 
             except Exception as e:
                 error_msg = f"Error executing {task.agent_name}: {str(e)}"
-                yield MessageChunk(
-                    content=f"(Error): {error_msg}",
-                    kind=MessageDataKind.TEXT,
-                    meta=MessageChunkMetadata(session_id=session_id, user_id=user_id),
-                    is_final=True,
-                )
+                yield self._create_error_message_chunk(error_msg, session_id, user_id)
 
         # Check if no results were produced
         if not plan.tasks:
-            yield MessageChunk(
-                content="No agents were able to process this request.",
-                kind=MessageDataKind.TEXT,
-                meta=MessageChunkMetadata(session_id=session_id, user_id=user_id),
+            yield self._create_message_chunk(
+                "No agents were able to process this request.",
+                session_id,
+                user_id,
                 is_final=True,
             )
 
@@ -147,12 +161,8 @@ class AgentOrchestrator:
                     logger.info(f"Task status update: {event.status.state}")
                     continue
                 if isinstance(event, TaskArtifactUpdateEvent):
-                    yield MessageChunk(
-                        content=event.artifact.parts[0].root.text,
-                        kind=MessageDataKind.TEXT,
-                        meta=MessageChunkMetadata(
-                            session_id=task.session_id, user_id=task.user_id
-                        ),
+                    yield self._create_message_chunk(
+                        event.artifact.parts[0].root.text, task.session_id, task.user_id
                     )
 
             # Complete task
