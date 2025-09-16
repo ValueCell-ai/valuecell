@@ -184,12 +184,12 @@ class GenericAgentExecutor(AgentExecutor):
                 chunk_idx += 1
 
         # Stream from the user agent and update task incrementally
+        await updater.update_status(TaskState.working)
         try:
             async for item in self.agent.stream(query, task.context_id, task.id):
                 content = item.get("content", "")
                 is_complete = item.get("is_task_complete", True)
 
-                await updater.update_status(TaskState.working)
                 await _add_chunk(content, last=is_complete)
 
                 if is_complete:

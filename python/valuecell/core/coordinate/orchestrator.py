@@ -116,23 +116,29 @@ class AgentOrchestrator:
             await self.task_manager.start_task(task.task_id)
 
             # Get agent client
-            await self.agent_connections.start_agent(
+            agent_card = await self.agent_connections.start_agent(
                 task.agent_name, notification_callback=store_task_in_session
             )
             client = await self.agent_connections.get_client(task.agent_name)
             if not client:
                 raise RuntimeError(f"Could not connect to agent {task.agent_name}")
 
-            response_generator = await client.send_message(
-                query, context_id=task.session_id, metadata=metadata, streaming=True
+            streaming = agent_card.capabilities.streaming
+            response = await client.send_message(
+                query,
+                context_id=task.session_id,
+                metadata=metadata,
+                streaming=streaming,
             )
 
             # Process streaming responses
-            remote_task, event = await anext(response_generator)
+            remote_task, event = await anext(response)
             if remote_task.status.state == TaskState.submitted:
                 task.remote_task_ids.append(remote_task.id)
+            if not streaming:
+                return
 
-            async for remote_task, event in response_generator:
+            async for remote_task, event in response:
                 if (
                     isinstance(event, TaskStatusUpdateEvent)
                     # and event.status.state == TaskState.input_required

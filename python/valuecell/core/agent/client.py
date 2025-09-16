@@ -53,7 +53,7 @@ class AgentClient:
         context_id: str = None,
         metadata: dict = None,
         streaming: bool = False,
-    ) -> RemoteAgentResponse | AsyncIterator[RemoteAgentResponse]:
+    ) -> AsyncIterator[RemoteAgentResponse]:
         """Send message to Agent.
 
         If `streaming` is True, return an async iterator producing (task, event) pairs.
@@ -69,13 +69,22 @@ class AgentClient:
             metadata=metadata if metadata else None,
         )
 
-        generator = self._client.send_message(message)
-        if streaming:
-            return generator
+        source_gen = self._client.send_message(message)
 
-        task, event = await generator.__anext__()
-        await generator.aclose()
-        return task, event
+        async def wrapper() -> AsyncIterator[RemoteAgentResponse]:
+            try:
+                if streaming:
+                    async for item in source_gen:
+                        yield item
+                else:
+                    # yield only the first item
+                    item = await source_gen.__anext__()
+                    yield item
+            finally:
+                # ensure underlying generator is closed
+                await source_gen.aclose()
+
+        return wrapper()
 
     async def get_agent_card(self):
         await self._ensure_initialized()
