@@ -1052,12 +1052,12 @@ class TestConcurrency:
             c for c in chunks_2 if c.meta.session_id == f"{session_id}_2"
         ]
 
-        assert (
-            len(session_1_chunks) > 0
-        ), "Request 1 should have chunks with correct session_id"
-        assert (
-            len(session_2_chunks) > 0
-        ), "Request 2 should have chunks with correct session_id"
+        assert len(session_1_chunks) > 0, (
+            "Request 1 should have chunks with correct session_id"
+        )
+        assert len(session_2_chunks) > 0, (
+            "Request 2 should have chunks with correct session_id"
+        )
 
         # Verify both requests called the task manager
         assert orchestrator.task_manager.store.save_task.call_count >= 2
@@ -1072,12 +1072,12 @@ class TestConcurrency:
             call for call in session_add_calls if call[0][0] == f"{session_id}_2"
         ]
 
-        assert (
-            len(session_1_calls) >= 2
-        ), "Session 1 should have user and agent messages"
-        assert (
-            len(session_2_calls) >= 2
-        ), "Session 2 should have user and agent messages"
+        assert len(session_1_calls) >= 2, (
+            "Session 1 should have user and agent messages"
+        )
+        assert len(session_2_calls) >= 2, (
+            "Session 2 should have user and agent messages"
+        )
 
     @pytest.mark.asyncio
     async def test_concurrent_requests_different_agents(
