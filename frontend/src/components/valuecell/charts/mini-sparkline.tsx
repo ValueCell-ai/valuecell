@@ -4,6 +4,7 @@ import type { ECharts, EChartsCoreOption } from "echarts/core";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useMemo, useRef } from "react";
+import { useChartResize } from "@/hooks/use-chart-resize";
 import { cn } from "@/lib/utils";
 
 echarts.use([LineChart, GridComponent, CanvasRenderer]);
@@ -27,6 +28,8 @@ function MiniSparkline({
 }: MiniSparklineProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<ECharts | null>(null);
+
+  useChartResize(chartInstance);
 
   const option: EChartsCoreOption = useMemo(() => {
     return {
@@ -75,24 +78,16 @@ function MiniSparkline({
 
   useEffect(() => {
     if (!chartRef.current) return;
-    chartInstance.current = echarts.init(chartRef.current);
 
+    chartInstance.current = echarts.init(chartRef.current);
     chartInstance.current.setOption(option);
 
-    const handleResize = () => {
-      chartInstance.current?.resize();
-    };
-
-    window.addEventListener("resize", handleResize);
-
     return () => {
-      window.removeEventListener("resize", handleResize);
       chartInstance.current?.dispose();
     };
   }, [option]);
 
   useEffect(() => {
-    // update chart when data changes
     if (chartInstance.current) {
       chartInstance.current.setOption({
         series: [{ data }],
