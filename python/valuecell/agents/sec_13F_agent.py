@@ -6,7 +6,7 @@ from edgar import Company, set_identity
 from pydantic import BaseModel, Field, field_validator
 
 # from valuecell.core.agent.decorator import serve
-from valuecell.core.agent.types import BaseAgent
+from valuecell.core.types import BaseAgent
 from valuecell.core.agent.decorator import create_wrapped_agent
 
 

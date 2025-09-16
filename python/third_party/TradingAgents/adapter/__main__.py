@@ -10,7 +10,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, MessagesState, START, END
 from pydantic import BaseModel, Field, field_validator
 from valuecell.core.agent.decorator import create_wrapped_agent
-from valuecell.core.agent.types import BaseAgent
+from valuecell.core.types import BaseAgent
 
 from tradingagents.graph.trading_graph import TradingAgentsGraph
 from tradingagents.default_config import DEFAULT_CONFIG
