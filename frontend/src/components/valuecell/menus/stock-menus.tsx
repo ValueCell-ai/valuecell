@@ -1,7 +1,5 @@
-import type { ScrollAreaProps } from "@radix-ui/react-scroll-area";
 import { Link, type LinkProps } from "react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, formatChange, formatPrice, getChangeType } from "@/lib/utils";
 
 interface Stock {
@@ -28,10 +26,6 @@ interface StockMenuHeaderProps
   children: React.ReactNode;
 }
 
-interface StockMenuContentProps extends ScrollAreaProps {
-  children: React.ReactNode;
-}
-
 interface StockMenuGroupProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
 }
@@ -55,18 +49,6 @@ function StockMenuHeader({
     <h1 className={cn("px-2 font-semibold text-lg", className)} {...props}>
       {children}
     </h1>
-  );
-}
-
-function StockMenuContent({
-  className,
-  children,
-  ...props
-}: StockMenuContentProps) {
-  return (
-    <ScrollArea className={cn("min-h-0 w-full", className)} {...props}>
-      {children}
-    </ScrollArea>
   );
 }
 
@@ -180,7 +162,6 @@ function StockMenuListItem({
 export {
   StockMenu,
   StockMenuHeader,
-  StockMenuContent,
   StockMenuGroup,
   StockMenuGroupHeader,
   StockMenuListItem,

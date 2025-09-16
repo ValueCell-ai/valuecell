@@ -75,7 +75,6 @@ function Sparkline({
         right: 40,
         top: 40,
         bottom: 40,
-        containLabel: true,
       },
       xAxis: {
         type: "time",

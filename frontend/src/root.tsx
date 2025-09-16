@@ -1,6 +1,7 @@
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 import AppSidebar from "@/components/valuecell/app-sidebar";
 
+import "overlayscrollbars/overlayscrollbars.css";
 import "./global.css";
 
 export function Layout({ children }: { children: React.ReactNode }) {

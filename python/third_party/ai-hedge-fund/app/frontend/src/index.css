@@ -31,15 +31,17 @@
     --sidebar-background: 0 0% 98%;
     --panel-bg: 0 0% 100%;
     --node-bg: 0 0% 100%;
-    
+
     /* Hover colors for light theme */
-    --hover-background: rgb(156 163 175 / 0.3); /* gray-400/30 */
+    --hover-background: rgb(156 163 175 / 0.3);
+    /* gray-400/30 */
     --hover-foreground: 0 0% 15%;
-    
+
     /* Active/selected colors for light theme */
-    --active-background: rgb(229 231 235 / 0.8); /* gray-200/80 */
+    --active-background: rgb(229 231 235 / 0.8);
+    /* gray-200/80 */
     --active-foreground: 0 0% 10%;
-    
+
     /* Ramp Grey Colors */
     --ramp-grey-100: #f5f5f5;
     --ramp-grey-200: #e6e6e6;
@@ -72,13 +74,6 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
@@ -108,13 +103,15 @@
     --panel-bg: 240 3% 11%;
     --node-bg: 240 3% 11%;
     --sidebar-background: 240 5.9% 16%;
-    
+
     /* Hover colors for dark theme */
-    --hover-background: rgb(55 65 81 / 0.5); /* gray-700/50 */
+    --hover-background: rgb(55 65 81 / 0.5);
+    /* gray-700/50 */
     --hover-foreground: 0 0% 95%;
-    
+
     /* Active/selected colors for dark theme */
-    --active-background: rgb(55 65 81 / 0.8); /* gray-700/80 */
+    --active-background: rgb(55 65 81 / 0.8);
+    /* gray-700/80 */
     --active-foreground: 0 0% 98%;
 
     /* Tab Colors - Dark Theme */
@@ -128,19 +125,6 @@
     --tab-icon-active: #007acc;
     --tab-icon-inactive: #858585;
     --tab-close-hover: #464647;
-
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
 
@@ -148,43 +132,43 @@
   .bg-node {
     background-color: hsl(var(--node-bg));
   }
-  
+
   .border-status {
     border-color: hsl(var(--status-border));
   }
-  
+
   .border-node {
     border-color: hsl(var(--node-border));
   }
-  
+
   .border-node-hover {
     border-color: hsl(var(--node-border-hover));
   }
-  
+
   .border-node-selected {
     border-color: hsl(var(--node-border-selected));
   }
-  
+
   .hover-bg {
     @apply hover:bg-[var(--hover-background)];
   }
-  
+
   .hover-text {
     @apply hover:text-[hsl(var(--hover-foreground))];
   }
-  
+
   .hover-item {
     @apply hover:bg-[var(--hover-background)] hover:text-[hsl(var(--hover-foreground))];
   }
-  
+
   .active-bg {
     @apply bg-[var(--active-background)];
   }
-  
+
   .active-text {
     @apply text-[hsl(var(--active-foreground))];
   }
-  
+
   .active-item {
     @apply bg-[var(--active-background)] text-[hsl(var(--active-foreground))];
   }
@@ -303,13 +287,12 @@
   position: absolute;
   inset: 0;
   border-radius: 0.5rem;
-  background: linear-gradient(90deg, 
-    #2383F4, #5e61e7, #8F00FF, #7831d4, #2383F4
-  );
+  background: linear-gradient(90deg,
+      #2383F4, #5e61e7, #8F00FF, #7831d4, #2383F4);
   background-size: 200% 100%;
   animation: gradientFlow 3s linear infinite;
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -320,6 +303,7 @@
   0% {
     background-position: 0% 0%;
   }
+
   100% {
     background-position: 200% 0%;
   }
@@ -327,18 +311,16 @@
 
 /* Gradient animation for in-progress elements */
 .gradient-animation {
-  background: linear-gradient(90deg, 
-    #2383F4, #5e61e7, #8F00FF, #7831d4, #2383F4
-  );
+  background: linear-gradient(90deg,
+      #2383F4, #5e61e7, #8F00FF, #7831d4, #2383F4);
   background-size: 200% 100%;
   animation: gradientFlow 3s linear infinite;
 }
 
 /* Gradient text animation */
 .gradient-text {
-  background: linear-gradient(90deg, 
-    #2383F4, #5e61e7, #8F00FF, #7831d4, #2383F4
-  );
+  background: linear-gradient(90deg,
+      #2383F4, #5e61e7, #8F00FF, #7831d4, #2383F4);
   background-size: 200% 100%;
   animation: gradientFlow 3s linear infinite;
   background-clip: text;
@@ -351,6 +333,6 @@
   border-right: none !important;
 }
 
-.react-flow__controls .react-flow__controls-button + .react-flow__controls-button {
+.react-flow__controls .react-flow__controls-button+.react-flow__controls-button {
   border-left: none !important;
 }

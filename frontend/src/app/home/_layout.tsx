@@ -3,12 +3,12 @@ import { Outlet, useLocation } from "react-router";
 import { Button } from "@/components/ui/button";
 import {
   StockMenu,
-  StockMenuContent,
   StockMenuGroup,
   StockMenuGroupHeader,
   StockMenuHeader,
   StockMenuListItem,
 } from "@/components/valuecell/menus/stock-menus";
+import ScrollContainer from "@/components/valuecell/scroll-container";
 import { stockData } from "@/mock/stock-data";
 
 export default function HomeLayout() {
@@ -19,14 +19,14 @@ export default function HomeLayout() {
 
   return (
     <div className="flex flex-1 overflow-hidden">
-      <main className="flex-1 overflow-hidden">
+      <ScrollContainer className="flex-1">
         <Outlet />
-      </main>
+      </ScrollContainer>
 
       <aside className="flex h-full flex-col justify-between border-l">
         <StockMenu>
           <StockMenuHeader>My Stocks</StockMenuHeader>
-          <StockMenuContent>
+          <ScrollContainer>
             {stockData.map((group) => (
               <StockMenuGroup key={group.title}>
                 <StockMenuGroupHeader>{group.title}</StockMenuGroupHeader>
@@ -40,7 +40,7 @@ export default function HomeLayout() {
                 ))}
               </StockMenuGroup>
             ))}
-          </StockMenuContent>
+          </ScrollContainer>
         </StockMenu>
 
         <Button variant="secondary" className="mx-5 mb-6 font-bold text-sm">
