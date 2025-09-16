@@ -62,13 +62,6 @@ class FinancialSituationMemory:
                 except Exception as fallback_error:
                     print(f"❌ Dedicated embeddings key also failed: {str(fallback_error)}")
             
-            # Final fallback: return a dummy embedding vector
-            print("🔧 Using dummy embedding vector (memory functionality will be limited)")
-            print("💡 To fix this issue:")
-            print("   1. Get a real OpenAI API key from https://platform.openai.com/api-keys")
-            print("   2. Set it as: export OPENAI_EMBEDDINGS_API_KEY=sk-your-real-openai-key")
-            print("   3. Or switch to Ollama for local embeddings")
-            
             # Return a dummy embedding vector of the expected dimension (1536 for text-embedding-3-small)
             import random
             return [random.random() for _ in range(1536)]
