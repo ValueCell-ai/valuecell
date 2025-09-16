@@ -8,8 +8,10 @@ import type { ECharts, EChartsCoreOption } from "echarts/core";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useMemo, useRef } from "react";
+import { STOCK_COLORS, STOCK_GRADIENT_COLORS } from "@/constants/stock";
 import { useChartResize } from "@/hooks/use-chart-resize";
 import { cn } from "@/lib/utils";
+import type { StockChangeType } from "@/types/stock";
 
 echarts.use([
   LineChart,
@@ -26,8 +28,7 @@ interface DataPoint {
 
 interface SparklineProps {
   data: DataPoint[];
-  color?: string;
-  gradientColors?: [string, string];
+  changeType: StockChangeType;
   width?: number | string;
   height?: number | string;
   className?: string;
@@ -35,8 +36,7 @@ interface SparklineProps {
 
 function Sparkline({
   data,
-  color = "#41C3A9",
-  gradientColors = ["rgba(65, 195, 169, 0.6)", "rgba(65, 195, 169, 0)"],
+  changeType,
   width = "100%",
   height = 400,
   className,
@@ -44,12 +44,16 @@ function Sparkline({
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<ECharts | null>(null);
 
-  // deal with data format
+  // Get colors based on change type
+  const color = STOCK_COLORS[changeType];
+  const gradientColors = STOCK_GRADIENT_COLORS[changeType];
+
+  // Format data for ECharts
   const chartData = useMemo(() => {
     return data.map((item) => [item.timestamp, item.value]);
   }, [data]);
 
-  // calculate Y axis range
+  // Calculate Y axis range with padding
   const calculatedYRange = useMemo(() => {
     const values = data.map((item) => item.value);
     const min = Math.min(...values);

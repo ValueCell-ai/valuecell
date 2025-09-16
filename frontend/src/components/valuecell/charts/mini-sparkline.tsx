@@ -4,15 +4,16 @@ import type { ECharts, EChartsCoreOption } from "echarts/core";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useMemo, useRef } from "react";
+import { STOCK_COLORS, STOCK_GRADIENT_COLORS } from "@/constants/stock";
 import { useChartResize } from "@/hooks/use-chart-resize";
 import { cn } from "@/lib/utils";
+import type { StockChangeType } from "@/types/stock";
 
 echarts.use([LineChart, GridComponent, CanvasRenderer]);
 
 interface MiniSparklineProps {
   data: number[];
-  color?: string;
-  gradientColors?: [string, string];
+  changeType: StockChangeType;
   width?: number | string;
   height?: number | string;
   className?: string;
@@ -20,8 +21,7 @@ interface MiniSparklineProps {
 
 function MiniSparkline({
   data,
-  color = "#22c55e",
-  gradientColors = ["rgba(34, 197, 94, 0.8)", "rgba(34, 197, 94, 0.1)"],
+  changeType,
   width = 100,
   height = 40,
   className,
@@ -30,6 +30,10 @@ function MiniSparkline({
   const chartInstance = useRef<ECharts | null>(null);
 
   useChartResize(chartInstance);
+
+  // Get colors based on change type
+  const color = STOCK_COLORS[changeType];
+  const gradientColors = STOCK_GRADIENT_COLORS[changeType];
 
   const option: EChartsCoreOption = useMemo(() => {
     return {

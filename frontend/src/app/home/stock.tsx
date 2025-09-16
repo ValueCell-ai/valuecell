@@ -1,13 +1,15 @@
 import BackButton from "@valuecell/button/back-button";
 import Sparkline from "@valuecell/charts/sparkline";
 import { StockIcon } from "@valuecell/menus/stock-menus";
-import { memo, useCallback, useMemo } from "react";
+import { memo, useMemo } from "react";
 import { useParams } from "react-router";
 import { StockDetailsList } from "@/app/home/components";
 import { Button } from "@/components/ui/button";
+import { STOCK_BADGE_COLORS } from "@/constants/stock";
+import { formatChange, formatPrice, getChangeType } from "@/lib/utils";
 import { stockData } from "@/mock/stock-data";
 
-// 生成历史价格数据
+// Generate historical price data
 function generateHistoricalData(basePrice: number, days: number = 30) {
   const data = [];
   const now = new Date();
@@ -16,9 +18,9 @@ function generateHistoricalData(basePrice: number, days: number = 30) {
     const date = new Date(now);
     date.setDate(date.getDate() - i);
 
-    // 模拟价格波动 (±5%)
+    // Simulate price fluctuation (±5%)
     const variation = (Math.random() - 0.5) * 0.1;
-    const price = basePrice * (1 + variation * (i / days)); // 添加趋势
+    const price = basePrice * (1 + variation * (i / days)); // Add trend
 
     data.push({
       timestamp: date.toISOString(),
@@ -32,7 +34,7 @@ function generateHistoricalData(basePrice: number, days: number = 30) {
 const Stock = memo(function Stock() {
   const { stockId } = useParams();
 
-  // 从 mock 数据中查找股票信息
+  // Find stock information from mock data
   const stockInfo = useMemo(() => {
     for (const group of stockData) {
       const stock = group.stocks.find((s) => s.symbol === stockId);
@@ -41,13 +43,13 @@ const Stock = memo(function Stock() {
     return null;
   }, [stockId]);
 
-  // 生成60天历史数据（固定，按设计）
+  // Generate 60-day historical data (fixed, as per design)
   const chartData = useMemo(() => {
     if (!stockInfo) return [];
     return generateHistoricalData(stockInfo.price, 60);
   }, [stockInfo]);
 
-  // 生成模拟的详细数据（按Figma设计）
+  // Generate simulated detailed data
   const detailsData = useMemo(() => {
     if (!stockInfo) return undefined;
 
@@ -68,48 +70,15 @@ const Stock = memo(function Stock() {
     };
   }, [stockInfo]);
 
-  const formatTooltip = useCallback(
-    (value: number, timestamp: string) => {
-      if (!stockInfo) return "";
-
-      const date = new Date(timestamp);
-      const formatDate = date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
-      const formatTime = date.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: true,
-      });
-
-      return `
-        <div style="font-weight: 500; font-size: 12px; margin-bottom: 8px; letter-spacing: -3.5%;">
-          ${formatDate}, ${formatTime}
-        </div>
-        <div style="font-weight: bold; font-size: 18px; font-family: 'SF Pro Display', sans-serif;">
-          ${value.toFixed(2)}
-        </div>
-      `;
-    },
-    [stockInfo],
-  );
-
   if (!stockInfo) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <div className="text-gray-500 text-lg">未找到股票 {stockId}</div>
+        <div className="text-gray-500 text-lg">Stock {stockId} not found</div>
       </div>
     );
   }
 
-  const isPositive = stockInfo.changePercent >= 0;
-  const chartColor = "#41C3A9"; // 固定为设计中的绿色
-  const gradientColors: [string, string] = [
-    "rgba(65, 195, 169, 0.6)",
-    "rgba(65, 195, 169, 0)",
-  ];
+  const changeType = getChangeType(stockInfo.changePercent);
 
   return (
     <div className="flex flex-col gap-8 px-8 py-6">
@@ -127,34 +96,26 @@ const Stock = memo(function Stock() {
         </div>
 
         <div>
-          <div className="mb-3 flex items-end gap-3">
-            <span
-              className="font-bold text-2xl text-black"
-              style={{ letterSpacing: "-4%" }}
-            >
-              {stockInfo.price.toFixed(2)}
+          <div className="mb-3 flex items-center gap-3">
+            <span className="font-bold text-2xl">
+              {formatPrice(stockInfo.price, stockInfo.currency)}
             </span>
-            <div className="flex items-center justify-center rounded-lg bg-muted px-2 py-2">
-              <span
-                className="font-bold text-muted-foreground text-xs"
-                style={{ letterSpacing: "2%" }}
-              >
-                {isPositive ? "+" : ""}
-                {stockInfo.changePercent.toFixed(2)}%
-              </span>
-            </div>
+            <span
+              className="rounded-lg p-2 font-bold text-xs"
+              style={{
+                backgroundColor: STOCK_BADGE_COLORS[changeType].bg,
+                color: STOCK_BADGE_COLORS[changeType].text,
+              }}
+            >
+              {formatChange(stockInfo.changePercent, "%")}
+            </span>
           </div>
           <p className="font-medium text-muted-foreground text-xs">
             Oct 25, 5:26:38PM UTC-4 . INDEXSP . Disclaimer
           </p>
         </div>
 
-        <Sparkline
-          data={chartData}
-          color={chartColor}
-          gradientColors={gradientColors}
-          formatTooltip={formatTooltip}
-        />
+        <Sparkline data={chartData} changeType={changeType} />
       </div>
 
       <div className="flex flex-col gap-4">

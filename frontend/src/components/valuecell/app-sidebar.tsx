@@ -119,7 +119,7 @@ const AppSidebar: FC = () => {
         {
           id: "home",
           icon: Logo,
-          label: "首页",
+          label: "Home",
           to: "/",
         },
       ],
@@ -127,17 +127,17 @@ const AppSidebar: FC = () => {
         {
           id: "chart",
           icon: ChartBarVertical,
-          label: "图表",
+          label: "Chart",
           to: "chart",
         },
-        { id: "book", icon: BookOpen, label: "书籍", to: "book" },
+        { id: "book", icon: BookOpen, label: "Book", to: "book" },
         {
           id: "settings",
           icon: Setting,
-          label: "设置",
+          label: "Settings",
           to: "settings",
         },
-        { id: "user", icon: User, label: "用户", to: "user" },
+        { id: "user", icon: User, label: "User", to: "user" },
       ],
     };
   }, []);

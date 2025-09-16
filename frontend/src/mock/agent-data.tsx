@@ -119,7 +119,7 @@ export const agentRecommendations: AgentRecommendation[] = [
   },
   {
     id: "recommend-5",
-    title: "巴菲特投资Agent",
+    title: "Buffett Investment Agent",
     icon: (
       <div className="flex size-8 items-center justify-center rounded-full bg-[#D9D9D9]">
         <DollarSign size={16} className="text-gray-600" />
