@@ -31,13 +31,13 @@ class NotificationListener:
 
     async def handle_notification(self, request: Request):
         try:
-            task_json = await request.json()
+            task_dict = await request.json()
             logger.info(
-                f"📨 Notification received on {self.host}:{self.port}: {task_json}"
+                f"📨 Notification received on {self.host}:{self.port}: {task_dict}"
             )
 
             if self.notification_callback:
-                task = Task.model_validate_json(task_json)
+                task = Task.model_validate(task_dict)
                 if asyncio.iscoroutinefunction(self.notification_callback):
                     await self.notification_callback(task)
                 else:
