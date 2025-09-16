@@ -6,7 +6,7 @@ from .connection import (
     get_db,
 )
 from .init_db import DatabaseInitializer, init_database
-from .models import Base, Agent
+from .models import Base, Agent, Asset
 
 __all__ = [
     # Connection management
@@ -19,4 +19,5 @@ __all__ = [
     # Models
     "Base",
     "Agent",
+    "Asset",
 ]

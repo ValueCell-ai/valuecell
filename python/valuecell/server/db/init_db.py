@@ -129,6 +129,7 @@ class DatabaseInitializer:
             try:
                 # Import models here to avoid circular imports
                 from .models.agent import Agent
+                from .models.asset import Asset
 
                 # Define default agents
                 default_agents = [
@@ -257,8 +258,98 @@ class DatabaseInitializer:
                         )
                         logger.info(f"Updated default agent: {agent_name}")
 
+                # Define default assets
+                default_assets = [
+                    {
+                        "symbol": "AAPL",
+                        "name": "Apple Inc.",
+                        "asset_type": "stock",
+                        "sector": "Technology",
+                        "is_active": True,
+                        "metadata": {
+                            "market_cap": "large",
+                            "dividend_yield": 0.5,
+                            "beta": 1.2,
+                            "tags": ["blue-chip", "dividend", "growth"]
+                        }
+                    },
+                    {
+                        "symbol": "GOOGL",
+                        "name": "Alphabet Inc. Class A",
+                        "asset_type": "stock",
+                        "sector": "Technology",
+                        "is_active": True,
+                        "metadata": {
+                            "market_cap": "large",
+                            "dividend_yield": 0.0,
+                            "beta": 1.1,
+                            "tags": ["growth", "tech-giant", "ai"]
+                        }
+                    },
+                    {
+                        "symbol": "MSFT",
+                        "name": "Microsoft Corporation",
+                        "asset_type": "stock",
+                        "sector": "Technology",
+                        "is_active": True,
+                        "metadata": {
+                            "market_cap": "large",
+                            "dividend_yield": 0.7,
+                            "beta": 0.9,
+                            "tags": ["blue-chip", "dividend", "cloud", "ai"]
+                        }
+                    },
+                    {
+                        "symbol": "SPY",
+                        "name": "SPDR S&P 500 ETF Trust",
+                        "asset_type": "etf",
+                        "sector": "Diversified",
+                        "is_active": True,
+                        "metadata": {
+                            "expense_ratio": 0.0945,
+                            "aum": "400B+",
+                            "tags": ["index", "diversified", "low-cost"]
+                        }
+                    },
+                    {
+                        "symbol": "BTC-USD",
+                        "name": "Bitcoin",
+                        "asset_type": "cryptocurrency",
+                        "sector": "Cryptocurrency",
+                        "is_active": True,
+                        "metadata": {
+                            "market_cap": "large",
+                            "volatility": "high",
+                            "tags": ["crypto", "store-of-value", "digital-gold"]
+                        }
+                    }
+                ]
+
+                # Insert default assets
+                for asset_data in default_assets:
+                    asset_symbol = asset_data["symbol"]
+
+                    # Check if asset already exists
+                    existing_asset = (
+                        session.query(Asset).filter_by(symbol=asset_symbol).first()
+                    )
+
+                    if not existing_asset:
+                        # Create new asset
+                        asset = Asset.from_config(asset_data)
+                        session.add(asset)
+                        logger.info(f"Added default asset: {asset_symbol}")
+                    else:
+                        # Update existing asset with default data
+                        existing_asset.name = asset_data.get("name", existing_asset.name)
+                        existing_asset.asset_type = asset_data.get("asset_type", existing_asset.asset_type)
+                        existing_asset.sector = asset_data.get("sector", existing_asset.sector)
+                        existing_asset.is_active = asset_data.get("is_active", existing_asset.is_active)
+                        existing_asset.asset_metadata = asset_data.get("metadata", existing_asset.asset_metadata)
+                        logger.info(f"Updated default asset: {asset_symbol}")
+
                 session.commit()
-                logger.info("Default agent data initialization completed")
+                logger.info("Default agent and asset data initialization completed")
                 return True
 
             except Exception as e:

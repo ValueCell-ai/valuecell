@@ -12,7 +12,8 @@ db/
 ├── models/             # Database models
 │   ├── __init__.py
 │   ├── base.py         # Base model class
-│   └── agent.py        # Agent model
+│   ├── agent.py        # Agent model
+│   └── asset.py        # Asset model
 └── README.md           # This document
 ```
 
@@ -47,6 +48,23 @@ The Agent model stores information about all available AI agents in the ValueCel
 - `created_at`: Creation time
 - `updated_at`: Update time
 
+### Asset Model (Asset)
+The Asset model represents financial assets in the ValueCell system, including stocks, bonds, cryptocurrencies, and other investment instruments.
+
+**Key fields**:
+- `id`: Primary key (auto-increment)
+- `symbol`: Unique asset symbol/ticker (e.g., "AAPL", "BTC-USD")
+- `name`: Full name of the asset
+- `description`: Detailed description of the asset
+- `asset_type`: Type of asset (stock, bond, crypto, commodity, etc.)
+- `sector`: Industry sector (for stocks)
+- `current_price`: Current market price
+- `is_active`: Whether the asset is active
+- `asset_metadata`: Additional metadata (fundamental data, tags, etc.)
+- `config`: Asset-specific configuration parameters
+- `created_at`: Timestamp when the asset was created
+- `updated_at`: Timestamp when the asset was last updated
+
 ## Database Initialization
 
 ### Usage
@@ -76,22 +94,37 @@ The Agent model stores information about all available AI agents in the ValueCel
 
 1. **Check database file**: Verify if SQLite database file exists
 2. **Create database file**: Create new database file if it doesn't exist
-3. **Create table structure**: Create agents table based on model definitions
-4. **Initialize Agent data**:
-   - Insert default Agent records directly from code
-   - Create three default agents: AIHedgeFundAgent, Sec13FundAgent, and TradingAgentsAdapter
-   - Support updating existing Agent configuration information
+3. **Create table structure**: Create agents and assets tables based on model definitions
+4. **Initialize default data**:
+   - **Agent data**: Insert default Agent records directly from code
+     - Create three default agents: AIHedgeFundAgent, Sec13FundAgent, and TradingAgentsAdapter
+     - Support updating existing Agent configuration information
+   - **Asset data**: Insert default Asset records for common financial instruments
+     - Create default assets: AAPL, GOOGL, MSFT, SPY, BTC-USD
+     - Support updating existing Asset information
 5. **Verify initialization**: Confirm database connection and table structure are correct
 
-### Default Agent Records
+### Default Records
 
-The initialization script automatically creates default Agent records directly in the code:
+The initialization script automatically creates default records directly in the code:
+
+#### Default Agents
 
 **Default agents created**:
 
 1. **AIHedgeFundAgent**: AI-powered hedge fund analysis and trading agent
 2. **Sec13FundAgent**: SEC 13F fund analysis and tracking agent  
 3. **TradingAgentsAdapter**: Multi-agent trading analysis system with market, sentiment, news and fundamentals analysis
+
+#### Default Assets
+
+**Default assets created**:
+
+1. **AAPL**: Apple Inc. (Technology stock)
+2. **GOOGL**: Alphabet Inc. Class A (Technology stock)
+3. **MSFT**: Microsoft Corporation (Technology stock)
+4. **SPY**: SPDR S&P 500 ETF Trust (Index ETF)
+5. **BTC-USD**: Bitcoin (Cryptocurrency)
 
 **Agent data structure example**:
 ```python
@@ -116,17 +149,38 @@ The initialization script automatically creates default Agent records directly i
 }
 ```
 
+**Asset data structure example**:
+```python
+{
+    "symbol": "AAPL",
+    "name": "Apple Inc.",
+    "asset_type": "stock",
+    "sector": "Technology",
+    "is_active": True,
+    "metadata": {
+        "market_cap": "large",
+        "dividend_yield": 0.5,
+        "beta": 1.2,
+        "tags": ["blue-chip", "dividend", "growth"]
+    }
+}
+```
+
 ## Usage in Code
 
 ### Getting Database Session
 
 ```python
-from valuecell.server.db import get_db, Agent
+from valuecell.server.db import get_db, Agent, Asset
 
 # Using dependency injection in FastAPI routes
 @app.get("/api/agents")
 def get_agents(db: Session = Depends(get_db)):
     return db.query(Agent).filter(Agent.enabled == True).all()
+
+@app.get("/api/assets")
+def get_assets(db: Session = Depends(get_db)):
+    return db.query(Asset).filter(Asset.is_active == True).all()
 ```
 
 ### Direct Database Manager Usage
