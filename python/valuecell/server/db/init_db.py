@@ -261,7 +261,7 @@ class DatabaseInitializer:
                 # Define default assets
                 default_assets = [
                     {
-                        "symbol": "AAPL",
+                        "symbol": "NASDAQ:AAPL",
                         "name": "Apple Inc.",
                         "asset_type": "stock",
                         "sector": "Technology",
@@ -274,7 +274,7 @@ class DatabaseInitializer:
                         },
                     },
                     {
-                        "symbol": "GOOGL",
+                        "symbol": "NASDAQ:GOOGL",
                         "name": "Alphabet Inc. Class A",
                         "asset_type": "stock",
                         "sector": "Technology",
@@ -287,7 +287,7 @@ class DatabaseInitializer:
                         },
                     },
                     {
-                        "symbol": "MSFT",
+                        "symbol": "NASDAQ:MSFT",
                         "name": "Microsoft Corporation",
                         "asset_type": "stock",
                         "sector": "Technology",
@@ -300,7 +300,7 @@ class DatabaseInitializer:
                         },
                     },
                     {
-                        "symbol": "SPY",
+                        "symbol": "NASDAQ:SPY",
                         "name": "SPDR S&P 500 ETF Trust",
                         "asset_type": "etf",
                         "sector": "Diversified",
@@ -312,7 +312,7 @@ class DatabaseInitializer:
                         },
                     },
                     {
-                        "symbol": "BTC-USD",
+                        "symbol": "CRYPTO:BTC-USD",
                         "name": "Bitcoin",
                         "asset_type": "cryptocurrency",
                         "sector": "Cryptocurrency",

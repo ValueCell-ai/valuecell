@@ -7,7 +7,7 @@ for financial data retrieval, search, and watchlist management with i18n support
 import logging
 
 from valuecell.adapters.assets import get_adapter_manager
-from valuecell.services.assets import (
+from valuecell.server.services.assets.asset_service import (
     get_asset_service,
     search_assets,
     get_asset_info,
@@ -15,7 +15,7 @@ from valuecell.services.assets import (
     add_to_watchlist,
     get_watchlist,
 )
-from valuecell.i18n import set_i18n_config, I18nConfig
+from valuecell.server.config.i18n import set_i18n_config, I18nConfig
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

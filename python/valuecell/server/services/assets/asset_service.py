@@ -8,9 +8,9 @@ import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
-from ...adapters.assets.manager import get_adapter_manager, get_watchlist_manager
-from ...adapters.assets.i18n_integration import get_asset_i18n_service
-from ...adapters.assets.types import AssetSearchQuery, AssetType
+from ....adapters.assets.manager import get_adapter_manager, get_watchlist_manager
+from ....adapters.assets.i18n_integration import get_asset_i18n_service
+from ....adapters.assets.types import AssetSearchQuery, AssetType
 from ...config.i18n import get_i18n_config
 
 logger = logging.getLogger(__name__)
