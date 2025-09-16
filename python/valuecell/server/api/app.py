@@ -66,7 +66,7 @@ def _add_middleware(app: FastAPI, settings) -> None:
     # Custom logging middleware removed
 
 
-def _add_exception_handlers(self, app: FastAPI):
+def _add_exception_handlers(app: FastAPI):
     """Add exception handlers."""
     app.add_exception_handler(APIException, api_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
