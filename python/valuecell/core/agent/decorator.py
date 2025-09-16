@@ -160,7 +160,9 @@ class GenericAgentExecutor(AgentExecutor):
         query = context.get_user_input()
         task = context.current_task
         if not task:
-            task = new_task(context.message)
+            message = context.message
+            task = new_task(message)
+            task.metadata = message.metadata
             await event_queue.enqueue_event(task)
 
         # Helper state

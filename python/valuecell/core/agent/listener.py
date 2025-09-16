@@ -3,6 +3,7 @@ import logging
 from typing import Callable, Optional
 
 import uvicorn
+from a2a.types import Task
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -30,14 +31,15 @@ class NotificationListener:
 
     async def handle_notification(self, request: Request):
         try:
-            data = await request.json()
-            logger.info(f"📨 Notification received on {self.host}:{self.port}: {data}")
+            task_json = await request.json()
+            logger.info(f"📨 Notification received on {self.host}:{self.port}: {task_json}")
 
             if self.notification_callback:
+                task = Task.model_validate_json(task_json)
                 if asyncio.iscoroutinefunction(self.notification_callback):
-                    await self.notification_callback(data)
+                    await self.notification_callback(task)
                 else:
-                    self.notification_callback(data)
+                    self.notification_callback(task)
 
             return JSONResponse({"status": "ok"})
         except Exception as e:
