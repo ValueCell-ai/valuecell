@@ -7,7 +7,7 @@ from datetime import datetime
 
 from ..config.settings import get_settings
 from ..config.i18n import get_i18n_config
-from ..core.constants import SUPPORTED_LANGUAGE_CODES, DEFAULT_LANGUAGE
+from ...core.constants import SUPPORTED_LANGUAGE_CODES, DEFAULT_LANGUAGE
 
 
 class TranslationManager:
@@ -229,7 +229,7 @@ class I18nService:
         Returns:
             List of (code, name) tuples
         """
-        from ..core.constants import SUPPORTED_LANGUAGES
+        from ...core.constants import SUPPORTED_LANGUAGES
 
         return SUPPORTED_LANGUAGES
 
@@ -242,7 +242,7 @@ class I18nService:
         Returns:
             Display name or code if not found
         """
-        from ..core.constants import SUPPORTED_LANGUAGES
+        from ...core.constants import SUPPORTED_LANGUAGES
 
         for code, name in SUPPORTED_LANGUAGES:
             if code == language_code:
@@ -269,13 +269,18 @@ class I18nService:
         """Get current i18n configuration as dictionary.
 
         Returns:
-            Dictionary with i18n configuration
+            Dictionary with i18n configuration matching I18nConfigData schema
         """
+        config_dict = self._i18n_config.to_dict()
         return {
-            "current_language": self.get_current_language(),
-            "current_timezone": self.get_current_timezone(),
-            "supported_languages": self.get_supported_languages(),
-            "config": self._i18n_config.to_dict(),
+            "language": config_dict["language"],
+            "timezone": config_dict["timezone"],
+            "date_format": config_dict["date_format"],
+            "time_format": config_dict["time_format"],
+            "datetime_format": config_dict["datetime_format"],
+            "currency_symbol": config_dict["currency_symbol"],
+            "number_format": config_dict["number_format"],
+            "is_rtl": config_dict["is_rtl"],
         }
 
 

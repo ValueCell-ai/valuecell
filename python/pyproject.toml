@@ -20,6 +20,7 @@ dependencies = [
     "requests>=2.32.5",
     "akshare>=1.17.44",
     "agno[openai]>=1.8.2,<2.0",
+    "edgartools>=4.12.2",
 ]
 
 [project.optional-dependencies]

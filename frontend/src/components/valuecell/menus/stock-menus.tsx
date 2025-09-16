@@ -1,6 +1,5 @@
-import type { ScrollAreaProps } from "@radix-ui/react-scroll-area";
+import { Link, type LinkProps } from "react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, formatChange, formatPrice, getChangeType } from "@/lib/utils";
 
 interface Stock {
@@ -27,10 +26,6 @@ interface StockMenuHeaderProps
   children: React.ReactNode;
 }
 
-interface StockMenuContentProps extends ScrollAreaProps {
-  children: React.ReactNode;
-}
-
 interface StockMenuGroupProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
 }
@@ -40,10 +35,13 @@ interface StockMenuGroupHeaderProps
   children: React.ReactNode;
 }
 
-interface StockMenuListItemProps
-  extends Omit<React.HTMLAttributes<HTMLButtonElement>, "onClick"> {
+interface StockIconProps extends React.HTMLAttributes<HTMLDivElement> {
   stock: Stock;
-  onClick?: (stock: Stock) => void;
+}
+
+interface StockMenuListItemProps extends LinkProps {
+  stock: Stock;
+  isActive?: boolean;
 }
 
 function StockMenuHeader({
@@ -55,18 +53,6 @@ function StockMenuHeader({
     <h1 className={cn("px-2 font-semibold text-lg", className)} {...props}>
       {children}
     </h1>
-  );
-}
-
-function StockMenuContent({
-  className,
-  children,
-  ...props
-}: StockMenuContentProps) {
-  return (
-    <ScrollArea className={cn("min-h-0 w-full", className)} {...props}>
-      {children}
-    </ScrollArea>
   );
 }
 
@@ -108,43 +94,47 @@ function StockMenuGroupHeader({
   );
 }
 
+function StockIcon({ className, stock, ...props }: StockIconProps) {
+  return (
+    <div
+      className={cn(
+        "flex size-10 items-center justify-center rounded-full",
+        className,
+      )}
+      {...props}
+    >
+      <Avatar className="size-full">
+        <AvatarImage src={stock.icon} alt={stock.symbol} />
+        <AvatarFallback className="font-medium text-muted-foreground text-xs">
+          {stock.symbol.slice(0, 2)}
+        </AvatarFallback>
+      </Avatar>
+    </div>
+  );
+}
+
 function StockMenuListItem({
   className,
   stock,
   onClick,
+  isActive,
   ...props
 }: StockMenuListItemProps) {
   const changeType = getChangeType(stock.changePercent);
 
   return (
-    <button
+    <Link
       className={cn(
         "flex items-center justify-between gap-4 rounded-xl p-2",
-        "transition-colors hover:bg-accent/80",
+        "cursor-pointer transition-colors hover:bg-accent/80",
         className,
+        { "bg-accent/80": isActive },
       )}
-      onClick={() => onClick?.(stock)}
       {...props}
     >
       <div className="flex flex-1 items-center gap-2.5">
         {/* icon */}
-        <div
-          className="flex h-10 w-10 items-center justify-center rounded-full"
-          style={{ backgroundColor: stock.iconBgColor }}
-        >
-          {stock.icon ? (
-            <Avatar>
-              <AvatarImage src={stock.icon} alt={stock.symbol} />
-              <AvatarFallback className="font-medium text-xs">
-                {stock.symbol.slice(0, 2)}
-              </AvatarFallback>
-            </Avatar>
-          ) : (
-            <span className="font-medium text-muted-foreground text-xs">
-              {stock.symbol.slice(0, 2)}
-            </span>
-          )}
-        </div>
+        <StockIcon stock={stock} />
 
         {/* stock info */}
         <div className="flex flex-col items-start gap-1">
@@ -158,7 +148,7 @@ function StockMenuListItem({
       </div>
 
       {/* price info */}
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col items-end gap-1">
         <p className="font-semibold text-sm">
           {formatPrice(stock.price, stock.currency)}
         </p>
@@ -172,15 +162,15 @@ function StockMenuListItem({
           {formatChange(stock.changePercent, "%")}
         </p>
       </div>
-    </button>
+    </Link>
   );
 }
 
 export {
   StockMenu,
   StockMenuHeader,
-  StockMenuContent,
   StockMenuGroup,
   StockMenuGroupHeader,
   StockMenuListItem,
+  StockIcon,
 };

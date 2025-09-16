@@ -1,6 +1,7 @@
-import { MiniSparkline } from "@valuecell/charts/mini-sparkline";
+import MiniSparkline from "@valuecell/charts/mini-sparkline";
+import { STOCK_COLORS } from "@/constants/stock";
 import { cn, formatChange, formatPrice, getChangeType } from "@/lib/utils";
-import type { StockChangeType } from "@/types/stock";
+import type { SparklineData } from "@/types/chart";
 
 export interface SparklineStock {
   symbol: string;
@@ -8,7 +9,7 @@ export interface SparklineStock {
   currency: string;
   changeAmount: number;
   changePercent: number;
-  sparklineData: number[];
+  sparklineData: SparklineData;
 }
 
 interface SparklineStockListProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -19,18 +20,6 @@ interface SparklineStockItemProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, "onClick"> {
   stock: SparklineStock;
 }
-
-const BASE_COLOR: Record<StockChangeType, string> = {
-  positive: "#3F845F",
-  negative: "#E25C5C",
-  neutral: "#707070",
-};
-
-const GRADIENT_COLORS: Record<StockChangeType, [string, string]> = {
-  positive: ["rgba(63, 132, 95, 0.5)", "rgba(63, 132, 95, 0)"],
-  negative: ["rgba(226, 92, 92, 0.5)", "rgba(226, 92, 92, 0)"],
-  neutral: ["rgba(112, 112, 112, 0.5)", "rgba(112, 112, 112, 0)"],
-};
 
 function SparklineStockItem({
   className,
@@ -54,21 +43,27 @@ function SparklineStockItem({
           </p>
         </div>
         <p
-          className="font-semibold text-[20px] leading-[26px]"
-          style={{ color: BASE_COLOR[changeType] }}
+          className={`font-semibold text-[20px] leading-[26px]`}
+          style={{
+            color: STOCK_COLORS[changeType],
+          }}
         >
           {formatPrice(stock.price, stock.currency)}
         </p>
         <div className="flex items-start gap-1">
           <span
-            className="font-normal text-[12px] leading-[16px]"
-            style={{ color: BASE_COLOR[changeType] }}
+            className={`font-normal text-[12px] leading-[16px]`}
+            style={{
+              color: STOCK_COLORS[changeType],
+            }}
           >
             {formatChange(stock.changeAmount)}
           </span>
           <span
-            className="font-normal text-[12px] leading-[16px]"
-            style={{ color: BASE_COLOR[changeType] }}
+            className={`font-normal text-[12px] leading-[16px]`}
+            style={{
+              color: STOCK_COLORS[changeType],
+            }}
           >
             {formatChange(stock.changePercent, "%")}
           </span>
@@ -78,8 +73,7 @@ function SparklineStockItem({
       <MiniSparkline
         className="pointer-events-none"
         data={stock.sparklineData}
-        color={BASE_COLOR[changeType]}
-        gradientColors={GRADIENT_COLORS[changeType]}
+        changeType={changeType}
         width={140}
         height={64}
       />

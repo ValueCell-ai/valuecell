@@ -13,7 +13,7 @@ from ..core.constants import (
     DEFAULT_TIMEZONE,
     SUPPORTED_LANGUAGES,
 )
-from ..services.i18n_service import get_i18n_service
+from ..server.services.i18n_service import get_i18n_service
 
 
 def detect_browser_language(accept_language_header: str) -> str:

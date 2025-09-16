@@ -6,6 +6,7 @@ from datetime import datetime
 
 from .schemas import (
     SuccessResponse,
+    StatusCode,
     LanguageRequest,
     TimezoneRequest,
     LanguageDetectionRequest,
@@ -14,12 +15,26 @@ from .schemas import (
     NumberFormatRequest,
     CurrencyFormatRequest,
     UserI18nSettingsRequest,
-    AgentI18nContext,
+    # Data models
+    I18nConfigData,
+    SupportedLanguagesData,
+    TimezonesData,
+    UserI18nSettingsData,
+    AgentI18nContextData,
+    LanguageDetectionData,
+    TranslationData,
+    DateTimeFormatData,
+    NumberFormatData,
+    CurrencyFormatData,
+)
+from .exceptions import (
+    APIException,
+    InternalServerException,
 )
 from ..services.i18n_service import get_i18n_service
 from ..config.settings import get_settings
-from ..core.constants import SUPPORTED_LANGUAGES, LANGUAGE_TIMEZONE_MAPPING
-from ..utils.i18n_utils import (
+from ...core.constants import SUPPORTED_LANGUAGES, LANGUAGE_TIMEZONE_MAPPING
+from ...utils.i18n_utils import (
     detect_browser_language,
     get_common_timezones,
     get_timezone_display_name,
@@ -47,31 +62,118 @@ class I18nAPI:
         router = APIRouter(prefix="/i18n", tags=["i18n"])
 
         # Configuration endpoints
-        router.add_api_route("/config", self.get_config, methods=["GET"])
         router.add_api_route(
-            "/languages", self.get_supported_languages, methods=["GET"]
+            "/config",
+            self.get_config,
+            methods=["GET"],
+            response_model=SuccessResponse[I18nConfigData],
+            summary="Get i18n configuration",
+            description="Get current internationalization configuration information",
         )
-        router.add_api_route("/timezones", self.get_timezones, methods=["GET"])
+        router.add_api_route(
+            "/languages",
+            self.get_supported_languages,
+            methods=["GET"],
+            response_model=SuccessResponse[SupportedLanguagesData],
+            summary="Get supported languages",
+            description="Get list of all languages supported by the system",
+        )
+        router.add_api_route(
+            "/timezones",
+            self.get_timezones,
+            methods=["GET"],
+            response_model=SuccessResponse[TimezonesData],
+            summary="Get supported timezones",
+            description="Get list of all timezones supported by the system",
+        )
 
         # Language and timezone management
-        router.add_api_route("/language", self.set_language, methods=["POST"])
-        router.add_api_route("/timezone", self.set_timezone, methods=["POST"])
-        router.add_api_route("/detect-language", self.detect_language, methods=["POST"])
+        router.add_api_route(
+            "/language",
+            self.set_language,
+            methods=["PUT"],
+            response_model=SuccessResponse[UserI18nSettingsData],
+            summary="Set language",
+            description="Set user's preferred language",
+        )
+        router.add_api_route(
+            "/timezone",
+            self.set_timezone,
+            methods=["PUT"],
+            response_model=SuccessResponse[dict],
+            summary="Set timezone",
+            description="Set user's preferred timezone",
+        )
+        router.add_api_route(
+            "/detect-language",
+            self.detect_language,
+            methods=["POST"],
+            response_model=SuccessResponse[LanguageDetectionData],
+            summary="Detect language",
+            description="Detect user's preferred language based on Accept-Language header",
+        )
 
         # Translation and formatting services
-        router.add_api_route("/translate", self.translate, methods=["POST"])
-        router.add_api_route("/format/datetime", self.format_datetime, methods=["POST"])
-        router.add_api_route("/format/number", self.format_number, methods=["POST"])
-        router.add_api_route("/format/currency", self.format_currency, methods=["POST"])
+        router.add_api_route(
+            "/translate",
+            self.translate,
+            methods=["POST"],
+            response_model=SuccessResponse[TranslationData],
+            summary="Translate text",
+            description="Get translated text based on specified key and language",
+        )
+        router.add_api_route(
+            "/format/datetime",
+            self.format_datetime,
+            methods=["POST"],
+            response_model=SuccessResponse[DateTimeFormatData],
+            summary="Format datetime",
+            description="Format datetime according to user's localization settings",
+        )
+        router.add_api_route(
+            "/format/number",
+            self.format_number,
+            methods=["POST"],
+            response_model=SuccessResponse[NumberFormatData],
+            summary="Format number",
+            description="Format number according to user's localization settings",
+        )
+        router.add_api_route(
+            "/format/currency",
+            self.format_currency,
+            methods=["POST"],
+            response_model=SuccessResponse[CurrencyFormatData],
+            summary="Format currency",
+            description="Format currency amount according to user's localization settings",
+        )
 
         # User settings
-        router.add_api_route("/user/settings", self.get_user_settings, methods=["GET"])
         router.add_api_route(
-            "/user/settings", self.update_user_settings, methods=["POST"]
+            "/user/settings",
+            self.get_user_settings,
+            methods=["GET"],
+            response_model=SuccessResponse[UserI18nSettingsData],
+            summary="Get user i18n settings",
+            description="Get internationalization settings for specified user",
+        )
+        router.add_api_route(
+            "/user/settings",
+            self.update_user_settings,
+            methods=["PUT"],
+            response_model=SuccessResponse[UserI18nSettingsData],
+            summary="Update user i18n settings",
+            description="Update internationalization settings for specified user",
         )
 
         # Agent context
-        router.add_api_route("/agent/context", self.get_agent_context, methods=["GET"])
+        router.add_api_route(
+            "/agent/context",
+            self.get_agent_context,
+            methods=["GET"],
+            response_model=SuccessResponse[AgentI18nContextData],
+            summary="Get Agent i18n context",
+            description="Get i18n context information for inter-agent communication",
+        )
 
         return router
 
@@ -88,49 +190,53 @@ class I18nAPI:
         self,
         user_id: Optional[str] = Header(None, alias="X-User-ID"),
         session_id: Optional[str] = Header(None, alias="X-Session-ID"),
-    ) -> SuccessResponse:
+    ) -> SuccessResponse[I18nConfigData]:
         """Get current i18n configuration."""
         self._get_user_context(user_id)
 
-        return SuccessResponse(
-            message="I18n configuration retrieved successfully",
-            data=self.i18n_service.to_dict(),
+        config_dict = self.i18n_service.to_dict()
+        config_data = I18nConfigData(**config_dict)
+
+        return SuccessResponse.create(
+            data=config_data, msg="I18n configuration retrieved successfully"
         )
 
-    async def get_supported_languages(self) -> SuccessResponse:
+    async def get_supported_languages(self) -> SuccessResponse[SupportedLanguagesData]:
         """Get supported languages."""
+        from .schemas import SupportedLanguage
+
         languages = [
-            {
-                "code": code,
-                "name": name,
-                "is_current": code == self.i18n_service.get_current_language(),
-            }
+            SupportedLanguage(
+                code=code,
+                name=name,
+                is_current=code == self.i18n_service.get_current_language(),
+            )
             for code, name in SUPPORTED_LANGUAGES
         ]
 
-        return SuccessResponse(
-            message="Supported languages retrieved successfully",
-            data={
-                "languages": languages,
-                "current": self.i18n_service.get_current_language(),
-            },
+        languages_data = SupportedLanguagesData(
+            languages=languages, current=self.i18n_service.get_current_language()
+        )
+
+        return SuccessResponse.create(
+            data=languages_data, msg="Supported languages retrieved successfully"
         )
 
     async def set_language(
         self,
         request: LanguageRequest,
         user_id: Optional[str] = Header(None, alias="X-User-ID"),
-    ) -> SuccessResponse:
+    ) -> SuccessResponse[UserI18nSettingsData]:
         """Set current language."""
         if not validate_language_code(request.language):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Language '{request.language}' is not supported",
+            raise APIException(
+                code=StatusCode.BAD_REQUEST,
+                message=f"Language '{request.language}' is not supported",
             )
 
         success = self.i18n_service.set_language(request.language)
         if not success:
-            raise HTTPException(status_code=500, detail="Failed to set language")
+            raise InternalServerException("Failed to set language")
 
         # Save user context
         if user_id:
@@ -141,12 +247,15 @@ class I18nAPI:
                 self.i18n_service.get_current_timezone()
             )
 
-        return SuccessResponse(
-            message="Language updated successfully",
-            data={
-                "language": request.language,
-                "timezone": self.i18n_service.get_current_timezone(),
-            },
+        settings_data = UserI18nSettingsData(
+            user_id=user_id,
+            language=request.language,
+            timezone=self.i18n_service.get_current_timezone(),
+            updated_at=datetime.now(),
+        )
+
+        return SuccessResponse.create(
+            data=settings_data, msg="Language setting successful"
         )
 
     async def get_timezones(self) -> SuccessResponse:
@@ -215,48 +324,47 @@ class I18nAPI:
 
     async def detect_language(
         self, request: LanguageDetectionRequest
-    ) -> SuccessResponse:
+    ) -> SuccessResponse[LanguageDetectionData]:
         """Detect language from Accept-Language header."""
         detected_language = detect_browser_language(request.accept_language)
 
-        return SuccessResponse(
-            message="Language detected successfully",
-            data={
-                "detected_language": detected_language,
-                "language_name": next(
-                    (
-                        name
-                        for code, name in SUPPORTED_LANGUAGES
-                        if code == detected_language
-                    ),
-                    detected_language,
-                ),
-                "is_supported": detected_language
-                in [code for code, _ in SUPPORTED_LANGUAGES],
-            },
+        language_name = next(
+            (name for code, name in SUPPORTED_LANGUAGES if code == detected_language),
+            detected_language,
         )
 
-    async def translate(self, request: TranslationRequest) -> SuccessResponse:
+        detection_data = LanguageDetectionData(
+            detected_language=detected_language,
+            language_name=language_name,
+            is_supported=detected_language in [code for code, _ in SUPPORTED_LANGUAGES],
+        )
+
+        return SuccessResponse.create(
+            data=detection_data, msg="Language detection successful"
+        )
+
+    async def translate(
+        self, request: TranslationRequest
+    ) -> SuccessResponse[TranslationData]:
         """Translate a key."""
         try:
             translated_text = self.i18n_service.translate(
                 request.key, request.language, **request.variables
             )
 
-            return SuccessResponse(
-                message="Translation retrieved successfully",
-                data={
-                    "key": request.key,
-                    "translated_text": translated_text,
-                    "language": request.language
-                    or self.i18n_service.get_current_language(),
-                    "variables": request.variables,
-                },
+            translation_data = TranslationData(
+                key=request.key,
+                translated_text=translated_text,
+                language=request.language or self.i18n_service.get_current_language(),
+                variables=request.variables or {},
+            )
+
+            return SuccessResponse.create(
+                data=translation_data, msg="Translation retrieved successfully"
             )
         except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to translate key '{request.key}': {str(e)}",
+            raise InternalServerException(
+                f"Failed to translate key '{request.key}': {str(e)}"
             )
 
     async def format_datetime(self, request: DateTimeFormatRequest) -> SuccessResponse:
@@ -383,12 +491,12 @@ class I18nAPI:
         self,
         user_id: Optional[str] = Header(None, alias="X-User-ID"),
         session_id: Optional[str] = Header(None, alias="X-Session-ID"),
-    ) -> SuccessResponse:
+    ) -> SuccessResponse[AgentI18nContextData]:
         """Get i18n context for agent communication."""
         # Load user-specific settings
         self._get_user_context(user_id)
 
-        context = AgentI18nContext(
+        context = AgentI18nContextData(
             language=self.i18n_service.get_current_language(),
             timezone=self.i18n_service.get_current_timezone(),
             currency_symbol=self.i18n_service._i18n_config.get_currency_symbol(),
@@ -399,8 +507,8 @@ class I18nAPI:
             session_id=session_id,
         )
 
-        return SuccessResponse(
-            message="Agent i18n context retrieved successfully", data=context.dict()
+        return SuccessResponse.create(
+            data=context, msg="Agent i18n context retrieved successfully"
         )
 
     def get_user_context(self, user_id: str) -> Dict[str, Any]:
