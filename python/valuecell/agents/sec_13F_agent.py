@@ -34,12 +34,12 @@ class Sec13FundAgentConfig:
 
     def __init__(self):
         self.sec_email = os.getenv("SEC_EMAIL", "your.name@example.com")
-        self.parser_model_id = os.getenv("PARSER_MODEL_ID", "openai/gpt-4o-mini")
+        self.parser_model_id = os.getenv("SEC_PARSER_MODEL_ID", "openai/gpt-4o-mini")
         self.analysis_model_id = os.getenv(
-            "ANALYSIS_MODEL_ID", "deepseek/deepseek-chat-v3-0324"
+            "SEC_ANALYSIS_MODEL_ID", "deepseek/deepseek-chat-v3-0324"
         )
-        self.max_filings = int(os.getenv("MAX_FILINGS", "5"))
-        self.request_timeout = int(os.getenv("REQUEST_TIMEOUT", "30"))
+        self.max_filings = int(os.getenv("SEC_MAX_FILINGS", "5"))
+        self.request_timeout = int(os.getenv("SEC_REQUEST_TIMEOUT", "30"))
 
 
 # @serve(name="sec13fundAgent")
