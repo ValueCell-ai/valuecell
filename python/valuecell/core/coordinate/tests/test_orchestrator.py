@@ -224,16 +224,8 @@ async def create_streaming_response(
     """Create a mock streaming response."""
     remote_task = create_mock_remote_task(remote_task_id)
 
-    # First yield the task submission
-    yield (
-        remote_task,
-        TaskStatusUpdateEvent(
-            status=TaskStatus(state=TaskState.submitted),
-            contextId="test-context",
-            taskId=remote_task_id,
-            final=False,
-        ),
-    )
+    # First yield the task submission with None event (matching new logic)
+    yield remote_task, None
 
     # Then yield content chunks
     for i, chunk in enumerate(content_chunks):
@@ -257,10 +249,35 @@ async def create_non_streaming_response(
     """Create a mock non-streaming response."""
     remote_task = create_mock_remote_task(remote_task_id)
 
+    # First yield the task submission with None event
+    yield remote_task, None
+
+    # For non-streaming, just yield a final status update
     yield (
         remote_task,
         TaskStatusUpdateEvent(
-            status=TaskStatus(state=TaskState.submitted),
+            status=TaskStatus(state=TaskState.completed),
+            contextId="test-context",
+            taskId=remote_task_id,
+            final=True,
+        ),
+    )
+
+
+async def create_failed_response(
+    error_message: str, remote_task_id: str = "remote-task-123"
+) -> AsyncGenerator[tuple[Mock, Any], None]:
+    """Create a mock failed response."""
+    remote_task = create_mock_remote_task(remote_task_id)
+
+    # First yield the task submission with None event
+    yield remote_task, None
+
+    # Then yield a failed status update
+    yield (
+        remote_task,
+        TaskStatusUpdateEvent(
+            status=TaskStatus(state=TaskState.failed, message=error_message),
             contextId="test-context",
             taskId=remote_task_id,
             final=True,
@@ -316,20 +333,25 @@ class TestCoreFlow:
         assert call_args.kwargs["streaming"] == expected_streaming
 
         # Verify chunks based on agent capabilities
-        if (
-            mock_agent_card.capabilities.streaming
-            and not mock_agent_card.capabilities.push_notifications
-        ):
-            # Only streaming agents WITHOUT push notifications produce chunks
+        if mock_agent_card.capabilities.streaming:
+            # Streaming agents should produce content chunks plus a final empty chunk
             assert len(chunks) >= 1
             for chunk in chunks:
                 assert isinstance(chunk, MessageChunk)
                 assert chunk.kind == MessageDataKind.TEXT
                 assert chunk.meta.session_id == session_id
                 assert chunk.meta.user_id == user_id
-        elif mock_agent_card.capabilities.push_notifications:
-            # Push notification agents return early, no streaming chunks
-            assert len(chunks) == 0
+
+            # The last chunk should be final and empty (task completion marker)
+            final_chunk = chunks[-1]
+            assert final_chunk.is_final is True
+            assert final_chunk.content == ""
+        else:
+            # Non-streaming agents should still produce a final completion chunk
+            assert len(chunks) >= 1
+            final_chunk = chunks[-1]
+            assert final_chunk.is_final is True
+            assert final_chunk.content == ""
 
     @pytest.mark.asyncio
     async def test_streaming_agent_chunk_processing(
@@ -360,17 +382,22 @@ class TestCoreFlow:
         async for chunk in orchestrator.process_user_input(sample_user_input):
             chunks.append(chunk)
 
-        # Verify we got chunks (only for streaming agents without push notifications)
-        assert len(chunks) >= len(content_chunks)
+        # Verify we got chunks (content chunks + final empty chunk)
+        assert len(chunks) >= len(content_chunks) + 1
 
         # Verify chunk content and metadata
         content_received = []
-        for chunk in chunks:
+        for chunk in chunks[:-1]:  # Exclude the final empty chunk
             assert isinstance(chunk, MessageChunk)
             assert chunk.kind == MessageDataKind.TEXT
             assert chunk.meta.session_id == session_id
             assert chunk.meta.user_id == user_id
             content_received.append(chunk.content)
+
+        # Verify final chunk is empty and marked as final
+        final_chunk = chunks[-1]
+        assert final_chunk.is_final is True
+        assert final_chunk.content == ""
 
         # Verify all content was received
         full_content = "".join(content_received)
@@ -405,14 +432,20 @@ class TestCoreFlow:
             chunks.append(chunk)
 
         # Verify normal processing continues for non-push notification agents
+        # All agents should now produce at least one final chunk
+        assert len(chunks) >= 1
+
+        # The final chunk should be empty and marked as final
+        final_chunk = chunks[-1]
+        assert final_chunk.is_final is True
+        assert final_chunk.content == ""
+
+        # Task should be completed
+        orchestrator.task_manager.complete_task.assert_called_once()
+
         if mock_agent_card.capabilities.streaming:
-            # Streaming agents should produce chunks
-            assert len(chunks) >= 1
-            orchestrator.task_manager.complete_task.assert_called_once()
-        else:
-            # Non-streaming agents complete without yielding chunks during processing
-            # but task should still be completed
-            orchestrator.task_manager.complete_task.assert_called_once()
+            # Streaming agents should produce content chunks + final chunk
+            assert len(chunks) >= 2  # At least content chunks + final chunk
 
     @pytest.mark.asyncio
     async def test_push_notifications_early_return(
@@ -567,20 +600,13 @@ class TestTaskManagement:
         # Verify task lifecycle calls
         orchestrator.task_manager.store.save_task.assert_called_once()
         orchestrator.task_manager.start_task.assert_called_once()
+        orchestrator.task_manager.complete_task.assert_called_once()
 
-        # Push notification agents return early, others complete normally
-        if mock_agent_card.capabilities.push_notifications:
-            # Push notification agents don't call complete_task in the normal flow
-            # They rely on notification callbacks to handle completion
-            pass
-        else:
-            # Non-push notification agents should complete tasks
-            orchestrator.task_manager.complete_task.assert_called_once()
-
-            # Verify task was started before completion
-            start_call = orchestrator.task_manager.start_task.call_args
-            complete_call = orchestrator.task_manager.complete_task.call_args
-            assert start_call[0][0] == complete_call[0][0]  # Same task_id
+        # Verify agent connections
+        orchestrator.agent_connections.start_agent.assert_called_once()
+        start_agent_call = orchestrator.agent_connections.start_agent.call_args
+        assert start_agent_call.kwargs["with_listener"] is False
+        assert "notification_callback" in start_agent_call.kwargs
 
     @pytest.mark.asyncio
     async def test_task_failure_handling(
@@ -589,21 +615,26 @@ class TestTaskManagement:
         sample_user_input: UserInput,
         mock_agent_client: Mock,
     ):
-        """Test task failure when agent execution fails."""
-        # Setup agent to raise exception
-        mock_agent_client.send_message.side_effect = RuntimeError("Agent error")
+        """Test task failure handling with proper cleanup."""
+        # Setup a failed response
+        error_message = "Task processing failed"
+        mock_agent_client.send_message.return_value = create_failed_response(
+            error_message
+        )
 
         # Execute
         chunks = []
         async for chunk in orchestrator.process_user_input(sample_user_input):
             chunks.append(chunk)
 
-        # Verify task was failed
+        # Verify task failure was handled
+        orchestrator.task_manager.start_task.assert_called_once()
         orchestrator.task_manager.fail_task.assert_called_once()
 
         # Verify error message was yielded
-        error_chunks = [c for c in chunks if "(Error)" in c.content]
+        error_chunks = [chunk for chunk in chunks if error_message in chunk.content]
         assert len(error_chunks) >= 1
+        assert error_chunks[0].is_final is True
 
     @pytest.mark.asyncio
     async def test_remote_task_id_tracking(
@@ -614,19 +645,26 @@ class TestTaskManagement:
         sample_task: Task,
     ):
         """Test that remote task IDs are properly tracked."""
-        remote_task_id = "remote-123"
+        remote_task_id = "test-remote-task-456"
         mock_agent_client.send_message.return_value = create_streaming_response(
-            ["Response"], remote_task_id
+            ["Content"], remote_task_id
         )
 
         # Execute
         async for _ in orchestrator.process_user_input(sample_user_input):
             pass
 
-        # Verify task was saved (which should include remote task ID tracking)
+        # Verify remote task ID was tracked
+        # Note: In the actual test, we'd need to inspect the task object
+        # This is more of an integration test aspect
         orchestrator.task_manager.store.save_task.assert_called_once()
-        # saved_task = orchestrator.task_manager.store.save_task.call_args[0][0]
-        # Note: Remote task ID is added during execution, this verifies the task is saved
+        orchestrator.task_manager.start_task.assert_called_once()
+        orchestrator.task_manager.complete_task.assert_called_once()
+
+        # Verify task was started before completion
+        start_call = orchestrator.task_manager.start_task.call_args
+        complete_call = orchestrator.task_manager.complete_task.call_args
+        assert start_call[0][0] == complete_call[0][0]  # Same task_id
 
 
 class TestErrorHandling:
@@ -657,6 +695,217 @@ class TestErrorHandling:
         orchestrator.session_manager.add_message.assert_any_call(
             session_id, Role.SYSTEM, "Error processing request: Planning failed"
         )
+
+    @pytest.mark.asyncio
+    async def test_agent_connection_error(
+        self,
+        orchestrator: AgentOrchestrator,
+        sample_user_input: UserInput,
+        mock_agent_connections: Mock,
+    ):
+        """Test error handling when agent connection fails."""
+        # Setup agent connections to fail
+        mock_agent_connections.get_client.return_value = None
+
+        # Execute
+        chunks = []
+        async for chunk in orchestrator.process_user_input(sample_user_input):
+            chunks.append(chunk)
+
+        # Verify error was yielded
+        error_chunks = [c for c in chunks if "(Error)" in c.content]
+        assert len(error_chunks) >= 1
+        assert "Could not connect to agent" in error_chunks[0].content
+
+    @pytest.mark.asyncio
+    async def test_empty_execution_plan(
+        self,
+        orchestrator: AgentOrchestrator,
+        sample_user_input: UserInput,
+        session_id: str,
+        user_id: str,
+    ):
+        """Test handling of empty execution plan."""
+        # Setup empty execution plan
+        from valuecell.core.coordinate.models import ExecutionPlan
+
+        empty_plan = ExecutionPlan(
+            plan_id="empty-plan",
+            session_id=session_id,
+            user_id=user_id,
+            query=sample_user_input.query,
+            tasks=[],
+            created_at="2025-09-16T10:00:00",
+        )
+        orchestrator.planner.create_plan.return_value = empty_plan
+
+        # Execute
+        chunks = []
+        async for chunk in orchestrator.process_user_input(sample_user_input):
+            chunks.append(chunk)
+
+        # Verify appropriate message was yielded
+        assert len(chunks) >= 1
+        assert "No tasks found for this request" in chunks[0].content
+
+
+class TestEdgeCases:
+    """Test edge cases and boundary conditions."""
+
+    @pytest.mark.asyncio
+    async def test_metadata_propagation(
+        self,
+        orchestrator: AgentOrchestrator,
+        sample_user_input: UserInput,
+        mock_agent_client: Mock,
+        session_id: str,
+        user_id: str,
+    ):
+        """Test that metadata is properly propagated through the system."""
+        mock_agent_client.send_message.return_value = create_streaming_response(
+            ["Test"]
+        )
+
+        # Execute
+        chunks = []
+        async for chunk in orchestrator.process_user_input(sample_user_input):
+            chunks.append(chunk)
+
+        # Verify metadata in all chunks
+        for chunk in chunks:
+            assert chunk.meta.session_id == session_id
+            assert chunk.meta.user_id == user_id
+
+        # Verify metadata passed to agent
+        mock_agent_client.send_message.assert_called_once()
+        call_args = mock_agent_client.send_message.call_args
+        metadata = call_args.kwargs["metadata"]
+        assert metadata["session_id"] == session_id
+        assert metadata["user_id"] == user_id
+
+    @pytest.mark.asyncio
+    async def test_cleanup_resources(self, orchestrator: AgentOrchestrator):
+        """Test resource cleanup."""
+        await orchestrator.cleanup()
+
+        # Verify agent connections are stopped
+        orchestrator.agent_connections.stop_all.assert_called_once()
+
+
+class TestIntegration:
+    """Integration tests that test component interactions."""
+
+    @pytest.mark.asyncio
+    async def test_full_flow_integration(
+        self,
+        orchestrator: AgentOrchestrator,
+        sample_user_input: UserInput,
+        mock_agent_client: Mock,
+        mock_agent_card: AgentCard,
+        session_id: str,
+        user_id: str,
+        sample_query: str,
+    ):
+        """Test the complete flow from user input to response."""
+        # Setup streaming response
+        content_chunks = ["Integration", " test", " response"]
+        mock_agent_client.send_message.return_value = create_streaming_response(
+            content_chunks
+        )
+
+        # Execute the full flow
+        all_chunks = []
+        full_response = ""
+        async for chunk in orchestrator.process_user_input(sample_user_input):
+            all_chunks.append(chunk)
+            full_response += chunk.content
+
+        # Verify the complete flow
+        # 1. User message added to session
+        orchestrator.session_manager.add_message.assert_any_call(
+            session_id, Role.USER, sample_query
+        )
+
+        # 2. Plan created
+        orchestrator.planner.create_plan.assert_called_once_with(sample_user_input)
+
+        # 3. Task saved and started
+        orchestrator.task_manager.store.save_task.assert_called_once()
+        orchestrator.task_manager.start_task.assert_called_once()
+
+        # 4. Agent started and message sent
+        orchestrator.agent_connections.start_agent.assert_called_once()
+        mock_agent_client.send_message.assert_called_once()
+
+        # 5. Task completed
+        if not mock_agent_card.capabilities.push_notifications:
+            orchestrator.task_manager.complete_task.assert_called_once()
+
+        # 6. Final response added to session
+        orchestrator.session_manager.add_message.assert_any_call(
+            session_id, Role.AGENT, full_response
+        )
+
+        # 7. Verify response content
+        if mock_agent_card.capabilities.streaming:
+            content_received = "".join(
+                [chunk.content for chunk in all_chunks[:-1]]
+            )  # Exclude final empty chunk
+            assert "Integration test response" in content_received
+
+    @pytest.mark.asyncio
+    async def test_task_failed_status_handling(
+        self,
+        orchestrator: AgentOrchestrator,
+        sample_user_input: UserInput,
+        mock_agent_client: Mock,
+    ):
+        """Test handling of TaskState.failed status updates."""
+        error_message = "Remote task failed"
+        mock_agent_client.send_message.return_value = create_failed_response(
+            error_message
+        )
+
+        # Execute
+        chunks = []
+        async for chunk in orchestrator.process_user_input(sample_user_input):
+            chunks.append(chunk)
+
+        # Verify task was marked as failed
+        orchestrator.task_manager.fail_task.assert_called_once()
+        fail_call_args = orchestrator.task_manager.fail_task.call_args
+        assert (
+            error_message in fail_call_args[0][1]
+        )  # Error message passed to fail_task
+
+        # Verify error message was yielded to user
+        error_chunks = [c for c in chunks if error_message in c.content and c.is_final]
+        assert len(error_chunks) >= 1
+
+    @pytest.mark.asyncio
+    async def test_agent_start_with_correct_parameters(
+        self,
+        orchestrator: AgentOrchestrator,
+        sample_user_input: UserInput,
+        mock_agent_client: Mock,
+    ):
+        """Test that agent is started with correct parameters."""
+        mock_agent_client.send_message.return_value = create_streaming_response(
+            ["Test"]
+        )
+
+        # Execute
+        async for _ in orchestrator.process_user_input(sample_user_input):
+            pass
+
+        # Verify agent started with correct parameters
+        orchestrator.agent_connections.start_agent.assert_called_once()
+        call_args = orchestrator.agent_connections.start_agent.call_args
+
+        # Check the new parameters
+        assert call_args.kwargs["with_listener"] is False
+        assert "notification_callback" in call_args.kwargs
+        assert call_args.kwargs["notification_callback"] is not None
 
     @pytest.mark.asyncio
     async def test_agent_connection_error(
@@ -707,111 +956,3 @@ class TestErrorHandling:
         # Verify appropriate message
         assert len(chunks) == 1
         assert "No tasks found for this request" in chunks[0].content
-
-
-class TestEdgeCases:
-    """Test edge cases and boundary conditions."""
-
-    @pytest.mark.asyncio
-    async def test_metadata_propagation(
-        self,
-        orchestrator: AgentOrchestrator,
-        sample_user_input: UserInput,
-        mock_agent_client: Mock,
-        session_id: str,
-        user_id: str,
-    ):
-        """Test that user_id and session_id are propagated throughout the flow."""
-        mock_agent_client.send_message.return_value = create_streaming_response(
-            ["Test"]
-        )
-
-        # Execute
-        chunks = []
-        async for chunk in orchestrator.process_user_input(sample_user_input):
-            chunks.append(chunk)
-
-        # Verify metadata in send_message call
-        call_args = mock_agent_client.send_message.call_args
-        metadata = call_args.kwargs["metadata"]
-        assert metadata["session_id"] == session_id
-        assert metadata["user_id"] == user_id
-
-        # Verify metadata in message chunks
-        for chunk in chunks:
-            assert chunk.meta.session_id == session_id
-            assert chunk.meta.user_id == user_id
-
-    @pytest.mark.asyncio
-    async def test_cleanup_resources(self, orchestrator: AgentOrchestrator):
-        """Test resource cleanup."""
-        await orchestrator.cleanup()
-
-        orchestrator.agent_connections.stop_all.assert_called_once()
-
-
-class TestIntegration:
-    """Integration tests that test component interactions."""
-
-    @pytest.mark.asyncio
-    async def test_full_flow_integration(
-        self,
-        orchestrator: AgentOrchestrator,
-        sample_user_input: UserInput,
-        mock_agent_client: Mock,
-        mock_agent_card: AgentCard,
-        session_id: str,
-        user_id: str,
-        sample_query: str,
-    ):
-        """Test complete flow integration with all components."""
-        # Setup realistic response based on agent capabilities
-        if mock_agent_card.capabilities.streaming:
-            response_chunks = [
-                "Analyzing",
-                " AAPL",
-                " stock",
-                "...",
-                " Current price: $150.25",
-            ]
-            mock_agent_client.send_message.return_value = create_streaming_response(
-                response_chunks
-            )
-        else:
-            mock_agent_client.send_message.return_value = create_non_streaming_response(
-                "Analyzing AAPL stock... Current price: $150.25"
-            )
-
-        # Execute full flow
-        chunks = []
-        full_response = ""
-        async for chunk in orchestrator.process_user_input(sample_user_input):
-            chunks.append(chunk)
-            full_response += chunk.content
-
-        # Verify flow worked based on agent capabilities
-        if (
-            mock_agent_card.capabilities.streaming
-            and not mock_agent_card.capabilities.push_notifications
-        ):
-            # Streaming agents without push notifications produce chunks
-            assert len(chunks) > 0
-            assert "Analyzing AAPL stock" in full_response
-
-        # Verify all components were called in correct order
-        orchestrator.session_manager.add_message.assert_any_call(
-            session_id, Role.USER, sample_query
-        )
-        orchestrator.planner.create_plan.assert_called_once()
-        orchestrator.task_manager.store.save_task.assert_called_once()
-        orchestrator.agent_connections.start_agent.assert_called_once()
-        orchestrator.task_manager.start_task.assert_called_once()
-
-        # Task completion depends on push notification capability
-        if not mock_agent_card.capabilities.push_notifications:
-            orchestrator.task_manager.complete_task.assert_called_once()
-
-            # Verify final agent response added to session
-            orchestrator.session_manager.add_message.assert_any_call(
-                session_id, Role.AGENT, full_response
-            )

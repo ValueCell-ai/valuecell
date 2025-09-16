@@ -132,7 +132,9 @@ class AgentOrchestrator:
 
             # Get agent client
             agent_card = await self.agent_connections.start_agent(
-                task.agent_name, notification_callback=store_task_in_session
+                task.agent_name,
+                with_listener=False,
+                notification_callback=store_task_in_session,
             )
             client = await self.agent_connections.get_client(task.agent_name)
             if not client:
@@ -146,15 +148,11 @@ class AgentOrchestrator:
             )
 
             # Process streaming responses
-            remote_task, event = await anext(response)
-            if remote_task.status.state == TaskState.submitted:
-                task.remote_task_ids.append(remote_task.id)
-
-            # For push notification agents, return early and let listener handle the response
-            if agent_card.capabilities.push_notifications:
-                return
-
             async for remote_task, event in response:
+                if event is None and remote_task.status.state == TaskState.submitted:
+                    task.remote_task_ids.append(remote_task.id)
+                    continue
+
                 if (
                     isinstance(event, TaskStatusUpdateEvent)
                     # and event.status.state == TaskState.input_required
