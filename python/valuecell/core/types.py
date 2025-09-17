@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 class UserInputMetadata(BaseModel):
     """Metadata associated with user input"""
 
-    session_id: str = Field(..., description="Session ID for this request")
+    session_id: Optional[str] = Field(None, description="Session ID for this request")
     user_id: str = Field(..., description="User ID who made this request")
 
 

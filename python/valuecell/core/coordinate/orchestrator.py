@@ -62,6 +62,10 @@ class AgentOrchestrator:
 
         session_id = user_input.meta.session_id
         # Add user message to session
+        if not await self.session_manager.session_exists(session_id):
+            await self.session_manager.create_session(
+                user_input.meta.user_id, session_id=session_id
+            )
         await self.session_manager.add_message(session_id, Role.USER, user_input.query)
 
         try:

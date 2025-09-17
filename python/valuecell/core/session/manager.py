@@ -14,11 +14,16 @@ class SessionManager:
         self.store = store or InMemorySessionStore()
 
     async def create_session(
-        self, user_id: str, title: Optional[str] = None
+        self,
+        user_id: str,
+        title: Optional[str] = None,
+        session_id: Optional[str] = None,
     ) -> Session:
         """Create new session"""
         session = Session(
-            session_id=generate_uuid("session"), user_id=user_id, title=title
+            session_id=session_id or generate_uuid("session"),
+            user_id=user_id,
+            title=title,
         )
         await self.store.save_session(session)
         return session
