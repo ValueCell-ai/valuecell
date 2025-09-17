@@ -4,29 +4,37 @@ import type { ECharts, EChartsCoreOption } from "echarts/core";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useMemo, useRef } from "react";
+import { STOCK_COLORS, STOCK_GRADIENT_COLORS } from "@/constants/stock";
+import { useChartResize } from "@/hooks/use-chart-resize";
 import { cn } from "@/lib/utils";
+import type { SparklineData } from "@/types/chart";
+import type { StockChangeType } from "@/types/stock";
 
 echarts.use([LineChart, GridComponent, CanvasRenderer]);
 
 interface MiniSparklineProps {
-  data: number[];
-  color?: string;
-  gradientColors?: [string, string];
+  data: SparklineData;
+  changeType: StockChangeType;
   width?: number | string;
   height?: number | string;
   className?: string;
 }
 
-export function MiniSparkline({
+function MiniSparkline({
   data,
-  color = "#22c55e",
-  gradientColors = ["rgba(34, 197, 94, 0.8)", "rgba(34, 197, 94, 0.1)"],
+  changeType,
   width = 100,
   height = 40,
   className,
 }: MiniSparklineProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<ECharts | null>(null);
+
+  useChartResize(chartInstance);
+
+  // Get colors based on change type
+  const color = STOCK_COLORS[changeType];
+  const gradientColors = STOCK_GRADIENT_COLORS[changeType];
 
   const option: EChartsCoreOption = useMemo(() => {
     return {
@@ -37,8 +45,11 @@ export function MiniSparkline({
         bottom: 0,
       },
       xAxis: {
-        type: "category",
+        type: "time",
         show: false,
+        axisLabel: {
+          show: false,
+        },
       },
       yAxis: {
         type: "value",
@@ -75,24 +86,16 @@ export function MiniSparkline({
 
   useEffect(() => {
     if (!chartRef.current) return;
-    chartInstance.current = echarts.init(chartRef.current);
 
+    chartInstance.current = echarts.init(chartRef.current);
     chartInstance.current.setOption(option);
 
-    const handleResize = () => {
-      chartInstance.current?.resize();
-    };
-
-    window.addEventListener("resize", handleResize);
-
     return () => {
-      window.removeEventListener("resize", handleResize);
       chartInstance.current?.dispose();
     };
   }, [option]);
 
   useEffect(() => {
-    // update chart when data changes
     if (chartInstance.current) {
       chartInstance.current.setOption({
         series: [{ data }],

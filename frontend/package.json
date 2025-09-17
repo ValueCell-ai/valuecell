@@ -6,13 +6,12 @@
   "scripts": {
     "dev": "react-router dev",
     "build": "react-router build",
-    "start": "react-router-serve ./build/server/index.js",
+    "start": "vite preview --outDir build/client",
     "tauri": "tauri"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.15",
-    "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tooltip": "^1.2.8",
@@ -21,9 +20,12 @@
     "@tauri-apps/plugin-opener": "^2.5.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dayjs": "^1.11.18",
     "echarts": "^6.0.0",
     "isbot": "^5",
     "lucide-react": "^0.544.0",
+    "overlayscrollbars": "^2.12.0",
+    "overlayscrollbars-react": "^0.5.6",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "tailwind-merge": "^3.3.1"
@@ -31,7 +33,6 @@
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
     "@react-router/dev": "^7.8.2",
-    "@react-router/fs-routes": "^7.8.2",
     "@react-router/serve": "^7.8.2",
     "@tailwindcss/vite": "^4.1.13",
     "@tauri-apps/cli": "^2.8.4",
