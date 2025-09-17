@@ -30,6 +30,19 @@ from .i18n import (
     NumberFormatData,
     CurrencyFormatData,
 )
+from .watchlist import (
+    WatchlistItemData,
+    WatchlistData,
+    CreateWatchlistRequest,
+    AddStockRequest,
+    UpdateStockNotesRequest,
+    AssetSearchQuery,
+    AssetInfoData,
+    AssetSearchResultData,
+    AssetDetailData,
+    AssetPriceData,
+    WatchlistWithPricesData,
+)
 
 __all__ = [
     # Base schemas
@@ -60,4 +73,16 @@ __all__ = [
     "DateTimeFormatData",
     "NumberFormatData",
     "CurrencyFormatData",
+    # Watchlist schemas
+    "WatchlistItemData",
+    "WatchlistData",
+    "CreateWatchlistRequest",
+    "AddStockRequest",
+    "UpdateStockNotesRequest",
+    "AssetSearchQuery",
+    "AssetInfoData",
+    "AssetSearchResultData",
+    "AssetDetailData",
+    "AssetPriceData",
+    "WatchlistWithPricesData",
 ]

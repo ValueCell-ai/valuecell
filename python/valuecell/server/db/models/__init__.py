@@ -11,10 +11,13 @@ from .base import Base
 # Import all models to ensure they are registered with SQLAlchemy
 from .agent import Agent
 from .asset import Asset
+from .watchlist import Watchlist, WatchlistItem
 
 # Export all models
 __all__ = [
     "Base",
     "Agent",
     "Asset",
+    "Watchlist",
+    "WatchlistItem",
 ]

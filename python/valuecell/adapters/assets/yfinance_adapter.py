@@ -72,14 +72,18 @@ class YFinanceAdapter(BaseDataAdapter):
         try:
             # Use yfinance Search API for comprehensive search
             search_obj = yf.Search(search_term)
-            
+
             # Get search results from different categories
-            search_quotes = getattr(search_obj, 'quotes', [])
-            
+            search_quotes = getattr(search_obj, "quotes", [])
+
             # Process search results
-            for quote in search_quotes[:query.limit * 2]:  # Get more results to filter later
+            for quote in search_quotes[
+                : query.limit * 2
+            ]:  # Get more results to filter later
                 try:
-                    result = self._create_search_result_from_quote(quote, query.language)
+                    result = self._create_search_result_from_quote(
+                        quote, query.language
+                    )
                     if result:
                         results.append(result)
                 except Exception as e:
@@ -88,7 +92,7 @@ class YFinanceAdapter(BaseDataAdapter):
 
         except Exception as e:
             logger.debug(f"yfinance Search API failed for '{search_term}': {e}")
-            
+
             # Fallback to direct ticker lookup
             results.extend(self._fallback_ticker_search(search_term, query))
 
@@ -111,7 +115,7 @@ class YFinanceAdapter(BaseDataAdapter):
         # Sort by relevance score (highest first)
         results.sort(key=lambda x: x.relevance_score, reverse=True)
 
-        return results[:query.limit]
+        return results[: query.limit]
 
     def _create_search_result_from_quote(
         self, quote: Dict, language: str
@@ -124,11 +128,11 @@ class YFinanceAdapter(BaseDataAdapter):
 
             # Get exchange information first
             exchange = quote.get("exchange", "UNKNOWN")
-            
+
             # Map yfinance exchange codes to our internal format
             exchange_mapping = {
                 "NMS": "NASDAQ",
-                "NYQ": "NYSE", 
+                "NYQ": "NYSE",
                 "ASE": "AMEX",
                 "SHH": "SSE",
                 "SHZ": "SZSE",
@@ -163,7 +167,7 @@ class YFinanceAdapter(BaseDataAdapter):
             # Get names in different languages
             long_name = quote.get("longname", quote.get("shortname", symbol))
             short_name = quote.get("shortname", symbol)
-            
+
             names = {
                 "en-US": long_name or short_name,
                 "en-GB": long_name or short_name,
@@ -194,7 +198,7 @@ class YFinanceAdapter(BaseDataAdapter):
     ) -> List[AssetSearchResult]:
         """Fallback search using direct ticker lookup with common suffixes."""
         results = []
-        
+
         # Try direct ticker lookup first
         try:
             ticker_obj = yf.Ticker(search_term)
@@ -217,7 +221,9 @@ class YFinanceAdapter(BaseDataAdapter):
                     info = ticker_obj.info
 
                     if info and "symbol" in info and info.get("symbol"):
-                        result = self._create_search_result_from_info(info, query.language)
+                        result = self._create_search_result_from_info(
+                            info, query.language
+                        )
                         if result:
                             results.append(result)
                             break  # Found one, stop searching
@@ -226,25 +232,25 @@ class YFinanceAdapter(BaseDataAdapter):
 
         return results
 
-    def _calculate_search_relevance(
-        self, quote: Dict, symbol: str, name: str
-    ) -> float:
+    def _calculate_search_relevance(self, quote: Dict, symbol: str, name: str) -> float:
         """Calculate relevance score for search results."""
         score = 0.0
-        
+
         # Base score for having a result
         score += 0.5
-        
+
         # Higher score for exact symbol matches
         if quote.get("symbol", "").upper() == symbol.upper():
             score += 0.3
-            
+
         # Score based on market cap (larger companies get higher scores)
         market_cap = quote.get("marketCap")
         if market_cap and isinstance(market_cap, (int, float)) and market_cap > 0:
             # Normalize market cap to 0-0.2 range
-            score += min(0.2, market_cap / 1e12)  # Trillion dollar companies get max score
-        
+            score += min(
+                0.2, market_cap / 1e12
+            )  # Trillion dollar companies get max score
+
         # Bonus for having complete information
         if quote.get("longname"):
             score += 0.1
@@ -252,7 +258,7 @@ class YFinanceAdapter(BaseDataAdapter):
             score += 0.05
         if quote.get("exchange"):
             score += 0.05
-            
+
         return min(1.0, score)  # Cap at 1.0
 
     def _create_search_result_from_info(
