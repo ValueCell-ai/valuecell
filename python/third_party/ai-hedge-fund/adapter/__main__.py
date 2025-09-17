@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from datetime import datetime
 from typing import List
 
@@ -61,13 +62,17 @@ class AIHedgeFundAgent(BaseAgent):
     def __init__(self):
         super().__init__()
         self.agno_agent = Agent(
-            model=OpenRouter(id="openai/gpt-4o-mini"),
+            model=OpenRouter(
+                id=os.getenv("AI_HEDGE_FUND_PARSER_MODEL_ID") or "openai/gpt-4o-mini"
+            ),
             response_model=HedgeFundRequest,
             markdown=True,
         )
 
     async def stream(self, query, session_id, task_id):
-        logger.info(f"Parsing query: {query}. Task ID: {task_id}, Session ID: {session_id}")
+        logger.info(
+            f"Parsing query: {query}. Task ID: {task_id}, Session ID: {session_id}"
+        )
         run_response = self.agno_agent.run(
             f"Parse the following hedge fund analysis request and extract the parameters: {query}"
         )
@@ -103,9 +108,7 @@ class AIHedgeFundAgent(BaseAgent):
             },
         }
 
-        logger.info(
-            f"Start analyzing. Task ID: {task_id}, Session ID: {session_id}"
-        )
+        logger.info(f"Start analyzing. Task ID: {task_id}, Session ID: {session_id}")
         for stream_type, chunk in run_hedge_fund_stream(
             tickers=hedge_fund_request.tickers,
             start_date=start_date,
