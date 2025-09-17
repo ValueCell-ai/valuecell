@@ -16,7 +16,7 @@ def main():
         app,
         host=settings.API_HOST,
         port=settings.API_PORT,
-        reload=settings.API_DEBUG,
+        # reload=settings.API_DEBUG,
     )
 
 

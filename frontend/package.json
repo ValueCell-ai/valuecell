@@ -34,6 +34,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
+    "@faker-js/faker": "^10.0.0",
     "@react-router/dev": "^7.8.2",
     "@react-router/serve": "^7.8.2",
     "@tailwindcss/typography": "^0.5.16",
@@ -41,6 +42,7 @@
     "@tauri-apps/cli": "^2.8.4",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
+    "orval": "^7.11.2",
     "shadcn": "^3.2.1",
     "tailwindcss": "^4.1.13",
     "tw-animate-css": "^1.3.8",
