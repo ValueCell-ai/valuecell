@@ -9,6 +9,7 @@ from valuecell.core.task import get_default_task_manager
 from valuecell.core.types import (
     MessageChunk,
     MessageChunkMetadata,
+    MessageChunkStatus,
     MessageDataKind,
     UserInput,
 )
@@ -35,12 +36,15 @@ class AgentOrchestrator:
         user_id: str,
         kind: MessageDataKind = MessageDataKind.TEXT,
         is_final: bool = False,
+        status: MessageChunkStatus = MessageChunkStatus.partial,
     ) -> MessageChunk:
         """Create a MessageChunk with common metadata"""
         return MessageChunk(
             content=content,
             kind=kind,
-            meta=MessageChunkMetadata(session_id=session_id, user_id=user_id),
+            meta=MessageChunkMetadata(
+                session_id=session_id, user_id=user_id, status=status
+            ),
             is_final=is_final,
         )
 
@@ -53,6 +57,7 @@ class AgentOrchestrator:
             session_id=session_id,
             user_id=user_id,
             is_final=True,
+            status=MessageChunkStatus.failure,
         )
 
     async def process_user_input(
@@ -165,11 +170,10 @@ class AgentOrchestrator:
                     if event.status.state == TaskState.failed:
                         err_msg = get_message_text(event.status.message)
                         await self.task_manager.fail_task(task.task_id, err_msg)
-                        yield self._create_message_chunk(
+                        yield self._create_error_message_chunk(
                             err_msg,
                             task.session_id,
                             task.user_id,
-                            is_final=True,
                         )
                         return
 
