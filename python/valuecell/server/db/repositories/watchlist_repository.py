@@ -84,9 +84,16 @@ class WatchlistRepository:
 
             if watchlist:
                 # Eagerly load items to avoid lazy loading issues
-                session.expunge(watchlist)
+                _ = len(watchlist.items)  # This triggers the lazy load
                 for item in watchlist.items:
-                    session.expunge(item)
+                    # Access all needed properties while session is active
+                    _ = (
+                        item.ticker,
+                        item.notes,
+                        item.order_index,
+                        item.added_at,
+                        item.updated_at,
+                    )
 
             return watchlist
 
@@ -105,9 +112,16 @@ class WatchlistRepository:
 
             if watchlist:
                 # Eagerly load items to avoid lazy loading issues
-                session.expunge(watchlist)
+                _ = len(watchlist.items)  # This triggers the lazy load
                 for item in watchlist.items:
-                    session.expunge(item)
+                    # Access all needed properties while session is active
+                    _ = (
+                        item.ticker,
+                        item.notes,
+                        item.order_index,
+                        item.added_at,
+                        item.updated_at,
+                    )
 
             return watchlist
 
@@ -128,9 +142,16 @@ class WatchlistRepository:
 
             if watchlist:
                 # Eagerly load items to avoid lazy loading issues
-                session.expunge(watchlist)
+                _ = len(watchlist.items)  # This triggers the lazy load
                 for item in watchlist.items:
-                    session.expunge(item)
+                    # Access all needed properties while session is active
+                    _ = (
+                        item.ticker,
+                        item.notes,
+                        item.order_index,
+                        item.added_at,
+                        item.updated_at,
+                    )
 
             return watchlist
 
@@ -152,9 +173,17 @@ class WatchlistRepository:
 
             # Eagerly load items for all watchlists to avoid lazy loading issues
             for watchlist in watchlists:
-                session.expunge(watchlist)
+                # Force loading of items while session is still active
+                _ = len(watchlist.items)  # This triggers the lazy load
                 for item in watchlist.items:
-                    session.expunge(item)
+                    # Access all needed properties while session is active
+                    _ = (
+                        item.ticker,
+                        item.notes,
+                        item.order_index,
+                        item.added_at,
+                        item.updated_at,
+                    )
 
             return watchlists
 
