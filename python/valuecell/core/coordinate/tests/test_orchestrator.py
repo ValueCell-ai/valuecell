@@ -150,6 +150,7 @@ def mock_session_manager() -> Mock:
     mock.create_session = AsyncMock(return_value="new-session-id")
     mock.get_session_messages = AsyncMock(return_value=[])
     mock.list_user_sessions = AsyncMock(return_value=[])
+    mock.session_exists = AsyncMock(return_value=True)
     return mock
 
 
