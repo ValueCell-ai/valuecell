@@ -137,12 +137,12 @@ class DatabaseInitializer:
                 "NASDAQ:GOOGL",  # Alphabet Inc.
                 "NASDAQ:MSFT",  # Microsoft Corporation
                 "NYSE:SPY",  # SPDR S&P 500 ETF
-                "CRYPTO:BTC-USD",  # Bitcoin
+                "CRYPTO:BTC",  # Bitcoin
                 # Additional diverse assets
                 "NYSE:TSLA",  # Tesla Inc.
                 "NASDAQ:NVDA",  # NVIDIA Corporation
                 "NYSE:JPM",  # JPMorgan Chase & Co.
-                "CRYPTO:ETH-USD",  # Ethereum
+                "CRYPTO:ETH",  # Ethereum
                 "NASDAQ:QQQ",  # Invesco QQQ Trust ETF
             ]
 
@@ -336,7 +336,7 @@ class DatabaseInitializer:
                 "exchange": "NYSE",
                 "metadata": {"tags": ["index", "diversified", "low-cost"]},
             },
-            "CRYPTO:BTC-USD": {
+            "CRYPTO:BTC": {
                 "name": "Bitcoin",
                 "asset_type": "crypto",
                 "sector": "Cryptocurrency",
@@ -373,7 +373,7 @@ class DatabaseInitializer:
                     "tags": ["banking", "blue-chip", "finance"],
                 },
             },
-            "CRYPTO:ETH-USD": {
+            "CRYPTO:ETH": {
                 "name": "Ethereum",
                 "asset_type": "crypto",
                 "sector": "Cryptocurrency",
@@ -664,3 +664,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+ƒƒ
