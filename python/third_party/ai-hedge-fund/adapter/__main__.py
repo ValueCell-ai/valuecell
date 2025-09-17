@@ -78,7 +78,10 @@ class AIHedgeFundAgent(BaseAgent):
         )
         hedge_fund_request = run_response.content
         if not isinstance(hedge_fund_request, HedgeFundRequest):
-            raise ValueError(f"Unable to parse query: {query}")
+            logger.error(f"Unable to parse query: {query}")
+            raise ValueError(
+                f"Unable to parse your query. Please provide allowed tickers: {allowed_tickers}"
+            )
 
         end_date = datetime.now().strftime("%Y-%m-%d")
         end_date_obj = datetime.strptime(end_date, "%Y-%m-%d")
