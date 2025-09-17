@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Hedge Fund WebSocket Client</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        select, textarea, input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.connected {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .messages {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f8f9fa;
+            margin-top: 20px;
+            border-radius: 4px;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        .message.chunk {
+            background-color: #d1ecf1;
+            border-left: 4px solid #bee5eb;
+        }
+        .message.error {
+            background-color: #f8d7da;
+            border-left: 4px solid #f5c6cb;
+        }
+        .message.system {
+            background-color: #d4edda;
+            border-left: 4px solid #c3e6cb;
+        }
+        .timestamp {
+            font-size: 0.8em;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Hedge Fund Analysis</h1>
+        
+        <div id="status" class="status disconnected">
+            Status: Disconnected
+        </div>
+
+        <div class="form-group">
+            <label for="agent">Select Analyst:</label>
+            <select id="agent">
+                <option value="warren_buffett_agent">Warren Buffett</option>
+                <option value="charlie_munger_agent">Charlie Munger</option>
+                <option value="peter_lynch_agent">Peter Lynch</option>
+                <option value="bill_ackman_agent">Bill Ackman</option>
+                <option value="cathie_wood_agent">Cathie Wood</option>
+                <option value="michael_burry_agent">Michael Burry</option>
+                <option value="ben_graham_agent">Ben Graham</option>
+                <option value="phil_fisher_agent">Phil Fisher</option>
+                <option value="mohnish_pabrai_agent">Mohnish Pabrai</option>
+                <option value="aswath_damodaran_agent">Aswath Damodaran</option>
+                <option value="stanley_druckenmiller_agent">Stanley Druckenmiller</option>
+                <option value="rakesh_jhunjhunwala_agent">Rakesh Jhunjhunwala</option>
+                <option value="technical_analyst_agent">Technical Analyst</option>
+                <option value="fundamentals_analyst_agent">Fundamentals Analyst</option>
+                <option value="sentiment_analyst_agent">Sentiment Analyst</option>
+                <option value="valuation_analyst_agent">Valuation Analyst</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="query">Analysis Query:</label>
+            <textarea id="query" placeholder="e.g., What is your analysis of Apple Inc. (AAPL) stock?">What is your analysis of Apple Inc. (AAPL) stock?</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="sessionId">Session ID (optional):</label>
+            <input type="text" id="sessionId" placeholder="Leave empty for auto-generation">
+        </div>
+
+        <button id="connect" onclick="connect()">Connect</button>
+        <button id="disconnect" onclick="disconnect()" disabled>Disconnect</button>
+        <button id="analyze" onclick="analyze()" disabled>Start Analysis</button>
+        <button id="clear" onclick="clearMessages()">Clear Messages</button>
+
+        <div id="messages" class="messages"></div>
+    </div>
+
+    <script>
+        let ws = null;
+        let isConnected = false;
+
+        function updateStatus(connected) {
+            isConnected = connected;
+            const statusEl = document.getElementById('status');
+            const connectBtn = document.getElementById('connect');
+            const disconnectBtn = document.getElementById('disconnect');
+            const analyzeBtn = document.getElementById('analyze');
+            
+            if (connected) {
+                statusEl.textContent = 'Status: Connected';
+                statusEl.className = 'status connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                analyzeBtn.disabled = false;
+            } else {
+                statusEl.textContent = 'Status: Disconnected';
+                statusEl.className = 'status disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                analyzeBtn.disabled = true;
+            }
+        }
+
+        function addMessage(type, content, timestamp = new Date()) {
+            const messagesEl = document.getElementById('messages');
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${type}`;
+            
+            const timestampEl = document.createElement('div');
+            timestampEl.className = 'timestamp';
+            timestampEl.textContent = timestamp.toLocaleTimeString();
+            
+            const contentEl = document.createElement('div');
+            contentEl.textContent = content;
+            
+            messageEl.appendChild(timestampEl);
+            messageEl.appendChild(contentEl);
+            messagesEl.appendChild(messageEl);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        function connect() {
+            const wsUrl = 'ws://localhost:8000/ws';
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function(event) {
+                updateStatus(true);
+                addMessage('system', 'Connected to WebSocket server');
+            };
+            
+            ws.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    switch(data.type) {
+                        case 'analysis_started':
+                            addMessage('system', `Analysis started with ${data.agent_name} (Session: ${data.session_id})`);
+                            break;
+                        case 'analysis_chunk':
+                            addMessage('chunk', data.message);
+                            break;
+                        case 'analysis_completed':
+                            addMessage('system', `Analysis completed for ${data.agent_name}`);
+                            break;
+                        case 'error':
+                            addMessage('error', `Error: ${data.message}`);
+                            break;
+                        default:
+                            addMessage('system', JSON.stringify(data));
+                    }
+                } catch (e) {
+                    addMessage('error', `Failed to parse message: ${event.data}`);
+                }
+            };
+            
+            ws.onclose = function(event) {
+                updateStatus(false);
+                addMessage('system', 'WebSocket connection closed');
+                ws = null;
+            };
+            
+            ws.onerror = function(error) {
+                addMessage('error', `WebSocket error: ${error}`);
+            };
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+            }
+        }
+
+        function analyze() {
+            if (!isConnected || !ws) {
+                addMessage('error', 'Not connected to server');
+                return;
+            }
+            
+            const agent = document.getElementById('agent').value;
+            const query = document.getElementById('query').value;
+            const sessionId = document.getElementById('sessionId').value;
+            
+            if (!query.trim()) {
+                addMessage('error', 'Please enter a query');
+                return;
+            }
+            
+            const request = {
+                agent_name: agent,
+                query: query,
+                user_id: 'web_user'
+            };
+            
+            if (sessionId.trim()) {
+                request.session_id = sessionId.trim();
+            }
+            
+            ws.send(JSON.stringify(request));
+            addMessage('system', `Sending analysis request for ${agent}: ${query}`);
+        }
+
+        function clearMessages() {
+            document.getElementById('messages').innerHTML = '';
+        }
+
+        // Auto-connect on page load
+        window.onload = function() {
+            // connect();
+        };
+    </script>
+</body>
+</html>
