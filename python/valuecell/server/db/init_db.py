@@ -157,29 +157,31 @@ class DatabaseInitializer:
                 for ticker in default_tickers:
                     try:
                         logger.info(f"Initializing asset: {ticker}")
-                        
+
                         # Extract symbol for search - try both full ticker and symbol only
                         symbol_only = ticker.split(":")[-1] if ":" in ticker else ticker
-                        
+
                         # Try searching with both formats to maximize chances of finding the asset
                         search_queries = [ticker, symbol_only]
                         search_result = None
-                        
+
                         for query in search_queries:
                             search_result = asset_service.search_assets(
                                 query=query, limit=1, language="en-US"
                             )
                             if search_result["success"] and search_result["results"]:
-                                logger.info(f"Found asset data for {ticker} using query '{query}'")
+                                logger.info(
+                                    f"Found asset data for {ticker} using query '{query}'"
+                                )
                                 break
-                        
+
                         if not search_result:
                             search_result = {"success": False, "results": []}
 
                         if search_result["success"] and search_result["results"]:
                             # Asset found via adapter, create database record
                             asset_data = search_result["results"][0]
-                            
+
                             # Use the standardized ticker format (ensure EXCHANGE:SYMBOL format)
                             asset_ticker = asset_data.get("ticker", ticker)
                             if ":" not in asset_ticker:
@@ -201,18 +203,25 @@ class DatabaseInitializer:
                                     asset_type=asset_data["asset_type"],
                                     is_active=True,
                                     asset_metadata={
-                                        "exchange": asset_data.get("exchange") or ticker.split(":")[0],
+                                        "exchange": asset_data.get("exchange")
+                                        or ticker.split(":")[0],
                                         "country": asset_data.get("country"),
                                         "currency": asset_data.get("currency"),
-                                        "market_status": asset_data.get("market_status"),
+                                        "market_status": asset_data.get(
+                                            "market_status"
+                                        ),
                                         "source": "adapter_search",
-                                        "relevance_score": asset_data.get("relevance_score", 0.0),
+                                        "relevance_score": asset_data.get(
+                                            "relevance_score", 0.0
+                                        ),
                                         "original_search_query": query,
                                         "standardized_ticker": asset_ticker,
                                     },
                                 )
                                 session.add(new_asset)
-                                logger.info(f"Added asset from adapter: {asset_ticker} (searched as '{query}')")
+                                logger.info(
+                                    f"Added asset from adapter: {asset_ticker} (searched as '{query}')"
+                                )
                                 initialized_count += 1
                             else:
                                 # Update existing asset with adapter data
@@ -223,16 +232,21 @@ class DatabaseInitializer:
                                 existing_metadata = existing_asset.asset_metadata or {}
                                 existing_metadata.update(
                                     {
-                                        "exchange": asset_data.get("exchange") or ticker.split(":")[0],
+                                        "exchange": asset_data.get("exchange")
+                                        or ticker.split(":")[0],
                                         "country": asset_data.get("country"),
                                         "currency": asset_data.get("currency"),
-                                        "market_status": asset_data.get("market_status"),
+                                        "market_status": asset_data.get(
+                                            "market_status"
+                                        ),
                                         "last_updated_from_adapter": True,
                                         "last_search_query": query,
                                     }
                                 )
                                 existing_asset.asset_metadata = existing_metadata
-                                logger.info(f"Updated asset from adapter: {asset_ticker} (searched as '{query}')")
+                                logger.info(
+                                    f"Updated asset from adapter: {asset_ticker} (searched as '{query}')"
+                                )
 
                         else:
                             # Fallback: create basic asset record for common tickers
@@ -259,13 +273,13 @@ class DatabaseInitializer:
                     f"Asset initialization completed successfully. "
                     f"Initialized/updated {initialized_count} out of {len(default_tickers)} assets."
                 )
-                
+
                 # Log summary of initialized assets
                 if initialized_count > 0:
                     logger.info("Initialized assets summary:")
                     for ticker in default_tickers[:initialized_count]:
                         logger.info(f"  - {ticker}")
-                
+
                 return True
 
             except Exception as e:
