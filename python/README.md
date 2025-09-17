@@ -9,7 +9,7 @@ ValueCell is a community-driven, multi-agent platform for financial applications
 Install the package in development mode with all dependencies:
 
 ```bash
-uv pip install -e ".[dev]"
+uv sync --group dev
 ```
 
 ### Production Installation

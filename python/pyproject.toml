@@ -31,6 +31,20 @@ dev = [
     "pytest-asyncio>=1.0.0",
 ]
 
+[dependency-groups]
+dev = [
+    {include-group = "lint"},
+    {include-group = "test"}
+]
+lint = [
+    "ruff"
+]
+test = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=1.0.0",
+]
+
 [tool.ruff]
 line-length = 88
 indent-width = 4
