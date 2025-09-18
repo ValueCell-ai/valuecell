@@ -6,7 +6,8 @@ from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
 from a2a.utils import get_message_text
 from valuecell.core.agent.connect import get_default_remote_connections
 from valuecell.core.session import Role, get_default_session_manager
-from valuecell.core.task import get_default_task_manager
+from valuecell.core.task import Task, get_default_task_manager
+from valuecell.core.task.models import TaskPattern
 from valuecell.core.types import (
     MessageChunk,
     MessageChunkMetadata,
@@ -95,6 +96,16 @@ class AgentOrchestrator:
 
                 yield chunk
 
+                if chunk.is_final and agent_responses[agent_name].strip():
+                    # Save final response to session when final chunk is received
+                    await self.session_manager.add_message(
+                        session_id,
+                        Role.AGENT,
+                        agent_responses[agent_name],
+                        agent_name=agent_name,
+                    )
+                    agent_responses[agent_name] = ""
+
             # Add separate messages for each agent's complete response
             for agent_name, full_response in agent_responses.items():
                 if full_response.strip():  # Only save non-empty responses
@@ -140,7 +151,7 @@ class AgentOrchestrator:
                 )
 
     async def _execute_task(
-        self, task, query: str, metadata: dict
+        self, task: Task, query: str, metadata: dict
     ) -> AsyncGenerator[MessageChunk, None]:
         """Execute a single task by calling the specified agent - streams results"""
 
@@ -158,6 +169,8 @@ class AgentOrchestrator:
             if not client:
                 raise RuntimeError(f"Could not connect to agent {task.agent_name}")
 
+            if task.pattern != TaskPattern.ONCE:
+                metadata["notify"] = True
             response = await client.send_message(
                 query,
                 context_id=task.session_id,
@@ -194,6 +207,7 @@ class AgentOrchestrator:
                         task.session_id,
                         task.user_id,
                         task.agent_name,
+                        is_final=metadata.get("notify", False),
                     )
 
             # Complete task

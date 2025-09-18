@@ -16,6 +16,13 @@ class TaskStatus(str, Enum):
     CANCELLED = "cancelled"  # Cancelled by user or system
 
 
+class TaskPattern(str, Enum):
+    """Task pattern enumeration"""
+
+    ONCE = "once"  # One-time task
+    RECURRING = "recurring"  # Recurring task
+
+
 class Task(BaseModel):
     """Task data model"""
 
@@ -29,6 +36,9 @@ class Task(BaseModel):
     agent_name: str = Field(..., description="Name of the agent executing this task")
     status: TaskStatus = Field(
         default=TaskStatus.PENDING, description="Current task status"
+    )
+    pattern: TaskPattern = Field(
+        default=TaskPattern.ONCE, description="Task execution pattern"
     )
 
     # Time-related fields

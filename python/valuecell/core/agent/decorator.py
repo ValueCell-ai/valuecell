@@ -150,19 +150,14 @@ class GenericAgentExecutor(AgentExecutor):
         self.agent = agent
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
-        # Ensure agent implements streaming interface
-        if not hasattr(self.agent, "stream"):
-            raise NotImplementedError(
-                f"Agent {self.agent.__class__.__name__} must implement 'stream' method"
-            )
-
         # Prepare query and ensure a task exists in the system
         query = context.get_user_input()
         task = context.current_task
+        metadata = context.metadata
         if not task:
             message = context.message
             task = new_task(message)
-            task.metadata = message.metadata
+            task.metadata = metadata
             await event_queue.enqueue_event(task)
 
         # Helper state
@@ -186,7 +181,10 @@ class GenericAgentExecutor(AgentExecutor):
         # Stream from the user agent and update task incrementally
         await updater.update_status(TaskState.working)
         try:
-            async for item in self.agent.stream(query, task.context_id, task.id):
+            query_handler = (
+                self.agent.notify if metadata.get("notify") else self.agent.stream
+            )
+            async for item in query_handler(query, task.context_id, task.id):
                 content = item.get("content", "")
                 is_complete = item.get("is_task_complete", True)
 
@@ -195,6 +193,7 @@ class GenericAgentExecutor(AgentExecutor):
                 if is_complete:
                     await updater.complete()
                     break
+
         except Exception as e:
             message = (
                 f"Error during {self.agent.__class__.__name__} agent execution: {e}"
