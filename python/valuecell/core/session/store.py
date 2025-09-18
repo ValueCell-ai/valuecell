@@ -5,7 +5,10 @@ from .models import Session
 
 
 class SessionStore(ABC):
-    """Session storage abstract base class"""
+    """Session storage abstract base class - handles session metadata only.
+
+    Messages are stored separately using MessageStore implementations.
+    """
 
     @abstractmethod
     async def save_session(self, session: Session) -> None:
