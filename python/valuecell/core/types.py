@@ -132,7 +132,6 @@ class BaseAgent(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
     async def notify(
         self, query: str, session_id: str, task_id: str
     ) -> AsyncGenerator[NotifyResponse, None]:
