@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from typing import AsyncGenerator
 
 from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
@@ -34,6 +35,7 @@ class AgentOrchestrator:
         content: str,
         session_id: str,
         user_id: str,
+        agent_name: str,
         kind: MessageDataKind = MessageDataKind.TEXT,
         is_final: bool = False,
         status: MessageChunkStatus = MessageChunkStatus.partial,
@@ -43,19 +45,23 @@ class AgentOrchestrator:
             content=content,
             kind=kind,
             meta=MessageChunkMetadata(
-                session_id=session_id, user_id=user_id, status=status
+                session_id=session_id,
+                user_id=user_id,
+                agent_name=agent_name,
+                status=status,
             ),
             is_final=is_final,
         )
 
     def _create_error_message_chunk(
-        self, error_msg: str, session_id: str, user_id: str
+        self, error_msg: str, session_id: str, user_id: str, agent_name: str
     ) -> MessageChunk:
         """Create an error MessageChunk with standardized format"""
         return self._create_message_chunk(
             content=f"(Error): {error_msg}",
             session_id=session_id,
             user_id=user_id,
+            agent_name=agent_name,
             is_final=True,
             status=MessageChunkStatus.failure,
         )
@@ -71,28 +77,38 @@ class AgentOrchestrator:
             await self.session_manager.create_session(
                 user_input.meta.user_id, session_id=session_id
             )
-        await self.session_manager.add_message(session_id, Role.USER, user_input.query)
+        await self.session_manager.add_message(
+            session_id, Role.USER, user_input.query, user_id=user_input.meta.user_id
+        )
 
         try:
             # Create execution plan with user_id
             plan = await self.planner.create_plan(user_input)
 
-            # Stream execution results
-            full_response = ""
+            # Stream execution results and track agent responses separately
+            agent_responses = defaultdict(str)  # Dict[agent_name, response_content]
             async for chunk in self._execute_plan(plan, user_input.meta.model_dump()):
-                full_response += chunk.content
+                agent_name = chunk.meta.agent_name
+
+                # Track content by agent
+                agent_responses[agent_name] += chunk.content
+
                 yield chunk
 
-            # Add final assistant response to session
-            await self.session_manager.add_message(
-                session_id, Role.AGENT, full_response
-            )
+            # Add separate messages for each agent's complete response
+            for agent_name, full_response in agent_responses.items():
+                if full_response.strip():  # Only save non-empty responses
+                    await self.session_manager.add_message(
+                        session_id, Role.AGENT, full_response, agent_name=agent_name
+                    )
 
         except Exception as e:
             error_msg = f"Error processing request: {str(e)}"
-            await self.session_manager.add_message(session_id, Role.SYSTEM, error_msg)
+            await self.session_manager.add_message(
+                session_id, Role.SYSTEM, error_msg, agent_name="__system__"
+            )
             yield self._create_error_message_chunk(
-                error_msg, session_id, user_input.meta.user_id
+                error_msg, session_id, user_input.meta.user_id, "__system__"
             )
 
     async def _execute_plan(
@@ -103,7 +119,7 @@ class AgentOrchestrator:
         session_id, user_id = metadata["session_id"], metadata["user_id"]
         if not plan.tasks:
             yield self._create_error_message_chunk(
-                "No tasks found for this request.", session_id, user_id
+                "No tasks found for this request.", session_id, user_id, "__system__"
             )
             return
 
@@ -119,7 +135,9 @@ class AgentOrchestrator:
 
             except Exception as e:
                 error_msg = f"Error executing {task.agent_name}: {str(e)}"
-                yield self._create_error_message_chunk(error_msg, session_id, user_id)
+                yield self._create_error_message_chunk(
+                    error_msg, session_id, user_id, task.agent_name
+                )
 
     async def _execute_task(
         self, task, query: str, metadata: dict
@@ -165,6 +183,7 @@ class AgentOrchestrator:
                             err_msg,
                             task.session_id,
                             task.user_id,
+                            task.agent_name,
                         )
                         return
 
@@ -174,6 +193,7 @@ class AgentOrchestrator:
                         get_message_text(event.artifact, ""),
                         task.session_id,
                         task.user_id,
+                        task.agent_name,
                     )
 
             # Complete task
@@ -182,6 +202,7 @@ class AgentOrchestrator:
                 "",
                 task.session_id,
                 task.user_id,
+                task.agent_name,
                 is_final=True,
                 status=MessageChunkStatus.success,
             )
@@ -210,6 +231,7 @@ class AgentOrchestrator:
             session_id,
             Role.SYSTEM,
             f"Session closed. {cancelled_count} tasks were cancelled.",
+            agent_name="orchestrator",
         )
 
     async def get_session_history(self, session_id: str):

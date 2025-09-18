@@ -69,6 +69,7 @@ class MessageChunkMetadata(BaseModel):
     )
     session_id: str = Field(..., description="Session ID for this request")
     user_id: str = Field(..., description="User ID who made this request")
+    agent_name: str = Field(..., description="Agent name handling this message")
 
 
 class MessageChunk(BaseModel):
