@@ -34,7 +34,6 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
-    "@faker-js/faker": "^10.0.0",
     "@react-router/dev": "^7.8.2",
     "@react-router/serve": "^7.8.2",
     "@tailwindcss/typography": "^0.5.16",
