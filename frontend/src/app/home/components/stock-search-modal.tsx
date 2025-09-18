@@ -1,10 +1,7 @@
+import { Plus, Search, X } from "lucide-react";
 import { useState } from "react";
-// TODO: 重新实现 API 调用，orval 已移除
-// import {
-//   useAddStockToWatchlistApiV1WatchlistUserIdStocksPost,
-//   useSearchAssetsApiV1WatchlistSearchGet,
-// } from "@/api/generated";
-// import type { AssetInfoData } from "@/api/model";
+import { useAddStockToWatchlist, useGetStocksList } from "@/api/stock";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogClose,
@@ -13,137 +10,94 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-
-const imgSousuo31 =
-  "http://localhost:3845/assets/a0d762e5297b09f6ad2e47d6d8f323b53dcc81aa.svg";
+import ScrollContainer from "@/components/valuecell/scroll-container";
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface StockSearchModalProps {
   children: React.ReactNode;
 }
 
 export default function StockSearchModal({ children }: StockSearchModalProps) {
-  const [searchValue, setSearchValue] = useState("");
+  const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query, 300);
+  const { data: stockList, isLoading } = useGetStocksList({
+    query: debouncedQuery,
+  });
 
-  // TODO: 重新实现 API 调用，orval 已移除
-  // const { data, isLoading, } = useSearchAssetsApiV1WatchlistSearchGet(
-  //   {
-  //     q: searchValue,
-  //   },
-  //   {
-  //     query: {
-  //       enabled: !!searchValue,
-  //     },
-  //   },
-  // );
-
-  // 临时模拟数据
-  const data = null;
-  const isLoading = false;
-
-  // Extract results safely
-  const results = data?.data?.data?.results ?? [];
-
-  // TODO: 重新实现添加股票到监视列表的功能
-  // const { mutate: addStockToWatchlist } =
-  //   useAddStockToWatchlistApiV1WatchlistUserIdStocksPost();
-  const addStockToWatchlist = () => {
-    console.log("addStockToWatchlist: 功能已禁用，需要重新实现");
-  };
+  const { mutate: addStockToWatchlist } = useAddStockToWatchlist();
 
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent
-        className="w-full max-w-md rounded-[20px] border-none bg-[#f4f4f4] p-6"
+        className="flex h-3/5 min-h-[400px] w-md flex-col gap-3 rounded-2xl bg-neutral-50 p-6"
         showCloseButton={false}
       >
-        <div className="flex flex-col gap-4">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <DialogTitle className="font-semibold text-[20px] text-gray-950 leading-[28px]">
-              Stock Search
-            </DialogTitle>
-            <DialogClose asChild>
-              <button
-                type="button"
-                className="rounded-sm p-1 transition-colors hover:bg-gray-200"
-              >
-                <div className="relative flex h-6 w-6 items-center justify-center">
-                  <div className="absolute rotate-45">
-                    <div className="h-[1.331px] w-[21.296px] rounded-[8.652px] bg-[#838383]" />
-                  </div>
-                  <div className="absolute rotate-[135deg]">
-                    <div className="h-[1.331px] w-[21.296px] rounded-[8.652px] bg-[#838383]" />
-                  </div>
-                </div>
-              </button>
-            </DialogClose>
-          </div>
+        <header className="flex items-center justify-between">
+          <DialogTitle className="font-semibold text-2xl text-neutral-900">
+            Stock Search
+          </DialogTitle>
+          <DialogClose asChild>
+            <Button size="icon" variant="ghost" className="cursor-pointer">
+              <X className="size-6 text-neutral-400" />
+            </Button>
+          </DialogClose>
+        </header>
 
-          {/* Search Input */}
-          <div className="flex items-center gap-4 rounded-[11px] border border-gray-100 bg-white p-4">
-            <div className="h-5 w-5 flex-shrink-0">
-              <img src={imgSousuo31} alt="Search" className="h-full w-full" />
-            </div>
-            <Input
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              placeholder="Search for stock name or code"
-              className="border-none bg-transparent p-0 text-[14px] text-gray-950 placeholder:text-gray-400 focus-visible:ring-0 focus-visible:ring-offset-0"
-            />
-          </div>
-
-          {/* Search Results */}
-          {searchValue && (
-            <div className="max-h-60 overflow-y-auto">
-              {isLoading ? (
-                <div className="flex items-center justify-center p-4">
-                  <div className="text-gray-500 text-sm">搜索中...</div>
-                </div>
-              ) : results.length > 0 ? (
-                <div className="rounded-[8px] bg-white py-[8px]">
-                  {results.map((asset: any) => (
-                    <div
-                      key={asset.ticker}
-                      className="flex items-center justify-between px-[16px] py-[4px] transition-colors hover:bg-gray-50"
-                    >
-                      <div className="flex flex-col gap-px">
-                        <p className="text-[14px] text-gray-900">
-                          {asset.display_name}
-                        </p>
-                        <p className="text-[12px] text-gray-300">
-                          {asset.ticker}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        className="relative h-[28px] w-[76px] rounded-[6px] bg-gray-950"
-                        onClick={() => {
-                          addStockToWatchlist();
-                        }}
-                      >
-                        {/* Plus icon */}
-                        <div className="absolute top-[7px] left-[8px]">
-                          <div className="absolute top-[13.5px] left-[8px] h-px w-[14px] bg-white" />
-                          <div className="absolute top-[7px] left-[14.5px] flex h-[14px] w-[1px] items-center justify-center">
-                            <div className="h-px w-[14px] rotate-[270deg] bg-white" />
-                          </div>
-                        </div>
-                        <p className="absolute top-[4px] left-[26px] font-normal text-[14px] text-white leading-[20px]">
-                          加自选
-                        </p>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : searchValue.length > 0 ? (
-                <div className="flex items-center justify-center p-4">
-                  <div className="text-gray-500 text-sm">未找到相关股票</div>
-                </div>
-              ) : null}
-            </div>
-          )}
+        {/* Search Input */}
+        <div className="flex items-center gap-4 rounded-lg bg-white p-4 focus-within:ring-1">
+          <Search className="size-5 text-neutral-400" />
+          <Input
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search for stock name or code"
+            className="border-none bg-transparent p-0 text-neutral-900 text-sm shadow-none placeholder:text-neutral-400 focus-visible:ring-0 focus-visible:ring-offset-0"
+          />
         </div>
+
+        {/* Search Results */}
+        <ScrollContainer>
+          {isLoading ? (
+            <p className="p-4 text-center text-neutral-400 text-sm">
+              Searching...
+            </p>
+          ) : stockList && stockList.length > 0 ? (
+            <div className="rounded-lg bg-white py-2">
+              {stockList.map((stock) => (
+                <div
+                  key={stock.ticker}
+                  className="flex items-center justify-between px-4 py-2 transition-colors hover:bg-gray-50"
+                >
+                  <div className="flex flex-col gap-px">
+                    <p className="text-neutral-900 text-sm">
+                      {stock.display_name}
+                    </p>
+                    <p className="text-neutral-400 text-xs">{stock.ticker}</p>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    className="cursor-pointer font-normal text-sm text-white"
+                    onClick={() =>
+                      addStockToWatchlist({ ticker: stock.ticker })
+                    }
+                  >
+                    <Plus className="size-5" />
+                    Watchlist
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            query &&
+            !isLoading &&
+            stockList &&
+            stockList.length === 0 && (
+              <p className="p-4 text-center text-neutral-400 text-sm">
+                No related stocks found
+              </p>
+            )
+          )}
+        </ScrollContainer>
       </DialogContent>
     </Dialog>
   );

@@ -27,7 +27,7 @@ export interface RequestConfig {
 export const getServerUrl = (endpoint: string) => {
   if (endpoint.startsWith("http")) return endpoint;
 
-  return `${import.meta.env.BASE_URL ?? "http://localhost:8080/api/v1"}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+  return `${import.meta.env.API_BASE_URL ?? "http://localhost:8000/api/v1"}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
 };
 
 class ApiClient {
@@ -66,8 +66,7 @@ class ApiClient {
 
     const contentType = response.headers.get("content-type");
     if (contentType?.includes("application/json")) {
-      const data = await response.json();
-      return data.data !== undefined ? data.data : data;
+      return await response.json();
     }
 
     return (await response.text()) as unknown as T;

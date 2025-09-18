@@ -1,7 +1,5 @@
 import { memo } from "react";
 import { useLocation } from "react-router";
-// TODO: 重新实现 API 调用，orval 已移除
-// import { useGetUserWatchlistsApiV1WatchlistUserIdGet } from "@/api/generated";
 import {
   StockMenu,
   StockMenuGroup,
@@ -17,12 +15,6 @@ function StockList() {
 
   // Extract stock symbol (e.g., AAPL) from path like /stock/AAPL
   const stockSymbol = pathname.split("/")[2];
-
-  // TODO: 重新实现 API 调用，orval 已移除
-  // const { data: watchlist } =
-  //   useGetUserWatchlistsApiV1WatchlistUserIdGet("default_user");
-  // console.log("🚀 ~ StockList ~ watchlist:", watchlist);
-  const watchlist = null;
 
   return (
     <StockMenu>

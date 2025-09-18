@@ -1,7 +1,7 @@
 import { Plus } from "lucide-react";
 import { Outlet } from "react-router";
-import { Button } from "@/components/ui/button";
 import StockSearchModal from "@/app/home/components/stock-search-modal";
+import { Button } from "@/components/ui/button";
 import ScrollContainer from "@/components/valuecell/scroll-container";
 import StockList from "./components/stock-list";
 
