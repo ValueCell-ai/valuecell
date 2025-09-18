@@ -14,7 +14,7 @@ from valuecell.core.types import UserInput, UserInputMetadata
 logger = logging.getLogger(__name__)
 
 # Agent analyst mapping from the example
-AGENT_ANALYST_MAP = {"Sec13FundAgent": ("Sec13FundAgent")}
+AGENT_ANALYST_MAP = {"SecAgent": ("SecAgent")}
 
 
 class AnalysisRequest(BaseModel):
