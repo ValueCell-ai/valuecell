@@ -16,6 +16,7 @@ from .routers.i18n import create_i18n_router
 from .routers.system import create_system_router
 from .routers.websocket import create_websocket_router
 from .routers.watchlist import create_watchlist_router
+from .routers.agent_stream import create_agent_stream_router
 from .schemas import SuccessResponse, AppInfoData
 from ...adapters.assets import get_adapter_manager
 
@@ -130,6 +131,8 @@ def _add_routes(app: FastAPI, settings) -> None:
     app.include_router(create_websocket_router())
     # Include watchlist router
     app.include_router(create_watchlist_router())
+    # Include agent stream router
+    app.include_router(create_agent_stream_router(), prefix="/api/v1")
 
 
 # For uvicorn
