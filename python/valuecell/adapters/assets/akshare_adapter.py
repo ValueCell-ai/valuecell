@@ -102,7 +102,7 @@ class AKShareAdapter(BaseDataAdapter):
             "us_stocks": {
                 "code": ["代码", "symbol", "ticker"],
                 "name": ["名称", "name", "short_name"],
-            }
+            },
         }
 
         # Exchange mapping for AKShare
@@ -917,7 +917,9 @@ class AKShareAdapter(BaseDataAdapter):
                 "issue_price": info_dict.get("issue_price"),
                 "actual_rc_net_amt": info_dict.get("actual_rc_net_amt"),
                 "pe_after_issuing": info_dict.get("pe_after_issuing"),
-                "online_success_rate_of_issue": info_dict.get("online_success_rate_of_issue"),
+                "online_success_rate_of_issue": info_dict.get(
+                    "online_success_rate_of_issue"
+                ),
                 "affiliate_industry": info_dict.get("affiliate_industry"),
             }
 
@@ -1035,9 +1037,11 @@ class AKShareAdapter(BaseDataAdapter):
             stock_data = df_realtime[df_realtime["代码"] == symbol]
             if stock_data.empty:
                 # If not found by exact match, try alternative matching
-                logger.warning(f"Stock {symbol} not found in A-share spot data, falling back to individual info")
+                logger.warning(
+                    f"Stock {symbol} not found in A-share spot data, falling back to individual info"
+                )
                 return self._get_a_share_price_from_info(ticker, exchange, symbol)
-            
+
             stock_info = stock_data.iloc[0]
 
             # Extract price information using safe field access
@@ -1087,7 +1091,10 @@ class AKShareAdapter(BaseDataAdapter):
             # Try to get basic price info from stock individual info
             cache_key = f"a_share_info_price_{symbol}"
             df_info = self._get_cached_data(
-                cache_key, self._safe_akshare_call, ak.stock_individual_info_em, symbol=symbol
+                cache_key,
+                self._safe_akshare_call,
+                ak.stock_individual_info_em,
+                symbol=symbol,
             )
 
             if df_info is None or df_info.empty:
@@ -1102,13 +1109,14 @@ class AKShareAdapter(BaseDataAdapter):
             # Extract current price from the individual info (if available)
             current_price_value = info_dict.get("最新", info_dict.get("现价", 0))
             current_price = self._safe_decimal_convert(current_price_value)
-            
+
             # Get market cap and other info
             market_cap = self._safe_decimal_convert(info_dict.get("总市值"))
-            total_shares = self._safe_decimal_convert(info_dict.get("总股本"))
 
             if not current_price or current_price == 0:
-                logger.warning(f"No valid current price found for {symbol} in individual info")
+                logger.warning(
+                    f"No valid current price found for {symbol} in individual info"
+                )
                 return None
 
             return AssetPrice(
