@@ -1,6 +1,7 @@
 """Watchlist related API routes."""
 
 from typing import Optional, List
+from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, Query, Path
 
 from ..schemas import (
@@ -14,6 +15,8 @@ from ..schemas import (
     AssetInfoData,
     AssetDetailData,
     AssetPriceData,
+    AssetHistoricalPricesData,
+    AssetHistoricalPriceData,
 )
 from ...services.assets.asset_service import get_asset_service
 from ...db.repositories.watchlist_repository import get_watchlist_repository
@@ -31,7 +34,7 @@ def create_watchlist_router() -> APIRouter:
     watchlist_repo = get_watchlist_repository()
 
     @router.get(
-        "/search",
+        "/asset/search",
         response_model=SuccessResponse[AssetSearchResultData],
         summary="Search assets",
         description="Search for financial assets (stocks, etc.) with filtering options",
@@ -475,6 +478,92 @@ def create_watchlist_router() -> APIRouter:
         except Exception as e:
             raise HTTPException(
                 status_code=500, detail=f"Failed to update notes: {str(e)}"
+            )
+
+    @router.get(
+        "/asset/{ticker}/price/historical",
+        response_model=SuccessResponse[AssetHistoricalPricesData],
+        summary="Get historical asset prices",
+        description="Get historical price data for a specific asset",
+    )
+    async def get_asset_historical_prices(
+        ticker: str = Path(..., description="Asset ticker"),
+        start_date: Optional[str] = Query(
+            None, description="Start date (YYYY-MM-DD), defaults to 30 days ago"
+        ),
+        end_date: Optional[str] = Query(
+            None, description="End date (YYYY-MM-DD), defaults to today"
+        ),
+        interval: str = Query("1d", description="Data interval (1d, 1h, 5m, etc.)"),
+        language: Optional[str] = Query(
+            None, description="Language for localized formatting"
+        ),
+    ):
+        """Get historical prices for a asset."""
+        try:
+            # Parse dates
+            if end_date:
+                end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+            else:
+                end_dt = datetime.now()
+
+            if start_date:
+                start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+            else:
+                start_dt = end_dt - timedelta(days=30)
+
+            # Validate date range
+            if start_dt >= end_dt:
+                raise HTTPException(
+                    status_code=400, detail="Start date must be before end date"
+                )
+
+            # Get historical price data
+            result = asset_service.get_historical_prices(
+                ticker, start_dt, end_dt, interval, language
+            )
+
+            if not result.get("success", False):
+                if "not available" in result.get("error", "").lower():
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Historical price data not available for '{ticker}'",
+                    )
+                raise HTTPException(
+                    status_code=500,
+                    detail=result.get("error", "Failed to get historical price data"),
+                )
+
+            # Convert prices to AssetHistoricalPriceData format
+            historical_prices = []
+            for price_data in result.get("prices", []):
+                historical_price = AssetHistoricalPriceData(**price_data)
+                historical_prices.append(historical_price)
+
+            # Create response data
+            historical_data = AssetHistoricalPricesData(
+                ticker=result["ticker"],
+                start_date=result["start_date"],
+                end_date=result["end_date"],
+                interval=result["interval"],
+                currency=result["currency"],
+                prices=historical_prices,
+                count=result["count"],
+            )
+
+            return SuccessResponse.create(
+                data=historical_data, msg="Historical prices retrieved successfully"
+            )
+
+        except HTTPException:
+            raise
+        except ValueError as e:
+            raise HTTPException(
+                status_code=400, detail=f"Invalid date format: {str(e)}"
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Historical price error: {str(e)}"
             )
 
     return router

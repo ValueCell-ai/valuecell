@@ -41,6 +41,8 @@ from .watchlist import (
     AssetSearchResultData,
     AssetDetailData,
     AssetPriceData,
+    AssetHistoricalPriceData,
+    AssetHistoricalPricesData,
     WatchlistWithPricesData,
 )
 
@@ -84,5 +86,7 @@ __all__ = [
     "AssetSearchResultData",
     "AssetDetailData",
     "AssetPriceData",
+    "AssetHistoricalPriceData",
+    "AssetHistoricalPricesData",
     "WatchlistWithPricesData",
 ]
