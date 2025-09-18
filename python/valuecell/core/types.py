@@ -55,7 +55,18 @@ class MessageDataKind(str, Enum):
     COMMAND = "command"
 
 
+class MessageChunkStatus(str, Enum):
+    partial = "partial"
+    success = "success"
+    failure = "failure"
+    cancelled = "cancelled"
+
+
 class MessageChunkMetadata(BaseModel):
+    status: MessageChunkStatus = Field(
+        default=MessageChunkStatus.partial,
+        description="Chunk outcome: use partial for intermediate chunks; success/failure for final.",
+    )
     session_id: str = Field(..., description="Session ID for this request")
     user_id: str = Field(..., description="User ID who made this request")
 

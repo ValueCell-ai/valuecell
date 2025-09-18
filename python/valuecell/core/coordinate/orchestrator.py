@@ -9,6 +9,7 @@ from valuecell.core.task import get_default_task_manager
 from valuecell.core.types import (
     MessageChunk,
     MessageChunkMetadata,
+    MessageChunkStatus,
     MessageDataKind,
     UserInput,
 )
@@ -35,12 +36,15 @@ class AgentOrchestrator:
         user_id: str,
         kind: MessageDataKind = MessageDataKind.TEXT,
         is_final: bool = False,
+        status: MessageChunkStatus = MessageChunkStatus.partial,
     ) -> MessageChunk:
         """Create a MessageChunk with common metadata"""
         return MessageChunk(
             content=content,
             kind=kind,
-            meta=MessageChunkMetadata(session_id=session_id, user_id=user_id),
+            meta=MessageChunkMetadata(
+                session_id=session_id, user_id=user_id, status=status
+            ),
             is_final=is_final,
         )
 
@@ -53,6 +57,7 @@ class AgentOrchestrator:
             session_id=session_id,
             user_id=user_id,
             is_final=True,
+            status=MessageChunkStatus.failure,
         )
 
     async def process_user_input(
@@ -97,8 +102,8 @@ class AgentOrchestrator:
 
         session_id, user_id = metadata["session_id"], metadata["user_id"]
         if not plan.tasks:
-            yield self._create_message_chunk(
-                "No tasks found for this request.", session_id, user_id, is_final=True
+            yield self._create_error_message_chunk(
+                "No tasks found for this request.", session_id, user_id
             )
             return
 
@@ -115,15 +120,6 @@ class AgentOrchestrator:
             except Exception as e:
                 error_msg = f"Error executing {task.agent_name}: {str(e)}"
                 yield self._create_error_message_chunk(error_msg, session_id, user_id)
-
-        # Check if no results were produced
-        if not plan.tasks:
-            yield self._create_message_chunk(
-                "No agents were able to process this request.",
-                session_id,
-                user_id,
-                is_final=True,
-            )
 
     async def _execute_task(
         self, task, query: str, metadata: dict
@@ -165,11 +161,10 @@ class AgentOrchestrator:
                     if event.status.state == TaskState.failed:
                         err_msg = get_message_text(event.status.message)
                         await self.task_manager.fail_task(task.task_id, err_msg)
-                        yield self._create_message_chunk(
+                        yield self._create_error_message_chunk(
                             err_msg,
                             task.session_id,
                             task.user_id,
-                            is_final=True,
                         )
                         return
 
@@ -184,7 +179,11 @@ class AgentOrchestrator:
             # Complete task
             await self.task_manager.complete_task(task.task_id)
             yield self._create_message_chunk(
-                "", task.session_id, task.user_id, is_final=True
+                "",
+                task.session_id,
+                task.user_id,
+                is_final=True,
+                status=MessageChunkStatus.success,
             )
 
         except Exception as e:

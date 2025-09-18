@@ -53,51 +53,52 @@ class YFinanceAdapter(BaseDataAdapter):
             "ETF": AssetType.ETF,
             "INDEX": AssetType.INDEX,
             "CRYPTOCURRENCY": AssetType.CRYPTO,
+            # Additional mappings for search results
+            "STOCK": AssetType.STOCK,
+            "FUND": AssetType.ETF,
         }
 
         logger.info("Yahoo Finance adapter initialized")
 
     def search_assets(self, query: AssetSearchQuery) -> List[AssetSearchResult]:
-        """Search for assets using Yahoo Finance.
+        """Search for assets using Yahoo Finance Search API.
 
-        Note: Yahoo Finance doesn't have a direct search API, so this implementation
-        uses common ticker patterns and known symbols. For production use, consider
-        integrating with a dedicated search service.
-        TODO: Implement a dedicated search service.
+        Uses yfinance.Search for better search results across stocks, ETFs, and other assets.
+        Falls back to direct ticker lookup for specific symbols.
         """
         results = []
-        search_term = query.query.upper().strip()
+        search_term = query.query.strip()
 
-        # Try direct ticker lookup first
         try:
-            ticker_obj = yf.Ticker(search_term)
-            info = ticker_obj.info
+            # Use yfinance Search API for comprehensive search
+            search_obj = yf.Search(search_term)
 
-            if info and "symbol" in info:
-                result = self._create_search_result_from_info(info, query.language)
-                if result:
-                    results.append(result)
-        except Exception as e:
-            logger.debug(f"Direct ticker lookup failed for {search_term}: {e}")
+            # Get search results from different categories
+            search_quotes = getattr(search_obj, "quotes", [])
 
-        # Try with common suffixes for international markets
-        if not results:
-            suffixes = [".SS", ".SZ", ".HK", ".T", ".L", ".PA", ".DE"]
-            for suffix in suffixes:
+            # Process search results
+            for quote in search_quotes[
+                : query.limit * 2
+            ]:  # Get more results to filter later
                 try:
-                    test_ticker = f"{search_term}{suffix}"
-                    ticker_obj = yf.Ticker(test_ticker)
-                    info = ticker_obj.info
-
-                    if info and "symbol" in info:
-                        result = self._create_search_result_from_info(
-                            info, query.language
-                        )
-                        if result:
-                            results.append(result)
-                            break  # Found one, stop searching
-                except Exception:
+                    result = self._create_search_result_from_quote(
+                        quote, query.language
+                    )
+                    if result:
+                        results.append(result)
+                except Exception as e:
+                    logger.debug(f"Error processing search quote: {e}")
                     continue
+
+        except Exception as e:
+            logger.debug(f"yfinance Search API failed for '{search_term}': {e}")
+
+            # Fallback to direct ticker lookup
+            results.extend(self._fallback_ticker_search(search_term, query))
+
+        # If no results from search, try direct ticker lookup as final fallback
+        if not results:
+            results.extend(self._fallback_ticker_search(search_term.upper(), query))
 
         # Filter by asset types if specified
         if query.asset_types:
@@ -111,7 +112,154 @@ class YFinanceAdapter(BaseDataAdapter):
         if query.countries:
             results = [r for r in results if r.country in query.countries]
 
+        # Sort by relevance score (highest first)
+        results.sort(key=lambda x: x.relevance_score, reverse=True)
+
         return results[: query.limit]
+
+    def _create_search_result_from_quote(
+        self, quote: Dict, language: str
+    ) -> Optional[AssetSearchResult]:
+        """Create search result from Yahoo Finance search quote."""
+        try:
+            symbol = quote.get("symbol", "")
+            if not symbol:
+                return None
+
+            # Get exchange information first
+            exchange = quote.get("exchange", "UNKNOWN")
+
+            # Map yfinance exchange codes to our internal format
+            exchange_mapping = {
+                "NMS": "NASDAQ",
+                "NYQ": "NYSE",
+                "ASE": "AMEX",
+                "SHH": "SSE",
+                "SHZ": "SZSE",
+                "HKG": "HKEX",
+                "TYO": "TSE",
+                "LSE": "LSE",
+                "PAR": "EURONEXT",
+                "FRA": "XETRA",
+                "PCX": "NYSE",  # Pacific Exchange (for ETFs like SPY)
+                "CCC": "CRYPTO",  # Crypto
+            }
+            mapped_exchange = exchange_mapping.get(exchange, exchange)
+
+            # Create internal ticker with correct exchange
+            internal_ticker = f"{mapped_exchange}:{symbol}"
+
+            # Get asset type from quote type
+            quote_type = quote.get("quoteType", "").upper()
+            asset_type = self.asset_type_mapping.get(quote_type, AssetType.STOCK)
+
+            # Get country information
+            country = "US"  # Default
+            if mapped_exchange in ["SSE", "SZSE"]:
+                country = "CN"
+            elif mapped_exchange == "HKEX":
+                country = "HK"
+            elif mapped_exchange == "TSE":
+                country = "JP"
+            elif mapped_exchange in ["LSE", "EURONEXT", "XETRA"]:
+                country = "GB" if mapped_exchange == "LSE" else "DE"
+
+            # Get names in different languages
+            long_name = quote.get("longname", quote.get("shortname", symbol))
+            short_name = quote.get("shortname", symbol)
+
+            names = {
+                "en-US": long_name or short_name,
+                "en-GB": long_name or short_name,
+            }
+
+            # Calculate relevance score based on match quality
+            relevance_score = self._calculate_search_relevance(
+                quote, symbol, long_name or short_name
+            )
+
+            return AssetSearchResult(
+                ticker=internal_ticker,
+                asset_type=asset_type,
+                names=names,
+                exchange=mapped_exchange,
+                country=country,
+                currency=quote.get("currency", "USD"),
+                market_status=MarketStatus.UNKNOWN,
+                relevance_score=relevance_score,
+            )
+
+        except Exception as e:
+            logger.error(f"Error creating search result from quote: {e}")
+            return None
+
+    def _fallback_ticker_search(
+        self, search_term: str, query: AssetSearchQuery
+    ) -> List[AssetSearchResult]:
+        """Fallback search using direct ticker lookup with common suffixes."""
+        results = []
+
+        # Try direct ticker lookup first
+        try:
+            ticker_obj = yf.Ticker(search_term)
+            info = ticker_obj.info
+
+            if info and "symbol" in info and info.get("symbol"):
+                result = self._create_search_result_from_info(info, query.language)
+                if result:
+                    results.append(result)
+        except Exception as e:
+            logger.debug(f"Direct ticker lookup failed for {search_term}: {e}")
+
+        # Try with common suffixes for international markets
+        if not results:
+            suffixes = [".SS", ".SZ", ".HK", ".T", ".L", ".PA", ".DE", ".TO", ".AX"]
+            for suffix in suffixes:
+                try:
+                    test_ticker = f"{search_term}{suffix}"
+                    ticker_obj = yf.Ticker(test_ticker)
+                    info = ticker_obj.info
+
+                    if info and "symbol" in info and info.get("symbol"):
+                        result = self._create_search_result_from_info(
+                            info, query.language
+                        )
+                        if result:
+                            results.append(result)
+                            break  # Found one, stop searching
+                except Exception:
+                    continue
+
+        return results
+
+    def _calculate_search_relevance(self, quote: Dict, symbol: str, name: str) -> float:
+        """Calculate relevance score for search results."""
+        score = 0.0
+
+        # Base score for having a result
+        score += 0.5
+
+        # Higher score for exact symbol matches
+        if quote.get("symbol", "").upper() == symbol.upper():
+            score += 0.3
+
+        # Score based on market cap (larger companies get higher scores)
+        market_cap = quote.get("marketCap")
+        if market_cap and isinstance(market_cap, (int, float)) and market_cap > 0:
+            # Normalize market cap to 0-0.2 range
+            score += min(
+                0.2, market_cap / 1e12
+            )  # Trillion dollar companies get max score
+
+        # Bonus for having complete information
+        if quote.get("longname"):
+            score += 0.1
+        if quote.get("currency"):
+            score += 0.05
+        if quote.get("exchange"):
+            score += 0.05
+
+        return min(1.0, score)  # Cap at 1.0
 
     def _create_search_result_from_info(
         self, info: Dict, language: str

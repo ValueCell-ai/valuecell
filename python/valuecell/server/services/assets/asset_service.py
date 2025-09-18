@@ -8,9 +8,9 @@ import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
-from ...adapters.assets.manager import get_adapter_manager, get_watchlist_manager
-from ...adapters.assets.i18n_integration import get_asset_i18n_service
-from ...adapters.assets.types import AssetSearchQuery, AssetType
+from ....adapters.assets.manager import get_adapter_manager, get_watchlist_manager
+from ....adapters.assets.i18n_integration import get_asset_i18n_service
+from ....adapters.assets.types import AssetSearchQuery, AssetType
 from ...config.i18n import get_i18n_config
 
 logger = logging.getLogger(__name__)
@@ -24,6 +24,16 @@ class AssetService:
         self.adapter_manager = get_adapter_manager()
         self.watchlist_manager = get_watchlist_manager()
         self.i18n_service = get_asset_i18n_service()
+        self._watchlist_repository = None
+
+    @property
+    def watchlist_repository(self):
+        """Lazy load watchlist repository to avoid circular imports."""
+        if self._watchlist_repository is None:
+            from ...db.repositories.watchlist_repository import get_watchlist_repository
+
+            self._watchlist_repository = get_watchlist_repository()
+        return self._watchlist_repository
 
     def search_assets(
         self,
@@ -445,13 +455,13 @@ class AssetService:
             Dictionary containing watchlist data
         """
         try:
-            # Get watchlist
+            # Get watchlist from database
             if watchlist_name:
-                watchlist = self.watchlist_manager.get_watchlist(
+                watchlist = self.watchlist_repository.get_watchlist(
                     user_id, watchlist_name
                 )
             else:
-                watchlist = self.watchlist_manager.get_default_watchlist(user_id)
+                watchlist = self.watchlist_repository.get_default_watchlist(user_id)
 
             if not watchlist:
                 return {
@@ -463,7 +473,7 @@ class AssetService:
 
             # Get asset information and prices
             assets_data = []
-            tickers = watchlist.get_tickers()
+            tickers = [item.ticker for item in watchlist.items]
 
             # Get prices if requested
             prices_data = {}
@@ -473,16 +483,16 @@ class AssetService:
                     prices_data = prices_result["prices"]
 
             # Build asset data
-            for item in sorted(watchlist.items, key=lambda x: x.order):
+            for item in sorted(watchlist.items, key=lambda x: x.order_index):
                 asset_data = {
                     "ticker": item.ticker,
                     "display_name": self.i18n_service.get_localized_asset_name(
                         item.ticker, language
                     ),
                     "added_at": item.added_at.isoformat(),
-                    "order": item.order,
-                    "notes": item.notes,
-                    "alerts": item.alerts,
+                    "order": item.order_index,
+                    "notes": item.notes or "",
+                    "alerts": [],  # Database model doesn't have alerts field
                 }
 
                 # Add price data if available
@@ -496,7 +506,7 @@ class AssetService:
                 "watchlist": {
                     "user_id": watchlist.user_id,
                     "name": watchlist.name,
-                    "description": watchlist.description,
+                    "description": watchlist.description or "",
                     "created_at": watchlist.created_at.isoformat(),
                     "updated_at": watchlist.updated_at.isoformat(),
                     "is_default": watchlist.is_default,
