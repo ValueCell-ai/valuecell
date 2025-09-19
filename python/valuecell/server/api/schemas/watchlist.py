@@ -156,6 +156,37 @@ class AssetPriceData(BaseModel):
     source: Optional[str] = Field(None, description="Data source")
 
 
+class AssetHistoricalPriceData(BaseModel):
+    """Historical price data for an asset."""
+
+    ticker: str = Field(..., description="Asset ticker")
+    timestamp: str = Field(..., description="Price timestamp")
+    price: float = Field(..., description="Close price")
+    open_price: Optional[float] = Field(None, description="Opening price")
+    high_price: Optional[float] = Field(None, description="High price")
+    low_price: Optional[float] = Field(None, description="Low price")
+    close_price: Optional[float] = Field(None, description="Closing price")
+    volume: Optional[float] = Field(None, description="Trading volume")
+    change: Optional[float] = Field(None, description="Price change")
+    change_percent: Optional[float] = Field(None, description="Percentage change")
+    currency: str = Field(..., description="Currency")
+    source: Optional[str] = Field(None, description="Data source")
+
+
+class AssetHistoricalPricesData(BaseModel):
+    """Historical prices data response."""
+
+    ticker: str = Field(..., description="Asset ticker")
+    start_date: str = Field(..., description="Start date")
+    end_date: str = Field(..., description="End date")
+    interval: str = Field(..., description="Data interval")
+    currency: str = Field(..., description="Currency")
+    prices: List[AssetHistoricalPriceData] = Field(
+        ..., description="Historical price data"
+    )
+    count: int = Field(..., description="Number of price points")
+
+
 class WatchlistWithPricesData(BaseModel):
     """Watchlist data with price information."""
 

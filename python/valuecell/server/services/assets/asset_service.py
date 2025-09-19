@@ -316,6 +316,84 @@ class AssetService:
             logger.error(f"Error getting multiple prices: {e}")
             return {"success": False, "error": str(e), "prices": {}}
 
+    def get_historical_prices(
+        self,
+        ticker: str,
+        start_date: datetime,
+        end_date: datetime,
+        interval: str = "1d",
+        language: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Get historical price data for an asset with localized formatting.
+
+        Args:
+            ticker: Asset ticker in internal format
+            start_date: Start date for historical data
+            end_date: End date for historical data
+            interval: Data interval (e.g., "1d", "1h", "5m")
+            language: Language for localized formatting
+
+        Returns:
+            Dictionary containing historical price data
+        """
+        try:
+            historical_prices = self.adapter_manager.get_historical_prices(
+                ticker, start_date, end_date, interval
+            )
+
+            if not historical_prices:
+                return {
+                    "success": False,
+                    "error": "Historical price data not available",
+                    "ticker": ticker,
+                }
+
+            # Format historical price data with localization
+            formatted_prices = []
+            for price_data in historical_prices:
+                formatted_price = {
+                    "ticker": price_data.ticker,
+                    "timestamp": price_data.timestamp.isoformat(),
+                    "price": float(price_data.price),
+                    "open_price": float(price_data.open_price)
+                    if price_data.open_price
+                    else None,
+                    "high_price": float(price_data.high_price)
+                    if price_data.high_price
+                    else None,
+                    "low_price": float(price_data.low_price)
+                    if price_data.low_price
+                    else None,
+                    "close_price": float(price_data.close_price)
+                    if price_data.close_price
+                    else None,
+                    "volume": float(price_data.volume) if price_data.volume else None,
+                    "change": float(price_data.change) if price_data.change else None,
+                    "change_percent": float(price_data.change_percent)
+                    if price_data.change_percent
+                    else None,
+                    "currency": price_data.currency,
+                    "source": price_data.source.value if price_data.source else None,
+                }
+                formatted_prices.append(formatted_price)
+
+            return {
+                "success": True,
+                "ticker": ticker,
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "interval": interval,
+                "currency": historical_prices[0].currency
+                if historical_prices
+                else "USD",
+                "prices": formatted_prices,
+                "count": len(formatted_prices),
+            }
+
+        except Exception as e:
+            logger.error(f"Error getting historical prices for {ticker}: {e}")
+            return {"success": False, "error": str(e), "ticker": ticker}
+
     def create_watchlist(
         self,
         user_id: str,

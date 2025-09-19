@@ -15,7 +15,7 @@ def main():
     uvicorn.run(
         app,
         host=settings.API_HOST,
-        port=settings.API_PORT
+        port=settings.API_PORT,
     )
 
 

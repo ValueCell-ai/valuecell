@@ -96,12 +96,12 @@ class TickerConverter:
 
             # Special handling for Hong Kong stocks in yfinance
             if exchange == "HKEX" and source == DataSource.YFINANCE:
-                # Hong Kong stock codes need to be padded to 4 digits
-                # e.g., "700" -> "0700.HK", "1234" -> "1234.HK"
+                # Hong Kong stock codes need to be in proper format
+                # e.g., "700" -> "0700.HK", "00700" -> "0700.HK", "1234" -> "1234.HK"
                 if symbol.isdigit():
-                    padded_symbol = symbol.zfill(
-                        4
-                    )  # Pad with leading zeros to 4 digits
+                    # Remove leading zeros first, then pad to 4 digits
+                    clean_symbol = str(int(symbol))  # Remove leading zeros
+                    padded_symbol = clean_symbol.zfill(4)  # Pad to 4 digits
                     return f"{padded_symbol}.HK"
                 else:
                     # For non-numeric symbols, use as-is with .HK suffix
