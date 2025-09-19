@@ -17,9 +17,9 @@ async def main():
     # Get client and send message
     client = await connections.get_client("SecAgent")
     async for task, event in await client.send_message(
-        "伯克希尔最近持仓变化", streaming=True
+        "Recent Berkshire Hathaway holdings changes", streaming=True
     ):
-        print(f"接收到Task: {task}")
+        print(f"Received Task: {task}")
 
     print(f"Calculation result: {task.status}")
 

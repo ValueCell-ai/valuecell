@@ -4,6 +4,7 @@ Agent stream service for handling streaming agent interactions.
 
 from typing import AsyncGenerator, Optional
 from valuecell.core.coordinate.orchestrator import get_default_orchestrator
+from valuecell.core.coordinate.tests.test_orchestrator import session_id
 from valuecell.core.types import UserInput, UserInputMetadata
 import logging
 
@@ -36,8 +37,9 @@ class AgentStreamService:
 
             user_id = "default_user"
             desired_agent_name = agent_name
+            session_id = agent_name + "_session_" + user_id
 
-            user_input_meta = UserInputMetadata(user_id=user_id)
+            user_input_meta = UserInputMetadata(user_id=user_id, session_id=session_id)
 
             user_input = UserInput(
                 query=query, desired_agent_name=desired_agent_name, meta=user_input_meta

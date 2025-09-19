@@ -248,12 +248,16 @@ class SecAgent(BaseAgent):
                 return
             logger.info(f"Retrieved {len(filings)} 13F filings")
 
-            # Parse filing data
-            current_filing = filings.iloc[0].obj()
-            current_data = current_filing.infotable.to_json()
+            # %%
+            o = filings[1].obj()
+            current_filing = o.infotable.to_json()
 
-            previous_filing = filings.iloc[1].obj()
-            previous_data = previous_filing.infotable.to_json()
+            # %%
+            o = filings[2].obj()
+            previous_filing = o.infotable.to_json()
+
+
+
 
             logger.info("Successfully parsed current and historical holdings data")
 
@@ -262,10 +266,10 @@ class SecAgent(BaseAgent):
             As a professional investment analyst, please conduct an in-depth analysis of the following 13F holdings data:
 
             ## Historical holdings data (earlier period):
-            {previous_data}
+            {previous_filing}
 
             ## Current holdings data (latest period):
-            {current_data}
+            {current_filing}
 
             ## Analysis requirements:
             Please provide professional analysis from the following perspectives:

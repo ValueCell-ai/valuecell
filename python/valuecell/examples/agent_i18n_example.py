@@ -154,8 +154,8 @@ def main():
     # Batch process multiple users
     user_requests = {
         "user1": "Calculate my returns",
-        "user2": "分析我的投资组合",
-        "user3": "顯示我的資產配置",
+        "user2": "Analyze my investment portfolio",
+        "user3": "Show my asset allocation",
         "user4": "Update my risk profile",
     }
 

@@ -114,7 +114,7 @@ def demonstrate_asset_search():
     results_zh = search_assets("00700.HK", language="zh-Hans", limit=5)
 
     if results_zh["success"]:
-        logger.info(f"找到 {results_zh['count']} 个结果:")
+        logger.info(f"Found {results_zh['count']} results:")
         for result in results_zh["results"]:
             logger.info(
                 f"  - {result['ticker']}: {result['display_name']} "
@@ -192,7 +192,7 @@ def demonstrate_asset_info():
         info_zh = get_asset_info(ticker, language="zh-Hans")
         if info_zh["success"]:
             logger.info(
-                f"  中文: {info_zh['display_name']} ({info_zh['asset_type_display']})"
+                f"  Chinese: {info_zh['display_name']} ({info_zh['asset_type_display']})"
             )
 
 
