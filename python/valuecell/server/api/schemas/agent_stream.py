@@ -9,7 +9,9 @@ class AgentStreamRequest(BaseModel):
     """Request model for agent streaming queries."""
 
     query: str = Field(..., description="User query to send to the agent")
-    agent_name: str = Field(None, description="Specific agent name to use for the query")
+    agent_name: str = Field(
+        None, description="Specific agent name to use for the query"
+    )
 
     class Config:
         json_schema_extra = {

@@ -8,7 +8,9 @@ class ExecutionPlan(BaseModel):
     """Execution plan containing multiple tasks"""
 
     plan_id: str = Field(..., description="Unique plan identifier")
-    session_id: Optional[str] = Field(..., description="Session ID this plan belongs to")
+    session_id: Optional[str] = Field(
+        ..., description="Session ID this plan belongs to"
+    )
     user_id: str = Field(..., description="User ID who requested this plan")
     query: str = Field(..., description="Original user input")
     tasks: List[Task] = Field(default_factory=list, description="Tasks to execute")

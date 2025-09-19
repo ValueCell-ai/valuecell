@@ -256,9 +256,6 @@ class SecAgent(BaseAgent):
             o = filings[2].obj()
             previous_filing = o.infotable.to_json()
 
-
-
-
             logger.info("Successfully parsed current and historical holdings data")
 
             # Generate 13F analysis report
