@@ -201,7 +201,6 @@ class DatabaseInitializer:
                                     symbol=asset_ticker,
                                     name=asset_data["display_name"],
                                     asset_type=asset_data["asset_type"],
-                                    is_active=True,
                                     asset_metadata={
                                         "exchange": asset_data.get("exchange")
                                         or ticker.split(":")[0],
@@ -227,7 +226,6 @@ class DatabaseInitializer:
                                 # Update existing asset with adapter data
                                 existing_asset.name = asset_data["display_name"]
                                 existing_asset.asset_type = asset_data["asset_type"]
-                                existing_asset.is_active = True
                                 # Update existing asset metadata
                                 existing_metadata = existing_asset.asset_metadata or {}
                                 existing_metadata.update(
@@ -426,7 +424,6 @@ class DatabaseInitializer:
                         "description": "AI-powered hedge fund analysis and trading agent",
                         "version": "1.0.0",
                         "enabled": True,
-                        "is_active": True,
                         "capabilities": {
                             "streaming": False,
                             "push_notifications": False,
@@ -443,7 +440,6 @@ class DatabaseInitializer:
                         "description": "SEC 13F fund analysis and tracking agent",
                         "version": "1.0.0",
                         "enabled": True,
-                        "is_active": True,
                         "capabilities": {
                             "streaming": False,
                             "push_notifications": False,
@@ -460,7 +456,6 @@ class DatabaseInitializer:
                         "description": "TradingAgents - Multi-agent trading analysis system with market, sentiment, news and fundamentals analysis",
                         "version": "1.0.0",
                         "enabled": True,
-                        "is_active": True,
                         "capabilities": {
                             "streaming": True,
                             "push_notifications": False,
@@ -530,9 +525,6 @@ class DatabaseInitializer:
                         )
                         existing_agent.enabled = agent_data.get(
                             "enabled", existing_agent.enabled
-                        )
-                        existing_agent.is_active = agent_data.get(
-                            "is_active", existing_agent.is_active
                         )
                         existing_agent.capabilities = agent_data.get(
                             "capabilities", existing_agent.capabilities

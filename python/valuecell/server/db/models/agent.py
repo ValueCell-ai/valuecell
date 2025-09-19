@@ -53,12 +53,6 @@ class Agent(Base):
         nullable=False,
         comment="Whether the agent is currently enabled",
     )
-    is_active = Column(
-        Boolean,
-        default=True,
-        nullable=False,
-        comment="Whether the agent is active and available",
-    )
 
     # Capabilities and metadata
     capabilities = Column(
@@ -100,7 +94,6 @@ class Agent(Base):
             "description": self.description,
             "version": self.version,
             "enabled": self.enabled,
-            "is_active": self.is_active,
             "capabilities": self.capabilities,
             "agent_metadata": self.agent_metadata,
             "config": self.config,
@@ -113,11 +106,10 @@ class Agent(Base):
         """Create an Agent instance from configuration data."""
         return cls(
             name=config_data.get("name"),
-            display_name=config_data.get("display_name", config_data.get("name")),
+            display_name=config_data.get("display_name"),
             description=config_data.get("description"),
             version=config_data.get("version", "1.0.0"),
             enabled=config_data.get("enabled", True),
-            is_active=config_data.get("is_active", True),
             capabilities=config_data.get("capabilities"),
             agent_metadata=config_data.get("metadata"),
             config=config_data.get("config"),
