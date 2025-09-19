@@ -1,8 +1,10 @@
 import asyncio
 import logging
+import os
 from datetime import datetime
 from typing import Callable, List, Optional
 
+from a2a.types import AgentCard
 from agno.agent import Agent
 from agno.models.openrouter import OpenRouter
 from agno.tools.user_control_flow import UserControlFlowTools
@@ -101,10 +103,10 @@ class ExecutionPlanner:
             model=OpenRouter(id="openai/gpt-4o-mini"),
             tools=[
                 UserControlFlowTools(),
-                self.get_agent_card,
+                self.tool_get_agent_description,
             ],
             markdown=False,
-            debug_mode=True,
+            debug_mode=os.getenv("AGENT_DEBUG_MODE", "false").lower() == "true",
             instructions=[
                 create_prompt_with_datetime(PLANNER_INSTRUCTIONS),
             ],
@@ -200,7 +202,7 @@ class ExecutionPlanner:
             pattern=pattern,
         )
 
-    def get_agent_card(self, agent_name: str) -> str:
+    def tool_get_agent_description(self, agent_name: str) -> str:
         """
         Get the capabilities description of a specified agent by name.
 
@@ -215,7 +217,50 @@ class ExecutionPlanner:
         """
         self.agent_connections.list_remote_agents()
         if card := self.agent_connections.get_remote_agent_card(agent_name):
-            # Note: Returning a plain string for now; consider structured return in future
-            return str(card)
+            return agentcard_to_prompt(card)
 
         return "The requested agent could not be found or is not available."
+
+
+def agentcard_to_prompt(card: AgentCard):
+    """
+    Convert AgentCard JSON structure to LLM-friendly prompt string.
+
+    Args:
+        agentcard (AgentCard): The agentcard JSON structure
+
+    Returns:
+        str: Formatted prompt string for LLM processing
+    """
+
+    # Start with basic agent information
+    prompt = f"# Agent: {card.name}\n\n"
+
+    # Add description
+    prompt += f"**Description:** {card.description}\n\n"
+
+    # Add skills section
+    if card.skills:
+        prompt += "## Available Skills\n\n"
+
+        for i, skill in enumerate(card.skills, 1):
+            prompt += f"### {i}. {skill.name} (`{skill.id}`)\n\n"
+            prompt += f"**Description:** {skill.description}\n\n"
+
+            # Add examples if available
+            if skill.examples:
+                prompt += "**Examples:**\n"
+                for example in skill.examples:
+                    prompt += f"- {example}\n"
+                prompt += "\n"
+
+            # Add tags if available
+            if skill.tags:
+                tags_str = ", ".join([f"`{tag}`" for tag in skill.tags])
+                prompt += f"**Tags:** {tags_str}\n\n"
+
+            # Add separator between skills (except for the last one)
+            if i < len(card.skills):
+                prompt += "---\n\n"
+
+    return prompt.strip()
