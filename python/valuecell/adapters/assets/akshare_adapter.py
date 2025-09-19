@@ -81,7 +81,6 @@ class AKShareAdapter(BaseDataAdapter):
             "fund": AssetType.ETF,
             # "bond": AssetType.BOND,
             "index": AssetType.INDEX,
-            "crypto": AssetType.CRYPTO,
         }
 
         # Field mapping - Handle AKShare API field changes
@@ -104,7 +103,6 @@ class AKShareAdapter(BaseDataAdapter):
                 "code": ["代码", "symbol", "ticker"],
                 "name": ["名称", "name", "short_name"],
             },
-            "crypto": {"code": ["symbol", "代码"], "name": ["name", "名称"]},
         }
 
         # Exchange mapping for AKShare
@@ -305,9 +303,6 @@ class AKShareAdapter(BaseDataAdapter):
             if "us_stocks" in likely_markets and len(results) < query.limit:
                 results.extend(self._search_us_stocks_direct(search_term, query))
 
-            if "crypto" in likely_markets and len(results) < query.limit:
-                results.extend(self._search_crypto_direct(search_term, query))
-
             if "etfs" in likely_markets and len(results) < query.limit:
                 results.extend(self._search_etfs_direct(search_term, query))
 
@@ -358,7 +353,6 @@ class AKShareAdapter(BaseDataAdapter):
         # Determine markets based on query filters
         if query.asset_types:
             type_market_map = {
-                AssetType.CRYPTO: "crypto",
                 AssetType.ETF: "etfs",
                 AssetType.STOCK: ["a_shares", "hk_stocks", "us_stocks"],
             }
@@ -386,10 +380,10 @@ class AKShareAdapter(BaseDataAdapter):
 
         # If still empty, search all markets
         if not likely_markets:
-            likely_markets = {"a_shares", "us_stocks", "hk_stocks", "crypto", "etfs"}
+            likely_markets = {"a_shares", "us_stocks", "hk_stocks", "etfs"}
 
         # Convert to list with priority order
-        priority_order = ["a_shares", "us_stocks", "hk_stocks", "crypto", "etfs"]
+        priority_order = ["a_shares", "us_stocks", "hk_stocks", "etfs"]
         result = [market for market in priority_order if market in likely_markets]
 
         logger.debug(f"Determined likely markets for '{search_term}': {result}")
@@ -415,11 +409,7 @@ class AKShareAdapter(BaseDataAdapter):
 
         # US stock/crypto pattern (letters)
         elif search_term_upper.isalpha() and len(search_term_upper) <= 5:
-            crypto_symbols = {"BTC", "ETH", "USDT", "BNB", "ADA", "XRP", "SOL", "DOT"}
-            if search_term_upper in crypto_symbols:
-                markets.add("crypto")
-            else:
-                markets.add("us_stocks")
+            markets.add("us_stocks")
 
         # Chinese names - prioritize A-shares
         elif any("\u4e00" <= char <= "\u9fff" for char in search_term_upper):
@@ -427,7 +417,7 @@ class AKShareAdapter(BaseDataAdapter):
 
         # Default case
         else:
-            markets.update(["a_shares", "us_stocks", "hk_stocks", "crypto", "etfs"])
+            markets.update(["a_shares", "us_stocks", "hk_stocks", "etfs"])
 
         return markets
 
@@ -715,89 +705,6 @@ class AKShareAdapter(BaseDataAdapter):
 
         return candidates[:10]
 
-    def _search_crypto_direct(
-        self, search_term: str, query: AssetSearchQuery
-    ) -> List[AssetSearchResult]:
-        """Search cryptocurrencies using direct queries."""
-        results = []
-
-        # If search term looks like crypto symbol, try direct lookup
-        if self._is_crypto_symbol(search_term):
-            result = self._get_crypto_by_symbol(search_term)
-            if result:
-                results.append(result)
-                return results
-
-        # For other searches, try common crypto symbols
-        candidate_symbols = self._generate_crypto_candidates(search_term)
-
-        for symbol in candidate_symbols[: query.limit]:
-            try:
-                result = self._get_crypto_by_symbol(symbol)
-                if result and self._matches_search_term(result, search_term):
-                    results.append(result)
-            except Exception as e:
-                logger.debug(f"Failed to get crypto info for {symbol}: {e}")
-                continue
-
-        return results
-
-    def _is_crypto_symbol(self, search_term: str) -> bool:
-        """Check if search term looks like a crypto symbol."""
-        common_crypto = {"BTC", "ETH", "USDT", "BNB", "ADA", "XRP", "SOL", "DOT"}
-        return search_term.upper() in common_crypto or (
-            search_term.isalpha() and 2 <= len(search_term) <= 10
-        )
-
-    def _get_crypto_by_symbol(self, symbol: str) -> Optional[AssetSearchResult]:
-        """Get crypto info by symbol using direct query."""
-        try:
-            internal_ticker = f"CRYPTO:{symbol.upper()}"
-
-            names = {
-                "zh-Hans": symbol.upper(),
-                "zh-Hant": symbol.upper(),
-                "en-US": symbol.upper(),
-            }
-
-            return AssetSearchResult(
-                ticker=internal_ticker,
-                asset_type=AssetType.CRYPTO,
-                names=names,
-                exchange="CRYPTO",
-                country="GLOBAL",
-                currency="USD",
-                market_status=MarketStatus.UNKNOWN,
-                relevance_score=2.0,  # High relevance for direct matches
-            )
-
-        except Exception as e:
-            logger.debug(f"Error getting crypto info for {symbol}: {e}")
-            return None
-
-    def _generate_crypto_candidates(self, search_term: str) -> List[str]:
-        """Generate candidate crypto symbols based on search term."""
-        candidates = []
-
-        # Common cryptocurrencies
-        common_cryptos = [
-            "BTC",  # Bitcoin
-            "ETH",  # Ethereum
-            "USDT",  # Tether
-            "BNB",  # Binance Coin
-            "ADA",  # Cardano
-            "XRP",  # Ripple
-            "SOL",  # Solana
-            "DOT",  # Polkadot
-        ]
-
-        if search_term.isalpha() and len(search_term) <= 10:
-            candidates.append(search_term.upper())
-
-        candidates.extend(common_cryptos)
-
-        return candidates[:10]
-
     def _search_etfs_direct(
         self, search_term: str, query: AssetSearchQuery
     ) -> List[AssetSearchResult]:
@@ -922,8 +829,6 @@ class AKShareAdapter(BaseDataAdapter):
                 return self._get_hk_stock_info(ticker, exchange, symbol)
             elif exchange in ["NASDAQ", "NYSE"]:
                 return self._get_us_stock_info(ticker, exchange, symbol)
-            elif exchange == "CRYPTO":
-                return self._get_crypto_info(ticker, exchange, symbol)
             else:
                 logger.warning(f"Unsupported exchange: {exchange}")
                 return None
@@ -937,7 +842,8 @@ class AKShareAdapter(BaseDataAdapter):
     ) -> Optional[Asset]:
         """Get A-share stock information."""
         try:
-            df_info = ak.stock_individual_info_em(symbol=symbol)
+            # Use the new Snowball API for individual stock basic info
+            df_info = ak.stock_individual_basic_info_xq(symbol=symbol)
 
             if df_info is None or df_info.empty:
                 return None
@@ -949,10 +855,11 @@ class AKShareAdapter(BaseDataAdapter):
 
             # Create localized names
             names = LocalizedName()
-            stock_name = info_dict.get("股票名称", symbol)
-            names.set_name("zh-Hans", stock_name)
-            names.set_name("zh-Hant", stock_name)
-            names.set_name("en-US", stock_name)
+            stock_name_cn = info_dict.get("org_short_name_cn", symbol)
+            stock_name_en = info_dict.get("org_short_name_en", symbol)
+            names.set_name("zh-Hans", stock_name_cn)
+            names.set_name("zh-Hant", stock_name_cn)
+            names.set_name("en-US", stock_name_en)
 
             # Create market info
             market_info = MarketInfo(
@@ -973,28 +880,47 @@ class AKShareAdapter(BaseDataAdapter):
             # Set source mapping
             asset.set_source_ticker(self.source, symbol)
 
-            # Add additional properties from AKShare
+            # Add additional properties from Snowball API
             properties = {
-                "stock_name": info_dict.get("股票名称"),
-                "stock_code": info_dict.get("股票代码"),
-                "listing_date": info_dict.get("上市时间"),
-                "total_share_capital": info_dict.get("总股本"),
-                "circulating_share_capital": info_dict.get("流通股本"),
-                "industry": info_dict.get("所处行业"),
-                "main_business": info_dict.get("主营业务"),
-                "business_scope": info_dict.get("经营范围"),
-                "chairman": info_dict.get("董事长"),
-                "general_manager": info_dict.get("总经理"),
-                "secretary": info_dict.get("董秘"),
-                "registered_capital": info_dict.get("注册资本"),
-                "employees": info_dict.get("员工人数"),
-                "province": info_dict.get("所属省份"),
-                "city": info_dict.get("所属城市"),
-                "office_address": info_dict.get("办公地址"),
-                "company_website": info_dict.get("公司网址"),
-                "email": info_dict.get("电子邮箱"),
-                "main_business_income": info_dict.get("主营业务收入"),
-                "net_profit": info_dict.get("净利润"),
+                "org_id": info_dict.get("org_id"),
+                "org_name_cn": info_dict.get("org_name_cn"),
+                "org_short_name_cn": info_dict.get("org_short_name_cn"),
+                "org_name_en": info_dict.get("org_name_en"),
+                "org_short_name_en": info_dict.get("org_short_name_en"),
+                "main_operation_business": info_dict.get("main_operation_business"),
+                "operating_scope": info_dict.get("operating_scope"),
+                "org_cn_introduction": info_dict.get("org_cn_introduction"),
+                "legal_representative": info_dict.get("legal_representative"),
+                "general_manager": info_dict.get("general_manager"),
+                "secretary": info_dict.get("secretary"),
+                "established_date": info_dict.get("established_date"),
+                "reg_asset": info_dict.get("reg_asset"),
+                "staff_num": info_dict.get("staff_num"),
+                "telephone": info_dict.get("telephone"),
+                "postcode": info_dict.get("postcode"),
+                "fax": info_dict.get("fax"),
+                "email": info_dict.get("email"),
+                "org_website": info_dict.get("org_website"),
+                "reg_address_cn": info_dict.get("reg_address_cn"),
+                "reg_address_en": info_dict.get("reg_address_en"),
+                "office_address_cn": info_dict.get("office_address_cn"),
+                "office_address_en": info_dict.get("office_address_en"),
+                "currency": info_dict.get("currency"),
+                "listed_date": info_dict.get("listed_date"),
+                "provincial_name": info_dict.get("provincial_name"),
+                "actual_controller": info_dict.get("actual_controller"),
+                "classi_name": info_dict.get("classi_name"),
+                "pre_name_cn": info_dict.get("pre_name_cn"),
+                "chairman": info_dict.get("chairman"),
+                "executives_nums": info_dict.get("executives_nums"),
+                "actual_issue_vol": info_dict.get("actual_issue_vol"),
+                "issue_price": info_dict.get("issue_price"),
+                "actual_rc_net_amt": info_dict.get("actual_rc_net_amt"),
+                "pe_after_issuing": info_dict.get("pe_after_issuing"),
+                "online_success_rate_of_issue": info_dict.get(
+                    "online_success_rate_of_issue"
+                ),
+                "affiliate_industry": info_dict.get("affiliate_industry"),
             }
 
             # Filter out None values
@@ -1071,37 +997,6 @@ class AKShareAdapter(BaseDataAdapter):
             logger.error(f"Error creating US stock info for {symbol}: {e}")
             return None
 
-    def _get_crypto_info(
-        self, ticker: str, exchange: str, symbol: str
-    ) -> Optional[Asset]:
-        """Get cryptocurrency information."""
-        try:
-            names = LocalizedName()
-            names.set_name("zh-Hans", symbol)
-            names.set_name("zh-Hant", symbol)
-            names.set_name("en-US", symbol)
-
-            market_info = MarketInfo(
-                exchange=exchange,
-                country="GLOBAL",
-                currency="USD",
-                timezone="UTC",
-            )
-
-            asset = Asset(
-                ticker=ticker,
-                asset_type=AssetType.CRYPTO,
-                names=names,
-                market_info=market_info,
-            )
-
-            asset.set_source_ticker(self.source, symbol)
-            return asset
-
-        except Exception as e:
-            logger.error(f"Error creating crypto info for {symbol}: {e}")
-            return None
-
     def get_real_time_price(self, ticker: str) -> Optional[AssetPrice]:
         """Get real-time price data from AKShare."""
         try:
@@ -1114,8 +1009,6 @@ class AKShareAdapter(BaseDataAdapter):
                 return self._get_hk_stock_price(ticker, exchange, symbol)
             elif exchange in ["NASDAQ", "NYSE"]:
                 return self._get_us_stock_price(ticker, exchange, symbol)
-            elif exchange == "CRYPTO":
-                return self._get_crypto_price(ticker, exchange, symbol)
             else:
                 logger.warning(f"Unsupported exchange for real-time price: {exchange}")
                 return None
@@ -1129,25 +1022,27 @@ class AKShareAdapter(BaseDataAdapter):
     ) -> Optional[AssetPrice]:
         """Get A-share real-time price using direct query."""
         try:
-            # Use direct real-time price query for individual stock
-            cache_key = f"a_share_price_{symbol}"
+            # Use direct real-time price query - stock_zh_a_spot_em takes no parameters
+            cache_key = "a_share_price_all"
             df_realtime = self._get_cached_data(
-                cache_key, self._safe_akshare_call, ak.stock_zh_a_spot_em, symbol=symbol
+                cache_key, self._safe_akshare_call, ak.stock_zh_a_spot_em
             )
 
             if df_realtime is None or df_realtime.empty:
                 # Fallback to individual stock info if spot price fails
                 return self._get_a_share_price_from_info(ticker, exchange, symbol)
 
-            # If we get multiple results, find the matching one
-            if len(df_realtime) > 1:
-                stock_data = df_realtime[df_realtime["代码"] == symbol]
-                if stock_data.empty:
-                    stock_info = df_realtime.iloc[0]  # Use first result as fallback
-                else:
-                    stock_info = stock_data.iloc[0]
-            else:
-                stock_info = df_realtime.iloc[0]
+            # Find the specific stock in the A-share data
+            # The dataframe contains all A-shares, we need to filter by stock code
+            stock_data = df_realtime[df_realtime["代码"] == symbol]
+            if stock_data.empty:
+                # If not found by exact match, try alternative matching
+                logger.warning(
+                    f"Stock {symbol} not found in A-share spot data, falling back to individual info"
+                )
+                return self._get_a_share_price_from_info(ticker, exchange, symbol)
+
+            stock_info = stock_data.iloc[0]
 
             # Extract price information using safe field access
             current_price = self._safe_decimal_convert(stock_info.get("最新价", 0))
@@ -1194,27 +1089,49 @@ class AKShareAdapter(BaseDataAdapter):
         """Get A-share price from individual stock info as fallback."""
         try:
             # Try to get basic price info from stock individual info
-            df_info = self._safe_akshare_call(
-                ak.stock_individual_info_em, symbol=symbol
+            cache_key = f"a_share_info_price_{symbol}"
+            df_info = self._get_cached_data(
+                cache_key,
+                self._safe_akshare_call,
+                ak.stock_individual_info_em,
+                symbol=symbol,
             )
 
             if df_info is None or df_info.empty:
+                logger.warning(f"No individual stock info available for {symbol}")
                 return None
 
-            # Create basic price info
+            # Convert DataFrame to dict for easier access
+            info_dict = {}
+            for _, row in df_info.iterrows():
+                info_dict[row["item"]] = row["value"]
+
+            # Extract current price from the individual info (if available)
+            current_price_value = info_dict.get("最新", info_dict.get("现价", 0))
+            current_price = self._safe_decimal_convert(current_price_value)
+
+            # Get market cap and other info
+            market_cap = self._safe_decimal_convert(info_dict.get("总市值"))
+
+            if not current_price or current_price == 0:
+                logger.warning(
+                    f"No valid current price found for {symbol} in individual info"
+                )
+                return None
+
             return AssetPrice(
                 ticker=ticker,
-                price=Decimal("0"),  # Placeholder
+                price=current_price,
                 currency="CNY",
                 timestamp=datetime.now(),
-                volume=None,
-                open_price=None,
-                high_price=None,
-                low_price=None,
-                close_price=Decimal("0"),
-                change=None,
-                change_percent=None,
-                market_cap=None,
+                volume=None,  # Not available in individual info
+                open_price=None,  # Not available in individual info
+                high_price=None,  # Not available in individual info
+                low_price=None,  # Not available in individual info
+                close_price=current_price,
+                change=None,  # Not available in individual info
+                change_percent=None,  # Not available in individual info
+                market_cap=market_cap,
                 source=self.source,
             )
 
@@ -1338,22 +1255,6 @@ class AKShareAdapter(BaseDataAdapter):
             logger.error(f"Error fetching US stock price for {symbol}: {e}")
             return None
 
-    def _get_crypto_price(
-        self, ticker: str, exchange: str, symbol: str
-    ) -> Optional[AssetPrice]:
-        """Get cryptocurrency real-time price without downloading full market data."""
-        try:
-            # Skip downloading all crypto data - this is too expensive
-            # Return None for now, crypto prices should be handled by other adapters like yfinance
-            logger.warning(
-                f"Crypto price fetching disabled for AKShare to avoid full market data download for {symbol}"
-            )
-            return None
-
-        except Exception as e:
-            logger.error(f"Error fetching crypto price for {symbol}: {e}")
-            return None
-
     def get_historical_prices(
         self,
         ticker: str,
@@ -1376,10 +1277,6 @@ class AKShareAdapter(BaseDataAdapter):
                 )
             elif exchange in ["NASDAQ", "NYSE"]:
                 return self._get_us_stock_historical(
-                    ticker, exchange, symbol, start_date, end_date, interval
-                )
-            elif exchange == "CRYPTO":
-                return self._get_crypto_historical(
                     ticker, exchange, symbol, start_date, end_date, interval
                 )
             else:
@@ -1601,33 +1498,12 @@ class AKShareAdapter(BaseDataAdapter):
             logger.error(f"Error fetching US stock historical data for {symbol}: {e}")
             return []
 
-    def _get_crypto_historical(
-        self,
-        ticker: str,
-        exchange: str,
-        symbol: str,
-        start_date: datetime,
-        end_date: datetime,
-        interval: str,
-    ) -> List[AssetPrice]:
-        """Get cryptocurrency historical price data."""
-        try:
-            # Note: AKShare crypto historical data may be limited
-            # For now, return empty list as detailed crypto historical API needs to be investigated
-            logger.warning(f"Crypto historical data not yet implemented for {symbol}")
-            return []
-
-        except Exception as e:
-            logger.error(f"Error fetching crypto historical data for {symbol}: {e}")
-            return []
-
     def get_supported_asset_types(self) -> List[AssetType]:
         """Get asset types supported by AKShare."""
         return [
             AssetType.STOCK,
             AssetType.ETF,
             AssetType.INDEX,
-            AssetType.CRYPTO,
         ]
 
     def _perform_health_check(self) -> Any:
@@ -1746,8 +1622,6 @@ class AKShareAdapter(BaseDataAdapter):
                 [
                     f"NASDAQ:{search_term}",
                     f"NYSE:{search_term}",
-                    f"CRYPTO:{search_term}",
-                    f"CRYPTO:{search_term}USD",
                 ]
             )
 
@@ -1766,7 +1640,6 @@ class AKShareAdapter(BaseDataAdapter):
                 "HKEX": lambda s: s.isdigit() and 1 <= len(s) <= 5,
                 "NASDAQ": lambda s: 1 <= len(s) <= 5,
                 "NYSE": lambda s: 1 <= len(s) <= 5,
-                "CRYPTO": lambda s: 2 <= len(s) <= 10,
             }
 
             validator = validation_rules.get(exchange)

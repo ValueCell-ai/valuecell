@@ -15,7 +15,7 @@ class ExecutionPlan(BaseModel):
 
     plan_id: str = Field(..., description="Unique plan identifier")
     session_id: Optional[str] = Field(
-        None, description="Session ID this plan belongs to"
+        ..., description="Session ID this plan belongs to"
     )
     user_id: str = Field(..., description="User ID who requested this plan")
     query: str = Field(..., description="Original user query that generated this plan")

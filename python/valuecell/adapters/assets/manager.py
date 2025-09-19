@@ -60,7 +60,6 @@ class AdapterManager:
             AssetType.CRYPTO: [
                 DataSource.COINMARKETCAP,
                 DataSource.YFINANCE,
-                DataSource.AKSHARE,
             ],
             AssetType.INDEX: [
                 DataSource.YFINANCE,
