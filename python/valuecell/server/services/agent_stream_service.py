@@ -4,7 +4,6 @@ Agent stream service for handling streaming agent interactions.
 
 from typing import AsyncGenerator, Optional
 from valuecell.core.coordinate.orchestrator import get_default_orchestrator
-from valuecell.core.coordinate.tests.test_orchestrator import session_id
 from valuecell.core.types import UserInput, UserInputMetadata
 import logging
 
