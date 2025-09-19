@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 from enum import Enum
+from typing import Iterator
 
 from agno.agent import Agent, RunResponse, RunResponseEvent  # noqa
 from agno.models.openrouter import OpenRouter
@@ -211,11 +212,23 @@ class SecAgent(BaseAgent):
             Please ensure the analysis is objective and professional, based on actual data, avoiding excessive speculation.
             """
 
-            result = self.analysis_agent.run(analysis_prompt)
+            response_stream: Iterator[RunResponseEvent] = self.analysis_agent.run(
+                analysis_prompt, stream=True, stream_intermediate_steps=True
+            )
+            for event in response_stream:
+                if event.event == "RunResponseContent":
+                    yield {
+                        "content": event.content,
+                        "is_task_complete": False,
+                    }
+                elif event.event == "ToolCallStarted":
+                    print(f"Tool call started: {event.tool}")
+                elif event.event == "ReasoningStep":
+                    print(f"Reasoning step: {event.content}")
             logger.info("Financial data analysis completed")
 
             yield {
-                "content": result.content,
+                "content": "",
                 "is_task_complete": True,
             }
 
@@ -301,13 +314,26 @@ class SecAgent(BaseAgent):
             Please ensure the analysis is objective and professional, based on actual data, avoiding excessive speculation.
             """
 
-            result = self.analysis_agent.run(analysis_prompt)
-            logger.info("13F analysis completed")
+            response_stream: Iterator[RunResponseEvent] = self.analysis_agent.run(
+                analysis_prompt, stream=True, stream_intermediate_steps=True
+            )
+            for event in response_stream:
+                if event.event == "RunResponseContent":
+                    yield {
+                        "content": event.content,
+                        "is_task_complete": False,
+                    }
+                elif event.event == "ToolCallStarted":
+                    print(f"Tool call started: {event.tool}")
+                elif event.event == "ReasoningStep":
+                    print(f"Reasoning step: {event.content}")
+            logger.info("Financial data analysis completed")
 
             yield {
-                "content": result.content,
+                "content": "",
                 "is_task_complete": True,
             }
+            logger.info("13F analysis completed")
 
         except Exception as e:
             logger.error(f"13F query failed: {e}")
