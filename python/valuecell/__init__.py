@@ -17,3 +17,7 @@ __all__ = [
 
 # registers agents on import
 import valuecell.agents as _  # noqa: F401
+
+# Optional convenience re-exports (not added to __all__ to keep root clean)
+# Users can import: from valuecell import responses
+from . import responses as responses  # noqa: E402,F401

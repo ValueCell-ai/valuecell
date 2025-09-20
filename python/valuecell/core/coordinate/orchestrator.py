@@ -6,6 +6,7 @@ from typing import AsyncGenerator, Dict, Optional
 from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
 from a2a.utils import get_message_text
 from valuecell.core.agent.connect import get_default_remote_connections
+from valuecell.core.agent.decorator import is_tool_call
 from valuecell.core.session import Role, SessionStatus, get_default_session_manager
 from valuecell.core.task import Task, get_default_task_manager
 from valuecell.core.task.models import TaskPattern
@@ -14,6 +15,7 @@ from valuecell.core.types import (
     MessageChunkMetadata,
     MessageChunkStatus,
     MessageDataKind,
+    StreamResponseEvent,
     UserInput,
 )
 
@@ -343,9 +345,7 @@ class AgentOrchestrator:
 
         # Planning completed, execute plan
         plan = await planning_task
-        async for chunk in self._execute_plan_with_input_support(
-            plan, user_input.meta.model_dump()
-        ):
+        async for chunk in self._execute_plan_with_input_support(plan):
             yield chunk
 
     async def _request_user_input(self, session_id: str, _user_id: str):
@@ -392,6 +392,30 @@ class AgentOrchestrator:
                 status=status,
             ),
             is_final=is_final,
+        )
+
+    def _create_tool_message_chunk(
+        self,
+        session_id: str,
+        user_id: str,
+        agent_name: str,
+        tool_call_id: str,
+        tool_name: str,
+        content: Optional[str] = None,
+    ) -> MessageChunk:
+        """Create a MessageChunk with tool call metadata"""
+        return MessageChunk(
+            content=content,
+            kind=MessageDataKind.TEXT,
+            meta=MessageChunkMetadata(
+                session_id=session_id,
+                user_id=user_id,
+                agent_name=agent_name,
+                status=MessageChunkStatus.partial,
+                tool_call_id=tool_call_id,
+                tool_call_name=tool_name,
+            ),
+            is_final=False,
         )
 
     def _create_error_message_chunk(
@@ -460,9 +484,7 @@ class AgentOrchestrator:
         plan = await planning_task
         del self._execution_contexts[session_id]
 
-        async for chunk in self._execute_plan_with_input_support(
-            plan, original_user_input.meta.model_dump()
-        ):
+        async for chunk in self._execute_plan_with_input_support(plan):
             yield chunk
 
     async def _cancel_execution(self, session_id: str):
@@ -506,7 +528,7 @@ class AgentOrchestrator:
     # ==================== Plan and Task Execution Methods ====================
 
     async def _execute_plan_with_input_support(
-        self, plan: ExecutionPlan, metadata: dict
+        self, plan: ExecutionPlan, metadata: Optional[dict] = None
     ) -> AsyncGenerator[MessageChunk, None]:
         """
         Execute an execution plan with Human-in-the-Loop support.
@@ -518,7 +540,7 @@ class AgentOrchestrator:
             plan: The execution plan containing tasks to execute
             metadata: Execution metadata containing session and user info
         """
-        session_id, user_id = metadata["session_id"], metadata["user_id"]
+        session_id, user_id = plan.session_id, plan.user_id
 
         if not plan.tasks:
             yield self._create_error_message_chunk(
@@ -564,7 +586,7 @@ class AgentOrchestrator:
         await self._save_remaining_responses(session_id, agent_responses)
 
     async def _execute_task_with_input_support(
-        self, task: Task, query: str, metadata: dict
+        self, task: Task, query: str, metadata: Optional[dict] = None
     ) -> AsyncGenerator[MessageChunk, None]:
         """
         Execute a single task with user input interruption support.
@@ -579,53 +601,72 @@ class AgentOrchestrator:
             await self.task_manager.start_task(task.task_id)
 
             # Get agent connection
+            agent_name = task.agent_name
             agent_card = await self.agent_connections.start_agent(
-                task.agent_name,
+                agent_name,
                 with_listener=False,
                 notification_callback=store_task_in_session,
             )
-            client = await self.agent_connections.get_client(task.agent_name)
-
+            client = await self.agent_connections.get_client(agent_name)
             if not client:
-                raise RuntimeError(f"Could not connect to agent {task.agent_name}")
+                raise RuntimeError(f"Could not connect to agent {agent_name}")
 
             # Configure metadata for notifications
+            metadata = metadata or {}
             if task.pattern != TaskPattern.ONCE:
                 metadata["notify"] = True
 
             # Send message to agent
-            response = await client.send_message(
+            remote_response = await client.send_message(
                 query,
-                context_id=task.session_id,
+                session_id=task.session_id,
                 metadata=metadata,
                 streaming=agent_card.capabilities.streaming,
             )
 
             # Process streaming responses
-            async for remote_task, event in response:
+            async for remote_task, event in remote_response:
                 if event is None and remote_task.status.state == TaskState.submitted:
                     task.remote_task_ids.append(remote_task.id)
                     continue
 
                 if isinstance(event, TaskStatusUpdateEvent):
-                    await self._handle_task_status_update(event, task)
-
-                    # TODO: Check for user input requirement
+                    state = event.status.state
+                    logger.info(f"Task {task.task_id} status update: {state}")
+                    if state in {TaskState.submitted, TaskState.completed}:
+                        continue
                     # Handle task failure
-                    if event.status.state == TaskState.failed:
+                    if state == TaskState.failed:
                         err_msg = get_message_text(event.status.message)
                         await self.task_manager.fail_task(task.task_id, err_msg)
                         yield self._create_error_message_chunk(
-                            err_msg, task.session_id, task.user_id, task.agent_name
+                            err_msg, task.session_id, task.user_id, agent_name
                         )
                         return
+                    # TODO: Check for user input requirement
+                    # if state == TaskState.input_required:
+                    # Handle tool call start
+                    response_event = event.metadata.get("response_event")
+                    if state == TaskState.working and is_tool_call(response_event):
+                        content = None
+                        if response_event == StreamResponseEvent.TOOL_CALL_COMPLETED:
+                            content = get_message_text(event.status.message, "")
+                        yield self._create_tool_message_chunk(
+                            task.session_id,
+                            task.user_id,
+                            agent_name,
+                            tool_call_id=event.metadata.get("tool_call_id", ""),
+                            tool_name=event.metadata.get("tool_name", ""),
+                            content=content,
+                        )
+                        continue
 
                 elif isinstance(event, TaskArtifactUpdateEvent):
                     yield self._create_message_chunk(
                         get_message_text(event.artifact, ""),
                         task.session_id,
                         task.user_id,
-                        task.agent_name,
+                        agent_name,
                         is_final=metadata.get("notify", False),
                     )
 
@@ -635,7 +676,7 @@ class AgentOrchestrator:
                 "",
                 task.session_id,
                 task.user_id,
-                task.agent_name,
+                agent_name,
                 is_final=True,
                 status=MessageChunkStatus.success,
             )
@@ -643,20 +684,6 @@ class AgentOrchestrator:
         except Exception as e:
             await self.task_manager.fail_task(task.task_id, str(e))
             raise e
-
-    async def _handle_task_status_update(
-        self, event: TaskStatusUpdateEvent, task: Task
-    ):
-        """Handle task status update events"""
-        logger.info(f"Task {task.task_id} status update: {event.status.state}")
-
-        # Add any additional status-specific handling here
-        if event.status.state == TaskState.submitted:
-            # Task was submitted successfully
-            pass
-        elif event.status.state == TaskState.completed:
-            # Task completed successfully
-            pass
 
     async def _save_remaining_responses(self, session_id: str, agent_responses: dict):
         """Save any remaining agent responses to the session"""
@@ -725,7 +752,7 @@ class AgentOrchestrator:
 
             response = await client.send_message(
                 query,
-                context_id=task.session_id,
+                session_id=task.session_id,
                 metadata=metadata,
                 streaming=agent_card.capabilities.streaming,
             )

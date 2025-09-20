@@ -70,12 +70,18 @@ class MessageChunkMetadata(BaseModel):
     session_id: str = Field(..., description="Session ID for this request")
     user_id: str = Field(..., description="User ID who made this request")
     agent_name: str = Field(..., description="Agent name handling this message")
+    tool_call_id: Optional[str] = Field(
+        None, description="ID of the tool call being made"
+    )
+    tool_call_name: Optional[str] = Field(
+        None, description="Name of the tool being called"
+    )
 
 
 class MessageChunk(BaseModel):
     """Chunk of a message, useful for streaming responses"""
 
-    content: str = Field(..., description="Content of the message chunk")
+    content: Optional[str] = Field(None, description="Content of the message chunk")
     is_final: bool = Field(
         default=False, description="Indicates if this is the final chunk"
     )
@@ -87,16 +93,40 @@ class MessageChunk(BaseModel):
     )
 
 
+class StreamResponseEvent(str, Enum):
+    MESSAGE_CHUNK = "message_chunk"
+    TOOL_CALL_STARTED = "tool_call_started"
+    TOOL_CALL_COMPLETED = "tool_call_completed"
+    REASONING = "reasoning"
+    TASK_DONE = "task_done"
+    TASK_FAILED = "task_failed"
+
+
+class NotifyResponseEvent(str, Enum):
+    MESSAGE = "message"
+    TASK_DONE = "task_done"
+    TASK_FAILED = "task_failed"
+
+
+class ToolCallMeta(BaseModel):
+    tool_call_id: str = Field(..., description="Unique ID for the tool call")
+    tool_name: str = Field(..., description="Name of the tool being called")
+
+
 class StreamResponse(BaseModel):
     """Response model for streaming agent responses"""
 
-    is_task_complete: bool = Field(
-        default=False,
-        description="Indicates whether the task associated with this stream response is complete.",
-    )
-    content: str = Field(
-        ...,
+    content: Optional[str] = Field(
+        None,
         description="The content of the stream response, typically a chunk of data or message.",
+    )
+    event: StreamResponseEvent = Field(
+        ...,
+        description="The type of stream response, indicating its purpose or content nature.",
+    )
+    metadata: Optional[dict] = Field(
+        None,
+        description="Optional metadata providing additional context about the response",
     )
 
 
@@ -106,6 +136,10 @@ class NotifyResponse(BaseModel):
     content: str = Field(
         ...,
         description="The content of the notification response",
+    )
+    type: NotifyResponseEvent = Field(
+        ...,
+        description="The type of notification response",
     )
 
 
@@ -144,7 +178,7 @@ class BaseAgent(ABC):
             user_id: Target user ID for the notification
 
         Yields:
-            StreamResponse: Notification content and status
+            NotifyResponse: Notification content and status
         """
         raise NotImplementedError
 
