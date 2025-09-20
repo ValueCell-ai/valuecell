@@ -10,14 +10,7 @@ from valuecell.core.agent.decorator import is_tool_call
 from valuecell.core.session import Role, SessionStatus, get_default_session_manager
 from valuecell.core.task import Task, get_default_task_manager
 from valuecell.core.task.models import TaskPattern
-from valuecell.core.types import (
-    MessageChunk,
-    MessageChunkMetadata,
-    MessageChunkStatus,
-    MessageDataKind,
-    StreamResponseEvent,
-    UserInput,
-)
+from valuecell.core.types import ProcessMessage, UserInput
 
 from .callback import store_task_in_session
 from .models import ExecutionPlan
@@ -123,7 +116,7 @@ class AgentOrchestrator:
 
     async def process_user_input(
         self, user_input: UserInput
-    ) -> AsyncGenerator[MessageChunk, None]:
+    ) -> AsyncGenerator[ProcessMessage, None]:
         """
         Main entry point for processing user requests with Human-in-the-Loop support.
 
@@ -236,7 +229,7 @@ class AgentOrchestrator:
 
     async def _handle_session_continuation(
         self, user_input: UserInput
-    ) -> AsyncGenerator[MessageChunk, None]:
+    ) -> AsyncGenerator[ProcessMessage, None]:
         """Handle continuation of an interrupted session"""
         session_id = user_input.meta.session_id
         user_id = user_input.meta.user_id
@@ -284,7 +277,7 @@ class AgentOrchestrator:
 
     async def _handle_new_request(
         self, user_input: UserInput
-    ) -> AsyncGenerator[MessageChunk, None]:
+    ) -> AsyncGenerator[ProcessMessage, None]:
         """Handle a new user request"""
         session_id = user_input.meta.session_id
 
@@ -317,7 +310,7 @@ class AgentOrchestrator:
 
     async def _monitor_planning_task(
         self, planning_task, user_input: UserInput, callback
-    ) -> AsyncGenerator[MessageChunk, None]:
+    ) -> AsyncGenerator[ProcessMessage, None]:
         """Monitor planning task and handle user input interruptions"""
         session_id = user_input.meta.session_id
         user_id = user_input.meta.user_id
@@ -380,9 +373,9 @@ class AgentOrchestrator:
         kind: MessageDataKind = MessageDataKind.TEXT,
         is_final: bool = False,
         status: MessageChunkStatus = MessageChunkStatus.partial,
-    ) -> MessageChunk:
+    ) -> ProcessMessage:
         """Create a MessageChunk with standardized metadata"""
-        return MessageChunk(
+        return Message(
             content=content,
             kind=kind,
             meta=MessageChunkMetadata(
@@ -401,10 +394,10 @@ class AgentOrchestrator:
         agent_name: str,
         tool_call_id: str,
         tool_name: str,
-        content: Optional[str] = None,
-    ) -> MessageChunk:
+        tool_result: Optional[str] = None,
+    ) -> ProcessMessage:
         """Create a MessageChunk with tool call metadata"""
-        return MessageChunk(
+        return Message(
             content=content,
             kind=MessageDataKind.TEXT,
             meta=MessageChunkMetadata(
@@ -420,7 +413,7 @@ class AgentOrchestrator:
 
     def _create_error_message_chunk(
         self, error_msg: str, session_id: str, user_id: str, agent_name: str
-    ) -> MessageChunk:
+    ) -> ProcessMessage:
         """Create an error MessageChunk with standardized format"""
         return self._create_message_chunk(
             content=f"(Error): {error_msg}",
@@ -437,7 +430,7 @@ class AgentOrchestrator:
         session_id: str,
         user_id: str,
         agent_name: str = "__planner__",
-    ) -> MessageChunk:
+    ) -> ProcessMessage:
         """Create a user input request MessageChunk"""
         return self._create_message_chunk(
             content=f"USER_INPUT_REQUIRED:{prompt}",
@@ -451,7 +444,7 @@ class AgentOrchestrator:
 
     async def _continue_planning(
         self, session_id: str, context: ExecutionContext
-    ) -> AsyncGenerator[MessageChunk, None]:
+    ) -> AsyncGenerator[Message, None]:
         """Resume planning stage execution"""
         planning_task = context.get_metadata("planning_task")
         original_user_input = context.get_metadata("original_user_input")
@@ -529,7 +522,7 @@ class AgentOrchestrator:
 
     async def _execute_plan_with_input_support(
         self, plan: ExecutionPlan, metadata: Optional[dict] = None
-    ) -> AsyncGenerator[MessageChunk, None]:
+    ) -> AsyncGenerator[ProcessMessage, None]:
         """
         Execute an execution plan with Human-in-the-Loop support.
 
@@ -587,7 +580,7 @@ class AgentOrchestrator:
 
     async def _execute_task_with_input_support(
         self, task: Task, query: str, metadata: Optional[dict] = None
-    ) -> AsyncGenerator[MessageChunk, None]:
+    ) -> AsyncGenerator[ProcessMessage, None]:
         """
         Execute a single task with user input interruption support.
 
@@ -648,16 +641,13 @@ class AgentOrchestrator:
                     # Handle tool call start
                     response_event = event.metadata.get("response_event")
                     if state == TaskState.working and is_tool_call(response_event):
-                        content = None
-                        if response_event == StreamResponseEvent.TOOL_CALL_COMPLETED:
-                            content = get_message_text(event.status.message, "")
                         yield self._create_tool_message_chunk(
                             task.session_id,
                             task.user_id,
                             agent_name,
                             tool_call_id=event.metadata.get("tool_call_id", ""),
                             tool_name=event.metadata.get("tool_name", ""),
-                            content=content,
+                            tool_result=event.metadata.get("tool_result", ""),
                         )
                         continue
 
@@ -697,7 +687,7 @@ class AgentOrchestrator:
 
     async def _execute_plan_legacy(
         self, plan: ExecutionPlan, metadata: dict
-    ) -> AsyncGenerator[MessageChunk, None]:
+    ) -> AsyncGenerator[ProcessMessage, None]:
         """
         Execute an execution plan without Human-in-the-Loop support.
 
@@ -727,7 +717,7 @@ class AgentOrchestrator:
 
     async def _execute_task_legacy(
         self, task: Task, query: str, metadata: dict
-    ) -> AsyncGenerator[MessageChunk, None]:
+    ) -> AsyncGenerator[ProcessMessage, None]:
         """
         Execute a single task without user input interruption support.
 

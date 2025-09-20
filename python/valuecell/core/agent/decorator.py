@@ -217,11 +217,6 @@ class GenericAgentExecutor(AgentExecutor):
 
                 is_complete = is_task_complete(response_event)
                 if is_tool_call(response_event):
-                    message = None
-                    if response_event == StreamResponseEvent.TOOL_CALL_COMPLETED:
-                        message = new_agent_text_message(
-                            response.content, session_id, task_id
-                        )
                     await updater.update_status(
                         TaskState.working,
                         message=message,
@@ -229,6 +224,7 @@ class GenericAgentExecutor(AgentExecutor):
                             "event": response_event.value,
                             "tool_call_id": response.metadata.get("tool_call_id"),
                             "tool_name": response.metadata.get("tool_name"),
+                            "tool_result": response.metadata.get("content"),
                         },
                     )
                     continue

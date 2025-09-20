@@ -28,7 +28,7 @@ from valuecell.core.types import (
     NotifyResponseEvent,
     StreamResponse,
     StreamResponseEvent,
-    ToolCallMeta,
+    ToolCallContent,
 )
 
 
@@ -41,19 +41,18 @@ class _StreamResponseNamespace:
     def tool_call_started(self, tool_call_id: str, tool_name: str) -> StreamResponse:
         return StreamResponse(
             event=StreamResponseEvent.TOOL_CALL_STARTED,
-            metadata=ToolCallMeta(
+            metadata=ToolCallContent(
                 tool_call_id=tool_call_id, tool_name=tool_name
             ).model_dump(),
         )
 
     def tool_call_completed(
-        self, content: str, tool_call_id: str, tool_name: str
+        self, tool_result: str, tool_call_id: str, tool_name: str
     ) -> StreamResponse:
         return StreamResponse(
             event=StreamResponseEvent.TOOL_CALL_COMPLETED,
-            content=content,
-            metadata=ToolCallMeta(
-                tool_call_id=tool_call_id, tool_name=tool_name
+            metadata=ToolCallContent(
+                tool_call_id=tool_call_id, tool_name=tool_name, tool_result=tool_result
             ).model_dump(),
         )
 
@@ -85,13 +84,13 @@ class _NotifyResponseNamespace:
     def message(self, content: str) -> NotifyResponse:
         return NotifyResponse(
             content=content,
-            type=NotifyResponseEvent.MESSAGE,
+            event=NotifyResponseEvent.MESSAGE,
         )
 
     def done(self, content: Optional[str] = None) -> NotifyResponse:
         return NotifyResponse(
             content=content,
-            type=NotifyResponseEvent.TASK_DONE,
+            event=NotifyResponseEvent.TASK_DONE,
         )
 
 
