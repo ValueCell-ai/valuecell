@@ -215,7 +215,7 @@ class GenericAgentExecutor(AgentExecutor):
                         f"Agent {agent_name} reported failure: {response.content}"
                     )
 
-                is_complete = is_task_complete(response_event)
+                is_complete = is_task_completed(response_event)
                 if is_tool_call(response_event):
                     await updater.update_status(
                         TaskState.working,
@@ -248,7 +248,7 @@ class GenericAgentExecutor(AgentExecutor):
         raise ServerError(error=UnsupportedOperationError())
 
 
-def is_task_complete(response_type: str) -> bool:
+def is_task_completed(response_type: str) -> bool:
     return response_type in {
         StreamResponseEvent.TASK_DONE,
         StreamResponseEvent.TASK_FAILED,
