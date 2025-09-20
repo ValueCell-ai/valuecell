@@ -4,8 +4,12 @@ from .session import (
     Message,
     Role,
     Session,
+    SessionStatus,
     SessionManager,
     SessionStore,
+    MessageStore,
+    InMemoryMessageStore,
+    SQLiteMessageStore,
 )
 
 # Task management
@@ -31,9 +35,13 @@ __all__ = [
     "Message",
     "Role",
     "Session",
+    "SessionStatus",
     "SessionManager",
     "SessionStore",
     "InMemorySessionStore",
+    "MessageStore",
+    "InMemoryMessageStore",
+    "SQLiteMessageStore",
     # Task exports
     "Task",
     "TaskStatus",

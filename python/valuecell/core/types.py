@@ -69,6 +69,7 @@ class MessageChunkMetadata(BaseModel):
     )
     session_id: str = Field(..., description="Session ID for this request")
     user_id: str = Field(..., description="User ID who made this request")
+    agent_name: str = Field(..., description="Agent name handling this message")
 
 
 class MessageChunk(BaseModel):
@@ -99,6 +100,16 @@ class StreamResponse(BaseModel):
     )
 
 
+class NotifyResponse(BaseModel):
+    """Response model for notification agent responses"""
+
+    content: str = Field(
+        ...,
+        description="The content of the notification response",
+    )
+
+
+# TODO: keep only essential parameters
 class BaseAgent(ABC):
     """
     Abstract base class for all agents.
@@ -106,10 +117,10 @@ class BaseAgent(ABC):
 
     @abstractmethod
     async def stream(
-        self, query, session_id, task_id
+        self, query: str, session_id: str, task_id: str
     ) -> AsyncGenerator[StreamResponse, None]:
         """
-        Process user queries and return streaming responses
+        Process user queries and return streaming responses (user-initiated)
 
         Args:
             query: User query content
@@ -118,6 +129,22 @@ class BaseAgent(ABC):
 
         Yields:
             StreamResponse: Stream response containing content and completion status
+        """
+        raise NotImplementedError
+
+    async def notify(
+        self, query: str, session_id: str, task_id: str
+    ) -> AsyncGenerator[NotifyResponse, None]:
+        """
+        Send proactive notifications to subscribed users (agent-initiated)
+
+        Args:
+            query: User query content, can be empty for some agents
+            session_id: Session ID for the notification
+            user_id: Target user ID for the notification
+
+        Yields:
+            StreamResponse: Notification content and status
         """
         raise NotImplementedError
 
