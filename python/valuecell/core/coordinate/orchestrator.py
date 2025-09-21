@@ -529,7 +529,7 @@ class AgentOrchestrator:
 
                 # Execute task with input support
                 async for message in self._execute_task_with_input_support(
-                    task, plan.query, metadata
+                    task, metadata
                 ):
                     # Accumulate based on event
                     if message.event in {
@@ -562,7 +562,7 @@ class AgentOrchestrator:
         await self._save_remaining_responses(session_id, agent_responses)
 
     async def _execute_task_with_input_support(
-        self, task: Task, query: str, metadata: Optional[dict] = None
+        self, task: Task, metadata: Optional[dict] = None
     ) -> AsyncGenerator[ProcessMessage, None]:
         """
         Execute a single task with user input interruption support.
@@ -594,7 +594,7 @@ class AgentOrchestrator:
 
             # Send message to agent
             remote_response = await client.send_message(
-                query,
+                task.query,
                 session_id=task.session_id,
                 metadata=metadata,
                 streaming=agent_card.capabilities.streaming,
@@ -619,6 +619,8 @@ class AgentOrchestrator:
                         return
                     # if state == TaskState.input_required:
                     # Handle tool call start
+                    if not event.metadata:
+                        continue
                     response_event = event.metadata.get("response_event")
                     if state == TaskState.working and is_tool_call(response_event):
                         yield self._create_tool_message(

@@ -197,7 +197,10 @@ class GenericAgentExecutor(AgentExecutor):
 
         # Stream from the user agent and update task incrementally
         await updater.update_status(
-            TaskState.working, message=f"Task received by {agent_name}"
+            TaskState.working,
+            message=new_agent_text_message(
+                f"Task received by {agent_name}", session_id, task_id
+            ),
         )
         try:
             query_handler = (

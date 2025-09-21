@@ -82,7 +82,7 @@ def sample_plan(
         plan_id="plan-1",
         session_id=session_id,
         user_id=user_id,
-        query=sample_query,
+        orig_query=sample_query,
         tasks=[sample_task],
         created_at="2025-09-16T10:00:00",
     )
