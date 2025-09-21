@@ -155,7 +155,15 @@ export const agentRecommendations: AgentRecommendation[] = [
   },
 ];
 
-export const agentData = {
+export const agentData: Record<
+  string,
+  {
+    name: string;
+    description: string;
+    avatar: React.ReactNode;
+    content: string;
+  }
+> = {
   "warren-buffett": {
     name: "Warren Buffett Agent",
     description:

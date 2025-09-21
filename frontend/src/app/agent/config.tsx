@@ -1,14 +1,17 @@
 import { ArrowRight } from "lucide-react";
-import { Link, useParams } from "react-router";
+import { Link, Navigate, useParams } from "react-router";
 import BackButton from "@/components/valuecell/button/back-button";
 import PreviewMarkdown from "@/components/valuecell/markdown/preview-markdown";
 import ScrollContainer from "@/components/valuecell/scroll-container";
 import { agentData } from "@/mock/agent-data";
+import type { Route } from "./+types/config";
 
 export default function AgentConfig() {
-  const { agentId } = useParams();
+  const { agentId } = useParams<Route.LoaderArgs["params"]>();
 
-  const agent = agentData[agentId as keyof typeof agentData];
+  if (!agentId) return <Navigate to="/" replace />;
+
+  const agent = agentData[agentId];
 
   return (
     <div className="flex flex-1 flex-col gap-8 overflow-hidden py-8">

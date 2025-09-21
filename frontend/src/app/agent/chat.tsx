@@ -1,7 +1,8 @@
 import { useParams } from "react-router";
+import type { Route } from "./+types/chat";
 
 export default function AgentChat() {
-  const { agentId } = useParams();
+  const { agentId } = useParams<Route.LoaderArgs["params"]>();
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#eef0f3] p-4">

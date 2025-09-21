@@ -33,10 +33,15 @@
     },
     "types": [
       "vite-plugin-svg-sprite/typings/vanilla"
+    ],
+    "rootDirs": [
+      ".",
+      "./.react-router/types"
     ]
   },
   "include": [
-    "src"
+    "src",
+    ".react-router/types/**/*"
   ],
   "references": [
     {
