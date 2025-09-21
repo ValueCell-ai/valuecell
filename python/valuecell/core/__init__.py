@@ -30,6 +30,9 @@ from .types import (
     RemoteAgentResponse,
 )
 
+from .agent.decorator import serve, create_wrapped_agent
+from .agent.responses import streaming, notification
+
 __all__ = [
     # Session exports
     "Message",
@@ -54,4 +57,10 @@ __all__ = [
     "BaseAgent",
     "StreamResponse",
     "RemoteAgentResponse",
+    # Agent utilities
+    "serve",
+    "create_wrapped_agent",
+    # Response utilities
+    "streaming",
+    "notification",
 ]

@@ -2,7 +2,7 @@ import asyncio
 import logging
 import os
 from datetime import datetime
-from typing import List
+from typing import AsyncGenerator, List
 
 from agno.agent import Agent
 from agno.models.openrouter import OpenRouter
@@ -10,7 +10,7 @@ from dateutil.relativedelta import relativedelta
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, Field, field_validator
 from valuecell.core.agent.decorator import create_wrapped_agent
-from valuecell.core.types import BaseAgent
+from valuecell.core import BaseAgent, StreamResponse, streaming
 
 from src.main import create_workflow
 from src.utils.analysts import ANALYST_ORDER
@@ -69,7 +69,9 @@ class AIHedgeFundAgent(BaseAgent):
             markdown=True,
         )
 
-    async def stream(self, query, session_id, task_id):
+    async def stream(
+        self, query, session_id, task_id
+    ) -> AsyncGenerator[StreamResponse, None]:
         logger.info(
             f"Parsing query: {query}. Task ID: {task_id}, Session ID: {session_id}"
         )
@@ -123,15 +125,8 @@ class AIHedgeFundAgent(BaseAgent):
         ):
             if not isinstance(chunk, str):
                 continue
-            yield {
-                "content": chunk,
-                "is_task_complete": False,
-            }
-
-        yield {
-            "content": "",
-            "is_task_complete": True,
-        }
+            yield streaming.message_chunk(chunk)
+        yield streaming.done()
 
 
 def run_hedge_fund_stream(
