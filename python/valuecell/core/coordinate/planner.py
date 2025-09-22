@@ -100,7 +100,10 @@ class ExecutionPlanner:
         """
         # Create planning agent with appropriate tools and instructions
         agent = Agent(
-            model=OpenRouter(id=os.getenv("PLANNER_MODEL_ID", "openai/gpt-4o-mini")),
+            model=OpenRouter(
+                id=os.getenv("PLANNER_MODEL_ID", "openai/gpt-4o-mini"),
+                max_tokens=None,
+            ),
             tools=[
                 UserControlFlowTools(),
                 self.tool_get_agent_description,
@@ -147,7 +150,11 @@ class ExecutionPlanner:
 
         # Parse planning result and create tasks
         try:
-            plan_raw = PlannerResponse.model_validate_json(run_response.content)
+            plan_content = run_response.content
+            if plan_content.startswith("```json\n") and plan_content.endswith("\n```"):
+                # Strip markdown code block if present
+                plan_content = "\n".join(plan_content.split("\n")[1:-1])
+            plan_raw = PlannerResponse.model_validate_json(plan_content)
         except Exception as e:
             raise ValueError(
                 f"Planner produced invalid JSON for PlannerResponse: {e}. "
