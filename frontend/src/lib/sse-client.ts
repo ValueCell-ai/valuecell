@@ -17,7 +17,7 @@ export interface SSEOptions {
   /** Connection timeout in milliseconds */
   timeout?: number;
   /** Additional fetch request options */
-  fetchOptions?: Omit<RequestInit, "headers" | "signal">;
+  fetchOptions?: Omit<RequestInit, "method" | "body" | "headers" | "signal">;
 }
 
 export interface SSEEventHandlers<TEventMap = Record<string, unknown>> {
@@ -44,6 +44,7 @@ export enum SSEReadyState {
 
 export class SSEClient<TEventMap = Record<string, unknown>> {
   private options: Required<SSEOptions>;
+  private currentBody?: BodyInit;
   private handlers: SSEEventHandlers<TEventMap> = {};
   private reconnectCount = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -74,11 +75,12 @@ export class SSEClient<TEventMap = Record<string, unknown>> {
   /**
    * Connect to the SSE endpoint
    */
-  async connect(): Promise<void> {
+  async connect(body?: BodyInit): Promise<void> {
     if (this.readyState !== SSEReadyState.CLOSED) {
       return;
     }
 
+    this.currentBody = body;
     this.isManualClose = false;
     this.readyState = SSEReadyState.CONNECTING;
     this.abortController = new AbortController();
@@ -101,7 +103,8 @@ export class SSEClient<TEventMap = Record<string, unknown>> {
 
     try {
       const response = await fetch(this.options.url, {
-        method: "GET",
+        method: "POST",
+        body: this.currentBody,
         signal: this.abortController?.signal,
         ...this.options.fetchOptions,
         headers: {
@@ -213,8 +216,6 @@ export class SSEClient<TEventMap = Record<string, unknown>> {
     for (const line of lines) {
       if (line.startsWith("data:")) {
         data += `${line.slice(5).trim()}\n`;
-      } else if (line.startsWith("id:")) {
-        // Skip id for now as it's not used in our event handling
       } else if (line.startsWith("event:")) {
         event = line.slice(6).trim();
       }
@@ -260,7 +261,7 @@ export class SSEClient<TEventMap = Record<string, unknown>> {
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       console.log(`SSE reconnecting... (attempt ${this.reconnectCount})`);
-      this.connect().catch((error) => {
+      this.connect(this.currentBody).catch((error) => {
         console.error("Reconnection failed:", error);
       });
     }, this.options.reconnectInterval);
@@ -458,8 +459,14 @@ function markMessageComplete(messageId: number) {
   console.log(`Message ${messageId} is complete`);
 }
 
-// Connect to stream
-await client.connect();
+// Connect to stream with POST body
+const requestBody = JSON.stringify({
+  message: 'Hello, how can you help me?',
+  conversation_id: 123,
+  // Add any other POST data you need
+});
+
+await client.connect(requestBody);
 
 // Check connection status
 console.log({
