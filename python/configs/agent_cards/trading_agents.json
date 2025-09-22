@@ -15,7 +15,7 @@
             "Analyze NVDA using market and fundamentals analysts",
             "Analyze TSLA using all analysts, date 2024-01-15, enable debug mode"
         ],
-        "tags": ["trading", "analysis", "multi-agent", "stocks", "US stocks"]
+        "tags": ["analysis", "multi-agent", "stocks", "US market"]
     }],
     "provider": {
         "organization": "Tauric",
