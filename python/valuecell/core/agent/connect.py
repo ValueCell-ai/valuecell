@@ -93,7 +93,10 @@ class RemoteConnections:
                     url=local_agent_card.url,
                     local_agent_card=local_agent_card,
                 )
-            except (json.JSONDecodeError, FileNotFoundError, KeyError):
+            except (json.JSONDecodeError, FileNotFoundError, KeyError) as e:
+                logger.warning(
+                    f"Failed to load agent card from {json_file}; skipping: {e}"
+                )
                 continue
         self._remote_contexts_loaded = True
 
