@@ -11,7 +11,8 @@ from agno.models.openrouter import OpenRouter
 from edgar import Company, set_identity
 from pydantic import BaseModel, Field, field_validator
 
-from valuecell.core.types import BaseAgent, StreamResponse, streaming
+from valuecell.core.agent.responses import streaming, notification
+from valuecell.core.types import BaseAgent, StreamResponse
 from valuecell.core.agent.decorator import create_wrapped_agent
 
 # Configure logging
@@ -540,7 +541,7 @@ class SecAgent(BaseAgent):
                 logger.info(f"Extracted ticker: {ticker}")
             except Exception as e:
                 logger.error(f"Ticker extraction failed: {e}")
-                yield streaming.failed(
+                yield notification.failed(
                     "**Parse Error**: Unable to parse query parameters. Please ensure you provide a valid stock ticker."
                 )
                 return
@@ -553,17 +554,6 @@ class SecAgent(BaseAgent):
                 "last_check": None,
             }
 
-            # 3. Send initial confirmation
-            yield {
-                "content": f" **SEC Filing Monitor Started**\n\n"
-                f"**Ticker**: {ticker}\n"
-                f"**Monitoring**: 10-K, 8-K, 10-Q, 13F filings\n"
-                f"**Started**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-                f"I will continuously monitor {ticker}'s SEC filings and notify you of any changes...",
-                "is_task_complete": False,
-            }
-
-            # 4. Continuous monitoring loop
             check_interval = 30  # Check every 30 seconds (can be configured)
 
             while session_id in self.monitoring_sessions:
@@ -590,49 +580,27 @@ class SecAgent(BaseAgent):
                                 ticker, changes
                             )
 
-                            yield {
-                                "content": f"🚨 **New SEC Filing Detected!**\n\n"
-                                f"**Ticker**: {ticker}\n"
-                                f"**Time**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-                                f"**Summary**:\n{summary}\n\n"
-                                f"Continuing to monitor for further changes...",
-                                "is_task_complete": False,
-                            }
-                        else:
-                            # Periodic status update (every 10 checks)
-                            if (
-                                self.monitoring_sessions[session_id]["check_count"] % 10
-                                == 0
-                            ):
-                                yield {
-                                    "content": f"📊 **Monitoring Status Update**\n\n"
-                                    f"**Ticker**: {ticker}\n"
-                                    f"**Checks performed**: {self.monitoring_sessions[session_id]['check_count']}\n"
-                                    f"**Last check**: {datetime.now().strftime('%H:%M:%S')}\n"
-                                    f"**Status**: No new filings detected\n\n"
-                                    f"Monitoring continues...",
-                                    "is_task_complete": False,
-                                }
-                    else:
-                        logger.warning(f"Failed to retrieve filings for {ticker}")
+                            # yield {
+                            #     "content": f"🚨 **New SEC Filing Detected!**\n\n"
+                            #     f"**Ticker**: {ticker}\n"
+                            #     f"**Time**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+                            #     f"**Summary**:\n{summary}\n\n"
+                            #     f"Continuing to monitor for further changes...",
+                            #     "is_task_complete": False,
+                            # }
+                            yield notification.message(summary)
 
                     # Wait before next check
                     await asyncio.sleep(check_interval)
 
                 except Exception as e:
                     logger.error(f"Error during monitoring check: {e}")
-                    yield {
-                        "content": f"⚠️ **Monitoring Error**: {str(e)}\n\nRetrying in {check_interval} seconds...",
-                        "is_task_complete": False,
-                    }
+                    yield notification.failed(str(e))
                     await asyncio.sleep(check_interval)
 
         except Exception as e:
             logger.error(f"Unexpected error in notify method: {e}")
-            yield {
-                "content": f"❌ **System Error**: An unexpected error occurred while setting up monitoring.\nError details: {str(e)}",
-                "is_task_complete": True,
-            }
+            yield notification.failed(str(e))
         finally:
             # Clean up monitoring session
             if session_id in self.monitoring_sessions:

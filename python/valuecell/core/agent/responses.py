@@ -93,6 +93,12 @@ class _NotifyResponseNamespace:
             event=NotifyResponseEvent.TASK_DONE,
         )
 
+    def failed(self, content: Optional[str] = None) -> NotifyResponse:
+        return NotifyResponse(
+            content=content,
+            event=NotifyResponse.TASK_FAILED,
+        )
+
 
 notification = _NotifyResponseNamespace()
 
