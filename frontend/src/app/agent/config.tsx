@@ -2,7 +2,7 @@ import { ArrowRight } from "lucide-react";
 import { Link, Navigate, useParams } from "react-router";
 import BackButton from "@/components/valuecell/button/back-button";
 import PreviewMarkdown from "@/components/valuecell/markdown/preview-markdown";
-import ScrollContainer from "@/components/valuecell/scroll-container";
+import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { agentData } from "@/mock/agent-data";
 import type { Route } from "./+types/config";
 

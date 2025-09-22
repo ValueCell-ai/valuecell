@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import ScrollContainer from "@/components/valuecell/scroll-container";
+import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { useDebounce } from "@/hooks/use-debounce";
 
 interface StockSearchModalProps {
