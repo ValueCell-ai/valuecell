@@ -105,9 +105,9 @@ class RemoteConnections:
                     resolver = A2ACardResolver(
                         httpx_client=httpx_client, base_url=card_data["url"]
                     )
-                    self._remote_agent_cards[
-                        agent_name
-                    ] = await resolver.get_agent_card()
+                    self._remote_agent_cards[agent_name] = (
+                        await resolver.get_agent_card()
+                    )
                     loaded_count += 1
                     logger.info(
                         f"Loaded remote agent card: {agent_name} from {json_file.name}"
@@ -485,70 +485,3 @@ _default_remote_connections = RemoteConnections()
 def get_default_remote_connections() -> RemoteConnections:
     """Get the default RemoteConnections instance"""
     return _default_remote_connections
-
-
-async def load_remote_agents(config_dir: str = None) -> None:
-    """Load remote agents via the default RemoteConnections instance"""
-    return await _default_remote_connections.load_remote_agents(config_dir)
-
-
-async def connect_remote_agent(agent_name: str) -> str:
-    """Connect to a remote agent using the default instance"""
-    return await _default_remote_connections.connect_remote_agent(agent_name)
-
-
-async def start_agent(
-    agent_name: str,
-    with_listener: bool = True,
-    listener_port: int = None,
-    listener_host: str = "localhost",
-    notification_callback: callable = None,
-) -> str:
-    """Start an agent using the default RemoteConnections instance"""
-    return await _default_remote_connections.start_agent(
-        agent_name,
-        with_listener=with_listener,
-        listener_port=listener_port,
-        listener_host=listener_host,
-        notification_callback=notification_callback,
-    )
-
-
-async def get_client(agent_name: str) -> AgentClient:
-    """Get an AgentClient from the default RemoteConnections instance"""
-    return await _default_remote_connections.get_client(agent_name)
-
-
-async def stop_agent(agent_name: str):
-    """Stop an agent using the default RemoteConnections instance"""
-    return await _default_remote_connections.stop_agent(agent_name)
-
-
-def list_running_agents() -> List[str]:
-    """List running agents from the default RemoteConnections instance"""
-    return _default_remote_connections.list_running_agents()
-
-
-def list_available_agents() -> List[str]:
-    """List available agents from the default RemoteConnections instance"""
-    return _default_remote_connections.list_available_agents()
-
-
-async def stop_all():
-    """Stop all agents via the default RemoteConnections instance"""
-    return await _default_remote_connections.stop_all()
-
-
-def get_agent_info(agent_name: str) -> dict:
-    """Get agent info from the default RemoteConnections instance"""
-    return _default_remote_connections.get_agent_info(agent_name)
-
-
-def list_remote_agents() -> List[str]:
-    """List remote agents from the default RemoteConnections instance"""
-    return _default_remote_connections.list_remote_agents()
-
-
-def get_remote_agent_card(agent_name: str) -> dict:
-    """Get remote agent card data from the default RemoteConnections instance"""
-    return _default_remote_connections.get_remote_agent_card(agent_name)
