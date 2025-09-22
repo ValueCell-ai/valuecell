@@ -48,12 +48,7 @@ class AgentStreamService:
             async for response_chunk in self.orchestrator.process_user_input(
                 user_input
             ):
-                if (
-                    response_chunk
-                    and response_chunk.content
-                    and response_chunk.content.strip()
-                ):
-                    yield response_chunk.content
+                yield response_chunk.model_dump()
 
         except Exception as e:
             logger.error(f"Error in stream_query_agent: {str(e)}")
