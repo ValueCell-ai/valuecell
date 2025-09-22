@@ -380,10 +380,9 @@ class SecAgent(BaseAgent):
             # Get 13F-HR filings
             filings = company.get_filings(form="13F-HR").head(self.config.max_filings)
             if len(filings) < 2:
-                yield {
-                    "content": f"❌ **Insufficient Data**: Company '{ticker}' has insufficient 13F-HR filings (at least 2 filings required for comparison analysis).",
-                    "is_task_complete": True,
-                }
+                yield streaming.failed(
+                    f"**Insufficient Data**: Company '{ticker}' has insufficient 13F-HR filings (at least 2 filings required for comparison analysis)."
+                )
                 return
             logger.info(f"Retrieved {len(filings)} 13F filings")
 
@@ -480,10 +479,9 @@ class SecAgent(BaseAgent):
                 logger.info(f"Query classification result: {query_type}")
             except Exception as e:
                 logger.error(f"Query classification failed: {e}")
-                yield {
-                    "content": f"❌ **Classification Error**: Unable to analyze query type.\nError details: {str(e)}",
-                    "is_task_complete": True,
-                }
+                yield streaming.failed(
+                    "**Classification Error**: Unable to analyze query type."
+                )
                 return
 
             # 2. Extract stock ticker
@@ -506,10 +504,9 @@ class SecAgent(BaseAgent):
                 logger.info(f"Extracted stock ticker: {ticker}")
             except Exception as e:
                 logger.error(f"Stock ticker extraction failed: {e}")
-                yield {
-                    "content": f"❌ **Parse Error**: Unable to parse query parameters. Please ensure you provide a valid stock ticker.\nError details: {str(e)}",
-                    "is_task_complete": True,
-                }
+                yield streaming.failed(
+                    "**Parse Error**: Unable to parse query parameters. Please ensure you provide a valid stock ticker."
+                )
                 return
 
             # 3. Route to appropriate processing method based on query type
@@ -526,10 +523,7 @@ class SecAgent(BaseAgent):
 
         except Exception as e:
             logger.error(f"Unexpected error in stream method: {e}")
-            yield {
-                "content": f"❌ **System Error**: An unexpected error occurred while processing the request.\nError details: {str(e)}",
-                "is_task_complete": True,
-            }
+            yield streaming.failed(f"Unexpected error: {e}")
 
     async def notify(self, query: str, session_id: str, task_id: str):
         """
@@ -546,10 +540,9 @@ class SecAgent(BaseAgent):
                 logger.info(f"Extracted ticker: {ticker}")
             except Exception as e:
                 logger.error(f"Ticker extraction failed: {e}")
-                yield {
-                    "content": f"❌ **Parse Error**: {str(e)}",
-                    "is_task_complete": True,
-                }
+                yield streaming.failed(
+                    "**Parse Error**: Unable to parse query parameters. Please ensure you provide a valid stock ticker."
+                )
                 return
 
             # 2. Initialize monitoring session
