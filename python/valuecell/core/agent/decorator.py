@@ -33,6 +33,8 @@ from valuecell.core.types import (
     NotifyResponseEvent,
     StreamResponse,
     StreamResponseEvent,
+    SystemResponseEvent,
+    _TaskResponseEvent,
 )
 from valuecell.utils import (
     get_agent_card_path,
@@ -184,9 +186,11 @@ class GenericAgentExecutor(AgentExecutor):
             if not response.content:
                 return
 
-            response_event = response.event
             parts = [Part(root=TextPart(text=response.content))]
-            metadata = {"response_event": response_event.value}
+            metadata = {
+                "response_event": response.event.value,
+                "subtask_id": response.subtask_id,
+            }
             await updater.add_artifact(
                 parts=parts,
                 artifact_id=artifact_id,
@@ -228,6 +232,7 @@ class GenericAgentExecutor(AgentExecutor):
                             "tool_call_id": response.metadata.get("tool_call_id"),
                             "tool_name": response.metadata.get("tool_name"),
                             "tool_result": response.metadata.get("content"),
+                            "subtask_id": response.subtask_id,
                         },
                     )
                     continue
@@ -253,17 +258,13 @@ class GenericAgentExecutor(AgentExecutor):
 
 def is_task_completed(response_type: str) -> bool:
     return response_type in {
-        StreamResponseEvent.TASK_DONE,
-        StreamResponseEvent.TASK_FAILED,
-        NotifyResponseEvent.TASK_DONE,
-        NotifyResponseEvent.TASK_FAILED,
+        _TaskResponseEvent.TASK_COMPLETED,
     }
 
 
 def is_task_failed(response_type: str) -> bool:
     return response_type in {
-        StreamResponseEvent.TASK_FAILED,
-        NotifyResponseEvent.TASK_FAILED,
+        SystemResponseEvent.TASK_FAILED,
     }
 
 

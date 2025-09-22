@@ -1,24 +1,3 @@
-"""User-facing response constructors under valuecell.core.agent.
-
-Prefer importing from here if you're already working inside the core.agent
-namespace. For a stable top-level import, you can also use
-`valuecell.responses` which provides the same API.
-
-Example:
-    from valuecell.core.agent.responses import stream, notify
-    # Or explicit aliases for clarity:
-    from valuecell.core.agent.responses import streaming, notification
-
-    yield stream.message_chunk("Thinking…")
-    yield stream.reasoning("Plan: 1) fetch 2) analyze")
-    yield stream.tool_call_start("call_1", "search")
-    yield stream.tool_call_result('{"items": 12}', "call_1", "search")
-    yield stream.done()
-
-    send(notify.message("Task submitted"))
-    send(notify.done("OK"))
-"""
-
 from __future__ import annotations
 
 from typing import Optional
@@ -28,50 +7,70 @@ from valuecell.core.types import (
     NotifyResponseEvent,
     StreamResponse,
     StreamResponseEvent,
+    SystemResponseEvent,
     ToolCallContent,
+    _TaskResponseEvent,
 )
 
 
 class _StreamResponseNamespace:
     """Factory methods for streaming responses."""
 
-    def message_chunk(self, content: str) -> StreamResponse:
-        return StreamResponse(event=StreamResponseEvent.MESSAGE_CHUNK, content=content)
+    def message_chunk(
+        self, content: str, subtask_id: str | None = None
+    ) -> StreamResponse:
+        return StreamResponse(
+            event=StreamResponseEvent.MESSAGE_CHUNK,
+            content=content,
+            subtask_id=subtask_id,
+        )
 
-    def tool_call_started(self, tool_call_id: str, tool_name: str) -> StreamResponse:
+    def tool_call_started(
+        self, tool_call_id: str, tool_name: str, subtask_id: str | None = None
+    ) -> StreamResponse:
         return StreamResponse(
             event=StreamResponseEvent.TOOL_CALL_STARTED,
             metadata=ToolCallContent(
-                tool_call_id=tool_call_id, tool_name=tool_name
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
             ).model_dump(),
+            subtask_id=subtask_id,
         )
 
     def tool_call_completed(
-        self, tool_result: str, tool_call_id: str, tool_name: str
+        self,
+        tool_result: str,
+        tool_call_id: str,
+        tool_name: str,
+        subtask_id: str | None = None,
     ) -> StreamResponse:
         return StreamResponse(
             event=StreamResponseEvent.TOOL_CALL_COMPLETED,
             metadata=ToolCallContent(
-                tool_call_id=tool_call_id, tool_name=tool_name, tool_result=tool_result
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                tool_result=tool_result,
             ).model_dump(),
+            subtask_id=subtask_id,
         )
 
-    def reasoning(self, content: str) -> StreamResponse:
+    def reasoning(self, content: str, subtask_id: str | None = None) -> StreamResponse:
         return StreamResponse(
             event=StreamResponseEvent.REASONING,
             content=content,
+            subtask_id=subtask_id,
         )
 
     def done(self, content: Optional[str] = None) -> StreamResponse:
         return StreamResponse(
             content=content,
-            event=StreamResponseEvent.TASK_DONE,
+            event=_TaskResponseEvent.TASK_COMPLETED,
         )
 
     def failed(self, content: Optional[str] = None) -> StreamResponse:
         return StreamResponse(
             content=content,
-            event=StreamResponseEvent.TASK_FAILED,
+            event=SystemResponseEvent.TASK_FAILED,
         )
 
 
@@ -90,13 +89,13 @@ class _NotifyResponseNamespace:
     def done(self, content: Optional[str] = None) -> NotifyResponse:
         return NotifyResponse(
             content=content,
-            event=NotifyResponseEvent.TASK_DONE,
+            event=_TaskResponseEvent.TASK_COMPLETED,
         )
 
     def failed(self, content: Optional[str] = None) -> NotifyResponse:
         return NotifyResponse(
             content=content,
-            event=NotifyResponse.TASK_FAILED,
+            event=SystemResponseEvent.TASK_FAILED,
         )
 
 
@@ -106,6 +105,4 @@ notification = _NotifyResponseNamespace()
 __all__ = [
     "streaming",
     "notification",
-    "StreamResponse",
-    "NotifyResponse",
 ]

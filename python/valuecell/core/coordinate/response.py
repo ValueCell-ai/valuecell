@@ -1,0 +1,182 @@
+from typing_extensions import Literal
+from valuecell.core.types import (
+    BaseResponseDataContent,
+    ConversationStartedResponse,
+    DoneResponse,
+    MessageResponse,
+    NotifyResponseEvent,
+    PlanFailedResponse,
+    PlanRequireUserInputResponse,
+    ReasoningResponse,
+    StreamResponseEvent,
+    SystemFailedResponse,
+    TaskCompletedResponse,
+    TaskFailedResponse,
+    ToolCallCompletedResponse,
+    ToolCallContent,
+    ToolCallStartedResponse,
+    UnifiedResponseData,
+)
+
+
+class ResponseFactory:
+    def conversation_started(self, conversation_id: str) -> ConversationStartedResponse:
+        return ConversationStartedResponse(
+            data=UnifiedResponseData(conversation_id=conversation_id)
+        )
+
+    def system_failed(self, conversation_id: str, content: str) -> SystemFailedResponse:
+        return SystemFailedResponse(
+            data=UnifiedResponseData(
+                conversation_id=conversation_id,
+                data=BaseResponseDataContent(content=content),
+            )
+        )
+
+    def done(self, conversation_id: str, thread_id: str) -> DoneResponse:
+        return DoneResponse(
+            data=UnifiedResponseData(
+                conversation_id=conversation_id,
+                thread_id=thread_id,
+            )
+        )
+
+    def plan_require_user_input(
+        self, conversation_id: str, thread_id: str, content: str
+    ) -> PlanRequireUserInputResponse:
+        return PlanRequireUserInputResponse(
+            data=UnifiedResponseData(
+                conversation_id=conversation_id,
+                thread_id=thread_id,
+                data=BaseResponseDataContent(content=content),
+            )
+        )
+
+    def plan_failed(
+        self, conversation_id: str, thread_id: str, content: str
+    ) -> PlanFailedResponse:
+        return PlanFailedResponse(
+            data=UnifiedResponseData(
+                conversation_id=conversation_id,
+                thread_id=thread_id,
+                data=BaseResponseDataContent(content=content),
+            )
+        )
+
+    def task_failed(
+        self,
+        conversation_id: str,
+        thread_id: str,
+        task_id: str,
+        subtask_id: str | None,
+        content: str,
+    ) -> TaskFailedResponse:
+        return TaskFailedResponse(
+            data=UnifiedResponseData(
+                conversation_id=conversation_id,
+                thread_id=thread_id,
+                task_id=task_id,
+                subtask_id=subtask_id,
+                data=BaseResponseDataContent(content=content),
+            )
+        )
+
+    def task_completed(
+        self,
+        conversation_id: str,
+        thread_id: str,
+        task_id: str,
+        subtask_id: str | None,
+    ) -> TaskCompletedResponse:
+        return TaskCompletedResponse(
+            data=UnifiedResponseData(
+                conversation_id=conversation_id,
+                thread_id=thread_id,
+                task_id=task_id,
+                subtask_id=subtask_id,
+            ),
+        )
+
+    def tool_call_started(
+        self,
+        conversation_id: str,
+        thread_id: str,
+        task_id: str,
+        subtask_id: str,
+        tool_call_id: str,
+        tool_name: str,
+    ) -> ToolCallStartedResponse:
+        return ToolCallStartedResponse(
+            data=UnifiedResponseData(
+                conversation_id=conversation_id,
+                thread_id=thread_id,
+                task_id=task_id,
+                subtask_id=subtask_id,
+                data=ToolCallContent(
+                    tool_call_id=tool_call_id,
+                    tool_name=tool_name,
+                ),
+            )
+        )
+
+    def tool_call_result(
+        self,
+        conversation_id: str,
+        thread_id: str,
+        task_id: str,
+        subtask_id: str,
+        tool_call_id: str,
+        tool_name: str,
+        tool_call_result: str,
+    ) -> ToolCallCompletedResponse:
+        return ToolCallCompletedResponse(
+            data=UnifiedResponseData(
+                conversation_id=conversation_id,
+                thread_id=thread_id,
+                task_id=task_id,
+                subtask_id=subtask_id,
+                data=ToolCallContent(
+                    tool_call_id=tool_call_id,
+                    tool_name=tool_name,
+                    tool_result=tool_call_result,
+                ),
+            )
+        )
+
+    def message_response_general(
+        self,
+        event: Literal[StreamResponseEvent.MESSAGE_CHUNK, NotifyResponseEvent.MESSAGE],
+        conversation_id: str,
+        thread_id: str,
+        task_id: str,
+        subtask_id: str,
+        content: str,
+    ) -> MessageResponse:
+        return MessageResponse(
+            event=event,
+            data=UnifiedResponseData(
+                conversation_id=conversation_id,
+                thread_id=thread_id,
+                task_id=task_id,
+                subtask_id=subtask_id,
+                data=BaseResponseDataContent(content=content),
+            ),
+        )
+
+    def reasoning(
+        self,
+        conversation_id: str,
+        thread_id: str,
+        task_id: str,
+        subtask_id: str,
+        content: str,
+    ) -> ReasoningResponse:
+        return ReasoningResponse(
+            data=UnifiedResponseData(
+                conversation_id=conversation_id,
+                thread_id=thread_id,
+                task_id=task_id,
+                subtask_id=subtask_id,
+                data=BaseResponseDataContent(content=content),
+            ),
+        )
