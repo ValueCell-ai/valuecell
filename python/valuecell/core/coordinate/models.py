@@ -18,7 +18,9 @@ class ExecutionPlan(BaseModel):
         ..., description="Session ID this plan belongs to"
     )
     user_id: str = Field(..., description="User ID who requested this plan")
-    query: str = Field(..., description="Original user query that generated this plan")
+    orig_query: str = Field(
+        ..., description="Original user query that generated this plan"
+    )
     tasks: List[Task] = Field(default_factory=list, description="Tasks to execute")
     created_at: str = Field(..., description="Plan creation timestamp")
 

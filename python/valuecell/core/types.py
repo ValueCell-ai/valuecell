@@ -47,56 +47,35 @@ class UserInput(BaseModel):
         self.desired_agent_name = None
 
 
-class MessageDataKind(str, Enum):
-    """Types of messages exchanged with agents"""
-
-    TEXT = "text"
-    IMAGE = "image"
-    COMMAND = "command"
-
-
-class MessageChunkStatus(str, Enum):
-    partial = "partial"
-    success = "success"
-    failure = "failure"
-    cancelled = "cancelled"
+class StreamResponseEvent(str, Enum):
+    MESSAGE_CHUNK = "message_chunk"
+    TOOL_CALL_STARTED = "tool_call_started"
+    TOOL_CALL_COMPLETED = "tool_call_completed"
+    REASONING = "reasoning"
+    TASK_DONE = "task_done"
+    TASK_FAILED = "task_failed"
 
 
-class MessageChunkMetadata(BaseModel):
-    status: MessageChunkStatus = Field(
-        default=MessageChunkStatus.partial,
-        description="Chunk outcome: use partial for intermediate chunks; success/failure for final.",
-    )
-    session_id: str = Field(..., description="Session ID for this request")
-    user_id: str = Field(..., description="User ID who made this request")
-    agent_name: str = Field(..., description="Agent name handling this message")
-
-
-class MessageChunk(BaseModel):
-    """Chunk of a message, useful for streaming responses"""
-
-    content: str = Field(..., description="Content of the message chunk")
-    is_final: bool = Field(
-        default=False, description="Indicates if this is the final chunk"
-    )
-    kind: MessageDataKind = Field(
-        ..., description="The type of data contained in the chunk"
-    )
-    meta: MessageChunkMetadata = Field(
-        ..., description="Metadata associated with the message chunk"
-    )
+class NotifyResponseEvent(str, Enum):
+    MESSAGE = "message"
+    TASK_DONE = "task_done"
+    TASK_FAILED = "task_failed"
 
 
 class StreamResponse(BaseModel):
     """Response model for streaming agent responses"""
 
-    is_task_complete: bool = Field(
-        default=False,
-        description="Indicates whether the task associated with this stream response is complete.",
-    )
-    content: str = Field(
-        ...,
+    content: Optional[str] = Field(
+        None,
         description="The content of the stream response, typically a chunk of data or message.",
+    )
+    event: StreamResponseEvent = Field(
+        ...,
+        description="The type of stream response, indicating its purpose or content nature.",
+    )
+    metadata: Optional[dict] = Field(
+        None,
+        description="Optional metadata providing additional context about the response",
     )
 
 
@@ -107,6 +86,36 @@ class NotifyResponse(BaseModel):
         ...,
         description="The content of the notification response",
     )
+    event: NotifyResponseEvent = Field(
+        ...,
+        description="The type of notification response",
+    )
+
+
+class ToolCallContent(BaseModel):
+    tool_call_id: str = Field(..., description="Unique ID for the tool call")
+    tool_name: str = Field(..., description="Name of the tool being called")
+    tool_result: Optional[str] = Field(
+        None,
+        description="The content returned from the tool call, if any.",
+    )
+
+
+class ProcessMessageData(BaseModel):
+    conversation_id: str = Field(..., description="Conversation ID for this request")
+    message_id: str = Field(..., description="Message ID for this request")
+    content: str | ToolCallContent = Field(
+        ..., description="Content of the message chunk"
+    )
+
+
+class ProcessMessage(BaseModel):
+    """Chunk of a message, useful for streaming responses"""
+
+    event: StreamResponseEvent | NotifyResponseEvent = Field(
+        ..., description="The event type of the message chunk"
+    )
+    data: ProcessMessageData = Field(..., description="Content of the message chunk")
 
 
 # TODO: keep only essential parameters
@@ -144,7 +153,7 @@ class BaseAgent(ABC):
             user_id: Target user ID for the notification
 
         Yields:
-            StreamResponse: Notification content and status
+            NotifyResponse: Notification content and status
         """
         raise NotImplementedError
 

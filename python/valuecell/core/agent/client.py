@@ -50,7 +50,7 @@ class AgentClient:
     async def send_message(
         self,
         query: str,
-        context_id: str = None,
+        session_id: str = None,
         metadata: dict = None,
         streaming: bool = False,
     ) -> AsyncIterator[RemoteAgentResponse]:
@@ -65,7 +65,7 @@ class AgentClient:
             role=Role.user,
             parts=[Part(root=TextPart(text=query))],
             message_id=generate_uuid("msg"),
-            context_id=context_id or generate_uuid("ctx"),
+            context_id=session_id or generate_uuid("ctx"),
             metadata=metadata if metadata else None,
         )
 
