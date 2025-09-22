@@ -18,6 +18,7 @@ from valuecell.core.types import (
     ToolCallContent,
     UserInput,
 )
+from valuecell.utils.uuid import generate_message_id
 
 from .callback import store_task_in_session
 from .models import ExecutionPlan
@@ -378,7 +379,7 @@ class AgentOrchestrator:
             event=event,
             data=ProcessMessageData(
                 conversation_id=conversation_id,
-                message_id=message_id,
+                message_id=message_id or generate_message_id(),
                 content=content,
             ),
         )
@@ -396,6 +397,7 @@ class AgentOrchestrator:
             event=event,
             data=ProcessMessageData(
                 conversation_id=conversation_id,
+                message_id=generate_message_id(),
                 content=ToolCallContent(
                     tool_call_id=tool_call_id,
                     tool_name=tool_name,

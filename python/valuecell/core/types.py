@@ -103,7 +103,7 @@ class ToolCallContent(BaseModel):
 
 class ProcessMessageData(BaseModel):
     conversation_id: str = Field(..., description="Conversation ID for this request")
-    message_id: Optional[str] = Field(None, description="Message ID for this request")
+    message_id: str = Field(..., description="Message ID for this request")
     content: str | ToolCallContent = Field(
         ..., description="Content of the message chunk"
     )
