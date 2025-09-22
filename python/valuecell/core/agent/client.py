@@ -12,11 +12,12 @@ class AgentClient:
     def __init__(self, agent_url: str, push_notification_url: str = None):
         self.agent_url = agent_url
         self.push_notification_url = push_notification_url
+        self.agent_card = None
         self._client = None
         self._httpx_client = None
         self._initialized = False
 
-    async def _ensure_initialized(self):
+    async def ensure_initialized(self):
         if not self._initialized:
             await self._setup_client()
             self._initialized = True
@@ -44,8 +45,8 @@ class AgentClient:
 
         client_factory = ClientFactory(config)
         card_resolver = A2ACardResolver(self._httpx_client, self.agent_url)
-        card = await card_resolver.get_agent_card()
-        self._client = client_factory.create(card)
+        self.agent_card = await card_resolver.get_agent_card()
+        self._client = client_factory.create(self.agent_card)
 
     async def send_message(
         self,
@@ -59,7 +60,7 @@ class AgentClient:
         If `streaming` is True, return an async iterator producing (task, event) pairs.
         If `streaming` is False, return the first (task, event) pair (and close the generator).
         """
-        await self._ensure_initialized()
+        await self.ensure_initialized()
 
         message = Message(
             role=Role.user,
@@ -87,7 +88,7 @@ class AgentClient:
         return wrapper()
 
     async def get_agent_card(self):
-        await self._ensure_initialized()
+        await self.ensure_initialized()
         card_resolver = A2ACardResolver(self._httpx_client, self.agent_url)
         return await card_resolver.get_agent_card()
 

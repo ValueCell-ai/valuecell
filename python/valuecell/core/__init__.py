@@ -1,37 +1,30 @@
 # Session management
+from .agent.decorator import create_wrapped_agent
+from .agent.responses import notification, streaming
 from .session import (
+    InMemoryMessageStore,
     InMemorySessionStore,
     Message,
+    MessageStore,
     Role,
     Session,
-    SessionStatus,
     SessionManager,
+    SessionStatus,
     SessionStore,
-    MessageStore,
-    InMemoryMessageStore,
     SQLiteMessageStore,
 )
 
 # Task management
-from .task import (
-    InMemoryTaskStore,
-    Task,
-    TaskManager,
-    TaskStatus,
-    TaskStore,
-)
+from .task import InMemoryTaskStore, Task, TaskManager, TaskStatus, TaskStore
 
 # Type system
 from .types import (
+    BaseAgent,
+    RemoteAgentResponse,
+    StreamResponse,
     UserInput,
     UserInputMetadata,
-    BaseAgent,
-    StreamResponse,
-    RemoteAgentResponse,
 )
-
-from .agent.decorator import serve, create_wrapped_agent
-from .agent.responses import streaming, notification
 
 __all__ = [
     # Session exports
@@ -58,7 +51,6 @@ __all__ = [
     "StreamResponse",
     "RemoteAgentResponse",
     # Agent utilities
-    "serve",
     "create_wrapped_agent",
     # Response utilities
     "streaming",

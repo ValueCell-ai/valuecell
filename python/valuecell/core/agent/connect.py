@@ -5,10 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional
 
-import httpx
-from a2a.client import A2ACardResolver
 from a2a.types import AgentCard
-from valuecell.core.agent import registry
+from valuecell.core.agent.card import parse_local_agent_card_dict
 from valuecell.core.agent.client import AgentClient
 from valuecell.core.agent.listener import NotificationListener
 from valuecell.core.types import NotificationCallbackType
@@ -19,14 +17,13 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class AgentContext:
-    """Unified context for both local and remote agents."""
+    """Unified context for remote agents."""
 
     name: str
     # Connection/runtime state
     url: Optional[str] = None
-    agent_card: Optional[AgentCard] = None
-    instance: Optional[object] = None  # when present, treated as local service
-    server_task: Optional[asyncio.Task] = None
+    local_agent_card: Optional[AgentCard] = None
+    # Capability flags derived from card or JSON (fallbacks if no full card)
     listener_task: Optional[asyncio.Task] = None
     listener_url: Optional[str] = None
     client: Optional[AgentClient] = None
@@ -37,10 +34,16 @@ class AgentContext:
 
 
 class RemoteConnections:
-    """Manager for remote Agent connections"""
+    """Manager for remote Agent connections (client + optional listener only).
+
+    Design: This class no longer starts any local in-process agents or talks to
+    a registry. It reads AgentCards from local JSON files under
+    python/configs/agent_cards, creates HTTP clients to the specified URLs, and
+    optionally starts a notification listener when supported.
+    """
 
     def __init__(self):
-        # Unified per-agent contexts
+        # Unified per-agent contexts (keyed by agent name)
         self._contexts: Dict[str, AgentContext] = {}
         # Whether remote contexts (from configs) have been loaded
         self._remote_contexts_loaded: bool = False
@@ -53,43 +56,43 @@ class RemoteConnections:
             self._agent_locks[agent_name] = asyncio.Lock()
         return self._agent_locks[agent_name]
 
-    def _load_remote_contexts(self, config_dir: str = None) -> None:
-        """Load remote agent contexts from JSON config files into _contexts."""
-        if config_dir is None:
+    def _load_remote_contexts(self, agent_card_dir: str = None) -> None:
+        """Load remote agent contexts from JSON config files into _contexts.
+
+        Always uses parse_local_agent_card_dict to parse/normalize the
+        AgentCard; supports custom directories via base_dir.
+        """
+        if agent_card_dir is None:
             # Default to python/configs/agent_cards relative to current file
-            current_file = Path(__file__)
-            config_dir = (
-                current_file.parent.parent.parent.parent / "configs" / "agent_cards"
+            agent_card_dir = (
+                Path(__file__).parent.parent.parent.parent / "configs" / "agent_cards"
             )
         else:
-            config_dir = Path(config_dir)
+            agent_card_dir = Path(agent_card_dir)
 
-        if not config_dir.exists():
+        if not agent_card_dir.exists():
             self._remote_contexts_loaded = True
+            logger.warning(
+                f"Agent card directory {agent_card_dir} does not exist; no remote agents loaded"
+            )
             return
 
-        for json_file in config_dir.glob("*.json"):
+        for json_file in agent_card_dir.glob("*.json"):
             try:
+                # Read name minimally to resolve via helper
                 with open(json_file, "r", encoding="utf-8") as f:
-                    config_data = json.load(f)
-
-                agent_name = config_data.get("name")
+                    agent_card_dict = json.load(f)
+                agent_name = agent_card_dict.get("name")
                 if not agent_name:
                     continue
-
-                # Validate required fields
-                required_fields = ["name", "url"]
-                if not all(field in config_data for field in required_fields):
+                local_agent_card = parse_local_agent_card_dict(agent_card_dict)
+                if not local_agent_card or not local_agent_card.url:
                     continue
-
-                # Don't overwrite existing context with a constructed one that has more info
-                existing = self._contexts.get(agent_name)
-                if existing and existing.instance:
-                    continue
-
-                url = config_data.get("url")
-                self._contexts[agent_name] = AgentContext(name=agent_name, url=url)
-
+                self._contexts[agent_name] = AgentContext(
+                    name=agent_name,
+                    url=local_agent_card.url,
+                    local_agent_card=local_agent_card,
+                )
             except (json.JSONDecodeError, FileNotFoundError, KeyError):
                 continue
         self._remote_contexts_loaded = True
@@ -98,15 +101,23 @@ class RemoteConnections:
         if not self._remote_contexts_loaded:
             self._load_remote_contexts()
 
+    # Public helper primarily for tests or tooling to load from a custom dir
+    def load_from_dir(self, config_dir: str) -> None:
+        """Load agent contexts from a specific directory of JSON card files."""
+        self._load_remote_contexts(config_dir)
+
     async def start_agent(
         self,
         agent_name: str,
         with_listener: bool = True,
-        listener_port: int = None,
+        listener_port: int | None = None,
         listener_host: str = "localhost",
         notification_callback: NotificationCallbackType = None,
-    ) -> AgentCard:
-        """Start an agent, optionally with a notification listener."""
+    ) -> Optional[AgentCard]:
+        """Connect to an agent URL and optionally start a notification listener.
+
+        Returns the AgentCard if available from local configs; otherwise None.
+        """
         # Use agent-specific lock to prevent concurrent starts of the same agent
         agent_lock = self._get_agent_lock(agent_name)
         async with agent_lock:
@@ -118,58 +129,28 @@ class RemoteConnections:
                 ctx.desired_listener_port = listener_port
                 ctx.notification_callback = notification_callback
 
-            # If already set up, return card
-            if ctx.agent_card and (ctx.client or ctx.server_task):
-                return ctx.agent_card
+            # If already connected, return card (may be None if only URL known)
+            if ctx.client:
+                return ctx.client.agent_card
 
-            # Ensure AgentCard
-            await self._ensure_agent_card(ctx)
+            # Ensure client connection (uses URL from context)
+            await self._ensure_client(ctx)
 
             # Ensure listener if requested and supported
             if with_listener:
                 await self._ensure_listener(ctx)
 
-            # Start local agent service if needed
-            if ctx.instance:
-                await self._ensure_local_service(ctx)
-
-            # Ensure client connection
-            await self._ensure_client(ctx)
-
-            return ctx.agent_card
-
-    async def _ensure_agent_card(self, ctx: AgentContext) -> None:
-        """Ensure ctx.agent_card is populated."""
-        if ctx.agent_card:
-            return
-        if ctx.url and not ctx.instance:
-            if not ctx.url:
-                raise ValueError(f"Remote agent '{ctx.name}' missing URL")
-            async with httpx.AsyncClient() as httpx_client:
-                try:
-                    resolver = A2ACardResolver(
-                        httpx_client=httpx_client, base_url=ctx.url
-                    )
-                    ctx.agent_card = await resolver.get_agent_card()
-                    logger.info(f"Loaded agent card: {ctx.name}")
-                except Exception as e:
-                    logger.error(f"Failed to get agent card for {ctx.name}: {e}")
-                    # Proceed without card if remote doesn't expose it
-        else:
-            if not ctx.instance:
-                # Create instance lazily here to source the card
-                agent_class = registry.get_agent_class_by_name(ctx.name)
-                if not agent_class:
-                    raise ValueError(f"Agent '{ctx.name}' not found in registry")
-                ctx.instance = agent_class()
-                logger.info(f"Created new instance for agent '{ctx.name}'")
-            ctx.agent_card = ctx.instance.agent_card
+            return ctx.client.agent_card
 
     async def _ensure_listener(self, ctx: AgentContext) -> None:
         """Ensure listener is running if supported by agent card."""
-        if ctx.listener_task or not ctx.agent_card:
+        if ctx.listener_task:
             return
-        if not getattr(ctx.agent_card.capabilities, "push_notifications", False):
+        if (
+            ctx.client
+            and ctx.client.agent_card
+            and not ctx.client.agent_card.capabilities.push_notifications
+        ):
             return
         try:
             listener_task, listener_url = await self._start_listener(
@@ -187,15 +168,12 @@ class RemoteConnections:
         """Ensure AgentClient is created and connected."""
         if ctx.client:
             return
-        url = ctx.url or (ctx.agent_card.url if ctx.agent_card else None)
+        url = ctx.url or (ctx.local_agent_card.url if ctx.local_agent_card else None)
         if not url:
             raise ValueError(f"Unable to determine URL for agent '{ctx.name}'")
         ctx.client = AgentClient(url, push_notification_url=ctx.listener_url)
-        # Log based on whether it's a local service or a remote URL-only connection
-        if ctx.instance:
-            logger.info(f"Started agent '{ctx.name}' at {url}")
-        else:
-            logger.info(f"Connected to agent '{ctx.name}' at {url}")
+        await ctx.client.ensure_initialized()
+        logger.info(f"Connected to agent '{ctx.name}' at {url}")
         if ctx.listener_url:
             logger.info(f"  └─ with listener at {ctx.listener_url}")
 
@@ -219,42 +197,16 @@ class RemoteConnections:
         logger.info(f"Started listener at {listener_url}")
         return listener_task, listener_url
 
-    async def _ensure_local_service(self, ctx: AgentContext):
-        """Start the local agent service if not already running."""
-        if ctx.server_task:
-            return
-        if not ctx.instance:
-            agent_class = registry.get_agent_class_by_name(ctx.name)
-            if not agent_class:
-                raise ValueError(f"Agent '{ctx.name}' not found in registry")
-            ctx.instance = agent_class()
-            logger.info(f"Created new instance for agent '{ctx.name}'")
-        server_task = asyncio.create_task(ctx.instance.serve())
-        ctx.server_task = server_task
-        await asyncio.sleep(0.5)
-
     async def _get_or_create_context(
         self,
         agent_name: str,
     ) -> AgentContext:
-        """Get or initialize an AgentContext for local or remote agents."""
+        """Get an AgentContext for a known agent (from local configs)."""
         # Load remote contexts lazily
         self._ensure_remote_contexts_loaded()
 
         ctx = self._contexts.get(agent_name)
         if ctx:
-            return ctx
-
-        # Try local agent from registry
-        agent_class = registry.get_agent_class_by_name(agent_name)
-        if agent_class:
-            instance = agent_class()
-            ctx = AgentContext(name=agent_name, instance=instance)
-            try:
-                ctx.agent_card = instance.agent_card
-            except Exception:
-                pass
-            self._contexts[agent_name] = ctx
             return ctx
 
         # If not local and not preloaded as remote, it's unknown
@@ -280,16 +232,8 @@ class RemoteConnections:
                 pass
             ctx.listener_task = None
             ctx.listener_url = None
-        # Stop local agent
-        if ctx.server_task:
-            ctx.server_task.cancel()
-            try:
-                await ctx.server_task
-            except asyncio.CancelledError:
-                pass
-            ctx.server_task = None
-        # Remove context
-        del self._contexts[agent_name]
+        # Keep the context to allow quick reconnection; do not delete metadata
+        # Removing deletion allows list_available_agents to remain stable
 
     async def get_client(self, agent_name: str) -> AgentClient:
         """Get Agent client connection"""
@@ -306,88 +250,29 @@ class RemoteConnections:
 
     def list_running_agents(self) -> List[str]:
         """List running agents"""
-        return [name for name, ctx in self._contexts.items() if ctx.server_task]
+        return [name for name, ctx in self._contexts.items() if ctx.client]
 
     def list_available_agents(self) -> List[str]:
-        """List all available agents from registry and config cards"""
+        """List all available agents from local config cards"""
         # Ensure remote contexts are loaded
         self._ensure_remote_contexts_loaded()
-        local_agents = registry.list_agent_names()
-        remote_agents = [
-            name for name, ctx in self._contexts.items() if ctx.url and not ctx.instance
-        ]
-        # Deduplicate while preserving order (locals first)
-        seen = set()
-        merged = []
-        for name in local_agents + remote_agents:
-            if name not in seen:
-                seen.add(name)
-                merged.append(name)
-        return merged
+        return list(self._contexts.keys())
 
     async def stop_all(self):
-        """Stop all running agents"""
+        """Stop all running clients and listeners"""
         for agent_name in list(self._contexts.keys()):
             await self.stop_agent(agent_name)
 
-    def get_agent_card(
-        self, agent_name: str, fetch_if_missing: bool = False
-    ) -> Optional[AgentCard]:
-        """Get AgentCard object for any known agent; returns None if not available.
-
-        By default, this does not perform network I/O. If fetch_if_missing is True
-        and a URL is available for the agent, this will attempt to fetch the card:
-        - If no event loop is running, it will fetch synchronously (blocking).
-        - If an event loop is running, it schedules a background fetch and returns
-          None immediately (the card will be cached when the task completes).
-        """
+    def get_agent_card(self, agent_name: str) -> Optional[AgentCard]:
+        """Get AgentCard for a known agent from local configs."""
         self._ensure_remote_contexts_loaded()
         ctx = self._contexts.get(agent_name)
         if not ctx:
-            # Try to construct a local context from registry for convenience
-            agent_class = registry.get_agent_class_by_name(agent_name)
-            if agent_class:
-                instance = agent_class()
-                ctx = AgentContext(name=agent_name, instance=instance)
-                try:
-                    ctx.agent_card = instance.agent_card
-                except Exception:
-                    pass
-                self._contexts[agent_name] = ctx
-            else:
-                return None
-        if ctx.agent_card:
-            return ctx.agent_card
-        if ctx.instance:
-            try:
-                return ctx.instance.agent_card
-            except Exception:
-                return None
-        # URL-only context without cached card
-        if fetch_if_missing and ctx.url:
-
-            async def _fetch_card():
-                async with httpx.AsyncClient() as httpx_client:
-                    try:
-                        resolver = A2ACardResolver(
-                            httpx_client=httpx_client, base_url=ctx.url
-                        )  # type: ignore[arg-type]
-                        card = await resolver.get_agent_card()
-                        ctx.agent_card = card
-                        logger.info(f"Fetched and cached agent card: {ctx.name}")
-                    except Exception as e:
-                        logger.error(f"Failed to fetch agent card for {ctx.name}: {e}")
-
-            try:
-                loop = asyncio.get_running_loop()
-                # Schedule background fetch; caller can retry later
-                loop.create_task(_fetch_card())
-                return None
-            except RuntimeError:
-                # No running loop: perform fetch synchronously
-                asyncio.run(_fetch_card())
-                return ctx.agent_card
-
+            return None
+        if ctx.client and ctx.client.agent_card:
+            return ctx.client.agent_card
+        if ctx.local_agent_card:
+            return ctx.local_agent_card
         return None
 
 
