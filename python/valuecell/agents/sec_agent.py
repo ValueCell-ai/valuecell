@@ -4,14 +4,14 @@ import logging
 import os
 from datetime import datetime
 from enum import Enum
-from typing import Dict, Iterator
+from typing import Dict, Iterator, AsyncGenerator
 
 from agno.agent import Agent, RunResponse, RunResponseEvent  # noqa
 from agno.models.openrouter import OpenRouter
 from edgar import Company, set_identity
 from pydantic import BaseModel, Field, field_validator
 
-from valuecell.core.types import BaseAgent
+from valuecell.core.types import BaseAgent, StreamResponse, streaming
 from valuecell.core.agent.decorator import create_wrapped_agent
 
 # Configure logging
@@ -299,10 +299,9 @@ class SecAgent(BaseAgent):
                     continue
 
             if not all_filings_data:
-                yield {
-                    "content": f"❌ **Insufficient Data**: No financial filings found for company '{ticker}'.",
-                    "is_task_complete": True,
-                }
+                yield streaming.failed(
+                    f"**Insufficient Data**: No financial filings found for company '{ticker}'."
+                )
                 return
 
             # Generate financial data analysis report
@@ -336,10 +335,10 @@ class SecAgent(BaseAgent):
 
             ## Output requirements:
             Please output analysis results in a clear structure, including:
-            - 📊 **Key Findings**: 3-5 important insights
-            - 📈 **Financial Highlights**: Important financial data and trends
-            - 🎯 **Investment Reference**: Reference value for investors
-            - ⚠️ **Risk Alerts**: Risk points that need attention
+            -  **Key Findings**: 3-5 important insights
+            -  **Financial Highlights**: Important financial data and trends
+            -  **Investment Reference**: Reference value for investors
+            -  **Risk Alerts**: Risk points that need attention
 
             Please ensure the analysis is objective and professional, based on actual data, avoiding excessive speculation.
             """
@@ -349,27 +348,22 @@ class SecAgent(BaseAgent):
             )
             for event in response_stream:
                 if event.event == "RunResponseContent":
-                    yield {
-                        "content": event.content,
-                        "is_task_complete": False,
-                    }
+                    yield streaming.message_chunk(event.content)
                 elif event.event == "ToolCallStarted":
-                    print(f"Tool call started: {event.tool}")
+                    yield streaming.tool_call_started(
+                        event.tool.tool_call_id, event.tool.tool_name
+                    )
+                elif event.event == "ToolCallCompleted":
+                    yield streaming.tool_call_completed(
+                        event.tool.result, event.tool.tool_call_id, event.tool.tool_name
+                    )
                 elif event.event == "ReasoningStep":
-                    print(f"Reasoning step: {event.content}")
+                    yield streaming.reasoning(event.reasoning_content)
             logger.info("Financial data analysis completed")
 
-            yield {
-                "content": "",
-                "is_task_complete": True,
-            }
-
+            yield streaming.done()
         except Exception as e:
-            logger.error(f"Financial data query failed: {e}")
-            yield {
-                "content": f"❌ **Financial Data Query Error**: Unable to retrieve financial data for company '{ticker}'.\nError details: {str(e)}",
-                "is_task_complete": True,
-            }
+            yield streaming.failed(f"Financial data query failed: {e}")
 
     async def _process_fund_holdings_query(
         self, ticker: str, session_id: str, task_id: str
@@ -438,10 +432,10 @@ class SecAgent(BaseAgent):
 
             ## Output requirements:
             Please output analysis results in a clear structure, including:
-            - 📊 **Key Findings**: 3-5 important insights
-            - 📈 **Important Data**: Specific change data and percentages
-            - 🎯 **Investment Insights**: Reference value for investors
-            - ⚠️ **Risk Alerts**: Risk points that need attention
+            -  **Key Findings**: 3-5 important insights
+            -  **Important Data**: Specific change data and percentages
+            -  **Investment Insights**: Reference value for investors
+            -  **Risk Alerts**: Risk points that need attention
 
             Please ensure the analysis is objective and professional, based on actual data, avoiding excessive speculation.
             """
@@ -451,30 +445,27 @@ class SecAgent(BaseAgent):
             )
             for event in response_stream:
                 if event.event == "RunResponseContent":
-                    yield {
-                        "content": event.content,
-                        "is_task_complete": False,
-                    }
+                    yield streaming.message_chunk(event.content)
                 elif event.event == "ToolCallStarted":
-                    print(f"Tool call started: {event.tool}")
+                    yield streaming.tool_call_started(
+                        event.tool.tool_call_id, event.tool.tool_name
+                    )
+                elif event.event == "ToolCallCompleted":
+                    yield streaming.tool_call_completed(
+                        event.tool.result, event.tool.tool_call_id, event.tool.tool_name
+                    )
                 elif event.event == "ReasoningStep":
-                    print(f"Reasoning step: {event.content}")
+                    yield streaming.reasoning(event.reasoning_content)
             logger.info("Financial data analysis completed")
 
-            yield {
-                "content": "",
-                "is_task_complete": True,
-            }
+            streaming.done()
             logger.info("13F analysis completed")
-
         except Exception as e:
-            logger.error(f"13F query failed: {e}")
-            yield {
-                "content": f"❌ **13F Query Error**: Unable to retrieve 13F data for company '{ticker}'.\nError details: {str(e)}",
-                "is_task_complete": True,
-            }
+            yield streaming.failed(f"13F query failed: {e}")
 
-    async def stream(self, query: str, session_id: str, task_id: str):
+    async def stream(
+        self, query: str, session_id: str, task_id: str
+    ) -> AsyncGenerator[StreamResponse, None]:
         """
         Main streaming method with intelligent routing support
         """
