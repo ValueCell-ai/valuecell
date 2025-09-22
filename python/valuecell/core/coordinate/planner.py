@@ -222,12 +222,12 @@ class ExecutionPlanner:
         Returns:
             str: A description of the agent's capabilities and supported operations
         """
-        self.agent_connections.list_remote_agents()
-        if card := self.agent_connections.get_remote_agent_card(agent_name):
+        if card := self.agent_connections.get_agent_card(agent_name):
             if isinstance(card, AgentCard):
                 return agentcard_to_prompt(card)
             if isinstance(card, dict):
                 return str(card)
+            return agentcard_to_prompt(card)
 
         return "The requested agent could not be found or is not available."
 

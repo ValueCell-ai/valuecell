@@ -122,17 +122,17 @@ await connections.stop_agent("AgentName")
 await connections.stop_all()
 ```
 
-#### Remote Agent Support
+#### Remote and Local Are Unified
 
 ```python
-# List remote Agents
-remote_agents = connections.list_remote_agents()
+# All available agents (local + configured URL-only)
+available_agents = connections.list_available_agents()
 
-# Get remote Agent configuration
-card_data = connections.get_remote_agent_card("RemoteAgentName")
-
-# Get Agent information
+# Get Agent information (if implemented)
 agent_info = connections.get_agent_info("AgentName")
+
+# Get Agent card (returns None if unavailable; set fetch_if_missing=True to fetch remotely)
+card = connections.get_agent_card("AgentName", fetch_if_missing=False)
 ```
 
 ### 3. AgentClient Class
@@ -250,13 +250,9 @@ async def remote_demo():
     available_agents = connections.list_available_agents()
     logger.info(f"Available Agents: {available_agents}")
     
-    # List remote Agents
-    remote_agents = connections.list_remote_agents()
-    logger.info(f"Remote Agents: {remote_agents}")
-    
-    # Connect to remote Agent (if any)
-    if remote_agents:
-        agent_name = remote_agents[0]
+    # Connect to any available Agent (including URL-only)
+    if available_agents:
+        agent_name = available_agents[0]
         try:
             agent_url = await connections.start_agent(agent_name)
             logger.info(f"Successfully connected to remote Agent {agent_name}: {agent_url}")
@@ -272,7 +268,7 @@ async def remote_demo():
                 logger.info(f"Remote response: {response}")
                 
         except Exception as e:
-            logger.error(f"Failed to connect to remote Agent {agent_name}: {e}")
+            logger.error(f"Failed to connect to Agent {agent_name}: {e}")
 
 if __name__ == "__main__":
     asyncio.run(remote_demo())

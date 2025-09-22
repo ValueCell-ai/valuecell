@@ -31,8 +31,8 @@ class TradingAgentsDemo:
         """Set up connection"""
         try:
             # Connect to remote agent
-            agent_url = await self.connections.connect_remote_agent(self.agent_name)
-            logger.info(f"TradingAgents connected successfully: {agent_url}")
+            # agent_url = await self.connections.connect_remote_agent(self.agent_name)
+            # logger.info(f"TradingAgents connected successfully: {agent_url}")
 
             # Get client connection
             self.client = await self.connections.get_client(self.agent_name)
