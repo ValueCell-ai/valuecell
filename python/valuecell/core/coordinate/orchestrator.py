@@ -494,7 +494,9 @@ class AgentOrchestrator:
                         StreamResponseEvent.REASONING,
                         NotifyResponseEvent.MESSAGE,
                     } and isinstance(response.data.payload.content, str):
-                        agent_responses[task.agent_name] += response.data.payload.content
+                        agent_responses[task.agent_name] += (
+                            response.data.payload.content
+                        )
                     yield response
 
                     if (
