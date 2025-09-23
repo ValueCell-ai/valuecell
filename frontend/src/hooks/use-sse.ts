@@ -1,22 +1,23 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import SSEClient, {
   type SSEEventHandlers,
   type SSEOptions,
   SSEReadyState,
 } from "@/lib/sse-client";
+import type { AgentEventMap } from "@/types/agent";
 
-export interface UseSSEOptions<TEventMap = Record<string, unknown>> {
+export interface UseSSEOptions<T = AgentEventMap[keyof AgentEventMap]> {
   /** SSE connection options */
   options: SSEOptions;
   /** Event handlers */
-  handlers?: SSEEventHandlers<TEventMap>;
+  handlers?: SSEEventHandlers<T>;
   /** Whether to auto-connect on mount */
   autoConnect?: boolean;
   /** Request body for POST requests */
   body?: BodyInit;
 }
 
-export interface UseSSEReturn<TEventMap = Record<string, unknown>> {
+export interface UseSSEReturn<T = AgentEventMap[keyof AgentEventMap]> {
   /** Current connection state */
   state: SSEReadyState;
   /** Whether the connection is open */
@@ -32,9 +33,9 @@ export interface UseSSEReturn<TEventMap = Record<string, unknown>> {
   /** Close the SSE connection */
   close: () => void;
   /** Update event handlers */
-  setEventHandlers: (handlers: SSEEventHandlers<TEventMap>) => void;
+  setEventHandlers: (handlers: SSEEventHandlers<T>) => void;
   /** SSE client instance for advanced usage */
-  client: SSEClient<TEventMap> | null;
+  client: SSEClient<T> | null;
 }
 
 /**
@@ -42,27 +43,33 @@ export interface UseSSEReturn<TEventMap = Record<string, unknown>> {
  *
  * @example
  * ```tsx
- * interface ChatEventMap {
- *   message_chunk: { content: string; messageId: number };
- *   done: { messageId: number };
- * }
+ * import { useSSE } from '@/hooks/use-sse';
+ * import type { AgentEventMap, SSEData } from '@/types/agent';
  *
  * function ChatComponent() {
- *   const { connect, close, isConnected, error } = useSSE<ChatEventMap>({
+ *   const { connect, close, isConnected, error } = useSSE<AgentEventMap[keyof AgentEventMap]>({
  *     options: {
  *       url: '/api/chat/stream',
  *       headers: { 'Authorization': 'Bearer token' }
  *     },
  *     handlers: {
- *       onEvent: (eventType, data) => {
- *         if (eventType === 'message_chunk') {
- *           console.log('New chunk:', data.content);
+ *       onData: (sseData: SSEData<AgentEventMap[keyof AgentEventMap]>) => {
+ *         const { event, data } = sseData;
+ *         if (event === 'message_chunk' || event === 'message') {
+ *           console.log('New message chunk:', data.payload.content);
+ *         } else if (event === 'tool_call_started') {
+ *           console.log('Tool call started:', data.payload.tool_name);
+ *         } else if (event === 'done') {
+ *           console.log('Conversation completed:', data.conversation_id);
  *         }
  *       },
  *       onError: (error) => console.error('SSE Error:', error)
  *     },
  *     autoConnect: true,
- *     body: JSON.stringify({ conversationId: 123 })
+ *     body: JSON.stringify({
+ *       message: 'Hello',
+ *       conversation_id: 'conv_123'
+ *     })
  *   });
  *
  *   return (
@@ -76,16 +83,16 @@ export interface UseSSEReturn<TEventMap = Record<string, unknown>> {
  * }
  * ```
  */
-export function useSSE<TEventMap = Record<string, unknown>>({
+export function useSSE<T = AgentEventMap[keyof AgentEventMap]>({
   options,
   handlers,
   autoConnect = false,
   body,
-}: UseSSEOptions<TEventMap>): UseSSEReturn<TEventMap> {
+}: UseSSEOptions<T>): UseSSEReturn<T> {
   const [error, setError] = useState<Error | null>(null);
 
-  const clientRef = useRef<SSEClient<TEventMap> | null>(null);
-  const handlersRef = useRef<SSEEventHandlers<TEventMap>>(handlers || {});
+  const clientRef = useRef<SSEClient<T> | null>(null);
+  const handlersRef = useRef<SSEEventHandlers<T>>(handlers || {});
   const bodyRef = useRef<BodyInit | undefined>(body);
 
   // Force re-render when client state changes
@@ -101,11 +108,11 @@ export function useSSE<TEventMap = Record<string, unknown>>({
     bodyRef.current = body;
   }, [body]);
 
-  // Create internal handlers that combine state updates with user handlers
-  const createInternalHandlers = useCallback(
-    (): SSEEventHandlers<TEventMap> => ({
-      onEvent: (eventType, data) => {
-        handlersRef.current.onEvent?.(eventType, data);
+  // Internal handlers referencing handlersRef to avoid re-binding
+  const internalHandlers: SSEEventHandlers<T> = useMemo(
+    () => ({
+      onData: (sseData) => {
+        handlersRef.current.onData?.(sseData);
       },
       onOpen: () => {
         setError(null);
@@ -131,10 +138,10 @@ export function useSSE<TEventMap = Record<string, unknown>>({
 
   // Initialize client
   useEffect(() => {
-    const client = new SSEClient<TEventMap>(options);
+    const client = new SSEClient<T>(options);
     clientRef.current = client;
 
-    client.setEventHandlers(createInternalHandlers());
+    client.setEventHandlers(internalHandlers);
 
     // Auto-connect if enabled
     if (autoConnect) {
@@ -146,7 +153,7 @@ export function useSSE<TEventMap = Record<string, unknown>>({
     return () => {
       client.destroy();
     };
-  }, [options, autoConnect, createInternalHandlers]); // options object dependency for proper recreation
+  }, [options, autoConnect, internalHandlers]); // Caller is responsible for options stability
 
   const connect = useCallback(async (connectBody?: BodyInit) => {
     if (!clientRef.current) return;
@@ -166,16 +173,9 @@ export function useSSE<TEventMap = Record<string, unknown>>({
     }
   }, []);
 
-  const setEventHandlers = useCallback(
-    (newHandlers: SSEEventHandlers<TEventMap>) => {
-      handlersRef.current = { ...handlersRef.current, ...newHandlers };
-
-      if (clientRef.current) {
-        clientRef.current.setEventHandlers(createInternalHandlers());
-      }
-    },
-    [createInternalHandlers],
-  );
+  const setEventHandlers = useCallback((newHandlers: SSEEventHandlers<T>) => {
+    handlersRef.current = { ...handlersRef.current, ...newHandlers };
+  }, []);
 
   // Get current state from client, not duplicate state
   const currentState = clientRef.current?.state ?? SSEReadyState.CLOSED;

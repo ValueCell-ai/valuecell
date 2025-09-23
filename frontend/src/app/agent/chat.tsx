@@ -13,7 +13,7 @@ import {
   User,
   Zap,
 } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import ScrollTextarea, {
@@ -22,20 +22,34 @@ import ScrollTextarea, {
 import { useSSE } from "@/hooks/use-sse";
 import { cn } from "@/lib/utils";
 import { agentData } from "@/mock/agent-data";
-import type {
-  AgentEventMap,
-  AgentStreamRequest,
-  ChatMessage,
-  GeneratedComponent,
-} from "@/types/agent";
-import {
-  COMPONENT_TYPE,
-  type ComponentType,
-  MESSAGE_TYPE,
-  TOOL_CALL_STATUS,
-} from "@/types/agent";
+import type { AgentEventMap, AgentStreamRequest, SSEData } from "@/types/agent";
 import type { Route } from "./+types/chat";
 import { ChatBackground } from "./components";
+
+// Extended chat message type with all possible fields
+type ExtendedChatMessage = {
+  id: string;
+  role: "user" | "system" | "agent";
+  isComplete: boolean;
+  // Base event fields (optional because user messages may not have them)
+  conversation_id?: string;
+  thread_id?: string;
+  task_id?: string;
+  subtask_id?: string;
+  // Content payload
+  payload?: { content: string; [key: string]: unknown };
+  // UI extension fields
+  component?: { type: string; content: string };
+  toolCalls?: Array<{
+    id: string;
+    name: string;
+    status: "started" | "completed";
+    result?: string;
+    startTime: Date;
+    endTime?: Date;
+  }>;
+  reasoning?: string;
+};
 
 export default function AgentChat() {
   const { agentId } = useParams<Route.LoaderArgs["params"]>();
@@ -43,12 +57,14 @@ export default function AgentChat() {
   const [inputValue, setInputValue] = useState("");
 
   // Simplified chat state - only essential state
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ExtendedChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
   const [userInputRequired, setUserInputRequired] = useState<string | null>(
     null,
   );
+  const [isSending, setIsSending] = useState(false); // Prevent duplicate sends
+  const [shouldClose, setShouldClose] = useState(false);
 
   // Optimized message update helper
   const updateOrCreateMessage = useCallback(
@@ -68,23 +84,28 @@ export default function AgentChat() {
         );
 
         if (messageIndex >= 0) {
+          const existingMessage = updatedMessages[messageIndex];
+          const existingContent = existingMessage.payload?.content || "";
+
           updatedMessages[messageIndex] = {
-            ...updatedMessages[messageIndex],
-            content: isAppend
-              ? updatedMessages[messageIndex].content + content
-              : content,
+            ...existingMessage,
+            payload: {
+              ...existingMessage.payload,
+              content: isAppend ? existingContent + content : content,
+            },
             isComplete,
           };
         } else {
           updatedMessages.push({
             id: messageId,
-            content,
-            type: MESSAGE_TYPE.ASSISTANT,
+            role: "agent",
             isComplete,
-            threadId,
-            taskId,
-            subtaskId,
-          });
+            conversation_id: "",
+            thread_id: threadId || "",
+            task_id: taskId || "",
+            subtask_id: subtaskId || "",
+            payload: { content },
+          } as ExtendedChatMessage);
         }
 
         return updatedMessages;
@@ -95,22 +116,25 @@ export default function AgentChat() {
     [],
   );
 
-  // Handle SSE events with automatic type inference
-  const handleSSEEvent = useCallback(
-    <T extends keyof AgentEventMap>(eventType: T, data: AgentEventMap[T]) => {
-      switch (eventType) {
+  // Handle SSE data events
+  const handleSSEData = useCallback(
+    (sseData: SSEData) => {
+      const { event, data } = sseData;
+
+      switch (event) {
         case "conversation_started": {
-          const payload = data as AgentEventMap["conversation_started"];
+          const payload =
+            data as unknown as AgentEventMap["conversation_started"];
           setConversationId(payload.conversation_id);
           break;
         }
 
         case "message_chunk": {
-          const payload = data as AgentEventMap["message_chunk"];
+          const payload = data as unknown as AgentEventMap["message_chunk"];
           const messageId = `${payload.conversation_id}-${payload.thread_id}`;
           updateOrCreateMessage(
             messageId,
-            payload.data.content,
+            payload.payload.content,
             false,
             payload.thread_id,
             payload.task_id,
@@ -121,11 +145,11 @@ export default function AgentChat() {
         }
 
         case "message": {
-          const payload = data as AgentEventMap["message"];
+          const payload = data as unknown as AgentEventMap["message"];
           const messageId = `${payload.conversation_id}-${payload.thread_id}`;
           updateOrCreateMessage(
             messageId,
-            payload.data.content,
+            payload.payload.content,
             true,
             payload.thread_id,
             payload.task_id,
@@ -136,18 +160,20 @@ export default function AgentChat() {
         }
 
         case "component_generator": {
-          const payload = data as AgentEventMap["component_generator"];
-          const componentMessage: ChatMessage = {
+          const payload =
+            data as unknown as AgentEventMap["component_generator"];
+          const componentMessage: ExtendedChatMessage = {
             id: `component-${payload.conversation_id}-${payload.thread_id}-${Date.now()}`,
-            content: "",
-            type: MESSAGE_TYPE.COMPONENT,
+            role: "agent",
             isComplete: true,
-            threadId: payload.thread_id,
-            taskId: payload.task_id,
-            subtaskId: payload.subtask_id,
+            conversation_id: payload.conversation_id,
+            thread_id: payload.thread_id,
+            task_id: payload.task_id,
+            subtask_id: payload.subtask_id,
+            payload: payload.payload,
             component: {
-              type: payload.data.component_type as ComponentType,
-              content: payload.data.content,
+              type: payload.payload.component_type,
+              content: payload.payload.content,
             },
           };
 
@@ -156,18 +182,19 @@ export default function AgentChat() {
         }
 
         case "plan_require_user_input": {
-          const payload = data as AgentEventMap["plan_require_user_input"];
-          setUserInputRequired(payload.data.content);
+          const payload =
+            data as unknown as AgentEventMap["plan_require_user_input"];
+          setUserInputRequired(payload.payload.content);
           break;
         }
 
         case "tool_call_started":
         case "tool_call_completed": {
-          const payload = data as
+          const payload = data as unknown as
             | AgentEventMap["tool_call_started"]
             | AgentEventMap["tool_call_completed"];
           const messageId = `${payload.conversation_id}-${payload.thread_id}`;
-          const isCompleted = eventType === "tool_call_completed";
+          const isCompleted = event === "tool_call_completed";
 
           setMessages((prevMessages) => {
             const updatedMessages = [...prevMessages];
@@ -179,19 +206,19 @@ export default function AgentChat() {
               const message = updatedMessages[messageIndex];
               const toolCalls = [...(message.toolCalls || [])];
               const toolCallIndex = toolCalls.findIndex(
-                (tc) => tc.id === payload.data.tool_call_id,
+                (tc) => tc.id === payload.payload.tool_call_id,
               );
 
               const toolCallData = {
-                id: payload.data.tool_call_id,
-                name: payload.data.tool_name,
+                id: payload.payload.tool_call_id,
+                name: payload.payload.tool_name,
                 status: isCompleted
-                  ? TOOL_CALL_STATUS.COMPLETED
-                  : TOOL_CALL_STATUS.STARTED,
+                  ? ("completed" as const)
+                  : ("started" as const),
                 startTime: new Date(),
                 ...(isCompleted && {
-                  result: (payload as AgentEventMap["tool_call_completed"]).data
-                    .tool_call_result,
+                  result: (payload as AgentEventMap["tool_call_completed"])
+                    .payload.tool_call_result,
                   endTime: new Date(),
                 }),
               };
@@ -214,7 +241,7 @@ export default function AgentChat() {
         }
 
         case "reasoning": {
-          const payload = data as AgentEventMap["reasoning"];
+          const payload = data as unknown as AgentEventMap["reasoning"];
           const messageId = `${payload.conversation_id}-${payload.thread_id}`;
 
           setMessages((prevMessages) => {
@@ -226,7 +253,7 @@ export default function AgentChat() {
             if (messageIndex >= 0) {
               updatedMessages[messageIndex] = {
                 ...updatedMessages[messageIndex],
-                reasoning: payload.data.content,
+                reasoning: payload.payload.content,
               };
             }
 
@@ -237,15 +264,20 @@ export default function AgentChat() {
 
         case "plan_failed":
         case "task_failed": {
-          const payload = data as
+          const payload = data as unknown as
             | AgentEventMap["plan_failed"]
             | AgentEventMap["task_failed"];
-          const errorMessage: ChatMessage = {
+          const errorMessage: ExtendedChatMessage = {
             id: `error-${payload.conversation_id}-${payload.thread_id}-${Date.now()}`,
-            content: payload.data.content,
-            type: MESSAGE_TYPE.ERROR,
+            role: "system",
             isComplete: true,
-            threadId: payload.thread_id,
+            conversation_id: payload.conversation_id,
+            thread_id: payload.thread_id,
+            ...(event === "task_failed" && {
+              task_id: (payload as AgentEventMap["task_failed"]).task_id,
+              subtask_id: (payload as AgentEventMap["task_failed"]).subtask_id,
+            }),
+            payload: payload.payload,
           };
 
           setMessages((prev) => [...prev, errorMessage]);
@@ -253,9 +285,10 @@ export default function AgentChat() {
         }
 
         case "done": {
-          const payload = data as AgentEventMap["done"];
+          const payload = data as unknown as AgentEventMap["done"];
           setUserInputRequired(null);
           setCurrentThreadId(payload.thread_id);
+          setShouldClose(true);
           break;
         }
       }
@@ -263,39 +296,58 @@ export default function AgentChat() {
     [updateOrCreateMessage],
   );
 
-  // Initialize SSE connection using the useSSE hook
-  const {
-    connect,
-    isConnected,
-    isConnecting,
-    error: sseError,
-  } = useSSE<AgentEventMap>({
-    options: {
-      url: "http://localhost:8001/api/v1/agents/stream",
+  // Stabilize SSE options to avoid infinite reconnects
+  const sseOptions = useMemo(
+    () => ({
+      url: "http://localhost:8000/api/v1/agents/stream",
       headers: {
         "Content-Type": "application/json",
       },
-      autoReconnect: true,
-      reconnectInterval: 3000,
-      maxReconnectAttempts: 5,
-      timeout: 30000,
-    },
-    handlers: {
-      onEvent: handleSSEEvent,
+      autoReconnect: false,
+      reconnectInterval: 5000,
+      maxReconnectAttempts: 3,
+      timeout: 60000, // Increase timeout to 60s
+    }),
+    [],
+  );
+
+  const sseHandlers = useMemo(
+    () => ({
+      onData: handleSSEData,
       onOpen: () => {
         console.log("SSE connection opened");
+        setIsSending(false); // Reset sending state on open
       },
-      onError: (error) => {
+      onError: (error: Error) => {
         console.error("SSE connection error:", error);
+        setIsSending(false); // Reset sending state on error
       },
       onClose: () => {
         console.log("SSE connection closed");
+        setIsSending(false); // Reset sending state on close
       },
-      onReconnect: (attempt) => {
-        console.log(`Reconnecting to agent stream (attempt ${attempt})`);
-      },
-    },
+    }),
+    [handleSSEData],
+  );
+
+  // Initialize SSE connection using the useSSE hook
+  const {
+    connect,
+    close,
+    isConnected,
+    isConnecting,
+    error: sseError,
+  } = useSSE({
+    options: sseOptions,
+    handlers: sseHandlers,
   });
+
+  useEffect(() => {
+    if (shouldClose) {
+      close();
+      setShouldClose(false);
+    }
+  }, [shouldClose, close]);
 
   // Derived state - compute from existing state instead of maintaining separately
   const isStreaming = isConnected && !userInputRequired;
@@ -303,20 +355,31 @@ export default function AgentChat() {
   // Send message to agent
   const sendMessage = useCallback(
     async (message: string) => {
-      const userMessage: ChatMessage = {
-        id: `user-${Date.now()}`,
-        content: message,
-        type: MESSAGE_TYPE.USER,
-        isComplete: true,
-      };
+      // Prevent duplicate sends
+      if (isSending || isConnecting) {
+        console.log(
+          "Already sending or connecting, ignoring duplicate request",
+        );
+        return;
+      }
 
-      setMessages((prev) => [...prev, userMessage]);
-      setUserInputRequired(null);
+      setIsSending(true);
 
       try {
+        const userMessage: ExtendedChatMessage = {
+          id: `user-${Date.now()}`,
+          role: "user",
+          isComplete: true,
+          // Special structure for user message
+          payload: { content: message },
+        } as ExtendedChatMessage;
+
+        setMessages((prev) => [...prev, userMessage]);
+        setUserInputRequired(null);
+
         const request: AgentStreamRequest = {
           query: message,
-          agent_name: "SecAgent", // You can make this dynamic based on the agent
+          agent_name: "WarrenBuffettAgent", // You can make this dynamic based on the agent
           conversation_id: conversationId || undefined,
           thread_id: currentThreadId || undefined,
         };
@@ -325,9 +388,10 @@ export default function AgentChat() {
         await connect(JSON.stringify(request));
       } catch (error) {
         console.error("Failed to send message:", error);
+        setIsSending(false); // Reset immediately on error
       }
     },
-    [conversationId, currentThreadId, connect],
+    [conversationId, currentThreadId, connect, isSending, isConnecting],
   );
 
   // Handle user input for plan_require_user_input events
@@ -340,7 +404,11 @@ export default function AgentChat() {
 
   const handleSendMessage = useCallback(() => {
     const trimmedInput = inputValue.trim();
-    if (!trimmedInput || isConnecting) return;
+    // Prevent sending while connecting/sending or when input is empty
+    if (!trimmedInput || isConnecting || isSending) {
+      console.log("Cannot send: empty input, connecting, or already sending");
+      return;
+    }
 
     const messageHandler = userInputRequired
       ? handleUserInputResponse
@@ -351,6 +419,7 @@ export default function AgentChat() {
   }, [
     inputValue,
     isConnecting,
+    isSending,
     userInputRequired,
     handleUserInputResponse,
     sendMessage,
@@ -359,24 +428,20 @@ export default function AgentChat() {
   // Optimized component icon mapping
   const componentIcons = useMemo(
     () => ({
-      [COMPONENT_TYPE.REPORT]: <FileText size={16} className="text-blue-600" />,
-      [COMPONENT_TYPE.CHART]: (
-        <BarChart3 size={16} className="text-green-600" />
-      ),
-      [COMPONENT_TYPE.TABLE]: <Table size={16} className="text-purple-600" />,
-      [COMPONENT_TYPE.ANALYSIS]: (
-        <Brain size={16} className="text-orange-600" />
-      ),
+      report: <FileText size={16} className="text-blue-600" />,
+      chart: <BarChart3 size={16} className="text-green-600" />,
+      table: <Table size={16} className="text-purple-600" />,
+      analysis: <Brain size={16} className="text-orange-600" />,
     }),
     [],
   );
 
   // Optimized component renderer
   const renderComponent = useCallback(
-    (component: GeneratedComponent) => {
-      const icon = componentIcons[component.type] || (
-        <FileText size={16} className="text-gray-600" />
-      );
+    (component: { type: string; content: string }) => {
+      const icon = componentIcons[
+        component.type as keyof typeof componentIcons
+      ] || <FileText size={16} className="text-gray-600" />;
 
       return (
         <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
@@ -503,13 +568,13 @@ export default function AgentChat() {
                   placeholder="You can inquire and analyze the trend of NVIDIA in the next three months"
                   maxHeight={120}
                   minHeight={24}
-                  disabled={isStreaming}
+                  disabled={isStreaming || isSending}
                 />
                 <Button
                   size="icon"
                   className="size-8 cursor-pointer self-end rounded-full"
                   onClick={handleSendMessage}
-                  disabled={isStreaming || !inputValue.trim()}
+                  disabled={isStreaming || isSending || !inputValue.trim()}
                 >
                   <ArrowUp size={16} className="text-white" />
                 </Button>
@@ -540,24 +605,20 @@ export default function AgentChat() {
                   key={message.id}
                   className={cn(
                     "flex gap-4",
-                    message.type === MESSAGE_TYPE.USER
-                      ? "justify-end"
-                      : "justify-start",
+                    message.role === "user" ? "justify-end" : "justify-start",
                   )}
                 >
-                  {(message.type === MESSAGE_TYPE.ASSISTANT ||
-                    message.type === MESSAGE_TYPE.COMPONENT ||
-                    message.type === MESSAGE_TYPE.ERROR) && (
+                  {message.role !== "user" && (
                     <div className="size-8 flex-shrink-0">
                       <div
                         className={cn(
                           "flex size-8 items-center justify-center rounded-full",
-                          message.type === MESSAGE_TYPE.ERROR
+                          message.role === "system"
                             ? "bg-gradient-to-br from-red-500 to-red-600"
                             : "bg-gradient-to-br from-blue-500 to-purple-600",
                         )}
                       >
-                        {message.type === MESSAGE_TYPE.ERROR ? (
+                        {message.role === "system" ? (
                           <AlertTriangle size={16} className="text-white" />
                         ) : (
                           <Bot size={16} className="text-white" />
@@ -569,21 +630,20 @@ export default function AgentChat() {
                   <div
                     className={cn(
                       "max-w-[80%] rounded-2xl px-4 py-3",
-                      message.type === MESSAGE_TYPE.USER
+                      message.role === "user"
                         ? "ml-auto bg-blue-600 text-white"
-                        : message.type === MESSAGE_TYPE.ERROR
+                        : message.role === "system"
                           ? "bg-red-100 text-red-900"
                           : "bg-gray-100 text-gray-900",
                     )}
                   >
                     {/* Message content */}
-                    {message.type !== MESSAGE_TYPE.COMPONENT && (
+                    {!message.component && (
                       <div className="whitespace-pre-wrap break-words">
-                        {message.content}
-                        {!message.isComplete &&
-                          message.type === MESSAGE_TYPE.ASSISTANT && (
-                            <span className="ml-1 inline-block h-5 w-2 animate-pulse bg-gray-400" />
-                          )}
+                        {message.payload?.content || ""}
+                        {!message.isComplete && message.role === "agent" && (
+                          <span className="ml-1 inline-block h-5 w-2 animate-pulse bg-gray-400" />
+                        )}
                       </div>
                     )}
 
@@ -598,7 +658,7 @@ export default function AgentChat() {
                             key={toolCall.id}
                             className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-2"
                           >
-                            {toolCall.status === TOOL_CALL_STATUS.STARTED ? (
+                            {toolCall.status === "started" ? (
                               <Clock
                                 size={14}
                                 className="animate-pulse text-blue-600"
@@ -612,7 +672,7 @@ export default function AgentChat() {
                             <span className="font-medium text-blue-900 text-sm">
                               {toolCall.name}
                             </span>
-                            {toolCall.status === TOOL_CALL_STATUS.STARTED && (
+                            {toolCall.status === "started" && (
                               <span className="text-blue-600 text-xs">
                                 Running...
                               </span>
@@ -643,7 +703,7 @@ export default function AgentChat() {
                     )}
                   </div>
 
-                  {message.type === MESSAGE_TYPE.USER && (
+                  {message.role === "user" && (
                     <div className="size-8 flex-shrink-0">
                       <div className="flex size-8 items-center justify-center rounded-full bg-gray-600">
                         <User size={16} className="text-white" />
@@ -696,13 +756,13 @@ export default function AgentChat() {
                   }
                   maxHeight={120}
                   minHeight={24}
-                  disabled={isStreaming}
+                  disabled={isStreaming || isSending}
                 />
                 <Button
                   size="icon"
                   className="size-8 cursor-pointer self-end rounded-full"
                   onClick={handleSendMessage}
-                  disabled={isStreaming || !inputValue.trim()}
+                  disabled={isStreaming || isSending || !inputValue.trim()}
                 >
                   <ArrowUp size={16} className="text-white" />
                 </Button>

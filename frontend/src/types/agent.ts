@@ -1,152 +1,101 @@
-// Updated Agent SSE Event Map based on new API specification
+// Agent communication types for SSE events and business logic
+
+// SSE data wrapper
+export interface SSEData<T = Record<string, unknown>> {
+  event: string;
+  data: T;
+}
+
+// Base event data structures
+interface BaseEventData {
+  conversation_id: string; // Top-level conversation session
+  thread_id: string; // Message chain within conversation
+  task_id: string; // Single agent execution unit
+  subtask_id: string; // Granular operation within task
+}
+
+// Payload wrapper for content events
+interface PayloadWrapper<T> {
+  payload: T;
+}
+
+// Agent SSE event mapping
 export interface AgentEventMap {
-  conversation_started: {
-    conversation_id: string;
-  };
-  message_chunk: {
-    data: {
+  // Lifecycle Events
+  conversation_started: Pick<BaseEventData, "conversation_id">;
+
+  done: Pick<BaseEventData, "conversation_id" | "thread_id">;
+
+  // Content Streaming Events
+  message_chunk: BaseEventData &
+    PayloadWrapper<{
       content: string;
-    };
-    conversation_id: string;
-    thread_id: string;
-    task_id: string;
-    subtask_id: string;
-  };
-  message: {
-    data: {
+    }>;
+
+  message: BaseEventData &
+    PayloadWrapper<{
       content: string;
-    };
-    conversation_id: string;
-    thread_id: string;
-    task_id: string;
-    subtask_id: string;
-  };
-  component_generator: {
-    data: {
+    }>;
+
+  // Component Generation
+  component_generator: BaseEventData &
+    PayloadWrapper<{
       component_type: string;
       content: string;
-    };
-    conversation_id: string;
-    thread_id: string;
-    task_id: string;
-    subtask_id: string;
-  };
-  plan_require_user_input: {
-    data: {
+    }>;
+
+  // User Interaction
+  plan_require_user_input: Pick<
+    BaseEventData,
+    "conversation_id" | "thread_id"
+  > &
+    PayloadWrapper<{
       content: string;
-    };
-    conversation_id: string;
-    thread_id: string;
-  };
-  tool_call_started: {
-    data: {
+    }>;
+
+  // Tool Execution Lifecycle
+  tool_call_started: BaseEventData &
+    PayloadWrapper<{
       tool_call_id: string;
       tool_name: string;
-    };
-    conversation_id: string;
-    thread_id: string;
-    task_id: string;
-    subtask_id: string;
-  };
-  tool_call_completed: {
-    data: {
+    }>;
+
+  tool_call_completed: BaseEventData &
+    PayloadWrapper<{
       tool_call_id: string;
       tool_name: string;
       tool_call_result: string;
-    };
-    conversation_id: string;
-    thread_id: string;
-    task_id: string;
-    subtask_id: string;
-  };
-  reasoning: {
-    data: {
+    }>;
+
+  // Reasoning Process
+  reasoning: BaseEventData &
+    PayloadWrapper<{
       content: string;
-    };
-    conversation_id: string;
-    thread_id: string;
-    task_id: string;
-    subtask_id: string;
-  };
-  plan_failed: {
-    data: {
+    }>;
+
+  reasoning_started: BaseEventData;
+  reasoning_completed: BaseEventData;
+
+  // Error Handling
+  plan_failed: Pick<BaseEventData, "conversation_id" | "thread_id"> &
+    PayloadWrapper<{
       content: string;
-    };
-    conversation_id: string;
-    thread_id: string;
-  };
-  task_failed: {
-    data: {
+    }>;
+
+  task_failed: BaseEventData &
+    PayloadWrapper<{
       content: string;
-    };
-    conversation_id: string;
-    thread_id: string;
-    task_id: string;
-    sub_task_id: string;
-  };
-  done: {
-    conversation_id: string;
-    thread_id: string;
-  };
+    }>;
 }
 
-// Updated constants
-export const TOOL_CALL_STATUS = {
-  STARTED: "started",
-  COMPLETED: "completed",
-} as const;
-
-export const MESSAGE_TYPE = {
-  USER: "user",
-  ASSISTANT: "assistant",
-  COMPONENT: "component",
-  ERROR: "error",
-} as const;
-
-export const COMPONENT_TYPE = {
-  REPORT: "report",
-  CHART: "chart",
-  TABLE: "table",
-  ANALYSIS: "analysis",
-} as const;
-
-export type ToolCallStatus =
-  (typeof TOOL_CALL_STATUS)[keyof typeof TOOL_CALL_STATUS];
-export type MessageType = (typeof MESSAGE_TYPE)[keyof typeof MESSAGE_TYPE];
-export type ComponentType =
-  (typeof COMPONENT_TYPE)[keyof typeof COMPONENT_TYPE];
-
-// Updated interfaces
-export interface ToolCall {
-  id: string;
-  name: string;
-  status: ToolCallStatus;
-  result?: string;
-  startTime: Date;
-  endTime?: Date;
-}
-
-export interface GeneratedComponent {
-  type: ComponentType;
-  content: string;
-}
-
-export interface ChatMessage {
-  id: string;
-  content: string;
-  type: MessageType;
+// Chat message with event data
+export type ChatMessage<T extends keyof AgentEventMap> = {
+  role: "user" | "system" | "agent";
   isComplete: boolean;
-  toolCalls?: ToolCall[];
-  reasoning?: string;
-  component?: GeneratedComponent;
-  threadId?: string;
-  taskId?: string;
-  subtaskId?: string;
-}
+} & AgentEventMap[T];
 
-export interface AgentStreamRequest {
+// Agent stream request
+export type AgentStreamRequest = {
   query: string;
   agent_name: string;
-  conversation_id?: string;
-  thread_id?: string;
-}
+} & Partial<Pick<BaseEventData, "conversation_id" | "thread_id">>;

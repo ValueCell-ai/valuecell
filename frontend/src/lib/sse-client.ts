@@ -20,12 +20,9 @@ export interface SSEOptions {
   fetchOptions?: Omit<RequestInit, "method" | "body" | "headers" | "signal">;
 }
 
-export interface SSEEventHandlers<TEventMap = Record<string, unknown>> {
-  /** Called when an event is received */
-  onEvent?: <K extends keyof TEventMap>(
-    eventType: K,
-    data: TEventMap[K],
-  ) => void;
+export interface SSEEventHandlers<T = Record<string, unknown>> {
+  /** Called when SSE data is received */
+  onData?: (data: SSEData<T>) => void;
   /** Called when connection is established */
   onOpen?: () => void;
   /** Called when an error occurs */
@@ -42,10 +39,10 @@ export enum SSEReadyState {
   CLOSED = 2,
 }
 
-export class SSEClient<TEventMap = Record<string, unknown>> {
+export class SSEClient<T = Record<string, unknown>> {
   private options: Required<SSEOptions>;
   private currentBody?: BodyInit;
-  private handlers: SSEEventHandlers<TEventMap> = {};
+  private handlers: SSEEventHandlers<T> = {};
   private reconnectCount = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private isManualClose = false;
@@ -55,7 +52,7 @@ export class SSEClient<TEventMap = Record<string, unknown>> {
 
   constructor(options: SSEOptions) {
     this.options = {
-      autoReconnect: true,
+      autoReconnect: false,
       reconnectInterval: 3000,
       maxReconnectAttempts: 10,
       timeout: 30000,
@@ -68,7 +65,7 @@ export class SSEClient<TEventMap = Record<string, unknown>> {
   /**
    * Set event handlers for SSE events
    */
-  setEventHandlers(handlers: SSEEventHandlers<TEventMap>): void {
+  setEventHandlers(handlers: SSEEventHandlers<T>): void {
     this.handlers = { ...this.handlers, ...handlers };
   }
 
@@ -76,8 +73,17 @@ export class SSEClient<TEventMap = Record<string, unknown>> {
    * Connect to the SSE endpoint
    */
   async connect(body?: BodyInit): Promise<void> {
-    if (this.readyState !== SSEReadyState.CLOSED) {
+    // Prevent duplicate connections
+    if (this.readyState === SSEReadyState.CONNECTING) {
+      console.log("Already connecting, ignoring duplicate connect request");
       return;
+    }
+
+    if (this.readyState === SSEReadyState.OPEN) {
+      console.log(
+        "Already connected, closing existing connection before reconnecting",
+      );
+      this.close();
     }
 
     this.currentBody = body;
@@ -97,7 +103,9 @@ export class SSEClient<TEventMap = Record<string, unknown>> {
    * Start the connection using fetch + ReadableStream
    */
   private async startConnection(): Promise<void> {
+    let didTimeout = false;
     const timeoutId = setTimeout(() => {
+      didTimeout = true;
       this.abortController?.abort();
     }, this.options.timeout);
 
@@ -137,17 +145,31 @@ export class SSEClient<TEventMap = Record<string, unknown>> {
       this.readyState = SSEReadyState.CLOSED;
 
       if (error instanceof Error && error.name === "AbortError") {
-        const timeoutError = new Error("Connection timeout");
-        this.handlers.onError?.(timeoutError);
-        throw timeoutError;
+        // Manual close: do not emit error or reconnect
+        if (this.isManualClose) {
+          return;
+        }
+
+        // Timeout: emit error and optionally reconnect based on config
+        if (didTimeout) {
+          const timeoutError = new Error("Connection timeout");
+          this.handlers.onError?.(timeoutError);
+          if (this.options.autoReconnect) {
+            this.scheduleReconnect();
+          }
+          throw timeoutError;
+        }
+
+        // Other aborts (e.g., superseded by a new connect): treat as normal close
+        this.handlers.onClose?.();
+        return;
       }
 
+      // Other network/HTTP errors
       this.handlers.onError?.(error as Error);
-
       if (!this.isManualClose && this.options.autoReconnect) {
         this.scheduleReconnect();
       }
-
       throw error;
     }
   }
@@ -211,15 +233,12 @@ export class SSEClient<TEventMap = Record<string, unknown>> {
   private processEvent(eventBlock: string): void {
     const lines = eventBlock.split("\n");
     let data = "";
-    let event: string | undefined;
 
     for (const line of lines) {
       if (line.startsWith("data:")) {
         data += `${line.slice(5).trim()}\n`;
-      } else if (line.startsWith("event:")) {
-        event = line.slice(6).trim();
       }
-      // Ignore retry: field for simplicity
+      // Ignore event: and retry: fields for simplicity
     }
 
     if (!data) return;
@@ -230,8 +249,9 @@ export class SSEClient<TEventMap = Record<string, unknown>> {
     try {
       const parsedData = JSON.parse(data);
 
-      if (event && this.handlers.onEvent) {
-        this.handlers.onEvent(event as keyof TEventMap, parsedData);
+      // Pass through parsed payload without interpreting event names
+      if (this.handlers.onData) {
+        this.handlers.onData(parsedData as SSEData<T>);
       }
     } catch (error) {
       // Only log JSON parsing errors, don't trigger connection-level error handling
@@ -243,6 +263,7 @@ export class SSEClient<TEventMap = Record<string, unknown>> {
    * Schedule a reconnection attempt
    */
   private scheduleReconnect(): void {
+    if (this.isManualClose) return;
     // Check if already reconnecting
     if (this.reconnectTimer !== null) return;
 
@@ -332,51 +353,16 @@ export class SSEClient<TEventMap = Record<string, unknown>> {
 
 export default SSEClient;
 
+import type { SSEData } from "@/types/agent";
+
 /*
 Usage Example:
 
 import SSEClient from './sse-client';
+import type { AgentEventMap, SSEData } from '@/types/agent';
 
-// Define event map with type safety
-interface EventMap {
-  conversation_start: {
-    conversation_id: number;
-  };
-  message_chunk: {
-    message_id: number;
-    content: string;
-    conversation_id: number;
-  };
-  tool_call: {
-    message_id: number;
-    content: {
-      tool_call_id: number;
-      tool_name: string;
-      tool_result: string;
-    };
-    conversation_id: number;
-  };
-  tool_call_result: {
-    message_id: number;
-    content: {
-      tool_call_id: number;
-      tool_name: string;
-    };
-    conversation_id: number;
-  };
-  reasoning: {
-    message_id: number;
-    content: string;
-    conversation_id: number;
-  };
-  done: {
-    message_id: number;
-    conversation_id: number;
-  };
-}
-
-// Create client with type-safe event map
-const client = new SSEClient<EventMap>({
+// Create SSE client with type safety
+const client = new SSEClient<AgentEventMap[keyof AgentEventMap]>({
   url: 'http://localhost:8080/api/chat/stream',
   headers: {
     Authorization: `Bearer ${token}`,
@@ -393,39 +379,69 @@ const client = new SSEClient<EventMap>({
 
 // Set up event handlers with full type safety
 client.setEventHandlers({
-  onEvent: (eventType, data) => {
-    // eventType and data are fully typed based on EventMap
-    switch (eventType) {
-      case 'conversation_start':
-        // data is automatically typed as { conversation_id: number }
+  onData: (sseData: SSEData<AgentEventMap[keyof AgentEventMap]>) => {
+    // sseData contains { event: string, data: typed based on AgentEventMap }
+    const { event, data } = sseData;
+    
+    switch (event) {
+      case 'conversation_started':
         console.log(`Conversation started: ${data.conversation_id}`);
         break;
         
       case 'message_chunk':
-        // data is automatically typed as { message_id: number; content: string; conversation_id: number }
-        console.log(`Message chunk: ${data.content}`);
-        appendToMessage(data.message_id, data.content);
+      case 'message':
+        console.log(`Message chunk: ${data.payload.content}`);
+        appendToMessage(data.thread_id, data.payload.content);
         break;
         
-      case 'tool_call':
-        // data is automatically typed with correct tool_call structure
-        console.log(`Tool call: ${data.content.tool_name}`);
-        showToolExecution(data.content.tool_name, data.content.tool_call_id);
+      case 'component_generator':
+        console.log(`Component generated: ${data.payload.component_type}`);
+        renderComponent(data.payload.component_type, data.payload.content);
         break;
         
-      case 'tool_call_result':
-        console.log(`Tool result: ${data.content.tool_call_id}`);
-        updateToolResult(data.content.tool_call_id);
+      case 'plan_require_user_input':
+        console.log(`Plan requires user input: ${data.payload.content}`);
+        showUserInputPrompt(data.payload.content);
+        break;
+        
+      case 'tool_call_started':
+        console.log(`Tool call started: ${data.payload.tool_name}`);
+        showToolExecution(data.payload.tool_name, data.payload.tool_call_id);
+        break;
+        
+      case 'tool_call_completed':
+        console.log(`Tool call completed: ${data.payload.tool_call_id}`);
+        updateToolResult(data.payload.tool_call_id, data.payload.tool_call_result);
         break;
         
       case 'reasoning':
-        console.log(`Reasoning: ${data.content}`);
-        showReasoning(data.message_id, data.content);
+        console.log(`Reasoning: ${data.payload.content}`);
+        showReasoning(data.thread_id, data.payload.content);
+        break;
+        
+      case 'reasoning_started':
+        console.log(`Reasoning started for task: ${data.task_id}`);
+        showReasoningIndicator(data.thread_id, true);
+        break;
+        
+      case 'reasoning_completed':
+        console.log(`Reasoning completed for task: ${data.task_id}`);
+        showReasoningIndicator(data.thread_id, false);
+        break;
+        
+      case 'plan_failed':
+        console.log(`Plan failed: ${data.payload.content}`);
+        showError('plan', data.payload.content);
+        break;
+        
+      case 'task_failed':
+        console.log(`Task failed: ${data.payload.content}`);
+        showError('task', data.payload.content);
         break;
         
       case 'done':
-        console.log(`Message ${data.message_id} completed`);
-        markMessageComplete(data.message_id);
+        console.log(`Conversation ${data.conversation_id} completed`);
+        markConversationComplete(data.conversation_id);
         break;
     }
   },
@@ -436,27 +452,45 @@ client.setEventHandlers({
 });
 
 // Helper functions for UI updates
-function appendToMessage(messageId: number, content: string) {
-  const messageElement = document.getElementById(`message-${messageId}`);
+function appendToMessage(threadId: string, content: string) {
+  const messageElement = document.getElementById(`thread-${threadId}`);
   if (messageElement) {
     messageElement.textContent += content;
   }
 }
 
-function showToolExecution(toolName: string, toolCallId: number) {
+function renderComponent(componentType: string, content: string) {
+  console.log(`Rendering component: ${componentType}`);
+  // Implementation for rendering different component types
+}
+
+function showUserInputPrompt(content: string) {
+  console.log(`User input required: ${content}`);
+  // Show user input dialog
+}
+
+function showToolExecution(toolName: string, toolCallId: string) {
   console.log(`Executing tool: ${toolName} (ID: ${toolCallId})`);
 }
 
-function updateToolResult(toolCallId: number) {
-  console.log(`Tool ${toolCallId} completed`);
+function updateToolResult(toolCallId: string, result: string) {
+  console.log(`Tool ${toolCallId} completed with result: ${result}`);
 }
 
-function showReasoning(messageId: number, reasoning: string) {
-  console.log(`Reasoning for message ${messageId}: ${reasoning}`);
+function showReasoning(threadId: string, reasoning: string) {
+  console.log(`Reasoning for thread ${threadId}: ${reasoning}`);
 }
 
-function markMessageComplete(messageId: number) {
-  console.log(`Message ${messageId} is complete`);
+function showReasoningIndicator(threadId: string, isActive: boolean) {
+  console.log(`Reasoning indicator for thread ${threadId}: ${isActive ? 'active' : 'inactive'}`);
+}
+
+function showError(type: 'plan' | 'task', content: string) {
+  console.error(`${type} error: ${content}`);
+}
+
+function markConversationComplete(conversationId: string) {
+  console.log(`Conversation ${conversationId} is complete`);
 }
 
 // Connect to stream with POST body
