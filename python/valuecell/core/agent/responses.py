@@ -8,7 +8,7 @@ from valuecell.core.types import (
     StreamResponse,
     StreamResponseEvent,
     SystemResponseEvent,
-    ToolCallContent,
+    ToolCallPayload,
     _TaskResponseEvent,
 )
 
@@ -30,7 +30,7 @@ class _StreamResponseNamespace:
     ) -> StreamResponse:
         return StreamResponse(
             event=StreamResponseEvent.TOOL_CALL_STARTED,
-            metadata=ToolCallContent(
+            metadata=ToolCallPayload(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
             ).model_dump(),
@@ -46,7 +46,7 @@ class _StreamResponseNamespace:
     ) -> StreamResponse:
         return StreamResponse(
             event=StreamResponseEvent.TOOL_CALL_COMPLETED,
-            metadata=ToolCallContent(
+            metadata=ToolCallPayload(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
                 tool_result=tool_result,

@@ -110,7 +110,7 @@ class NotifyResponse(BaseModel):
     )
 
 
-class ToolCallContent(BaseModel):
+class ToolCallPayload(BaseModel):
     tool_call_id: str = Field(..., description="Unique ID for the tool call")
     tool_name: str = Field(..., description="Name of the tool being called")
     tool_result: Optional[str] = Field(
@@ -119,18 +119,18 @@ class ToolCallContent(BaseModel):
     )
 
 
-class BaseResponseDataContent(BaseModel, ABC):
+class BaseResponseDataPayload(BaseModel, ABC):
     content: Optional[str] = Field(None, description="The message content")
 
 
-class ComponentGeneratorResponseDataContent(BaseResponseDataContent):
+class ComponentGeneratorResponseDataPayload(BaseResponseDataPayload):
     component_type: str = Field(..., description="The component type")
 
 
 ResponsePayload = Union[
-    BaseResponseDataContent,
-    ComponentGeneratorResponseDataContent,
-    ToolCallContent,
+    BaseResponseDataPayload,
+    ComponentGeneratorResponseDataPayload,
+    ToolCallPayload,
 ]
 
 
@@ -149,7 +149,7 @@ class UnifiedResponseData(BaseModel):
     subtask_id: Optional[str] = Field(
         None, description="Unique ID for the subtask, if any"
     )
-    data: Optional[ResponsePayload] = Field(
+    payload: Optional[ResponsePayload] = Field(
         None, description="The message data payload"
     )
 

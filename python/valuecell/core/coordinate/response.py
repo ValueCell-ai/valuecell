@@ -2,9 +2,9 @@ from typing import Optional
 
 from typing_extensions import Literal
 from valuecell.core.types import (
-    BaseResponseDataContent,
+    BaseResponseDataPayload,
     ComponentGeneratorResponse,
-    ComponentGeneratorResponseDataContent,
+    ComponentGeneratorResponseDataPayload,
     ConversationStartedResponse,
     DoneResponse,
     MessageResponse,
@@ -16,7 +16,7 @@ from valuecell.core.types import (
     SystemFailedResponse,
     TaskCompletedResponse,
     TaskFailedResponse,
-    ToolCallContent,
+    ToolCallPayload,
     ToolCallResponse,
     UnifiedResponseData,
 )
@@ -32,7 +32,7 @@ class ResponseFactory:
         return SystemFailedResponse(
             data=UnifiedResponseData(
                 conversation_id=conversation_id,
-                data=BaseResponseDataContent(content=content),
+                payload=BaseResponseDataPayload(content=content),
             )
         )
 
@@ -51,7 +51,7 @@ class ResponseFactory:
             data=UnifiedResponseData(
                 conversation_id=conversation_id,
                 thread_id=thread_id,
-                data=BaseResponseDataContent(content=content),
+                payload=BaseResponseDataPayload(content=content),
             )
         )
 
@@ -62,7 +62,7 @@ class ResponseFactory:
             data=UnifiedResponseData(
                 conversation_id=conversation_id,
                 thread_id=thread_id,
-                data=BaseResponseDataContent(content=content),
+                payload=BaseResponseDataPayload(content=content),
             )
         )
 
@@ -80,7 +80,7 @@ class ResponseFactory:
                 thread_id=thread_id,
                 task_id=task_id,
                 subtask_id=subtask_id,
-                data=BaseResponseDataContent(content=content),
+                payload=BaseResponseDataPayload(content=content),
             )
         )
 
@@ -121,7 +121,7 @@ class ResponseFactory:
                 thread_id=thread_id,
                 task_id=task_id,
                 subtask_id=subtask_id,
-                data=ToolCallContent(
+                payload=ToolCallPayload(
                     tool_call_id=tool_call_id,
                     tool_name=tool_name,
                     tool_result=tool_result,
@@ -145,7 +145,7 @@ class ResponseFactory:
                 thread_id=thread_id,
                 task_id=task_id,
                 subtask_id=subtask_id,
-                data=BaseResponseDataContent(content=content),
+                payload=BaseResponseDataPayload(content=content),
             ),
         )
 
@@ -169,7 +169,7 @@ class ResponseFactory:
                 thread_id=thread_id,
                 task_id=task_id,
                 subtask_id=subtask_id,
-                data=BaseResponseDataContent(content=content) if content else None,
+                payload=BaseResponseDataPayload(content=content) if content else None,
             ),
         )
 
@@ -188,7 +188,7 @@ class ResponseFactory:
                 thread_id=thread_id,
                 task_id=task_id,
                 subtask_id=subtask_id,
-                data=ComponentGeneratorResponseDataContent(
+                payload=ComponentGeneratorResponseDataPayload(
                     content=content,
                     component_type=component_type,
                 ),
