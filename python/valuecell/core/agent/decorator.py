@@ -228,12 +228,22 @@ class GenericAgentExecutor(AgentExecutor):
                 if is_tool_call(response_event):
                     await updater.update_status(
                         TaskState.working,
-                        message=message,
+                        message=new_agent_text_message(response.content or ""),
                         metadata={
                             "event": response_event.value,
                             "tool_call_id": response.metadata.get("tool_call_id"),
                             "tool_name": response.metadata.get("tool_name"),
                             "tool_result": response.metadata.get("content"),
+                            "subtask_id": response.subtask_id,
+                        },
+                    )
+                    continue
+                if is_reasoning(response_event):
+                    await updater.update_status(
+                        TaskState.working,
+                        message=new_agent_text_message(response.content or ""),
+                        metadata={
+                            "event": response_event.value,
                             "subtask_id": response.subtask_id,
                         },
                     )
@@ -274,6 +284,12 @@ def is_tool_call(response_type: str) -> bool:
     return response_type in {
         StreamResponseEvent.TOOL_CALL_STARTED,
         StreamResponseEvent.TOOL_CALL_COMPLETED,
+    }
+
+
+def is_reasoning(response_type: str) -> bool:
+    return response_type in {
+        StreamResponseEvent.REASONING,
     }
 
 

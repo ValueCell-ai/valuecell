@@ -6,7 +6,7 @@ from typing import AsyncGenerator, Dict, Optional
 from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
 from a2a.utils import get_message_text
 from valuecell.core.agent.connect import get_default_remote_connections
-from valuecell.core.agent.decorator import is_task_completed, is_tool_call
+from valuecell.core.agent.decorator import is_reasoning, is_task_completed, is_tool_call
 from valuecell.core.coordinate.response import ResponseFactory
 from valuecell.core.session import Role, SessionStatus, get_default_session_manager
 from valuecell.core.task import Task, get_default_task_manager
@@ -619,6 +619,19 @@ class AgentOrchestrator:
                                 tool_call_result=tool_call_result,
                             )
                             continue
+                    if state == TaskState.working and is_reasoning(response_event):
+                        subtask_id = (
+                            event.metadata.get("subtask_id") if event.metadata else None
+                        )
+                        if not subtask_id:
+                            subtask_id = _generate_task_default_subtask_id(task.task_id)
+                        yield self._response_factory.reasoning(
+                            conversation_id=task.session_id,
+                            thread_id=thread_id,
+                            task_id=task.task_id,
+                            subtask_id=subtask_id,
+                            content=get_message_text(event.status.message, ""),
+                        )
 
                         continue
 
