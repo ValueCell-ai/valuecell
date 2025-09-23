@@ -1,5 +1,6 @@
 {
     "name": "FundamentalsAnalystAgent",
+    "display_name": "Fundamentals Analyst",
     "url": "http://localhost:10023/",
     "description": "Financial-statement-driven analysis covering profitability, cash flows, and balance sheet strength. **CAUTION**: Only stock symbols in {AAPL, GOOGL, MSFT, NVDA, TSLA} is/are supported and the agent will refuse to answer for other symbols. The input should contain one or more stock symbol(s) from this list. ",
     "skills": [
@@ -11,7 +12,11 @@
                 "Analyze revenue and margin trends for Microsoft",
                 "Assess liquidity and leverage for Boeing"
             ],
-            "tags": ["fundamentals", "financial statements", "metrics"]
+            "tags": [
+                "fundamentals",
+                "financial statements",
+                "metrics"
+            ]
         }
     ],
     "enabled": true

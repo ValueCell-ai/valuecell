@@ -1,5 +1,6 @@
 {
     "name": "PhilFisherAgent",
+    "display_name": "Phil Fisher Agent",
     "url": "http://localhost:10018/",
     "description": "Qualitative growth investing focused on management, R&D, and long-term industry positioning. **CAUTION**: Only stock symbols in {AAPL, GOOGL, MSFT, NVDA, TSLA} is/are supported and the agent will refuse to answer for other symbols. The input should contain one or more stock symbol(s) from this list. ",
     "skills": [
@@ -11,7 +12,11 @@
                 "Assess a company's management and research capabilities",
                 "What are the long-term secular growth drivers for Company Y?"
             ],
-            "tags": ["qualitative", "management", "R&D"]
+            "tags": [
+                "qualitative",
+                "management",
+                "R&D"
+            ]
         }
     ],
     "enabled": true

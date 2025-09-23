@@ -1,5 +1,6 @@
 {
     "name": "RakeshJhunjhunwalaAgent",
+    "display_name": "Rakesh Jhunjhunwala Agent",
     "url": "http://localhost:10019/",
     "description": "Concentrated, conviction-driven investing with an emphasis on high-growth emerging opportunities. **CAUTION**: Only stock symbols in {AAPL, GOOGL, MSFT, NVDA, TSLA} is/are supported and the agent will refuse to answer for other symbols. The input should contain one or more stock symbol(s) from this list. ",
     "skills": [
@@ -11,7 +12,11 @@
                 "Identify high-growth opportunities in emerging markets",
                 "Which mid-cap names have the potential to scale rapidly?"
             ],
-            "tags": ["emerging markets", "conviction", "growth"]
+            "tags": [
+                "emerging markets",
+                "conviction",
+                "growth"
+            ]
         }
     ],
     "enabled": true

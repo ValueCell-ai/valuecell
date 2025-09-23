@@ -1,5 +1,6 @@
 {
     "name": "SecAgent",
+    "display_name": "SEC Agent",
     "url": "http://localhost:10003/",
     "description": "SecAgent can analyze SEC filings like 10-Q, 10-K, 13-F and analyze stock holdings of institutional investment managers. It can chat about stock performance, financial metrics, and market trends or track specific stocks and provide updates.",
     "skills": [
@@ -12,7 +13,11 @@
                 "How has the portfolio of Vanguard Group changed over the last four quarters?",
                 "Can you provide insights on the stock performance of Apple and Microsoft based on recent 13F filings?"
             ],
-            "tags": ["13F", "stock holdings", "institutional investors"]
+            "tags": [
+                "13F",
+                "stock holdings",
+                "institutional investors"
+            ]
         },
         {
             "id": "compare_quarterly_reports",
@@ -23,7 +28,11 @@
                 "Analyze Apple's Q1 vs Q4 financial performance from their 10-Q filings",
                 "What are the key changes in Amazon's quarterly revenue and expenses over the past year?"
             ],
-            "tags": ["10-Q", "quarterly reports", "financial analysis"]
+            "tags": [
+                "10-Q",
+                "quarterly reports",
+                "financial analysis"
+            ]
         },
         {
             "id": "summarize_annual_reports",
@@ -34,7 +43,11 @@
                 "What are the main highlights from Microsoft's annual 10-K filing?",
                 "Provide a comprehensive summary of Meta's business segments from their 10-K report"
             ],
-            "tags": ["10-K", "annual reports", "financial summary"]
+            "tags": [
+                "10-K",
+                "annual reports",
+                "financial summary"
+            ]
         },
         {
             "id": "compare_industry_performance",
@@ -45,7 +58,11 @@
                 "Compare the profitability metrics of JPMorgan, Bank of America, and Wells Fargo",
                 "Analyze the revenue growth rates of Netflix, Disney, and Warner Bros Discovery"
             ],
-            "tags": ["industry comparison", "financial metrics", "competitive analysis"]
+            "tags": [
+                "industry comparison",
+                "financial metrics",
+                "competitive analysis"
+            ]
         },
         {
             "id": "analyze_revenue_mix_evolution",
@@ -56,7 +73,11 @@
                 "Analyze the evolution of Amazon's revenue streams from 2020 to 2023",
                 "What changes occurred in Apple's product revenue mix in the last 5 years?"
             ],
-            "tags": ["revenue mix", "business segments", "financial evolution"]
+            "tags": [
+                "revenue mix",
+                "business segments",
+                "financial evolution"
+            ]
         },
         {
             "id": "assess_financial_health_metrics",
@@ -67,7 +88,11 @@
                 "What do the debt-to-equity ratios tell us about Boeing's financial stability?",
                 "Analyze the cash flow trends and liquidity position of General Electric"
             ],
-            "tags": ["financial health", "liquidity", "debt analysis"]
+            "tags": [
+                "financial health",
+                "liquidity",
+                "debt analysis"
+            ]
         },
         {
             "id": "identify_risk_factors",
@@ -78,9 +103,21 @@
                 "Analyze the regulatory risks mentioned in JPMorgan's annual report",
                 "Compare the risk disclosures between traditional automakers and EV companies"
             ],
-            "tags": ["risk factors", "financial risk", "SEC filings"]
+            "tags": [
+                "risk factors",
+                "financial risk",
+                "SEC filings"
+            ]
         }
     ],
-
-    "enabled": true
+    "enabled": true,
+    "metadata": {
+        "version": "1.0.0",
+        "author": "ValueCell Team",
+        "tags": [
+            "sec",
+            "13f",
+            "fund-analysis"
+        ]
+    }
 }

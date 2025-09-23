@@ -1,5 +1,6 @@
 {
     "name": "ValuationAnalystAgent",
+    "display_name": "Valuation Analyst",
     "url": "http://localhost:10025/",
     "description": "Multi-method valuation using DCF, comparables, and precedent transactions to derive price targets. **CAUTION**: Only stock symbols in {AAPL, GOOGL, MSFT, NVDA, TSLA} is/are supported and the agent will refuse to answer for other symbols. The input should contain one or more stock symbol(s) from this list. ",
     "skills": [
@@ -11,7 +12,11 @@
                 "Produce a 12-month price target using DCF and comps",
                 "Compare valuation multiples across peers"
             ],
-            "tags": ["valuation", "comparables", "DCF"]
+            "tags": [
+                "valuation",
+                "comparables",
+                "DCF"
+            ]
         }
     ],
     "enabled": true

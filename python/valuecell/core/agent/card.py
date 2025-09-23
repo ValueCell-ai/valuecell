@@ -5,12 +5,18 @@ from typing import Optional
 from a2a.types import AgentCapabilities, AgentCard
 from valuecell.utils import get_agent_card_path
 
+FIELDS_UNDEFINED_IN_AGENT_CARD_MODEL = {"enabled", "metadata", "display_name"}
+
 
 def parse_local_agent_card_dict(agent_card_dict: dict) -> Optional[AgentCard]:
     if not isinstance(agent_card_dict, dict):
         return None
-    if "enabled" in agent_card_dict:
-        del agent_card_dict["enabled"]
+    # Defined by us, remove fields that are not part of AgentCard
+    for field in FIELDS_UNDEFINED_IN_AGENT_CARD_MODEL:
+        if field in agent_card_dict:
+            del agent_card_dict[field]
+
+    # Requested fields as per AgentCard model
     if "description" not in agent_card_dict:
         agent_card_dict["description"] = (
             f"No description available for {agent_card_dict.get('name', 'unknown')} agent."
@@ -25,6 +31,8 @@ def parse_local_agent_card_dict(agent_card_dict: dict) -> Optional[AgentCard]:
         agent_card_dict["default_output_modes"] = []
     if "version" not in agent_card_dict:
         agent_card_dict["version"] = ""
+
+    # Parse into AgentCard model
     agent_card = AgentCard.model_validate(agent_card_dict)
     return agent_card
 

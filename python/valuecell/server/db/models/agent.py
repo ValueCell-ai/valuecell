@@ -110,7 +110,13 @@ class Agent(Base):
             description=config_data.get("description"),
             version=config_data.get("version", "1.0.0"),
             enabled=config_data.get("enabled", True),
-            capabilities=config_data.get("capabilities"),
+            capabilities=config_data.get(
+                "capabilities",
+                {
+                    "streaming": True,
+                    "push_notifications": False,
+                },
+            ),
             agent_metadata=config_data.get("metadata"),
             config=config_data.get("config"),
         )
