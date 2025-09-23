@@ -8,8 +8,9 @@ from valuecell.core.types import (
     StreamResponse,
     StreamResponseEvent,
     SystemResponseEvent,
+    CommonResponseEvent,
     ToolCallPayload,
-    _TaskResponseEvent,
+    TaskStatusEvent,
 )
 
 
@@ -77,7 +78,7 @@ class _StreamResponseNamespace:
         self, content: str, component_type: str, subtask_id: str | None = None
     ) -> StreamResponse:
         return StreamResponse(
-            event=StreamResponseEvent.COMPONENT_GENERATOR,
+            event=CommonResponseEvent.COMPONENT_GENERATOR,
             content=content,
             metadata={"component_type": component_type},
             subtask_id=subtask_id,
@@ -86,7 +87,7 @@ class _StreamResponseNamespace:
     def done(self, content: Optional[str] = None) -> StreamResponse:
         return StreamResponse(
             content=content,
-            event=_TaskResponseEvent.TASK_COMPLETED,
+            event=TaskStatusEvent.TASK_COMPLETED,
         )
 
     def failed(self, content: Optional[str] = None) -> StreamResponse:
@@ -108,10 +109,17 @@ class _NotifyResponseNamespace:
             event=NotifyResponseEvent.MESSAGE,
         )
 
+    def component_generator(self, content: str, component_type: str) -> StreamResponse:
+        return StreamResponse(
+            event=CommonResponseEvent.COMPONENT_GENERATOR,
+            content=content,
+            metadata={"component_type": component_type},
+        )
+
     def done(self, content: Optional[str] = None) -> NotifyResponse:
         return NotifyResponse(
             content=content,
-            event=_TaskResponseEvent.TASK_COMPLETED,
+            event=TaskStatusEvent.TASK_COMPLETED,
         )
 
     def failed(self, content: Optional[str] = None) -> NotifyResponse:
@@ -134,7 +142,7 @@ class EventPredicates:
     @staticmethod
     def is_task_completed(response_type) -> bool:
         return response_type in {
-            _TaskResponseEvent.TASK_COMPLETED,
+            TaskStatusEvent.TASK_COMPLETED,
         }
 
     @staticmethod

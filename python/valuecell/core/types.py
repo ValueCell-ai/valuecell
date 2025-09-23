@@ -30,22 +30,6 @@ class UserInput(BaseModel):
         frozen = False
         extra = "forbid"
 
-    def has_desired_agent(self) -> bool:
-        """Check if a specific agent is desired"""
-        return self.desired_agent_name is not None
-
-    def get_desired_agent(self) -> Optional[str]:
-        """Get the desired agent name"""
-        return self.desired_agent_name
-
-    def set_desired_agent(self, agent_name: str) -> None:
-        """Set the desired agent name"""
-        self.desired_agent_name = agent_name
-
-    def clear_desired_agent(self) -> None:
-        """Clear the desired agent name"""
-        self.desired_agent_name = None
-
 
 class SystemResponseEvent(str, Enum):
     CONVERSATION_STARTED = "conversation_started"
@@ -56,15 +40,18 @@ class SystemResponseEvent(str, Enum):
     DONE = "done"
 
 
-class _TaskResponseEvent(str, Enum):
+class TaskStatusEvent(str, Enum):
     TASK_STARTED = "task_started"
     TASK_COMPLETED = "task_completed"
     TASK_CANCELLED = "task_cancelled"
 
 
+class CommonResponseEvent(str, Enum):
+    COMPONENT_GENERATOR = "component_generator"
+
+
 class StreamResponseEvent(str, Enum):
     MESSAGE_CHUNK = "message_chunk"
-    COMPONENT_GENERATOR = "component_generator"
     TOOL_CALL_STARTED = "tool_call_started"
     TOOL_CALL_COMPLETED = "tool_call_completed"
     REASONING_STARTED = "reasoning_started"
@@ -83,7 +70,7 @@ class StreamResponse(BaseModel):
         None,
         description="The content of the stream response, typically a chunk of data or message.",
     )
-    event: StreamResponseEvent | _TaskResponseEvent = Field(
+    event: StreamResponseEvent | TaskStatusEvent = Field(
         ...,
         description="The type of stream response, indicating its purpose or content nature.",
     )
@@ -104,7 +91,7 @@ class NotifyResponse(BaseModel):
         ...,
         description="The content of the notification response",
     )
-    event: NotifyResponseEvent | _TaskResponseEvent = Field(
+    event: NotifyResponseEvent | TaskStatusEvent = Field(
         ...,
         description="The type of notification response",
     )
@@ -134,6 +121,44 @@ ResponsePayload = Union[
 ]
 
 
+ConversationMessageEvent = (
+    StreamResponseEvent
+    | NotifyResponseEvent
+    | SystemResponseEvent
+    | CommonResponseEvent
+    | TaskStatusEvent
+)
+
+
+class Role(str, Enum):
+    """Message role enumeration"""
+
+    USER = "user"
+    AGENT = "agent"
+    SYSTEM = "system"
+
+
+class ConversationMessage(BaseModel):
+    """Message item structure for conversation history"""
+
+    message_id: str = Field(..., description="Unique message identifier")
+    role: Role = Field(..., description="Role of the message sender")
+    event: ConversationMessageEvent = Field(
+        ..., description="Event type of the message"
+    )
+    conversation_id: str = Field(
+        ..., description="Conversation ID this message belongs to"
+    )
+    thread_id: Optional[str] = Field(None, description="Thread ID if part of a thread")
+    task_id: Optional[str] = Field(
+        None, description="Task ID if associated with a task"
+    )
+    subtask_id: Optional[str] = Field(
+        None, description="Subtask ID if associated with a subtask"
+    )
+    payload: str = Field(..., description="The actual message payload")
+
+
 class UnifiedResponseData(BaseModel):
     """Unified response data structure with optional hierarchy fields.
 
@@ -157,7 +182,7 @@ class UnifiedResponseData(BaseModel):
 class BaseResponse(BaseModel, ABC):
     """Top-level response envelope used for all events."""
 
-    event: StreamResponseEvent | NotifyResponseEvent | SystemResponseEvent = Field(
+    event: ConversationMessageEvent = Field(
         ..., description="The event type of the response"
     )
     data: UnifiedResponseData = Field(
@@ -189,8 +214,9 @@ class MessageResponse(BaseResponse):
 
 
 class ComponentGeneratorResponse(BaseResponse):
-    event: Literal[StreamResponseEvent.COMPONENT_GENERATOR] = Field(
-        StreamResponseEvent.COMPONENT_GENERATOR
+    event: Literal[CommonResponseEvent.COMPONENT_GENERATOR] = Field(
+        CommonResponseEvent.COMPONENT_GENERATOR,
+        description="The event type of the response",
     )
     data: UnifiedResponseData = Field(..., description="The component generator data")
 
@@ -236,8 +262,8 @@ class TaskFailedResponse(BaseResponse):
 
 
 class TaskCompletedResponse(BaseResponse):
-    event: Literal[_TaskResponseEvent.TASK_COMPLETED] = Field(
-        _TaskResponseEvent.TASK_COMPLETED, description="The event type of the response"
+    event: Literal[TaskStatusEvent.TASK_COMPLETED] = Field(
+        TaskStatusEvent.TASK_COMPLETED, description="The event type of the response"
     )
     data: UnifiedResponseData = Field(..., description="The task data payload")
 

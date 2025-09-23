@@ -21,7 +21,7 @@ from valuecell.core.types import (
     BaseAgent,
     NotifyResponse,
     StreamResponse,
-    StreamResponseEvent,
+    CommonResponseEvent,
 )
 from valuecell.utils import parse_host_port
 from .responses import EventPredicates
@@ -137,7 +137,7 @@ class GenericAgentExecutor(AgentExecutor):
                 "response_event": response_event.value,
                 "subtask_id": response.subtask_id,
             }
-            if response_event == StreamResponseEvent.COMPONENT_GENERATOR:
+            if response_event == CommonResponseEvent.COMPONENT_GENERATOR:
                 metadata["component_type"] = response.metadata.get("component_type")
             await updater.add_artifact(
                 parts=parts,

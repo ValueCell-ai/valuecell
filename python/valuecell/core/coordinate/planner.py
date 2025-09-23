@@ -118,7 +118,7 @@ class ExecutionPlanner:
         # Execute planning with the agent
         run_response = agent.run(
             message=PlannerInput(
-                desired_agent_name=user_input.get_desired_agent(),
+                desired_agent_name=user_input.desired_agent_name,
                 query=user_input.query,
             )
         )

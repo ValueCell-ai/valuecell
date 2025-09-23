@@ -1,16 +1,8 @@
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field
-
-
-class Role(str, Enum):
-    """Message role enumeration"""
-
-    USER = "user"
-    AGENT = "agent"
-    SYSTEM = "system"
 
 
 class SessionStatus(str, Enum):
@@ -19,27 +11,6 @@ class SessionStatus(str, Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
     REQUIRE_USER_INPUT = "require_user_input"
-
-
-class Message(BaseModel):
-    """Message data model"""
-
-    message_id: str = Field(..., description="Unique message identifier")
-    session_id: str = Field(..., description="Session ID this message belongs to")
-    user_id: str = Field(..., description="User ID")
-    agent_name: Optional[str] = Field(None, description="Agent name")
-    role: Role = Field(..., description="Message role")
-    content: str = Field(..., description="Message content")
-    timestamp: datetime = Field(
-        default_factory=datetime.now, description="Message timestamp"
-    )
-    task_id: Optional[str] = Field(None, description="Associated task ID")
-    metadata: Dict[str, Any] = Field(
-        default_factory=dict, description="Message metadata"
-    )
-
-    class Config:
-        json_encoders = {datetime: lambda v: v.isoformat()}
 
 
 class Session(BaseModel):
