@@ -49,6 +49,7 @@ class UserInput(BaseModel):
 
 class SystemResponseEvent(str, Enum):
     CONVERSATION_STARTED = "conversation_started"
+    THREAD_STARTED = "thread_started"
     PLAN_REQUIRE_USER_INPUT = "plan_require_user_input"
     PLAN_FAILED = "plan_failed"
     TASK_FAILED = "task_failed"
@@ -168,6 +169,13 @@ class BaseResponse(BaseModel, ABC):
 class ConversationStartedResponse(BaseResponse):
     event: Literal[SystemResponseEvent.CONVERSATION_STARTED] = Field(
         SystemResponseEvent.CONVERSATION_STARTED,
+        description="The event type of the response",
+    )
+
+
+class ThreadStartedResponse(BaseResponse):
+    event: Literal[SystemResponseEvent.THREAD_STARTED] = Field(
+        SystemResponseEvent.THREAD_STARTED,
         description="The event type of the response",
     )
 
