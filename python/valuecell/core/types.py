@@ -146,7 +146,9 @@ class UnifiedResponseData(BaseModel):
     subtask_id: Optional[str] = Field(
         None, description="Unique ID for the subtask, if any"
     )
-    data: Optional[ResponsePayload] = Field(None, description="The message data payload")
+    data: Optional[ResponsePayload] = Field(
+        None, description="The message data payload"
+    )
 
 
 class BaseResponse(BaseModel, ABC):

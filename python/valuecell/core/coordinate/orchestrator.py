@@ -4,10 +4,15 @@ from collections import defaultdict
 from typing import AsyncGenerator, Dict, Optional
 
 from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
-from a2a.utils import get_message_text
 from valuecell.core.agent.connect import get_default_remote_connections
 from valuecell.core.agent.responses import EventPredicates
 from valuecell.core.coordinate.response import ResponseFactory
+from valuecell.core.coordinate.response_router import (
+    RouteResult,
+    SideEffectKind,
+    handle_artifact_update,
+    handle_status_update,
+)
 from valuecell.core.session import Role, SessionStatus, get_default_session_manager
 from valuecell.core.task import Task, get_default_task_manager
 from valuecell.core.task.models import TaskPattern
@@ -565,109 +570,28 @@ class AgentOrchestrator:
                     continue
 
                 if isinstance(event, TaskStatusUpdateEvent):
-                    state = event.status.state
-                    logger.info(f"Task {task.task_id} status update: {state}")
-                    if state in {TaskState.submitted, TaskState.completed}:
-                        continue
-                    # Handle task failure
-                    if state == TaskState.failed:
-                        err_msg = get_message_text(event.status.message)
-                        await self.task_manager.fail_task(task.task_id, err_msg)
-                        yield self._response_factory.task_failed(
-                            conversation_id=task.session_id,
-                            thread_id=thread_id,
-                            task_id=task.task_id,
-                            subtask_id=_generate_task_default_subtask_id(task.task_id),
-                            content=err_msg,
-                        )
+                    result: RouteResult = await handle_status_update(
+                        self._response_factory, task, thread_id, event, logger
+                    )
+                    for r in result.responses:
+                        yield r
+                    # Apply side effects
+                    for eff in result.side_effects:
+                        if eff.kind == SideEffectKind.FAIL_TASK:
+                            await self.task_manager.fail_task(
+                                task.task_id, eff.reason or ""
+                            )
+                    if result.done:
                         return
-                    # if state == TaskState.input_required:
-                    # Handle tool call start
-                    if not event.metadata:
-                        continue
-                    response_event = event.metadata.get("response_event")
-                    if state == TaskState.working and EventPredicates.is_tool_call(response_event):
-                        subtask_id = (
-                            event.metadata.get("subtask_id") if event.metadata else None
-                        )
-                        if not subtask_id:
-                            subtask_id = _generate_task_default_subtask_id(task.task_id)
-                        tool_call_id = event.metadata.get("tool_call_id", "")
-                        tool_name = event.metadata.get("tool_name", "")
-                        if response_event == StreamResponseEvent.TOOL_CALL_STARTED:
-                            yield self._response_factory.tool_call_started(
-                                conversation_id=task.session_id,
-                                thread_id=thread_id,
-                                task_id=task.task_id,
-                                subtask_id=subtask_id,
-                                tool_call_id=tool_call_id,
-                                tool_name=tool_name,
-                            )
-                            continue
+                    continue
 
-                        if response_event == StreamResponseEvent.TOOL_CALL_COMPLETED:
-                            tool_call_result = get_message_text(
-                                event.metadata.get("tool_result", "")
-                            )
-                            yield self._response_factory.tool_call_result(
-                                conversation_id=task.session_id,
-                                thread_id=thread_id,
-                                task_id=task.task_id,
-                                subtask_id=subtask_id,
-                                tool_call_id=tool_call_id,
-                                tool_name=tool_name,
-                                tool_call_result=tool_call_result,
-                            )
-                            continue
-                    if state == TaskState.working and EventPredicates.is_reasoning(response_event):
-                        subtask_id = (
-                            event.metadata.get("subtask_id") if event.metadata else None
-                        )
-                        if not subtask_id:
-                            subtask_id = _generate_task_default_subtask_id(task.task_id)
-                        yield self._response_factory.reasoning(
-                            conversation_id=task.session_id,
-                            thread_id=thread_id,
-                            task_id=task.task_id,
-                            subtask_id=subtask_id,
-                            content=get_message_text(event.status.message, ""),
-                        )
-
-                        continue
-
-                elif isinstance(event, TaskArtifactUpdateEvent):
-                    artifact = event.artifact
-                    subtask_id = (
-                        artifact.metadata.get("subtask_id")
-                        if artifact.metadata
-                        else None
+                if isinstance(event, TaskArtifactUpdateEvent):
+                    responses = await handle_artifact_update(
+                        self._response_factory, task, thread_id, event
                     )
-                    if not subtask_id:
-                        subtask_id = _generate_task_default_subtask_id(task.task_id)
-                    response_event = artifact.metadata.get("response_event")
-                    content = get_message_text(artifact, "")
-                    if response_event == StreamResponseEvent.COMPONENT_GENERATOR:
-                        component_type = artifact.metadata.get(
-                            "component_type", "unknown"
-                        )
-                        yield self._response_factory.component_generator(
-                            conversation_id=task.session_id,
-                            thread_id=thread_id,
-                            task_id=task.task_id,
-                            subtask_id=subtask_id,
-                            content=content,
-                            component_type=component_type,
-                        )
-                        continue
-
-                    yield self._response_factory.message_response_general(
-                        event=response_event,
-                        conversation_id=task.session_id,
-                        thread_id=thread_id,
-                        task_id=task.task_id,
-                        subtask_id=subtask_id,
-                        content=content,
-                    )
+                    for r in responses:
+                        yield r
+                    continue
 
             # Complete task successfully
             await self.task_manager.complete_task(task.task_id)

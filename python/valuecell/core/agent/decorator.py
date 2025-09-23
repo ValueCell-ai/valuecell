@@ -265,7 +265,6 @@ class GenericAgentExecutor(AgentExecutor):
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
         # Default cancel operation
         raise ServerError(error=UnsupportedOperationError())
- 
 
 
 def _create_agent_executor(agent_instance):
