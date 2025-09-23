@@ -3,4 +3,4 @@ echo "Python Environment Overview:"
 echo "uv: $(which uv)"
 echo "python: $(which python)"
 
-python -m adapter
+python -m adapter --analyst warren_buffett

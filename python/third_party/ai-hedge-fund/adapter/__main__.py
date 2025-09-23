@@ -2,7 +2,8 @@ import asyncio
 import logging
 import os
 from datetime import datetime
-from typing import AsyncGenerator, List
+from typing import AsyncGenerator, List, Optional
+import argparse
 
 from agno.agent import Agent
 from agno.models.openrouter import OpenRouter
@@ -44,7 +45,7 @@ class HedgeFundRequest(BaseModel):
 
 
 class AIHedgeFundAgent(BaseAgent):
-    def __init__(self, analyst: str):
+    def __init__(self, analyst: Optional[List[str]] = None):
         super().__init__()
         self.agno_agent = Agent(
             model=OpenRouter(
@@ -100,7 +101,7 @@ class AIHedgeFundAgent(BaseAgent):
         }
 
         logger.info(f"Start analyzing. Task ID: {task_id}, Session ID: {session_id}")
-        for stream_type, chunk in run_hedge_fund_stream(
+        for _, chunk in run_hedge_fund_stream(
             tickers=hedge_fund_request.tickers,
             start_date=start_date,
             end_date=end_date,
@@ -120,7 +121,7 @@ def run_hedge_fund_stream(
     start_date: str,
     end_date: str,
     portfolio: dict,
-    selected_analysts: list[str],
+    selected_analysts: Optional[List[str]],
     show_reasoning: bool = False,
     model_name: str = "gpt-4.1",
     model_provider: str = "OpenAI",
@@ -159,5 +160,50 @@ def run_hedge_fund_stream(
 
 
 if __name__ == "__main__":
-    agent = create_wrapped_agent(AIHedgeFundAgent)
+    # Parse CLI arguments to determine selected analyst
+    parser = argparse.ArgumentParser(
+        description="Serve AI Hedge Fund Agent with an optional selected analyst"
+    )
+    parser.add_argument(
+        "--analyst",
+        type=str,
+        choices=sorted(allowed_analysts),
+        help=(
+            "Single analyst key. Allowed: "
+            + ", ".join(sorted(allowed_analysts))
+            + ". If omitted, all analysts are used."
+        ),
+    )
+    args = parser.parse_args()
+
+    selected: Optional[List[str]] = None
+    if args.analyst:
+        selected = [args.analyst.strip()]
+
+    if selected is not None:
+        invalid = set(selected) - allowed_analysts
+        if invalid:
+            allowed_str = ", ".join(sorted(allowed_analysts))
+            raise SystemExit(
+                f"Invalid analyst key(s): {sorted(invalid)}. Allowed: {allowed_str}"
+            )
+
+    # Determine agent class to wrap (to match agent card and port)
+    AgentClass = AIHedgeFundAgent
+    agent_name_override = None
+
+    def _to_pascal_agent_name(analyst_key: str) -> str:
+        return "".join(part.capitalize() for part in analyst_key.split("_")) + "Agent"
+
+    if selected and len(selected) == 1:
+        # Infer agent name from single analyst key
+        agent_name_override = _to_pascal_agent_name(selected[0])
+
+    if agent_name_override:
+        # Dynamically create a subclass with the desired class name so create_wrapped_agent finds the right agent card
+        AgentClass = type(agent_name_override, (AIHedgeFundAgent,), {})
+
+    # Create wrapped agent and inject selected analysts before serving
+    agent = create_wrapped_agent(AgentClass)
+    agent.analyst = selected  # Use None for all analysts
     asyncio.run(agent.serve())
