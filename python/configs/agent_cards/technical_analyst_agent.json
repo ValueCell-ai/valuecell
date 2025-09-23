@@ -1,0 +1,18 @@
+{
+    "name": "TechnicalAnalystAgent",
+    "url": "http://localhost:10022/",
+    "description": "Chart-based technical analysis for entries, exits, trend identification and momentum signals. **CAUTION**: Only stock symbols in {AAPL, GOOGL, MSFT, NVDA, TSLA} is/are supported and the agent will refuse to answer for other symbols. The input should contain one or more stock symbol(s) from this list. ",
+    "skills": [
+        {
+            "id": "technical_analyst_agent",
+            "name": "Technical Analyst",
+            "description": "Chart-based technical analysis for entries, exits, trend identification and momentum signals.",
+            "examples": [
+                "Provide support/resistance levels for AAPL",
+                "Identify bullish or bearish chart patterns for TSLA"
+            ],
+            "tags": ["technical", "charts", "momentum"]
+        }
+    ],
+    "enabled": true
+}

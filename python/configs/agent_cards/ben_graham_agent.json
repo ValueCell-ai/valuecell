@@ -1,0 +1,18 @@
+{
+    "name": "BenGrahamAgent",
+    "url": "http://localhost:10011/",
+    "description": "Margin-of-safety and value-investing oriented screens and stock selection. **CAUTION**: Only stock symbols in {AAPL, GOOGL, MSFT, NVDA, TSLA} is/are supported and the agent will refuse to answer for other symbols. The input should contain one or more stock symbol(s) from this list. ",
+    "skills": [
+        {
+            "id": "ben_graham_agent",
+            "name": "Ben Graham",
+            "description": "Margin-of-safety and value-investing oriented screens and stock selection.",
+            "examples": [
+                "Find stocks trading below intrinsic value with strong balance sheets",
+                "Screen for deep value opportunities in the small-cap universe"
+            ],
+            "tags": ["value investing", "margin of safety"]
+        }
+    ],
+    "enabled": true
+}

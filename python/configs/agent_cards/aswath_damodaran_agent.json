@@ -1,0 +1,18 @@
+{
+    "name": "AswathDamodaranAgent",
+    "url": "http://localhost:10010/",
+    "description": "Valuation-focused analysis using robust discounted cash flow and intrinsic value methods. **CAUTION**: Only stock symbols in {AAPL, GOOGL, MSFT, NVDA, TSLA} is/are supported and the agent will refuse to answer for other symbols. The input should contain one or more stock symbol(s) from this list. ",
+    "skills": [
+        {
+            "id": "aswath_damodaran_agent",
+            "name": "Aswath Damodaran",
+            "description": "Valuation-focused analysis using robust discounted cash flow and intrinsic value methods.",
+            "examples": [
+                "Value Tesla using a DCF with scenario analysis",
+                "What's the intrinsic value range for Nvidia based on conservative growth assumptions?"
+            ],
+            "tags": ["valuation", "DCF", "intrinsic value"]
+        }
+    ],
+    "enabled": true
+}
