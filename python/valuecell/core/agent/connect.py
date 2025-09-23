@@ -49,8 +49,6 @@ class RemoteConnections:
         self._remote_contexts_loaded: bool = False
         # Per-agent locks for concurrent start_agent calls
         self._agent_locks: Dict[str, asyncio.Lock] = {}
-        # Load remote agent configs on initialization
-        self._load_remote_agent_configs()
 
     def _get_agent_lock(self, agent_name: str) -> asyncio.Lock:
         """Get or create a lock for a specific agent (thread-safe)"""
