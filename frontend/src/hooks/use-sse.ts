@@ -4,22 +4,23 @@ import SSEClient, {
   type SSEOptions,
   SSEReadyState,
 } from "@/lib/sse-client";
-import type { AgentEventMap } from "@/types/agent";
 
-export interface UseSSEOptions<T = AgentEventMap[keyof AgentEventMap]> {
+export interface UseSSEOptions {
   /** SSE connection options */
   options: SSEOptions;
   /** Event handlers */
-  handlers?: SSEEventHandlers<T>;
+  handlers?: SSEEventHandlers;
   /** Whether to auto-connect on mount */
   autoConnect?: boolean;
   /** Request body for POST requests */
   body?: BodyInit;
 }
 
-export interface UseSSEReturn<T = AgentEventMap[keyof AgentEventMap]> {
+export interface UseSSEReturn {
   /** Current connection state */
   state: SSEReadyState;
+  /** Whether the connection is open */
+  isConnected: boolean;
   /** Current error, if any */
   error: Error | null;
   /** Connect to the SSE endpoint */
@@ -27,7 +28,7 @@ export interface UseSSEReturn<T = AgentEventMap[keyof AgentEventMap]> {
   /** Close the SSE connection */
   close: () => void;
   /** SSE client instance for advanced usage */
-  client: SSEClient<T> | null;
+  client: SSEClient | null;
 }
 
 /**
@@ -36,16 +37,16 @@ export interface UseSSEReturn<T = AgentEventMap[keyof AgentEventMap]> {
  * @example
  * ```tsx
  * import { useSSE } from '@/hooks/use-sse';
- * import type { AgentEventMap, SSEData } from '@/types/agent';
+ * import type { SSEData } from '@/types/agent';
  *
  * function ChatComponent() {
- *   const { connect, close, isConnected, error } = useSSE<AgentEventMap[keyof AgentEventMap]>({
+ *   const { connect, close, isConnected, error } = useSSE({
  *     options: {
  *       url: '/api/chat/stream',
  *       headers: { 'Authorization': 'Bearer token' }
  *     },
  *     handlers: {
- *       onData: (sseData: SSEData<AgentEventMap[keyof AgentEventMap]>) => {
+ *       onData: (sseData: SSEData) => {
  *         const { event, data } = sseData;
  *         if (event === 'message_chunk' || event === 'message') {
  *           console.log('New message chunk:', data.payload.content);
@@ -75,15 +76,15 @@ export interface UseSSEReturn<T = AgentEventMap[keyof AgentEventMap]> {
  * }
  * ```
  */
-export function useSSE<T = AgentEventMap[keyof AgentEventMap]>({
+export function useSSE({
   options,
   handlers,
   autoConnect = false,
   body,
-}: UseSSEOptions<T>): UseSSEReturn<T> {
+}: UseSSEOptions): UseSSEReturn {
   const [error, setError] = useState<Error | null>(null);
   const [state, setState] = useState<SSEReadyState>(SSEReadyState.CLOSED);
-  const handlersRef = useRef<SSEEventHandlers<T>>(handlers || {});
+  const handlersRef = useRef<SSEEventHandlers>(handlers || {});
   const bodyRef = useRef<BodyInit | undefined>(body);
 
   // Update refs when props change
@@ -96,7 +97,7 @@ export function useSSE<T = AgentEventMap[keyof AgentEventMap]>({
   }, [body]);
 
   // Internal handlers referencing handlersRef to avoid re-binding
-  const internalHandlers: SSEEventHandlers<T> = useMemo(
+  const internalHandlers: SSEEventHandlers = useMemo(
     () => ({
       onData: (sseData) => {
         handlersRef.current.onData?.(sseData);
@@ -121,7 +122,7 @@ export function useSSE<T = AgentEventMap[keyof AgentEventMap]>({
 
   // Create client instance (caller is responsible for options stability)
   const client = useMemo(
-    () => new SSEClient<T>(options, internalHandlers),
+    () => new SSEClient(options, internalHandlers),
     [options, internalHandlers],
   );
 
@@ -162,6 +163,7 @@ export function useSSE<T = AgentEventMap[keyof AgentEventMap]>({
 
   return {
     state,
+    isConnected: state === SSEReadyState.OPEN,
     error,
     connect,
     close,

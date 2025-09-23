@@ -1,11 +1,5 @@
 // Agent communication types for SSE events and business logic
 
-// SSE data wrapper
-export interface SSEData<T = Record<string, unknown>> {
-  event: string;
-  data: T;
-}
-
 // Base event data structures
 interface BaseEventData {
   conversation_id: string; // Top-level conversation session
@@ -19,80 +13,122 @@ interface PayloadWrapper<T> {
   payload: T;
 }
 
+// Helper types to reduce repetition
+type EventWithPayload<TEvent, TPayload> = TEvent & PayloadWrapper<TPayload>;
+type MessageWithRole<TRole extends string, TPayload> = BaseEventData & {
+  role: TRole;
+} & PayloadWrapper<TPayload>;
+
 // Agent SSE event mapping
 export interface AgentEventMap {
   // Lifecycle Events
   conversation_started: Pick<BaseEventData, "conversation_id">;
-
   done: Pick<BaseEventData, "conversation_id" | "thread_id">;
 
   // Content Streaming Events
-  message_chunk: BaseEventData &
-    PayloadWrapper<{
-      content: string;
-    }>;
-
-  message: BaseEventData &
-    PayloadWrapper<{
-      content: string;
-    }>;
+  message_chunk: EventWithPayload<BaseEventData, { content: string }>;
+  message: EventWithPayload<BaseEventData, { content: string }>;
 
   // Component Generation
-  component_generator: BaseEventData &
-    PayloadWrapper<{
+  component_generator: EventWithPayload<
+    BaseEventData,
+    {
       component_type: string;
       content: string;
-    }>;
+    }
+  >;
 
   // User Interaction
-  plan_require_user_input: Pick<
-    BaseEventData,
-    "conversation_id" | "thread_id"
-  > &
-    PayloadWrapper<{
-      content: string;
-    }>;
+  plan_require_user_input: EventWithPayload<
+    Pick<BaseEventData, "conversation_id" | "thread_id">,
+    { content: string }
+  >;
 
   // Tool Execution Lifecycle
-  tool_call_started: BaseEventData &
-    PayloadWrapper<{
+  tool_call_started: EventWithPayload<
+    BaseEventData,
+    {
       tool_call_id: string;
       tool_name: string;
-    }>;
+    }
+  >;
 
-  tool_call_completed: BaseEventData &
-    PayloadWrapper<{
+  tool_call_completed: EventWithPayload<
+    BaseEventData,
+    {
       tool_call_id: string;
       tool_name: string;
       tool_call_result: string;
-    }>;
+    }
+  >;
 
   // Reasoning Process
-  reasoning: BaseEventData &
-    PayloadWrapper<{
-      content: string;
-    }>;
-
+  reasoning: EventWithPayload<BaseEventData, { content: string }>;
   reasoning_started: BaseEventData;
   reasoning_completed: BaseEventData;
 
   // Error Handling
-  plan_failed: Pick<BaseEventData, "conversation_id" | "thread_id"> &
-    PayloadWrapper<{
-      content: string;
-    }>;
-
-  task_failed: BaseEventData &
-    PayloadWrapper<{
-      content: string;
-    }>;
+  plan_failed: EventWithPayload<
+    Pick<BaseEventData, "conversation_id" | "thread_id">,
+    { content: string }
+  >;
+  task_failed: EventWithPayload<BaseEventData, { content: string }>;
 }
 
-// Chat message with event data
-export type ChatMessage<T extends keyof AgentEventMap> = {
-  role: "user" | "system" | "agent";
-  isComplete: boolean;
-} & AgentEventMap[T];
+// Final chat message shapes used by UI
+export type AgentChunkMessage = MessageWithRole<
+  "agent" | "user" | "system",
+  { content: string }
+>;
+
+export type AgentComponentMessage = MessageWithRole<
+  "agent",
+  {
+    component_type: string;
+    content: string;
+  }
+>;
+
+export type AgentToolCallMessage = MessageWithRole<
+  "agent",
+  {
+    tool_call_id: string;
+    tool_name: string;
+    tool_call_result: string;
+  }
+>;
+
+export type AgentReasoningMessage = MessageWithRole<
+  "agent",
+  { content: string }
+>;
+
+export type ChatMessage =
+  | AgentComponentMessage
+  | AgentToolCallMessage
+  | AgentReasoningMessage
+  | AgentChunkMessage;
+
+export interface ThreadView {
+  messages: ChatMessage[];
+}
+
+export interface ConversationView {
+  threads: Record<string, ThreadView>;
+  currentThreadId?: string;
+}
+
+export type AgentConversationsStore = Record<string, ConversationView>;
+
+// SSE data wrapper with strongly-typed Agent events (discriminated union)
+export type SSEData = {
+  [E in keyof AgentEventMap]: {
+    /** Event type identifier */
+    event: E;
+    /** Event payload data */
+    data: AgentEventMap[E];
+  };
+}[keyof AgentEventMap];
 
 // Agent stream request
 export type AgentStreamRequest = {

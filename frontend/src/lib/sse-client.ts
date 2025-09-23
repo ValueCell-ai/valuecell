@@ -1,6 +1,6 @@
 /**
  * Fetch-based SSE client library
- * Implements SSE using fetch + ReadableStream with custom headers, auto-reconnect, and type safety
+ * Implements SSE using fetch + ReadableStream with custom headers and type safety
  */
 import type { SSEData } from "@/types/agent";
 
@@ -9,15 +9,15 @@ export interface SSEOptions {
   url: string;
   /** Custom request headers */
   headers?: Record<string, string>;
-  /** Connection timeout in milliseconds */
+  /** Handshake timeout in milliseconds */
   timeout?: number;
   /** Additional fetch request options */
   fetchOptions?: Omit<RequestInit, "method" | "body" | "headers" | "signal">;
 }
 
-export interface SSEEventHandlers<T = Record<string, unknown>> {
+export interface SSEEventHandlers {
   /** Called when SSE data is received */
-  onData?: (data: SSEData<T>) => void;
+  onData?: (data: SSEData) => void;
   /** Called when connection is established */
   onOpen?: () => void;
   /** Called when an error occurs */
@@ -32,15 +32,15 @@ export enum SSEReadyState {
   CLOSED = 2,
 }
 
-export class SSEClient<T = Record<string, unknown>> {
+export class SSEClient {
   private options: Required<SSEOptions>;
   private currentBody?: BodyInit;
-  private handlers: SSEEventHandlers<T> = {};
+  private handlers: SSEEventHandlers = {};
   private isManualClose = false;
   private readyState: SSEReadyState = SSEReadyState.CLOSED;
   private abortController: AbortController | null = null;
 
-  constructor(options: SSEOptions, handlers?: SSEEventHandlers<T>) {
+  constructor(options: SSEOptions, handlers?: SSEEventHandlers) {
     this.options = {
       timeout: 30000,
       headers: {},
@@ -88,7 +88,6 @@ export class SSEClient<T = Record<string, unknown>> {
         headers: {
           Accept: "text/event-stream",
           "Cache-Control": "no-cache",
-          Connection: "keep-alive",
           ...this.options.headers,
         },
       });
@@ -119,9 +118,9 @@ export class SSEClient<T = Record<string, unknown>> {
           return;
         }
 
-        // Timeout: emit error
+        // Handshake timeout: emit error
         if (didTimeout) {
-          const timeoutError = new Error("Connection timeout");
+          const timeoutError = new Error("Handshake timeout");
           this.handlers.onError?.(timeoutError);
           return;
         }
@@ -204,7 +203,7 @@ export class SSEClient<T = Record<string, unknown>> {
 
       // Pass through parsed payload without interpreting event names
       if (this.handlers.onData) {
-        this.handlers.onData(parsedData as SSEData<T>);
+        this.handlers.onData(parsedData as SSEData);
       }
     } catch (error) {
       // Only log JSON parsing errors, don't trigger connection-level error handling
