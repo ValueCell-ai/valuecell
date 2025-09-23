@@ -20,20 +20,12 @@ export interface UseSSEOptions<T = AgentEventMap[keyof AgentEventMap]> {
 export interface UseSSEReturn<T = AgentEventMap[keyof AgentEventMap]> {
   /** Current connection state */
   state: SSEReadyState;
-  /** Whether the connection is open */
-  isConnected: boolean;
-  /** Whether the connection is connecting */
-  isConnecting: boolean;
-  /** Number of reconnection attempts */
-  reconnectAttempts: number;
   /** Current error, if any */
   error: Error | null;
   /** Connect to the SSE endpoint */
   connect: (body?: BodyInit) => Promise<void>;
   /** Close the SSE connection */
   close: () => void;
-  /** Update event handlers */
-  setEventHandlers: (handlers: SSEEventHandlers<T>) => void;
   /** SSE client instance for advanced usage */
   client: SSEClient<T> | null;
 }
@@ -90,14 +82,9 @@ export function useSSE<T = AgentEventMap[keyof AgentEventMap]>({
   body,
 }: UseSSEOptions<T>): UseSSEReturn<T> {
   const [error, setError] = useState<Error | null>(null);
-
-  const clientRef = useRef<SSEClient<T> | null>(null);
+  const [state, setState] = useState<SSEReadyState>(SSEReadyState.CLOSED);
   const handlersRef = useRef<SSEEventHandlers<T>>(handlers || {});
   const bodyRef = useRef<BodyInit | undefined>(body);
-
-  // Force re-render when client state changes
-  const [, setForceUpdate] = useState({});
-  const triggerUpdate = useCallback(() => setForceUpdate({}), []);
 
   // Update refs when props change
   useEffect(() => {
@@ -116,81 +103,69 @@ export function useSSE<T = AgentEventMap[keyof AgentEventMap]>({
       },
       onOpen: () => {
         setError(null);
-        triggerUpdate();
+        setState(SSEReadyState.OPEN);
         handlersRef.current.onOpen?.();
       },
       onError: (err) => {
         setError(err);
-        triggerUpdate();
+        setState(SSEReadyState.CLOSED);
         handlersRef.current.onError?.(err);
       },
       onClose: () => {
-        triggerUpdate();
+        setState(SSEReadyState.CLOSED);
         handlersRef.current.onClose?.();
       },
-      onReconnect: (attempt) => {
-        triggerUpdate();
-        handlersRef.current.onReconnect?.(attempt);
-      },
     }),
-    [triggerUpdate],
+    [],
   );
 
-  // Initialize client
+  // Create client instance (caller is responsible for options stability)
+  const client = useMemo(
+    () => new SSEClient<T>(options, internalHandlers),
+    [options, internalHandlers],
+  );
+
+  // Cleanup on unmount or client change
   useEffect(() => {
-    const client = new SSEClient<T>(options);
-    clientRef.current = client;
-
-    client.setEventHandlers(internalHandlers);
-
-    // Auto-connect if enabled
-    if (autoConnect) {
-      client.connect(bodyRef.current).catch((err) => {
-        console.error("Auto-connect failed:", err);
-      });
-    }
-
     return () => {
       client.destroy();
     };
-  }, [options, autoConnect, internalHandlers]); // Caller is responsible for options stability
+  }, [client]);
 
-  const connect = useCallback(async (connectBody?: BodyInit) => {
-    if (!clientRef.current) return;
-
-    setError(null);
-    try {
-      await clientRef.current.connect(connectBody ?? bodyRef.current);
-    } catch (err) {
-      setError(err as Error);
-      throw err;
+  // Auto-connect if enabled
+  useEffect(() => {
+    if (autoConnect) {
+      setState(SSEReadyState.CONNECTING);
+      void client.connect(bodyRef.current);
     }
-  }, []);
+  }, [autoConnect, client]);
+
+  const connect = useCallback(
+    async (connectBody?: BodyInit) => {
+      setError(null);
+      try {
+        setState(SSEReadyState.CONNECTING);
+        await client.connect(connectBody ?? bodyRef.current);
+      } catch (err) {
+        setError(err as Error);
+        setState(SSEReadyState.CLOSED);
+        throw err;
+      }
+    },
+    [client],
+  );
 
   const close = useCallback(() => {
-    if (clientRef.current) {
-      clientRef.current.close();
-    }
-  }, []);
-
-  const setEventHandlers = useCallback((newHandlers: SSEEventHandlers<T>) => {
-    handlersRef.current = { ...handlersRef.current, ...newHandlers };
-  }, []);
-
-  // Get current state from client, not duplicate state
-  const currentState = clientRef.current?.state ?? SSEReadyState.CLOSED;
-  const currentReconnectAttempts = clientRef.current?.reconnectAttempts ?? 0;
+    client.close();
+    setState(SSEReadyState.CLOSED);
+  }, [client]);
 
   return {
-    state: currentState,
-    isConnected: currentState === SSEReadyState.OPEN,
-    isConnecting: currentState === SSEReadyState.CONNECTING,
-    reconnectAttempts: currentReconnectAttempts,
+    state,
     error,
     connect,
     close,
-    setEventHandlers,
-    client: clientRef.current,
+    client,
   };
 }
 

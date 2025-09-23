@@ -20,6 +20,7 @@ import ScrollTextarea, {
   type ScrollTextareaRef,
 } from "@/components/valuecell/scroll/scroll-textarea";
 import { useSSE } from "@/hooks/use-sse";
+import { SSEReadyState } from "@/lib/sse-client";
 import { cn } from "@/lib/utils";
 import { agentData } from "@/mock/agent-data";
 import type { AgentEventMap, AgentStreamRequest, SSEData } from "@/types/agent";
@@ -334,8 +335,7 @@ export default function AgentChat() {
   const {
     connect,
     close,
-    isConnected,
-    isConnecting,
+    state,
     error: sseError,
   } = useSSE({
     options: sseOptions,
@@ -350,6 +350,8 @@ export default function AgentChat() {
   }, [shouldClose, close]);
 
   // Derived state - compute from existing state instead of maintaining separately
+  const isConnected = state === SSEReadyState.OPEN;
+  const isConnecting = state === SSEReadyState.CONNECTING;
   const isStreaming = isConnected && !userInputRequired;
 
   // Send message to agent
