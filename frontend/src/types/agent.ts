@@ -89,7 +89,15 @@ export type AgentComponentMessage = MessageWithRole<
   }
 >;
 
-export type AgentToolCallMessage = MessageWithRole<
+export type AgentToolCallStartedMessage = MessageWithRole<
+  "agent",
+  {
+    tool_call_id: string;
+    tool_name: string;
+  }
+>;
+
+export type AgentToolCallCompletedMessage = MessageWithRole<
   "agent",
   {
     tool_call_id: string;
@@ -103,11 +111,23 @@ export type AgentReasoningMessage = MessageWithRole<
   { content: string }
 >;
 
+export type AgentPlanRequireUserInputMessage = {
+  role: "agent";
+} & Pick<BaseEventData, "conversation_id" | "thread_id"> &
+  PayloadWrapper<{ content: string }>;
+
+export type AgentPlanFailedMessage = AgentPlanRequireUserInputMessage;
+export type AgentTaskFailedMessage = AgentPlanRequireUserInputMessage;
+
 export type ChatMessage =
   | AgentComponentMessage
-  | AgentToolCallMessage
+  | AgentToolCallStartedMessage
+  | AgentToolCallCompletedMessage
   | AgentReasoningMessage
-  | AgentChunkMessage;
+  | AgentChunkMessage
+  | AgentPlanRequireUserInputMessage
+  | AgentPlanFailedMessage
+  | AgentTaskFailedMessage;
 
 export interface ThreadView {
   messages: ChatMessage[];
