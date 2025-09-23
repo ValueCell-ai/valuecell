@@ -19,7 +19,12 @@ def parse_local_agent_card_dict(agent_card_dict: dict) -> Optional[AgentCard]:
         agent_card_dict["capabilities"] = AgentCapabilities(
             streaming=True, push_notifications=False
         ).model_dump()
-
+    if "default_input_modes" not in agent_card_dict:
+        agent_card_dict["default_input_modes"] = []
+    if "default_output_modes" not in agent_card_dict:
+        agent_card_dict["default_output_modes"] = []
+    if "version" not in agent_card_dict:
+        agent_card_dict["version"] = ""
     agent_card = AgentCard.model_validate(agent_card_dict)
     return agent_card
 
