@@ -112,7 +112,41 @@ class _NotifyResponseNamespace:
 notification = _NotifyResponseNamespace()
 
 
+class EventPredicates:
+    """Utilities to classify response event types.
+
+    These mirror the helper predicates previously defined in decorator.py
+    and centralize them next to response event definitions.
+    """
+
+    @staticmethod
+    def is_task_completed(response_type) -> bool:
+        return response_type in {
+            _TaskResponseEvent.TASK_COMPLETED,
+        }
+
+    @staticmethod
+    def is_task_failed(response_type) -> bool:
+        return response_type in {
+            SystemResponseEvent.TASK_FAILED,
+        }
+
+    @staticmethod
+    def is_tool_call(response_type) -> bool:
+        return response_type in {
+            StreamResponseEvent.TOOL_CALL_STARTED,
+            StreamResponseEvent.TOOL_CALL_COMPLETED,
+        }
+
+    @staticmethod
+    def is_reasoning(response_type) -> bool:
+        return response_type in {
+            StreamResponseEvent.REASONING,
+        }
+
+
 __all__ = [
     "streaming",
     "notification",
+    "EventPredicates",
 ]

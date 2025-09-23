@@ -6,7 +6,7 @@ from typing import AsyncGenerator, Dict, Optional
 from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
 from a2a.utils import get_message_text
 from valuecell.core.agent.connect import get_default_remote_connections
-from valuecell.core.agent.decorator import is_reasoning, is_task_completed, is_tool_call
+from valuecell.core.agent.responses import EventPredicates
 from valuecell.core.coordinate.response import ResponseFactory
 from valuecell.core.session import Role, SessionStatus, get_default_session_manager
 from valuecell.core.task import Task, get_default_task_manager
@@ -270,7 +270,7 @@ class AgentOrchestrator:
         if context.stage == "planning":
             async for chunk in self._continue_planning(session_id, context):
                 yield chunk
-        # TODO: Add support for resuming execution stage if needed
+        # Resuming execution stage is not yet supported
         else:
             yield self._response_factory.system_failed(
                 session_id,
@@ -492,7 +492,7 @@ class AgentOrchestrator:
                     yield response
 
                     if (
-                        is_task_completed(response.event)
+                        EventPredicates.is_task_completed(response.event)
                         or task.pattern == TaskPattern.RECURRING
                     ):
                         if agent_responses[task.agent_name].strip():
@@ -586,7 +586,7 @@ class AgentOrchestrator:
                     if not event.metadata:
                         continue
                     response_event = event.metadata.get("response_event")
-                    if state == TaskState.working and is_tool_call(response_event):
+                    if state == TaskState.working and EventPredicates.is_tool_call(response_event):
                         subtask_id = (
                             event.metadata.get("subtask_id") if event.metadata else None
                         )
@@ -619,7 +619,7 @@ class AgentOrchestrator:
                                 tool_call_result=tool_call_result,
                             )
                             continue
-                    if state == TaskState.working and is_reasoning(response_event):
+                    if state == TaskState.working and EventPredicates.is_reasoning(response_event):
                         subtask_id = (
                             event.metadata.get("subtask_id") if event.metadata else None
                         )

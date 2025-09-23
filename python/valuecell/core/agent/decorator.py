@@ -32,14 +32,13 @@ from valuecell.core.types import (
     NotifyResponse,
     StreamResponse,
     StreamResponseEvent,
-    SystemResponseEvent,
-    _TaskResponseEvent,
 )
 from valuecell.utils import (
     get_agent_card_path,
     get_next_available_port,
     parse_host_port,
 )
+from .responses import EventPredicates
 
 logger = logging.getLogger(__name__)
 
@@ -219,13 +218,13 @@ class GenericAgentExecutor(AgentExecutor):
                     )
 
                 response_event = response.event
-                if is_task_failed(response_event):
+                if EventPredicates.is_task_failed(response_event):
                     raise RuntimeError(
                         f"Agent {agent_name} reported failure: {response.content}"
                     )
 
-                is_complete = is_task_completed(response_event)
-                if is_tool_call(response_event):
+                is_complete = EventPredicates.is_task_completed(response_event)
+                if EventPredicates.is_tool_call(response_event):
                     await updater.update_status(
                         TaskState.working,
                         message=new_agent_text_message(response.content or ""),
@@ -238,7 +237,7 @@ class GenericAgentExecutor(AgentExecutor):
                         },
                     )
                     continue
-                if is_reasoning(response_event):
+                if EventPredicates.is_reasoning(response_event):
                     await updater.update_status(
                         TaskState.working,
                         message=new_agent_text_message(response.content or ""),
@@ -266,31 +265,7 @@ class GenericAgentExecutor(AgentExecutor):
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
         # Default cancel operation
         raise ServerError(error=UnsupportedOperationError())
-
-
-def is_task_completed(response_type: str) -> bool:
-    return response_type in {
-        _TaskResponseEvent.TASK_COMPLETED,
-    }
-
-
-def is_task_failed(response_type: str) -> bool:
-    return response_type in {
-        SystemResponseEvent.TASK_FAILED,
-    }
-
-
-def is_tool_call(response_type: str) -> bool:
-    return response_type in {
-        StreamResponseEvent.TOOL_CALL_STARTED,
-        StreamResponseEvent.TOOL_CALL_COMPLETED,
-    }
-
-
-def is_reasoning(response_type: str) -> bool:
-    return response_type in {
-        StreamResponseEvent.REASONING,
-    }
+ 
 
 
 def _create_agent_executor(agent_instance):
