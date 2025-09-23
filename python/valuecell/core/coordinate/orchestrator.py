@@ -13,12 +13,13 @@ from valuecell.core.coordinate.response_router import (
     handle_artifact_update,
     handle_status_update,
 )
-from valuecell.core.session import Role, SessionStatus, get_default_session_manager
+from valuecell.core.session import SessionStatus, get_default_session_manager
 from valuecell.core.task import Task, get_default_task_manager
 from valuecell.core.task.models import TaskPattern
 from valuecell.core.types import (
     BaseResponse,
     NotifyResponseEvent,
+    Role,
     StreamResponseEvent,
     UserInput,
 )
@@ -216,7 +217,6 @@ class AgentOrchestrator:
             session_id,
             Role.SYSTEM,
             f"Session closed. {cancelled_count} tasks were cancelled.",
-            agent_name="orchestrator",
         )
 
     async def get_session_history(self, session_id: str):
@@ -289,6 +289,9 @@ class AgentOrchestrator:
         """Handle a new user request"""
         session_id = user_input.meta.session_id
         thread_id = generate_thread_id()
+        yield self._response_factory.thread_started(
+            conversation_id=session_id, thread_id=thread_id
+        )
 
         # Add user message to session
         await self.session_manager.add_message(
@@ -384,6 +387,9 @@ class AgentOrchestrator:
         original_user_input = context.get_metadata("original_user_input")
         thread_id = generate_thread_id()
         context.thread_id = thread_id
+        yield self._response_factory.thread_started(
+            conversation_id=session_id, thread_id=thread_id
+        )
 
         if not all([planning_task, original_user_input]):
             yield self._response_factory.plan_failed(
@@ -494,9 +500,9 @@ class AgentOrchestrator:
                         StreamResponseEvent.REASONING,
                         NotifyResponseEvent.MESSAGE,
                     } and isinstance(response.data.payload.content, str):
-                        agent_responses[task.agent_name] += (
-                            response.data.payload.content
-                        )
+                        agent_responses[
+                            task.agent_name
+                        ] += response.data.payload.content
                     yield response
 
                     if (
@@ -508,7 +514,6 @@ class AgentOrchestrator:
                                 session_id,
                                 Role.AGENT,
                                 agent_responses[task.agent_name],
-                                agent_name=task.agent_name,
                             )
                             agent_responses[task.agent_name] = ""
 
@@ -614,7 +619,7 @@ class AgentOrchestrator:
         for agent_name, full_response in agent_responses.items():
             if full_response.strip():
                 await self.session_manager.add_message(
-                    session_id, Role.AGENT, full_response, agent_name=agent_name
+                    session_id, Role.AGENT, full_response
                 )
 
 

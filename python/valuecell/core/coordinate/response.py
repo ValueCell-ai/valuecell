@@ -16,6 +16,7 @@ from valuecell.core.types import (
     SystemFailedResponse,
     TaskCompletedResponse,
     TaskFailedResponse,
+    ThreadStartedResponse,
     ToolCallPayload,
     ToolCallResponse,
     UnifiedResponseData,
@@ -26,6 +27,15 @@ class ResponseFactory:
     def conversation_started(self, conversation_id: str) -> ConversationStartedResponse:
         return ConversationStartedResponse(
             data=UnifiedResponseData(conversation_id=conversation_id)
+        )
+
+    def thread_started(
+        self, conversation_id: str, thread_id: str
+    ) -> ThreadStartedResponse:
+        return ThreadStartedResponse(
+            data=UnifiedResponseData(
+                conversation_id=conversation_id, thread_id=thread_id
+            )
         )
 
     def system_failed(self, conversation_id: str, content: str) -> SystemFailedResponse:
