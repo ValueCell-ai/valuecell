@@ -1,3 +1,5 @@
+from typing import Optional
+
 from typing_extensions import Literal
 from valuecell.core.types import (
     BaseResponseDataContent,
@@ -14,9 +16,8 @@ from valuecell.core.types import (
     SystemFailedResponse,
     TaskCompletedResponse,
     TaskFailedResponse,
-    ToolCallCompletedResponse,
     ToolCallContent,
-    ToolCallStartedResponse,
+    ToolCallResponse,
     UnifiedResponseData,
 )
 
@@ -99,16 +100,22 @@ class ResponseFactory:
             ),
         )
 
-    def tool_call_started(
+    def tool_call(
         self,
         conversation_id: str,
         thread_id: str,
         task_id: str,
         subtask_id: str,
+        event: Literal[
+            StreamResponseEvent.TOOL_CALL_STARTED,
+            StreamResponseEvent.TOOL_CALL_COMPLETED,
+        ],
         tool_call_id: str,
         tool_name: str,
-    ) -> ToolCallStartedResponse:
-        return ToolCallStartedResponse(
+        tool_result: Optional[str] = None,
+    ) -> ToolCallResponse:
+        return ToolCallResponse(
+            event=event,
             data=UnifiedResponseData(
                 conversation_id=conversation_id,
                 thread_id=thread_id,
@@ -117,32 +124,9 @@ class ResponseFactory:
                 data=ToolCallContent(
                     tool_call_id=tool_call_id,
                     tool_name=tool_name,
+                    tool_result=tool_result,
                 ),
-            )
-        )
-
-    def tool_call_result(
-        self,
-        conversation_id: str,
-        thread_id: str,
-        task_id: str,
-        subtask_id: str,
-        tool_call_id: str,
-        tool_name: str,
-        tool_call_result: str,
-    ) -> ToolCallCompletedResponse:
-        return ToolCallCompletedResponse(
-            data=UnifiedResponseData(
-                conversation_id=conversation_id,
-                thread_id=thread_id,
-                task_id=task_id,
-                subtask_id=subtask_id,
-                data=ToolCallContent(
-                    tool_call_id=tool_call_id,
-                    tool_name=tool_name,
-                    tool_result=tool_call_result,
-                ),
-            )
+            ),
         )
 
     def message_response_general(
@@ -171,15 +155,21 @@ class ResponseFactory:
         thread_id: str,
         task_id: str,
         subtask_id: str,
-        content: str,
+        event: Literal[
+            StreamResponseEvent.REASONING,
+            StreamResponseEvent.REASONING_STARTED,
+            StreamResponseEvent.REASONING_COMPLETED,
+        ],
+        content: Optional[str] = None,
     ) -> ReasoningResponse:
         return ReasoningResponse(
+            event=event,
             data=UnifiedResponseData(
                 conversation_id=conversation_id,
                 thread_id=thread_id,
                 task_id=task_id,
                 subtask_id=subtask_id,
-                data=BaseResponseDataContent(content=content),
+                data=BaseResponseDataContent(content=content) if content else None,
             ),
         )
 

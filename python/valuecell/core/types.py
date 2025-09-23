@@ -120,7 +120,7 @@ class ToolCallContent(BaseModel):
 
 
 class BaseResponseDataContent(BaseModel, ABC):
-    content: str = Field(..., description="The message content")
+    content: Optional[str] = Field(None, description="The message content")
 
 
 class ComponentGeneratorResponseDataContent(BaseResponseDataContent):
@@ -195,26 +195,22 @@ class ComponentGeneratorResponse(BaseResponse):
     data: UnifiedResponseData = Field(..., description="The component generator data")
 
 
-class ToolCallStartedResponse(BaseResponse):
-    event: Literal[StreamResponseEvent.TOOL_CALL_STARTED] = Field(
-        StreamResponseEvent.TOOL_CALL_STARTED,
-        description="The event type of the response",
-    )
-    data: UnifiedResponseData = Field(..., description="The task data payload")
-
-
-class ToolCallCompletedResponse(BaseResponse):
-    event: Literal[StreamResponseEvent.TOOL_CALL_COMPLETED] = Field(
-        StreamResponseEvent.TOOL_CALL_COMPLETED,
+class ToolCallResponse(BaseResponse):
+    event: Literal[
+        StreamResponseEvent.TOOL_CALL_STARTED, StreamResponseEvent.TOOL_CALL_COMPLETED
+    ] = Field(
+        ...,
         description="The event type of the response",
     )
     data: UnifiedResponseData = Field(..., description="The task data payload")
 
 
 class ReasoningResponse(BaseResponse):
-    event: Literal[StreamResponseEvent.REASONING] = Field(
-        StreamResponseEvent.REASONING, description="The event type of the response"
-    )
+    event: Literal[
+        StreamResponseEvent.REASONING_STARTED,
+        StreamResponseEvent.REASONING,
+        StreamResponseEvent.REASONING_COMPLETED,
+    ] = Field(..., description="The event type of the response")
     data: UnifiedResponseData = Field(..., description="The reasoning message content")
 
 

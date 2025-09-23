@@ -72,48 +72,33 @@ async def handle_status_update(
         return RouteResult(responses)
 
     response_event = event.metadata.get("response_event")
+    subtask_id = event.metadata.get("subtask_id")
+    if not subtask_id:
+        subtask_id = _default_subtask_id(task.task_id)
 
     # Tool call events
     if state == TaskState.working and EventPredicates.is_tool_call(response_event):
-        subtask_id = event.metadata.get("subtask_id") if event.metadata else None
-        if not subtask_id:
-            subtask_id = _default_subtask_id(task.task_id)
-        tool_call_id = event.metadata.get("tool_call_id", "")
-        tool_name = event.metadata.get("tool_name", "")
+        tool_call_id = event.metadata.get("tool_call_id", "unknown_tool_call_id")
+        tool_name = event.metadata.get("tool_name", "unknown_tool_name")
 
-        if response_event == StreamResponseEvent.TOOL_CALL_STARTED:
-            responses.append(
-                response_factory.tool_call_started(
-                    conversation_id=task.session_id,
-                    thread_id=thread_id,
-                    task_id=task.task_id,
-                    subtask_id=subtask_id,
-                    tool_call_id=tool_call_id,
-                    tool_name=tool_name,
-                )
-            )
-            return RouteResult(responses)
-
-        if response_event == StreamResponseEvent.TOOL_CALL_COMPLETED:
+        tool_call_result = None
+        if "tool_result" in event.metadata:
             tool_call_result = get_message_text(event.metadata.get("tool_result", ""))
-            responses.append(
-                response_factory.tool_call_result(
-                    conversation_id=task.session_id,
-                    thread_id=thread_id,
-                    task_id=task.task_id,
-                    subtask_id=subtask_id,
-                    tool_call_id=tool_call_id,
-                    tool_name=tool_name,
-                    tool_call_result=tool_call_result,
-                )
+        responses.append(
+            response_factory.tool_call(
+                conversation_id=task.session_id,
+                thread_id=thread_id,
+                task_id=task.task_id,
+                subtask_id=subtask_id,
+                tool_call_id=tool_call_id,
+                tool_name=tool_name,
+                tool_call_result=tool_call_result,
             )
-            return RouteResult(responses)
+        )
+        return RouteResult(responses)
 
     # Reasoning messages
     if state == TaskState.working and EventPredicates.is_reasoning(response_event):
-        subtask_id = event.metadata.get("subtask_id") if event.metadata else None
-        if not subtask_id:
-            subtask_id = _default_subtask_id(task.task_id)
         responses.append(
             response_factory.reasoning(
                 conversation_id=task.session_id,
