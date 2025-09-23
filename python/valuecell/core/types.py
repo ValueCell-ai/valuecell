@@ -59,6 +59,7 @@ class SystemResponseEvent(str, Enum):
 class _TaskResponseEvent(str, Enum):
     TASK_STARTED = "task_started"
     TASK_COMPLETED = "task_completed"
+    TASK_CANCELLED = "task_cancelled"
 
 
 class StreamResponseEvent(str, Enum):
@@ -66,7 +67,9 @@ class StreamResponseEvent(str, Enum):
     COMPONENT_GENERATOR = "component_generator"
     TOOL_CALL_STARTED = "tool_call_started"
     TOOL_CALL_COMPLETED = "tool_call_completed"
+    REASONING_STARTED = "reasoning_started"
     REASONING = "reasoning"
+    REASONING_COMPLETED = "reasoning_completed"
 
 
 class NotifyResponseEvent(str, Enum):

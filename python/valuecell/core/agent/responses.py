@@ -54,10 +54,22 @@ class _StreamResponseNamespace:
             subtask_id=subtask_id,
         )
 
+    def reasoning_started(self, subtask_id: str | None = None) -> StreamResponse:
+        return StreamResponse(
+            event=StreamResponseEvent.REASONING_STARTED,
+            subtask_id=subtask_id,
+        )
+
     def reasoning(self, content: str, subtask_id: str | None = None) -> StreamResponse:
         return StreamResponse(
             event=StreamResponseEvent.REASONING,
             content=content,
+            subtask_id=subtask_id,
+        )
+
+    def reasoning_completed(self, subtask_id: str | None = None) -> StreamResponse:
+        return StreamResponse(
+            event=StreamResponseEvent.REASONING_COMPLETED,
             subtask_id=subtask_id,
         )
 
@@ -141,7 +153,9 @@ class EventPredicates:
     @staticmethod
     def is_reasoning(response_type) -> bool:
         return response_type in {
+            StreamResponseEvent.REASONING_STARTED,
             StreamResponseEvent.REASONING,
+            StreamResponseEvent.REASONING_COMPLETED,
         }
 
 
