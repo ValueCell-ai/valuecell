@@ -493,8 +493,8 @@ class AgentOrchestrator:
                         StreamResponseEvent.MESSAGE_CHUNK,
                         StreamResponseEvent.REASONING,
                         NotifyResponseEvent.MESSAGE,
-                    } and isinstance(response.data.data.content, str):
-                        agent_responses[task.agent_name] += response.data.data.content
+                    } and isinstance(response.data.payload.content, str):
+                        agent_responses[task.agent_name] += response.data.payload.content
                     yield response
 
                     if (
