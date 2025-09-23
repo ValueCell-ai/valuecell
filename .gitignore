@@ -213,3 +213,8 @@ __marimo__/
 *.db-shm
 *.sqlite
 *.sqlite3
+
+# Downloads
+*csv
+*xlsx
+*xls

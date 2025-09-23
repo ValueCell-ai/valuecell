@@ -131,6 +131,7 @@ class ExecutionPlanner:
                 for field in input_schema:
                     if user_input_callback:
                         # Use callback for async user input
+                        # TODO: prompt options if available
                         request = UserInputRequest(field.description)
                         await user_input_callback(request)
                         user_value = await request.wait_for_response()

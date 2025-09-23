@@ -48,7 +48,7 @@ class AgentStreamService:
             async for response_chunk in self.orchestrator.process_user_input(
                 user_input
             ):
-                yield response_chunk.model_dump()
+                yield response_chunk.model_dump(exclude_none=True)
 
         except Exception as e:
             logger.error(f"Error in stream_query_agent: {str(e)}")

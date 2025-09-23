@@ -4,21 +4,25 @@ from collections import defaultdict
 from typing import AsyncGenerator, Dict, Optional
 
 from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
-from a2a.utils import get_message_text
 from valuecell.core.agent.connect import get_default_remote_connections
-from valuecell.core.agent.decorator import is_tool_call, is_task_completed
+from valuecell.core.agent.responses import EventPredicates
+from valuecell.core.coordinate.response import ResponseFactory
+from valuecell.core.coordinate.response_router import (
+    RouteResult,
+    SideEffectKind,
+    handle_artifact_update,
+    handle_status_update,
+)
 from valuecell.core.session import Role, SessionStatus, get_default_session_manager
 from valuecell.core.task import Task, get_default_task_manager
 from valuecell.core.task.models import TaskPattern
 from valuecell.core.types import (
+    BaseResponse,
     NotifyResponseEvent,
-    ProcessMessage,
-    ProcessMessageData,
     StreamResponseEvent,
-    ToolCallContent,
     UserInput,
 )
-from valuecell.utils.uuid import generate_message_id
+from valuecell.utils.uuid import generate_thread_id
 
 from .callback import store_task_in_session
 from .models import ExecutionPlan
@@ -34,9 +38,10 @@ ASYNC_SLEEP_INTERVAL = 0.1  # 100ms
 class ExecutionContext:
     """Manages the state of an interrupted execution for resumption"""
 
-    def __init__(self, stage: str, session_id: str, user_id: str):
+    def __init__(self, stage: str, session_id: str, thread_id: str, user_id: str):
         self.stage = stage
         self.session_id = session_id
+        self.thread_id = thread_id
         self.user_id = user_id
         self.created_at = asyncio.get_event_loop().time()
         self.metadata: Dict = {}
@@ -120,11 +125,13 @@ class AgentOrchestrator:
         # Initialize planner
         self.planner = ExecutionPlanner(self.agent_connections)
 
+        self._response_factory = ResponseFactory()
+
     # ==================== Public API Methods ====================
 
     async def process_user_input(
         self, user_input: UserInput
-    ) -> AsyncGenerator[ProcessMessage, None]:
+    ) -> AsyncGenerator[BaseResponse, None]:
         """
         Main entry point for processing user requests with Human-in-the-Loop support.
 
@@ -144,20 +151,29 @@ class AgentOrchestrator:
 
         try:
             # Ensure session exists
-            session = await self._ensure_session_exists(session_id, user_id)
+            session = await self.session_manager.get_session(session_id)
+            if not session:
+                await self.session_manager.create_session(
+                    user_id, session_id=session_id
+                )
+                session = await self.session_manager.get_session(session_id)
+                yield self._response_factory.conversation_started(
+                    conversation_id=session_id
+                )
 
             # Handle session continuation vs new request
             if session.status == SessionStatus.REQUIRE_USER_INPUT:
-                async for message in self._handle_session_continuation(user_input):
-                    yield message
+                async for response in self._handle_session_continuation(user_input):
+                    yield response
             else:
-                async for message in self._handle_new_request(user_input):
-                    yield message
+                async for response in self._handle_new_request(user_input):
+                    yield response
 
         except Exception as e:
             logger.exception(f"Error processing user input for session {session_id}")
-            yield self._create_error_message(
-                f"Error processing request: {str(e)}", session_id
+            yield self._response_factory.system_failed(
+                session_id,
+                f"(Error) Error processing request: {str(e)}",
             )
 
     async def provide_user_input(self, session_id: str, response: str):
@@ -218,8 +234,6 @@ class AgentOrchestrator:
 
     # ==================== Private Helper Methods ====================
 
-    # ==================== Private Helper Methods ====================
-
     async def _handle_user_input_request(self, request: UserInputRequest):
         """Handle user input request from planner"""
         # Extract session_id from request context
@@ -227,26 +241,18 @@ class AgentOrchestrator:
         if session_id:
             self.user_input_manager.add_request(session_id, request)
 
-    async def _ensure_session_exists(self, session_id: str, user_id: str):
-        """Ensure a session exists, creating it if necessary"""
-        session = await self.session_manager.get_session(session_id)
-        if not session:
-            await self.session_manager.create_session(user_id, session_id=session_id)
-            session = await self.session_manager.get_session(session_id)
-        return session
-
     async def _handle_session_continuation(
         self, user_input: UserInput
-    ) -> AsyncGenerator[ProcessMessage, None]:
+    ) -> AsyncGenerator[BaseResponse, None]:
         """Handle continuation of an interrupted session"""
         session_id = user_input.meta.session_id
         user_id = user_input.meta.user_id
 
         # Validate execution context exists
         if session_id not in self._execution_contexts:
-            yield self._create_error_message(
-                "No execution context found for this session. The session may have expired.",
+            yield self._response_factory.system_failed(
                 session_id,
+                "No execution context found for this session. The session may have expired.",
             )
             return
 
@@ -254,9 +260,9 @@ class AgentOrchestrator:
 
         # Validate context integrity and user consistency
         if not self._validate_execution_context(context, user_id):
-            yield self._create_error_message(
-                "Invalid execution context or user mismatch.",
+            yield self._response_factory.system_failed(
                 session_id,
+                "Invalid execution context or user mismatch.",
             )
             await self._cancel_execution(session_id)
             return
@@ -270,18 +276,19 @@ class AgentOrchestrator:
         if context.stage == "planning":
             async for chunk in self._continue_planning(session_id, context):
                 yield chunk
-        # TODO: Add support for resuming execution stage if needed
+        # Resuming execution stage is not yet supported
         else:
-            yield self._create_error_message(
-                "Resuming execution stage is not yet supported.",
+            yield self._response_factory.system_failed(
                 session_id,
+                "Resuming execution stage is not yet supported.",
             )
 
     async def _handle_new_request(
         self, user_input: UserInput
-    ) -> AsyncGenerator[ProcessMessage, None]:
+    ) -> AsyncGenerator[BaseResponse, None]:
         """Handle a new user request"""
         session_id = user_input.meta.session_id
+        thread_id = generate_thread_id()
 
         # Add user message to session
         await self.session_manager.add_message(
@@ -297,7 +304,7 @@ class AgentOrchestrator:
 
         # Monitor planning progress
         async for chunk in self._monitor_planning_task(
-            planning_task, user_input, context_aware_callback
+            planning_task, thread_id, user_input, context_aware_callback
         ):
             yield chunk
 
@@ -311,8 +318,12 @@ class AgentOrchestrator:
         return context_aware_handle
 
     async def _monitor_planning_task(
-        self, planning_task, user_input: UserInput, callback
-    ) -> AsyncGenerator[ProcessMessage, None]:
+        self,
+        planning_task: asyncio.Task,
+        thread_id: str,
+        user_input: UserInput,
+        callback,
+    ) -> AsyncGenerator[BaseResponse, None]:
         """Monitor planning task and handle user input interruptions"""
         session_id = user_input.meta.session_id
         user_id = user_input.meta.user_id
@@ -321,7 +332,7 @@ class AgentOrchestrator:
         while not planning_task.done():
             if self.has_pending_user_input(session_id):
                 # Save planning context
-                context = ExecutionContext("planning", session_id, user_id)
+                context = ExecutionContext("planning", session_id, thread_id, user_id)
                 context.add_metadata(
                     original_user_input=user_input,
                     planning_task=planning_task,
@@ -331,8 +342,8 @@ class AgentOrchestrator:
 
                 # Update session status and send user input request
                 await self._request_user_input(session_id)
-                yield self._create_user_input_request(
-                    self.get_user_input_prompt(session_id), session_id
+                yield self._response_factory.plan_require_user_input(
+                    session_id, thread_id, self.get_user_input_prompt(session_id)
                 )
                 return
 
@@ -340,7 +351,7 @@ class AgentOrchestrator:
 
         # Planning completed, execute plan
         plan = await planning_task
-        async for chunk in self._execute_plan_with_input_support(plan):
+        async for chunk in self._execute_plan_with_input_support(plan, thread_id):
             yield chunk
 
     async def _request_user_input(self, session_id: str):
@@ -365,78 +376,20 @@ class AgentOrchestrator:
 
         return True
 
-    def _create_message(
-        self,
-        content: str,
-        conversation_id: str,
-        event: (
-            StreamResponseEvent | NotifyResponseEvent
-        ) = StreamResponseEvent.MESSAGE_CHUNK,
-        message_id: Optional[str] = None,
-    ) -> ProcessMessage:
-        """Create a ProcessMessage for plain text content using the new schema."""
-        return ProcessMessage(
-            event=event,
-            data=ProcessMessageData(
-                conversation_id=conversation_id,
-                message_id=message_id or generate_message_id(),
-                content=content,
-            ),
-        )
-
-    def _create_tool_message(
-        self,
-        event: StreamResponseEvent | NotifyResponseEvent,
-        conversation_id: str,
-        tool_call_id: str,
-        tool_name: str,
-        tool_result: Optional[str] = None,
-    ) -> ProcessMessage:
-        """Create a ProcessMessage for tool call events with ToolCallContent."""
-        return ProcessMessage(
-            event=event,
-            data=ProcessMessageData(
-                conversation_id=conversation_id,
-                message_id=generate_message_id(),
-                content=ToolCallContent(
-                    tool_call_id=tool_call_id,
-                    tool_name=tool_name,
-                    tool_result=tool_result,
-                ),
-            ),
-        )
-
-    def _create_error_message(self, error_msg: str, session_id: str) -> ProcessMessage:
-        """Create an error ProcessMessage with standardized format (TASK_FAILED)."""
-        return self._create_message(
-            content=f"(Error): {error_msg}",
-            conversation_id=session_id,
-            event=StreamResponseEvent.TASK_FAILED,
-        )
-
-    def _create_user_input_request(
-        self,
-        prompt: str,
-        session_id: str,
-    ) -> ProcessMessage:
-        """Create a user input request ProcessMessage. The consumer should parse the prefix."""
-        return self._create_message(
-            content=f"USER_INPUT_REQUIRED:{prompt}",
-            conversation_id=session_id,
-            event=StreamResponseEvent.MESSAGE_CHUNK,
-        )
-
     async def _continue_planning(
         self, session_id: str, context: ExecutionContext
-    ) -> AsyncGenerator[ProcessMessage, None]:
+    ) -> AsyncGenerator[BaseResponse, None]:
         """Resume planning stage execution"""
         planning_task = context.get_metadata("planning_task")
         original_user_input = context.get_metadata("original_user_input")
+        thread_id = generate_thread_id()
+        context.thread_id = thread_id
 
         if not all([planning_task, original_user_input]):
-            yield self._create_error_message(
-                "Invalid planning context - missing required data",
+            yield self._response_factory.plan_failed(
                 session_id,
+                thread_id,
+                "Invalid planning context - missing required data",
             )
             await self._cancel_execution(session_id)
             return
@@ -448,7 +401,9 @@ class AgentOrchestrator:
                 prompt = self.get_user_input_prompt(session_id)
                 # Ensure session is set to require user input again for repeated prompts
                 await self._request_user_input(session_id)
-                yield self._create_user_input_request(prompt, session_id)
+                yield self._response_factory.plan_require_user_input(
+                    session_id, thread_id, prompt
+                )
                 return
 
             await asyncio.sleep(ASYNC_SLEEP_INTERVAL)
@@ -457,7 +412,7 @@ class AgentOrchestrator:
         plan = await planning_task
         del self._execution_contexts[session_id]
 
-        async for message in self._execute_plan_with_input_support(plan):
+        async for message in self._execute_plan_with_input_support(plan, thread_id):
             yield message
 
     async def _cancel_execution(self, session_id: str):
@@ -501,8 +456,8 @@ class AgentOrchestrator:
     # ==================== Plan and Task Execution Methods ====================
 
     async def _execute_plan_with_input_support(
-        self, plan: ExecutionPlan, metadata: Optional[dict] = None
-    ) -> AsyncGenerator[ProcessMessage, None]:
+        self, plan: ExecutionPlan, thread_id: str, metadata: Optional[dict] = None
+    ) -> AsyncGenerator[BaseResponse, None]:
         """
         Execute an execution plan with Human-in-the-Loop support.
 
@@ -516,8 +471,8 @@ class AgentOrchestrator:
         session_id = plan.session_id
 
         if not plan.tasks:
-            yield self._create_error_message(
-                "No tasks found for this request.", session_id
+            yield self._response_factory.plan_failed(
+                session_id, thread_id, "No tasks found for this request."
             )
             return
 
@@ -530,20 +485,22 @@ class AgentOrchestrator:
                 await self.task_manager.store.save_task(task)
 
                 # Execute task with input support
-                async for message in self._execute_task_with_input_support(
-                    task, metadata
+                async for response in self._execute_task_with_input_support(
+                    task, thread_id, metadata
                 ):
                     # Accumulate based on event
-                    if message.event in {
+                    if response.event in {
                         StreamResponseEvent.MESSAGE_CHUNK,
                         StreamResponseEvent.REASONING,
                         NotifyResponseEvent.MESSAGE,
-                    } and isinstance(message.data.content, str):
-                        agent_responses[task.agent_name] += message.data.content
-                    yield message
+                    } and isinstance(response.data.payload.content, str):
+                        agent_responses[task.agent_name] += (
+                            response.data.payload.content
+                        )
+                    yield response
 
                     if (
-                        is_task_completed(message.event)
+                        EventPredicates.is_task_completed(response.event)
                         or task.pattern == TaskPattern.RECURRING
                     ):
                         if agent_responses[task.agent_name].strip():
@@ -556,16 +513,23 @@ class AgentOrchestrator:
                             agent_responses[task.agent_name] = ""
 
             except Exception as e:
-                error_msg = f"Error executing {task.agent_name}: {str(e)}"
+                error_msg = f"(Error) Error executing {task.agent_name}: {str(e)}"
                 logger.exception(f"Task execution failed: {error_msg}")
-                yield self._create_error_message(error_msg, session_id)
+                yield self._response_factory.task_failed(
+                    session_id,
+                    thread_id,
+                    task.task_id,
+                    _generate_task_default_subtask_id(task.task_id),
+                    error_msg,
+                )
 
         # Save any remaining agent responses
         await self._save_remaining_responses(session_id, agent_responses)
+        yield self._response_factory.done(session_id, thread_id)
 
     async def _execute_task_with_input_support(
-        self, task: Task, metadata: Optional[dict] = None
-    ) -> AsyncGenerator[ProcessMessage, None]:
+        self, task: Task, thread_id: str, metadata: Optional[dict] = None
+    ) -> AsyncGenerator[BaseResponse, None]:
         """
         Execute a single task with user input interruption support.
 
@@ -609,44 +573,36 @@ class AgentOrchestrator:
                     continue
 
                 if isinstance(event, TaskStatusUpdateEvent):
-                    state = event.status.state
-                    logger.info(f"Task {task.task_id} status update: {state}")
-                    if state in {TaskState.submitted, TaskState.completed}:
-                        continue
-                    # Handle task failure
-                    if state == TaskState.failed:
-                        err_msg = get_message_text(event.status.message)
-                        await self.task_manager.fail_task(task.task_id, err_msg)
-                        yield self._create_error_message(err_msg, task.session_id)
-                        return
-                    # if state == TaskState.input_required:
-                    # Handle tool call start
-                    if not event.metadata:
-                        continue
-                    response_event = event.metadata.get("response_event")
-                    if state == TaskState.working and is_tool_call(response_event):
-                        yield self._create_tool_message(
-                            response_event,
-                            task.session_id,
-                            tool_call_id=event.metadata.get("tool_call_id", ""),
-                            tool_name=event.metadata.get("tool_name", ""),
-                            tool_result=event.metadata.get("tool_result"),
-                        )
-                        continue
-
-                elif isinstance(event, TaskArtifactUpdateEvent):
-                    yield self._create_message(
-                        get_message_text(event.artifact, ""),
-                        task.session_id,
-                        event=StreamResponseEvent.MESSAGE_CHUNK,
+                    result: RouteResult = await handle_status_update(
+                        self._response_factory, task, thread_id, event
                     )
+                    for r in result.responses:
+                        yield r
+                    # Apply side effects
+                    for eff in result.side_effects:
+                        if eff.kind == SideEffectKind.FAIL_TASK:
+                            await self.task_manager.fail_task(
+                                task.task_id, eff.reason or ""
+                            )
+                    if result.done:
+                        return
+                    continue
+
+                if isinstance(event, TaskArtifactUpdateEvent):
+                    responses = await handle_artifact_update(
+                        self._response_factory, task, thread_id, event
+                    )
+                    for r in responses:
+                        yield r
+                    continue
 
             # Complete task successfully
             await self.task_manager.complete_task(task.task_id)
-            yield self._create_message(
-                "",
-                task.session_id,
-                event=StreamResponseEvent.TASK_DONE,
+            yield self._response_factory.task_completed(
+                conversation_id=task.session_id,
+                thread_id=thread_id,
+                task_id=task.task_id,
+                subtask_id=_generate_task_default_subtask_id(task.task_id),
             )
 
         except Exception as e:
@@ -660,6 +616,11 @@ class AgentOrchestrator:
                 await self.session_manager.add_message(
                     session_id, Role.AGENT, full_response, agent_name=agent_name
                 )
+
+
+def _generate_task_default_subtask_id(task_id: str) -> str:
+    """Generate a default subtask ID based on the main task ID"""
+    return f"{task_id}-default_subtask"
 
 
 # ==================== Module-level Factory Function ====================

@@ -20,7 +20,6 @@ from .schemas import (
     SupportedLanguagesData,
     TimezonesData,
     UserI18nSettingsData,
-    AgentI18nContextData,
     LanguageDetectionData,
     TranslationData,
     DateTimeFormatData,
@@ -163,16 +162,6 @@ class I18nAPI:
             response_model=SuccessResponse[UserI18nSettingsData],
             summary="Update user i18n settings",
             description="Update internationalization settings for specified user",
-        )
-
-        # Agent context
-        router.add_api_route(
-            "/agent/context",
-            self.get_agent_context,
-            methods=["GET"],
-            response_model=SuccessResponse[AgentI18nContextData],
-            summary="Get Agent i18n context",
-            description="Get i18n context information for inter-agent communication",
         )
 
         return router
@@ -485,30 +474,6 @@ class I18nAPI:
                 "language": user_context.get("language"),
                 "timezone": user_context.get("timezone"),
             },
-        )
-
-    async def get_agent_context(
-        self,
-        user_id: Optional[str] = Header(None, alias="X-User-ID"),
-        session_id: Optional[str] = Header(None, alias="X-Session-ID"),
-    ) -> SuccessResponse[AgentI18nContextData]:
-        """Get i18n context for agent communication."""
-        # Load user-specific settings
-        self._get_user_context(user_id)
-
-        context = AgentI18nContextData(
-            language=self.i18n_service.get_current_language(),
-            timezone=self.i18n_service.get_current_timezone(),
-            currency_symbol=self.i18n_service._i18n_config.get_currency_symbol(),
-            date_format=self.i18n_service._i18n_config.get_date_format(),
-            time_format=self.i18n_service._i18n_config.get_time_format(),
-            number_format=self.i18n_service._i18n_config.get_number_format(),
-            user_id=user_id,
-            session_id=session_id,
-        )
-
-        return SuccessResponse.create(
-            data=context, msg="Agent i18n context retrieved successfully"
         )
 
     def get_user_context(self, user_id: str) -> Dict[str, Any]:

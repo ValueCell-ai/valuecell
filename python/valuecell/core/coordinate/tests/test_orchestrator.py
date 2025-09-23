@@ -309,8 +309,8 @@ async def test_planner_error(
         out.append(chunk)
 
     assert len(out) == 1
-    assert "(Error)" in out[0].data.content
-    assert "Planning failed" in out[0].data.content
+    assert "(Error)" in out[0].data.payload.content
+    assert "Planning failed" in out[0].data.payload.content
 
 
 @pytest.mark.asyncio
@@ -328,7 +328,7 @@ async def test_agent_connection_error(
     async for chunk in orchestrator.process_user_input(sample_user_input):
         out.append(chunk)
 
-    assert any("(Error)" in c.data.content for c in out)
+    assert any("(Error)" in c.data.payload.content for c in out)
 
 
 @pytest.mark.asyncio

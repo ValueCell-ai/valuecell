@@ -20,11 +20,11 @@ from valuecell.core.agent.card import find_local_agent_card_by_agent_name
 from valuecell.core.types import (
     BaseAgent,
     NotifyResponse,
-    NotifyResponseEvent,
     StreamResponse,
     StreamResponseEvent,
 )
 from valuecell.utils import parse_host_port
+from .responses import EventPredicates
 
 logger = logging.getLogger(__name__)
 
@@ -131,9 +131,14 @@ class GenericAgentExecutor(AgentExecutor):
             if not response.content:
                 return
 
-            response_event = response.event
             parts = [Part(root=TextPart(text=response.content))]
-            metadata = {"response_event": response_event.value}
+            response_event = response.event
+            metadata = {
+                "response_event": response_event.value,
+                "subtask_id": response.subtask_id,
+            }
+            if response_event == StreamResponseEvent.COMPONENT_GENERATOR:
+                metadata["component_type"] = response.metadata.get("component_type")
             await updater.add_artifact(
                 parts=parts,
                 artifact_id=artifact_id,
@@ -160,21 +165,32 @@ class GenericAgentExecutor(AgentExecutor):
                     )
 
                 response_event = response.event
-                if is_task_failed(response_event):
+                if EventPredicates.is_task_failed(response_event):
                     raise RuntimeError(
                         f"Agent {agent_name} reported failure: {response.content}"
                     )
 
-                is_complete = is_task_completed(response_event)
-                if is_tool_call(response_event):
+                is_complete = EventPredicates.is_task_completed(response_event)
+                if EventPredicates.is_tool_call(response_event):
                     await updater.update_status(
                         TaskState.working,
-                        message=message,
+                        message=new_agent_text_message(response.content or ""),
                         metadata={
                             "event": response_event.value,
                             "tool_call_id": response.metadata.get("tool_call_id"),
                             "tool_name": response.metadata.get("tool_name"),
                             "tool_result": response.metadata.get("content"),
+                            "subtask_id": response.subtask_id,
+                        },
+                    )
+                    continue
+                if EventPredicates.is_reasoning(response_event):
+                    await updater.update_status(
+                        TaskState.working,
+                        message=new_agent_text_message(response.content or ""),
+                        metadata={
+                            "event": response_event.value,
+                            "subtask_id": response.subtask_id,
                         },
                     )
                     continue
@@ -196,29 +212,6 @@ class GenericAgentExecutor(AgentExecutor):
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
         # Default cancel operation
         raise ServerError(error=UnsupportedOperationError())
-
-
-def is_task_completed(response_type: str) -> bool:
-    return response_type in {
-        StreamResponseEvent.TASK_DONE,
-        StreamResponseEvent.TASK_FAILED,
-        NotifyResponseEvent.TASK_DONE,
-        NotifyResponseEvent.TASK_FAILED,
-    }
-
-
-def is_task_failed(response_type: str) -> bool:
-    return response_type in {
-        StreamResponseEvent.TASK_FAILED,
-        NotifyResponseEvent.TASK_FAILED,
-    }
-
-
-def is_tool_call(response_type: str) -> bool:
-    return response_type in {
-        StreamResponseEvent.TOOL_CALL_STARTED,
-        StreamResponseEvent.TOOL_CALL_COMPLETED,
-    }
 
 
 def _create_agent_executor(agent_instance):
