@@ -29,10 +29,6 @@ class HedgeFundRequest(BaseModel):
         ...,
         description=f"List of stock tickers to analyze. Must be from: {allowed_tickers}. Otherwise, empty.",
     )
-    selected_analysts: List[str] = Field(
-        default=[],
-        description=f"List of analysts to use for analysis. If empty, all analysts will be used. Must be from {allowed_analysts}",
-    )
 
     @field_validator("tickers")
     @classmethod
@@ -46,20 +42,9 @@ class HedgeFundRequest(BaseModel):
             )
         return v
 
-    @field_validator("selected_analysts")
-    @classmethod
-    def validate_analysts(cls, v):
-        if v:  # Only validate if not empty
-            invalid_analysts = set(v) - allowed_analysts
-            if invalid_analysts:
-                raise ValueError(
-                    f"Invalid analysts: {invalid_analysts}. Allowed: {allowed_analysts}"
-                )
-        return v
-
 
 class AIHedgeFundAgent(BaseAgent):
-    def __init__(self):
+    def __init__(self, analyst: str):
         super().__init__()
         self.agno_agent = Agent(
             model=OpenRouter(
@@ -68,6 +53,7 @@ class AIHedgeFundAgent(BaseAgent):
             response_model=HedgeFundRequest,
             markdown=True,
         )
+        self.analyst = analyst
 
     async def stream(
         self, query, session_id, task_id
@@ -121,7 +107,7 @@ class AIHedgeFundAgent(BaseAgent):
             portfolio=portfolio,
             model_name="openai/gpt-4o-mini",
             model_provider="OpenRouter",
-            selected_analysts=hedge_fund_request.selected_analysts,
+            selected_analysts=self.analyst,
         ):
             if not isinstance(chunk, str):
                 continue
