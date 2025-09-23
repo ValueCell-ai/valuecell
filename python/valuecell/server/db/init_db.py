@@ -154,7 +154,6 @@ class DatabaseInitializer:
             session = self.db_manager.get_session()
 
             try:
-
                 initialized_count = 0
 
                 for ticker in default_tickers:
