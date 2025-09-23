@@ -1,17 +1,13 @@
 import {
   AlertTriangle,
   ArrowUp,
-  BarChart3,
   Bot,
-  Brain,
   CheckCircle,
   Clock,
   FileText,
   MessageCircle,
   Settings,
-  Table,
   User,
-  Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useParams } from "react-router";
@@ -20,282 +16,98 @@ import ScrollTextarea, {
   type ScrollTextareaRef,
 } from "@/components/valuecell/scroll/scroll-textarea";
 import { useSSE } from "@/hooks/use-sse";
+import { updateAgentConversationsStore } from "@/lib/agent-store";
 import { SSEReadyState } from "@/lib/sse-client";
 import { cn } from "@/lib/utils";
 import { agentData } from "@/mock/agent-data";
-import type { AgentEventMap, AgentStreamRequest, SSEData } from "@/types/agent";
+import type {
+  AgentConversationsStore,
+  AgentStreamRequest,
+  SSEData,
+} from "@/types/agent";
 import type { Route } from "./+types/chat";
 import { ChatBackground } from "./components";
-
-// Extended chat message type with all possible fields
-type ExtendedChatMessage = {
-  id: string;
-  role: "user" | "system" | "agent";
-  isComplete: boolean;
-  // Base event fields (optional because user messages may not have them)
-  conversation_id?: string;
-  thread_id?: string;
-  task_id?: string;
-  subtask_id?: string;
-  // Content payload
-  payload?: { content: string; [key: string]: unknown };
-  // UI extension fields
-  component?: { type: string; content: string };
-  toolCalls?: Array<{
-    id: string;
-    name: string;
-    status: "started" | "completed";
-    result?: string;
-    startTime: Date;
-    endTime?: Date;
-  }>;
-  reasoning?: string;
-};
 
 export default function AgentChat() {
   const { agentId } = useParams<Route.LoaderArgs["params"]>();
   const textareaRef = useRef<ScrollTextareaRef>(null);
   const [inputValue, setInputValue] = useState("");
 
-  // Simplified chat state - only essential state
-  const [messages, setMessages] = useState<ExtendedChatMessage[]>([]);
+  // Use agent store for state management
+  const [agentStore, setAgentStore] = useState<AgentConversationsStore>({});
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
   const [userInputRequired, setUserInputRequired] = useState<string | null>(
     null,
   );
-  const [isSending, setIsSending] = useState(false); // Prevent duplicate sends
+  const [isSending, setIsSending] = useState(false);
   const [shouldClose, setShouldClose] = useState(false);
 
-  // Optimized message update helper
-  const updateOrCreateMessage = useCallback(
-    (
-      messageId: string,
-      content: string,
-      isComplete: boolean,
-      threadId: string,
-      taskId?: string,
-      subtaskId?: string,
-      isAppend = false,
-    ) => {
-      setMessages((prevMessages) => {
-        const updatedMessages = [...prevMessages];
-        const messageIndex = updatedMessages.findIndex(
-          (msg) => msg.id === messageId,
-        );
+  // Get current conversation and thread messages
+  const currentMessages = useMemo(() => {
+    if (!conversationId || !currentThreadId || !agentStore[conversationId]) {
+      return [];
+    }
+    const thread = agentStore[conversationId].threads[currentThreadId];
+    return thread?.messages || [];
+  }, [agentStore, conversationId, currentThreadId]);
 
-        if (messageIndex >= 0) {
-          const existingMessage = updatedMessages[messageIndex];
-          const existingContent = existingMessage.payload?.content || "";
+  // Add user message by triggering message_chunk event with role: "user"
+  const addUserMessage = useCallback(
+    (content: string) => {
+      if (!conversationId || !currentThreadId) return;
 
-          updatedMessages[messageIndex] = {
-            ...existingMessage,
-            payload: {
-              ...existingMessage.payload,
-              content: isAppend ? existingContent + content : content,
-            },
-            isComplete,
-          };
-        } else {
-          updatedMessages.push({
-            id: messageId,
-            role: "agent",
-            isComplete,
-            conversation_id: "",
-            thread_id: threadId || "",
-            task_id: taskId || "",
-            subtask_id: subtaskId || "",
+      setAgentStore((prev) =>
+        updateAgentConversationsStore(prev, {
+          event: "message_chunk",
+          data: {
+            conversation_id: conversationId,
+            thread_id: currentThreadId,
+            task_id: "",
+            subtask_id: "",
             payload: { content },
-          } as ExtendedChatMessage);
-        }
-
-        return updatedMessages;
-      });
-
-      setCurrentThreadId(threadId);
+            role: "user",
+          },
+        }),
+      );
     },
-    [],
+    [conversationId, currentThreadId],
   );
 
-  // Handle SSE data events
-  const handleSSEData = useCallback(
-    (sseData: SSEData) => {
-      const { event, data } = sseData;
+  // Handle SSE data events using agent store
+  const handleSSEData = useCallback((sseData: SSEData) => {
+    // Update agent store using the centralized function
+    setAgentStore((prev) => updateAgentConversationsStore(prev, sseData));
 
-      switch (event) {
-        case "conversation_started": {
-          const payload =
-            data as unknown as AgentEventMap["conversation_started"];
-          setConversationId(payload.conversation_id);
-          break;
-        }
-
-        case "message_chunk": {
-          const payload = data as unknown as AgentEventMap["message_chunk"];
-          const messageId = `${payload.conversation_id}-${payload.thread_id}`;
-          updateOrCreateMessage(
-            messageId,
-            payload.payload.content,
-            false,
-            payload.thread_id,
-            payload.task_id,
-            payload.subtask_id,
-            true, // append content
-          );
-          break;
-        }
-
-        case "message": {
-          const payload = data as unknown as AgentEventMap["message"];
-          const messageId = `${payload.conversation_id}-${payload.thread_id}`;
-          updateOrCreateMessage(
-            messageId,
-            payload.payload.content,
-            true,
-            payload.thread_id,
-            payload.task_id,
-            payload.subtask_id,
-            false, // replace content
-          );
-          break;
-        }
-
-        case "component_generator": {
-          const payload =
-            data as unknown as AgentEventMap["component_generator"];
-          const componentMessage: ExtendedChatMessage = {
-            id: `component-${payload.conversation_id}-${payload.thread_id}-${Date.now()}`,
-            role: "agent",
-            isComplete: true,
-            conversation_id: payload.conversation_id,
-            thread_id: payload.thread_id,
-            task_id: payload.task_id,
-            subtask_id: payload.subtask_id,
-            payload: payload.payload,
-            component: {
-              type: payload.payload.component_type,
-              content: payload.payload.content,
-            },
-          };
-
-          setMessages((prev) => [...prev, componentMessage]);
-          break;
-        }
-
-        case "plan_require_user_input": {
-          const payload =
-            data as unknown as AgentEventMap["plan_require_user_input"];
-          setUserInputRequired(payload.payload.content);
-          break;
-        }
-
-        case "tool_call_started":
-        case "tool_call_completed": {
-          const payload = data as unknown as
-            | AgentEventMap["tool_call_started"]
-            | AgentEventMap["tool_call_completed"];
-          const messageId = `${payload.conversation_id}-${payload.thread_id}`;
-          const isCompleted = event === "tool_call_completed";
-
-          setMessages((prevMessages) => {
-            const updatedMessages = [...prevMessages];
-            const messageIndex = updatedMessages.findIndex(
-              (msg) => msg.id === messageId,
-            );
-
-            if (messageIndex >= 0) {
-              const message = updatedMessages[messageIndex];
-              const toolCalls = [...(message.toolCalls || [])];
-              const toolCallIndex = toolCalls.findIndex(
-                (tc) => tc.id === payload.payload.tool_call_id,
-              );
-
-              const toolCallData = {
-                id: payload.payload.tool_call_id,
-                name: payload.payload.tool_name,
-                status: isCompleted
-                  ? ("completed" as const)
-                  : ("started" as const),
-                startTime: new Date(),
-                ...(isCompleted && {
-                  result: (payload as AgentEventMap["tool_call_completed"])
-                    .payload.tool_call_result,
-                  endTime: new Date(),
-                }),
-              };
-
-              if (toolCallIndex >= 0) {
-                toolCalls[toolCallIndex] = {
-                  ...toolCalls[toolCallIndex],
-                  ...toolCallData,
-                };
-              } else {
-                toolCalls.push(toolCallData);
-              }
-
-              updatedMessages[messageIndex] = { ...message, toolCalls };
-            }
-
-            return updatedMessages;
-          });
-          break;
-        }
-
-        case "reasoning": {
-          const payload = data as unknown as AgentEventMap["reasoning"];
-          const messageId = `${payload.conversation_id}-${payload.thread_id}`;
-
-          setMessages((prevMessages) => {
-            const updatedMessages = [...prevMessages];
-            const messageIndex = updatedMessages.findIndex(
-              (msg) => msg.id === messageId,
-            );
-
-            if (messageIndex >= 0) {
-              updatedMessages[messageIndex] = {
-                ...updatedMessages[messageIndex],
-                reasoning: payload.payload.content,
-              };
-            }
-
-            return updatedMessages;
-          });
-          break;
-        }
-
-        case "plan_failed":
-        case "task_failed": {
-          const payload = data as unknown as
-            | AgentEventMap["plan_failed"]
-            | AgentEventMap["task_failed"];
-          const errorMessage: ExtendedChatMessage = {
-            id: `error-${payload.conversation_id}-${payload.thread_id}-${Date.now()}`,
-            role: "system",
-            isComplete: true,
-            conversation_id: payload.conversation_id,
-            thread_id: payload.thread_id,
-            ...(event === "task_failed" && {
-              task_id: (payload as AgentEventMap["task_failed"]).task_id,
-              subtask_id: (payload as AgentEventMap["task_failed"]).subtask_id,
-            }),
-            payload: payload.payload,
-          };
-
-          setMessages((prev) => [...prev, errorMessage]);
-          break;
-        }
-
-        case "done": {
-          const payload = data as unknown as AgentEventMap["done"];
-          setUserInputRequired(null);
-          setCurrentThreadId(payload.thread_id);
-          setShouldClose(true);
-          break;
-        }
+    // Handle specific UI state updates
+    const { event, data } = sseData;
+    switch (event) {
+      case "conversation_started": {
+        setConversationId(data.conversation_id);
+        break;
       }
-    },
-    [updateOrCreateMessage],
-  );
+
+      case "plan_require_user_input": {
+        setUserInputRequired(data.payload.content);
+        break;
+      }
+
+      case "done": {
+        setUserInputRequired(null);
+        setCurrentThreadId(data.thread_id);
+        setShouldClose(true);
+        break;
+      }
+
+      // All message-related events are handled by the store
+      default:
+        // Update current thread ID for message events
+        if ("thread_id" in data) {
+          setCurrentThreadId(data.thread_id);
+        }
+        break;
+    }
+  }, []);
 
   // Stabilize SSE options to avoid infinite reconnects
   const sseOptions = useMemo(
@@ -368,22 +180,23 @@ export default function AgentChat() {
       setIsSending(true);
 
       try {
-        const userMessage: ExtendedChatMessage = {
-          id: `user-${Date.now()}`,
-          role: "user",
-          isComplete: true,
-          // Special structure for user message
-          payload: { content: message },
-        } as ExtendedChatMessage;
+        // For new conversation, we'll let the server assign IDs
+        const newConversationId = conversationId || `conv-${Date.now()}`;
+        const newThreadId = currentThreadId || `thread-${Date.now()}`;
 
-        setMessages((prev) => [...prev, userMessage]);
+        // Set IDs if this is a new conversation
+        if (!conversationId) setConversationId(newConversationId);
+        if (!currentThreadId) setCurrentThreadId(newThreadId);
+
+        // Add user message to store
+        addUserMessage(message);
         setUserInputRequired(null);
 
         const request: AgentStreamRequest = {
           query: message,
-          agent_name: "WarrenBuffettAgent", // You can make this dynamic based on the agent
-          conversation_id: conversationId || undefined,
-          thread_id: currentThreadId || undefined,
+          agent_name: "WarrenBuffettAgent",
+          conversation_id: newConversationId,
+          thread_id: newThreadId,
         };
 
         // Connect SSE client with request body to receive streaming response
@@ -393,7 +206,14 @@ export default function AgentChat() {
         setIsSending(false); // Reset immediately on error
       }
     },
-    [conversationId, currentThreadId, connect, isSending, isConnecting],
+    [
+      conversationId,
+      currentThreadId,
+      addUserMessage,
+      connect,
+      isSending,
+      isConnecting,
+    ],
   );
 
   // Handle user input for plan_require_user_input events
@@ -426,43 +246,6 @@ export default function AgentChat() {
     handleUserInputResponse,
     sendMessage,
   ]);
-
-  // Optimized component icon mapping
-  const componentIcons = useMemo(
-    () => ({
-      report: <FileText size={16} className="text-blue-600" />,
-      chart: <BarChart3 size={16} className="text-green-600" />,
-      table: <Table size={16} className="text-purple-600" />,
-      analysis: <Brain size={16} className="text-orange-600" />,
-    }),
-    [],
-  );
-
-  // Optimized component renderer
-  const renderComponent = useCallback(
-    (component: { type: string; content: string }) => {
-      const icon = componentIcons[
-        component.type as keyof typeof componentIcons
-      ] || <FileText size={16} className="text-gray-600" />;
-
-      return (
-        <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
-          <div className="mb-2 flex items-center gap-2">
-            {icon}
-            <span className="font-medium text-blue-900 text-sm capitalize">
-              {component.type} Generated
-            </span>
-          </div>
-          <div className="rounded bg-white p-3 text-gray-800 text-sm">
-            <pre className="whitespace-pre-wrap font-mono text-xs">
-              {component.content}
-            </pre>
-          </div>
-        </div>
-      );
-    },
-    [componentIcons],
-  );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
@@ -543,7 +326,7 @@ export default function AgentChat() {
 
       {/* Main content area */}
       <main className="relative flex flex-1 flex-col">
-        {messages.length === 0 ? (
+        {currentMessages.length === 0 ? (
           <>
             {/* Background blur effects for welcome screen */}
             <ChatBackground />
@@ -602,9 +385,9 @@ export default function AgentChat() {
           <>
             {/* Chat messages */}
             <div className="flex-1 space-y-6 overflow-y-auto p-6">
-              {messages.map((message) => (
+              {currentMessages.map((message, index) => (
                 <div
-                  key={message.id}
+                  key={`${message.conversation_id}-${message.thread_id}-${index}`}
                   className={cn(
                     "flex gap-4",
                     message.role === "user" ? "justify-end" : "justify-start",
@@ -612,19 +395,8 @@ export default function AgentChat() {
                 >
                   {message.role !== "user" && (
                     <div className="size-8 flex-shrink-0">
-                      <div
-                        className={cn(
-                          "flex size-8 items-center justify-center rounded-full",
-                          message.role === "system"
-                            ? "bg-gradient-to-br from-red-500 to-red-600"
-                            : "bg-gradient-to-br from-blue-500 to-purple-600",
-                        )}
-                      >
-                        {message.role === "system" ? (
-                          <AlertTriangle size={16} className="text-white" />
-                        ) : (
-                          <Bot size={16} className="text-white" />
-                        )}
+                      <div className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600">
+                        <Bot size={16} className="text-white" />
                       </div>
                     </div>
                   )}
@@ -634,75 +406,86 @@ export default function AgentChat() {
                       "max-w-[80%] rounded-2xl px-4 py-3",
                       message.role === "user"
                         ? "ml-auto bg-blue-600 text-white"
-                        : message.role === "system"
-                          ? "bg-red-100 text-red-900"
-                          : "bg-gray-100 text-gray-900",
+                        : "bg-gray-100 text-gray-900",
                     )}
                   >
-                    {/* Message content */}
-                    {!message.component && (
-                      <div className="whitespace-pre-wrap break-words">
-                        {message.payload?.content || ""}
-                        {!message.isComplete && message.role === "agent" && (
-                          <span className="ml-1 inline-block h-5 w-2 animate-pulse bg-gray-400" />
-                        )}
-                      </div>
-                    )}
+                    {/* Render different message types based on payload structure */}
+                    {(() => {
+                      const payload = message.payload;
+                      if (!payload) return null;
 
-                    {/* Generated component */}
-                    {message.component && renderComponent(message.component)}
-
-                    {/* Tool calls */}
-                    {message.toolCalls && message.toolCalls.length > 0 && (
-                      <div className="mt-3 space-y-2">
-                        {message.toolCalls.map((toolCall) => (
-                          <div
-                            key={toolCall.id}
-                            className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-2"
-                          >
-                            {toolCall.status === "started" ? (
-                              <Clock
-                                size={14}
-                                className="animate-pulse text-blue-600"
-                              />
-                            ) : (
-                              <CheckCircle
-                                size={14}
-                                className="text-green-600"
-                              />
-                            )}
-                            <span className="font-medium text-blue-900 text-sm">
-                              {toolCall.name}
-                            </span>
-                            {toolCall.status === "started" && (
-                              <span className="text-blue-600 text-xs">
-                                Running...
-                              </span>
-                            )}
-                            {toolCall.result && (
-                              <span className="truncate text-gray-600 text-xs">
-                                {toolCall.result.substring(0, 50)}...
-                              </span>
-                            )}
+                      // Component generator message
+                      if ("component_type" in payload && "content" in payload) {
+                        return (
+                          <div>
+                            <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                              <div className="mb-2 flex items-center gap-2">
+                                <FileText size={16} className="text-blue-600" />
+                                <span className="font-medium text-blue-900 text-sm capitalize">
+                                  {payload.component_type} Generated
+                                </span>
+                              </div>
+                              <div className="rounded bg-white p-3 text-gray-800 text-sm">
+                                <pre className="whitespace-pre-wrap font-mono text-xs">
+                                  {payload.content}
+                                </pre>
+                              </div>
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        );
+                      }
 
-                    {/* Reasoning */}
-                    {message.reasoning && (
-                      <div className="mt-3 rounded-lg border border-yellow-200 bg-yellow-50 p-2">
-                        <div className="mb-1 flex items-center gap-2">
-                          <Zap size={14} className="text-yellow-600" />
-                          <span className="font-medium text-sm text-yellow-900">
-                            Reasoning
-                          </span>
-                        </div>
-                        <p className="text-sm text-yellow-800">
-                          {message.reasoning}
-                        </p>
-                      </div>
-                    )}
+                      // Tool call message
+                      if ("tool_call_id" in payload && "tool_name" in payload) {
+                        const hasResult =
+                          "tool_call_result" in payload &&
+                          payload.tool_call_result;
+                        return (
+                          <div>
+                            <div className="mt-3 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-2">
+                              {hasResult ? (
+                                <CheckCircle
+                                  size={14}
+                                  className="text-green-600"
+                                />
+                              ) : (
+                                <Clock
+                                  size={14}
+                                  className="animate-pulse text-blue-600"
+                                />
+                              )}
+                              <span className="font-medium text-blue-900 text-sm">
+                                {payload.tool_name}
+                              </span>
+                              {hasResult ? (
+                                <span className="truncate text-gray-600 text-xs">
+                                  {String(payload.tool_call_result).substring(
+                                    0,
+                                    50,
+                                  )}
+                                  ...
+                                </span>
+                              ) : (
+                                <span className="text-blue-600 text-xs">
+                                  Running...
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Regular content message
+                      if ("content" in payload) {
+                        return (
+                          <div className="whitespace-pre-wrap break-words">
+                            {payload.content}
+                          </div>
+                        );
+                      }
+
+                      return null;
+                    })()}
                   </div>
 
                   {message.role === "user" && (

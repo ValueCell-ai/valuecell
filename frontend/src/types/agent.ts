@@ -26,7 +26,10 @@ export interface AgentEventMap {
   done: Pick<BaseEventData, "conversation_id" | "thread_id">;
 
   // Content Streaming Events
-  message_chunk: EventWithPayload<BaseEventData, { content: string }>;
+  message_chunk: EventWithPayload<
+    BaseEventData & { role?: "user" | "agent" | "system" },
+    { content: string }
+  >;
   message: EventWithPayload<BaseEventData, { content: string }>;
 
   // Component Generation
