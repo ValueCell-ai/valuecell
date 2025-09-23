@@ -1,6 +1,8 @@
 from typing_extensions import Literal
 from valuecell.core.types import (
     BaseResponseDataContent,
+    ComponentGeneratorResponse,
+    ComponentGeneratorResponseDataContent,
     ConversationStartedResponse,
     DoneResponse,
     MessageResponse,
@@ -178,5 +180,27 @@ class ResponseFactory:
                 task_id=task_id,
                 subtask_id=subtask_id,
                 data=BaseResponseDataContent(content=content),
+            ),
+        )
+
+    def component_generator(
+        self,
+        conversation_id: str,
+        thread_id: str,
+        task_id: str,
+        subtask_id: str,
+        content: str,
+        component_type: str,
+    ) -> ComponentGeneratorResponse:
+        return ComponentGeneratorResponse(
+            data=UnifiedResponseData(
+                conversation_id=conversation_id,
+                thread_id=thread_id,
+                task_id=task_id,
+                subtask_id=subtask_id,
+                data=ComponentGeneratorResponseDataContent(
+                    content=content,
+                    component_type=component_type,
+                ),
             ),
         )

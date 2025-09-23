@@ -30,7 +30,6 @@ from valuecell.core.agent import registry
 from valuecell.core.types import (
     BaseAgent,
     NotifyResponse,
-    NotifyResponseEvent,
     StreamResponse,
     StreamResponseEvent,
     SystemResponseEvent,
@@ -187,10 +186,13 @@ class GenericAgentExecutor(AgentExecutor):
                 return
 
             parts = [Part(root=TextPart(text=response.content))]
+            response_event = response.event
             metadata = {
-                "response_event": response.event.value,
+                "response_event": response_event.value,
                 "subtask_id": response.subtask_id,
             }
+            if response_event == StreamResponseEvent.COMPONENT_GENERATOR:
+                metadata["component_type"] = response.metadata.get("component_type")
             await updater.add_artifact(
                 parts=parts,
                 artifact_id=artifact_id,

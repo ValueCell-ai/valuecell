@@ -632,13 +632,28 @@ class AgentOrchestrator:
                     if not subtask_id:
                         subtask_id = _generate_task_default_subtask_id(task.task_id)
                     response_event = artifact.metadata.get("response_event")
+                    content = get_message_text(artifact, "")
+                    if response_event == StreamResponseEvent.COMPONENT_GENERATOR:
+                        component_type = artifact.metadata.get(
+                            "component_type", "unknown"
+                        )
+                        yield self._response_factory.component_generator(
+                            conversation_id=task.session_id,
+                            thread_id=thread_id,
+                            task_id=task.task_id,
+                            subtask_id=subtask_id,
+                            content=content,
+                            component_type=component_type,
+                        )
+                        continue
+
                     yield self._response_factory.message_response_general(
                         event=response_event,
                         conversation_id=task.session_id,
                         thread_id=thread_id,
                         task_id=task.task_id,
                         subtask_id=subtask_id,
-                        content=get_message_text(artifact, ""),
+                        content=content,
                     )
 
             # Complete task successfully

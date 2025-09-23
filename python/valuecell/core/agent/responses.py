@@ -61,6 +61,16 @@ class _StreamResponseNamespace:
             subtask_id=subtask_id,
         )
 
+    def component_generator(
+        self, content: str, component_type: str, subtask_id: str | None = None
+    ) -> StreamResponse:
+        return StreamResponse(
+            event=StreamResponseEvent.COMPONENT_GENERATOR,
+            content=content,
+            metadata={"component_type": component_type},
+            subtask_id=subtask_id,
+        )
+
     def done(self, content: Optional[str] = None) -> StreamResponse:
         return StreamResponse(
             content=content,
