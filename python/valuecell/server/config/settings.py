@@ -47,7 +47,7 @@ class Settings:
         self.LOGS_DIR.mkdir(exist_ok=True)
 
         # I18n Configuration
-        self.LOCALE_DIR = self.BASE_DIR / "locales"
+        self.LOCALE_DIR = self.BASE_DIR / "configs/locales"
 
         # Agent Configuration
         self.AGENT_TIMEOUT = int(os.getenv("AGENT_TIMEOUT", "300"))  # 5 minutes
