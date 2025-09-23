@@ -9,7 +9,15 @@ import {
   Settings,
   User,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { Navigate, useParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import ScrollTextarea, {
@@ -23,18 +31,137 @@ import { agentData } from "@/mock/agent-data";
 import type {
   AgentConversationsStore,
   AgentStreamRequest,
+  ChatMessage,
   SSEData,
 } from "@/types/agent";
 import type { Route } from "./+types/chat";
 import { ChatBackground } from "./components";
+
+// Optimized reducer for agent store management
+function agentStoreReducer(
+  state: AgentConversationsStore,
+  action: SSEData,
+): AgentConversationsStore {
+  return updateAgentConversationsStore(state, action);
+}
+
+// Memoized Message Component for better performance
+const MessageItem = memo<{
+  message: ChatMessage;
+  index: number;
+  conversationId: string;
+  threadId: string;
+}>(({ message }) => {
+  return (
+    <div
+      className={cn(
+        "flex gap-4",
+        message.role === "user" ? "justify-end" : "justify-start",
+      )}
+    >
+      {message.role !== "user" && (
+        <div className="size-8 flex-shrink-0">
+          <div className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600">
+            <Bot size={16} className="text-white" />
+          </div>
+        </div>
+      )}
+
+      <div
+        className={cn(
+          "max-w-[80%] rounded-2xl px-4 py-3",
+          message.role === "user"
+            ? "ml-auto bg-blue-600 text-white"
+            : "bg-gray-100 text-gray-900",
+        )}
+      >
+        {/* Render different message types based on payload structure */}
+        {(() => {
+          const payload = message.payload;
+          if (!payload) return null;
+
+          // Component generator message
+          if ("component_type" in payload && "content" in payload) {
+            return (
+              <div>
+                <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                  <div className="mb-2 flex items-center gap-2">
+                    <FileText size={16} className="text-blue-600" />
+                    <span className="font-medium text-blue-900 text-sm capitalize">
+                      {payload.component_type} Generated
+                    </span>
+                  </div>
+                  <div className="rounded bg-white p-3 text-gray-800 text-sm">
+                    <pre className="whitespace-pre-wrap font-mono text-xs">
+                      {payload.content}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // Tool call message
+          if ("tool_call_id" in payload && "tool_name" in payload) {
+            const hasResult =
+              "tool_call_result" in payload && payload.tool_call_result;
+            return (
+              <div>
+                <div className="mt-3 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-2">
+                  {hasResult ? (
+                    <CheckCircle size={14} className="text-green-600" />
+                  ) : (
+                    <Clock size={14} className="animate-pulse text-blue-600" />
+                  )}
+                  <span className="font-medium text-blue-900 text-sm">
+                    {payload.tool_name}
+                  </span>
+                  {hasResult ? (
+                    <span className="truncate text-gray-600 text-xs">
+                      {String(payload.tool_call_result).substring(0, 50)}
+                      ...
+                    </span>
+                  ) : (
+                    <span className="text-blue-600 text-xs">Running...</span>
+                  )}
+                </div>
+              </div>
+            );
+          }
+
+          // Regular content message
+          if ("content" in payload) {
+            return (
+              <div className="whitespace-pre-wrap break-words">
+                {payload.content}
+              </div>
+            );
+          }
+
+          return null;
+        })()}
+      </div>
+
+      {message.role === "user" && (
+        <div className="size-8 flex-shrink-0">
+          <div className="flex size-8 items-center justify-center rounded-full bg-gray-600">
+            <User size={16} className="text-white" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
+MessageItem.displayName = "MessageItem";
 
 export default function AgentChat() {
   const { agentId } = useParams<Route.LoaderArgs["params"]>();
   const textareaRef = useRef<ScrollTextareaRef>(null);
   const [inputValue, setInputValue] = useState("");
 
-  // Use agent store for state management
-  const [agentStore, setAgentStore] = useState<AgentConversationsStore>({});
+  // Use optimized reducer for state management
+  const [agentStore, dispatchAgentStore] = useReducer(agentStoreReducer, {});
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
   const [userInputRequired, setUserInputRequired] = useState<string | null>(
@@ -57,27 +184,25 @@ export default function AgentChat() {
     (content: string) => {
       if (!conversationId || !currentThreadId) return;
 
-      setAgentStore((prev) =>
-        updateAgentConversationsStore(prev, {
-          event: "message_chunk",
-          data: {
-            conversation_id: conversationId,
-            thread_id: currentThreadId,
-            task_id: "",
-            subtask_id: "",
-            payload: { content },
-            role: "user",
-          },
-        }),
-      );
+      dispatchAgentStore({
+        event: "message_chunk",
+        data: {
+          conversation_id: conversationId,
+          thread_id: currentThreadId,
+          task_id: "",
+          subtask_id: "",
+          payload: { content },
+          role: "user",
+        },
+      });
     },
     [conversationId, currentThreadId],
   );
 
   // Handle SSE data events using agent store
   const handleSSEData = useCallback((sseData: SSEData) => {
-    // Update agent store using the centralized function
-    setAgentStore((prev) => updateAgentConversationsStore(prev, sseData));
+    // Update agent store using the reducer
+    dispatchAgentStore(sseData);
 
     // Handle specific UI state updates
     const { event, data } = sseData;
@@ -383,119 +508,16 @@ export default function AgentChat() {
           </>
         ) : (
           <>
-            {/* Chat messages */}
+            {/* Chat messages with optimized rendering */}
             <div className="flex-1 space-y-6 overflow-y-auto p-6">
               {currentMessages.map((message, index) => (
-                <div
+                <MessageItem
                   key={`${message.conversation_id}-${message.thread_id}-${index}`}
-                  className={cn(
-                    "flex gap-4",
-                    message.role === "user" ? "justify-end" : "justify-start",
-                  )}
-                >
-                  {message.role !== "user" && (
-                    <div className="size-8 flex-shrink-0">
-                      <div className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600">
-                        <Bot size={16} className="text-white" />
-                      </div>
-                    </div>
-                  )}
-
-                  <div
-                    className={cn(
-                      "max-w-[80%] rounded-2xl px-4 py-3",
-                      message.role === "user"
-                        ? "ml-auto bg-blue-600 text-white"
-                        : "bg-gray-100 text-gray-900",
-                    )}
-                  >
-                    {/* Render different message types based on payload structure */}
-                    {(() => {
-                      const payload = message.payload;
-                      if (!payload) return null;
-
-                      // Component generator message
-                      if ("component_type" in payload && "content" in payload) {
-                        return (
-                          <div>
-                            <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
-                              <div className="mb-2 flex items-center gap-2">
-                                <FileText size={16} className="text-blue-600" />
-                                <span className="font-medium text-blue-900 text-sm capitalize">
-                                  {payload.component_type} Generated
-                                </span>
-                              </div>
-                              <div className="rounded bg-white p-3 text-gray-800 text-sm">
-                                <pre className="whitespace-pre-wrap font-mono text-xs">
-                                  {payload.content}
-                                </pre>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      // Tool call message
-                      if ("tool_call_id" in payload && "tool_name" in payload) {
-                        const hasResult =
-                          "tool_call_result" in payload &&
-                          payload.tool_call_result;
-                        return (
-                          <div>
-                            <div className="mt-3 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-2">
-                              {hasResult ? (
-                                <CheckCircle
-                                  size={14}
-                                  className="text-green-600"
-                                />
-                              ) : (
-                                <Clock
-                                  size={14}
-                                  className="animate-pulse text-blue-600"
-                                />
-                              )}
-                              <span className="font-medium text-blue-900 text-sm">
-                                {payload.tool_name}
-                              </span>
-                              {hasResult ? (
-                                <span className="truncate text-gray-600 text-xs">
-                                  {String(payload.tool_call_result).substring(
-                                    0,
-                                    50,
-                                  )}
-                                  ...
-                                </span>
-                              ) : (
-                                <span className="text-blue-600 text-xs">
-                                  Running...
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      // Regular content message
-                      if ("content" in payload) {
-                        return (
-                          <div className="whitespace-pre-wrap break-words">
-                            {payload.content}
-                          </div>
-                        );
-                      }
-
-                      return null;
-                    })()}
-                  </div>
-
-                  {message.role === "user" && (
-                    <div className="size-8 flex-shrink-0">
-                      <div className="flex size-8 items-center justify-center rounded-full bg-gray-600">
-                        <User size={16} className="text-white" />
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  message={message}
+                  index={index}
+                  conversationId={conversationId || ""}
+                  threadId={currentThreadId || ""}
+                />
               ))}
 
               {/* Streaming indicator */}
