@@ -35,7 +35,7 @@ class RouteResult:
 
 
 def _default_subtask_id(task_id: str) -> str:
-    return f"{task_id}-default_subtask"
+    return f"{task_id}_default-subtask"
 
 
 async def handle_status_update(
