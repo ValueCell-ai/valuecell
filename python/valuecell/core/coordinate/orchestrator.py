@@ -172,7 +172,8 @@ class AgentOrchestrator:
         except Exception as e:
             logger.exception(f"Error processing user input for session {session_id}")
             yield self._response_factory.system_failed(
-                f"Error processing request: {str(e)}", session_id
+                session_id,
+                f"(Error) Error processing request: {str(e)}",
             )
 
     async def provide_user_input(self, session_id: str, response: str):
@@ -510,7 +511,7 @@ class AgentOrchestrator:
                             agent_responses[task.agent_name] = ""
 
             except Exception as e:
-                error_msg = f"Error executing {task.agent_name}: {str(e)}"
+                error_msg = f"(Error) Error executing {task.agent_name}: {str(e)}"
                 logger.exception(f"Task execution failed: {error_msg}")
                 yield self._response_factory.task_failed(
                     session_id,
@@ -571,7 +572,7 @@ class AgentOrchestrator:
 
                 if isinstance(event, TaskStatusUpdateEvent):
                     result: RouteResult = await handle_status_update(
-                        self._response_factory, task, thread_id, event, logger
+                        self._response_factory, task, thread_id, event
                     )
                     for r in result.responses:
                         yield r

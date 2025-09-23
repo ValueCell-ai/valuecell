@@ -81,18 +81,19 @@ async def handle_status_update(
         tool_call_id = event.metadata.get("tool_call_id", "unknown_tool_call_id")
         tool_name = event.metadata.get("tool_name", "unknown_tool_name")
 
-        tool_call_result = None
+        tool_result = None
         if "tool_result" in event.metadata:
-            tool_call_result = get_message_text(event.metadata.get("tool_result", ""))
+            tool_result = get_message_text(event.metadata.get("tool_result", ""))
         responses.append(
             response_factory.tool_call(
                 conversation_id=task.session_id,
                 thread_id=thread_id,
                 task_id=task.task_id,
                 subtask_id=subtask_id,
+                event=response_event,
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
-                tool_call_result=tool_call_result,
+                tool_result=tool_result,
             )
         )
         return RouteResult(responses)
@@ -105,6 +106,7 @@ async def handle_status_update(
                 thread_id=thread_id,
                 task_id=task.task_id,
                 subtask_id=subtask_id,
+                event=response_event,
                 content=get_message_text(event.status.message, ""),
             )
         )
