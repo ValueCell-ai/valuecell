@@ -5,7 +5,7 @@ from typing import Optional
 import pytz
 from datetime import datetime
 
-from ...core.constants import (
+from ...config.constants import (
     SUPPORTED_LANGUAGE_CODES,
     LANGUAGE_TIMEZONE_MAPPING,
     DEFAULT_LANGUAGE,

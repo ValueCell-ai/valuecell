@@ -6,7 +6,7 @@ from datetime import datetime
 import pytz
 from pathlib import Path
 
-from ..core.constants import (
+from ..config.constants import (
     SUPPORTED_LANGUAGE_CODES,
     LANGUAGE_TIMEZONE_MAPPING,
     DEFAULT_LANGUAGE,

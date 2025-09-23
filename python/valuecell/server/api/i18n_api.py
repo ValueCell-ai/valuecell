@@ -32,7 +32,7 @@ from .exceptions import (
 )
 from ..services.i18n_service import get_i18n_service
 from ..config.settings import get_settings
-from ...core.constants import SUPPORTED_LANGUAGES, LANGUAGE_TIMEZONE_MAPPING
+from ...config.constants import SUPPORTED_LANGUAGES, LANGUAGE_TIMEZONE_MAPPING
 from ...utils.i18n_utils import (
     detect_browser_language,
     get_common_timezones,
