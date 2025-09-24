@@ -31,12 +31,7 @@ def create_agent_stream_router() -> APIRouter:
                     query=request.query, agent_name=request.agent_name
                 ):
                     # Format as SSE (Server-Sent Events)
-                    data = json.dumps({"content": chunk, "is_final": False})
-                    yield f"data: {data}\n\n"
-
-                # Send final chunk
-                final_data = json.dumps({"content": "", "is_final": True})
-                yield f"data: {final_data}\n\n"
+                    yield f"data: {json.dumps(chunk)}\n\n"
 
             return StreamingResponse(
                 generate_stream(),
