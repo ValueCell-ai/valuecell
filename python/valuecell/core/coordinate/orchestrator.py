@@ -294,8 +294,8 @@ class AgentOrchestrator:
         )
 
         # Add user message to session
-        await self.session_manager.add_message(
-            session_id, Role.USER, user_input.query, user_id=user_input.meta.user_id
+        await self.session_manager.add_user_message(
+            conversation_id=session_id, thread_id=thread_id, content=user_input.query
         )
 
         # Create planning task with user input callback
@@ -482,9 +482,6 @@ class AgentOrchestrator:
             )
             return
 
-        # Track agent responses for session storage
-        agent_responses = defaultdict(str)
-
         for task in plan.tasks:
             try:
                 # Register the task with TaskManager
@@ -495,30 +492,16 @@ class AgentOrchestrator:
                     task, thread_id, metadata
                 ):
                     # Accumulate based on event
-                    if response.event in {
-                        StreamResponseEvent.MESSAGE_CHUNK,
-                        StreamResponseEvent.REASONING,
-                        NotifyResponseEvent.MESSAGE,
-                    } and isinstance(response.data.payload.content, str):
-                        agent_responses[
-                            task.agent_name
-                        ] += response.data.payload.content
                     yield response
 
-                    if (
-                        EventPredicates.is_task_completed(response.event)
-                        or task.pattern == TaskPattern.RECURRING
-                    ):
-                        if agent_responses[task.agent_name].strip():
-                            await self.session_manager.add_message(
-                                session_id,
-                                Role.AGENT,
-                                agent_responses[task.agent_name],
-                            )
-                            agent_responses[task.agent_name] = ""
+                    # TODO: record intermediate results in session history
+                    await self.session_manager.add_message(
+                        session_id,
+                        Role.AGENT,
+                    )
 
             except Exception as e:
-                error_msg = f"(Error) Error executing {task.agent_name}: {str(e)}"
+                error_msg = f"(Error) Error executing {task.id}: {str(e)}"
                 logger.exception(f"Task execution failed: {error_msg}")
                 yield self._response_factory.task_failed(
                     session_id,
@@ -528,8 +511,6 @@ class AgentOrchestrator:
                     error_msg,
                 )
 
-        # Save any remaining agent responses
-        await self._save_remaining_responses(session_id, agent_responses)
         yield self._response_factory.done(session_id, thread_id)
 
     async def _execute_task_with_input_support(
@@ -613,14 +594,6 @@ class AgentOrchestrator:
         except Exception as e:
             await self.task_manager.fail_task(task.task_id, str(e))
             raise e
-
-    async def _save_remaining_responses(self, session_id: str, agent_responses: dict):
-        """Save any remaining agent responses to the session"""
-        for agent_name, full_response in agent_responses.items():
-            if full_response.strip():
-                await self.session_manager.add_message(
-                    session_id, Role.AGENT, full_response
-                )
 
 
 def _generate_task_default_subtask_id(task_id: str) -> str:

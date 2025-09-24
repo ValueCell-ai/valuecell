@@ -1,11 +1,18 @@
 from datetime import datetime
 from typing import List, Optional
 
+from valuecell.core.types import (
+    BaseResponseDataPayload,
+    ConversationMessage,
+    ConversationMessageEvent,
+    ResponsePayload,
+    Role,
+)
 from valuecell.utils import generate_uuid
+from valuecell.utils.uuid import generate_message_id
 
-from .models import Message, Role, Session, SessionStatus
+from .models import Session, SessionStatus
 from .store import InMemorySessionStore, SessionStore
-from .message_store import MessageStore, InMemoryMessageStore
 
 
 class SessionManager:
@@ -61,15 +68,31 @@ class SessionManager:
         """Check if session exists"""
         return await self.session_store.session_exists(session_id)
 
+    async def add_user_message(
+        self,
+        conversation_id: str,
+        thread_id: str,
+        content: str,
+    ) -> Optional[ConversationMessage]:
+        """Add user message to session"""
+        return await self.add_message(
+            role=Role.USER,
+            event=ConversationMessageEvent.MESSAGE_CHUNK,
+            conversation_id=conversation_id,
+            thread_id=thread_id,
+            payload=BaseResponseDataPayload(content=content),
+        )
+
     async def add_message(
         self,
-        session_id: str,
         role: Role,
-        content: str,
-        user_id: Optional[str] = None,
-        agent_name: Optional[str] = None,
+        event: ConversationMessageEvent,
+        conversation_id: str,
+        thread_id: Optional[str] = None,
         task_id: Optional[str] = None,
-    ) -> Optional[Message]:
+        subtask_id: Optional[str] = None,
+        payload: ResponsePayload = None,
+    ) -> Optional[ConversationMessage]:
         """Add message to session
 
         Args:
@@ -81,23 +104,20 @@ class SessionManager:
             task_id: Associated task ID (optional)
         """
         # Verify session exists
-        session = await self.get_session(session_id)
+        session = await self.get_session(conversation_id)
         if not session:
             return None
 
-        # Use provided user_id or get from session
-        if user_id is None:
-            user_id = session.user_id
-
         # Create message
-        message = Message(
-            message_id=generate_uuid("msg"),
-            session_id=session_id,
-            user_id=user_id,
-            agent_name=agent_name,
+        message = ConversationMessage(
+            message_id=generate_message_id(),
             role=role,
-            content=content,
+            event=event,
+            conversation_id=conversation_id,
+            thread_id=thread_id,
             task_id=task_id,
+            subtask_id=subtask_id,
+            payload=payload.model_dump.json() if payload else None,
         )
 
         # Save message directly to message store

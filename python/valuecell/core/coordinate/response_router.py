@@ -8,7 +8,12 @@ from a2a.utils import get_message_text
 from valuecell.core.agent.responses import EventPredicates
 from valuecell.core.coordinate.response import ResponseFactory
 from valuecell.core.task import Task
-from valuecell.core.types import BaseResponse, StreamResponseEvent
+from valuecell.core.types import (
+    BaseResponse,
+    CommonResponseEvent,
+    ComponentGeneratorResponse,
+    MessageResponse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +125,7 @@ async def handle_artifact_update(
     task: Task,
     thread_id: str,
     event: TaskArtifactUpdateEvent,
-) -> List[BaseResponse]:
+) -> List[MessageResponse | ComponentGeneratorResponse]:
     responses: List[BaseResponse] = []
     artifact = event.artifact
     subtask_id = artifact.metadata.get("subtask_id") if artifact.metadata else None
@@ -129,7 +134,7 @@ async def handle_artifact_update(
     response_event = artifact.metadata.get("response_event")
     content = get_message_text(artifact, "")
 
-    if response_event == StreamResponseEvent.COMPONENT_GENERATOR:
+    if response_event == CommonResponseEvent.COMPONENT_GENERATOR:
         component_type = artifact.metadata.get("component_type", "unknown")
         responses.append(
             response_factory.component_generator(
