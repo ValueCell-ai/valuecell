@@ -4,6 +4,7 @@ import { useParams } from "react-router";
 import { useGetAgentInfo } from "@/api/agent";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import ScrollTextarea, {
   type ScrollTextareaRef,
 } from "@/components/valuecell/scroll/scroll-textarea";
@@ -45,29 +46,11 @@ export default function AgentChat() {
   const curThreadId = useRef<string>("");
   const [isSending, setIsSending] = useState(false);
 
-  // Get current conversation organized by tasks
-  const conversationData = useMemo(() => {
-    if (!curConversationId.current || !agentStore[curConversationId.current]) {
-      return null;
-    }
-    const threads = agentStore[curConversationId.current].threads;
-    if (!threads) return [];
-
-    // Transform the nested structure to tasks for rendering
-    const allTasks = [];
-    for (const [threadId, thread] of Object.entries(threads)) {
-      for (const [taskId, task] of Object.entries(thread.tasks)) {
-        if (task.items && task.items.length > 0) {
-          allTasks.push({
-            threadId,
-            taskId,
-            items: task.items,
-            threadCount: Object.keys(threads).length,
-          });
-        }
-      }
-    }
-    return allTasks;
+  // Get current conversation using original data structure
+  const currentConversation = useMemo(() => {
+    return curConversationId.current in agentStore
+      ? agentStore[curConversationId.current]
+      : null;
   }, [agentStore]);
 
   // Handle SSE data events using agent store
@@ -92,7 +75,6 @@ export default function AgentChat() {
       }
 
       case "done": {
-        curThreadId.current = data.thread_id;
         close();
         break;
       }
@@ -184,7 +166,8 @@ export default function AgentChat() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    // Send message on Enter key (excluding Shift+Enter line breaks and IME composition state)
+    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       handleSendMessage();
     }
@@ -240,7 +223,8 @@ export default function AgentChat() {
 
       {/* Main content area */}
       <main className="relative flex flex-1 flex-col">
-        {!conversationData?.length ? (
+        {!currentConversation?.threads ||
+        Object.keys(currentConversation.threads).length === 0 ? (
           <>
             {/* Background blur effects for welcome screen */}
             <ChatBackground />
@@ -289,29 +273,44 @@ export default function AgentChat() {
           </>
         ) : (
           <>
-            {/* Chat messages with optimized rendering */}
-            <div className="flex-1 space-y-6 overflow-y-auto p-6">
-              {conversationData.map((taskData, globalIndex) => {
-                const { threadId, taskId, items, threadCount } = taskData;
-                const showThreadSeparator =
-                  globalIndex === 0 ||
-                  conversationData[globalIndex - 1].threadId !== threadId;
+            {/* Chat messages using original data structure */}
+            <ScrollContainer className="flex-1 space-y-6 p-6">
+              {currentConversation &&
+                Object.entries(currentConversation.threads).map(
+                  ([threadId, thread], threadIndex) => {
+                    const threadCount = Object.keys(
+                      currentConversation.threads,
+                    ).length;
+                    const showThreadSeparator =
+                      threadIndex > 0 && threadCount > 1;
 
-                return (
-                  <div key={threadId} className="space-y-6">
-                    {/* Thread separator - only show when starting a new thread and there are multiple threads */}
-                    {showThreadSeparator && threadCount > 1 && (
-                      <div className="flex items-center gap-2 text-gray-400 text-xs uppercase tracking-wide">
-                        <span className="h-px flex-1 bg-gray-200" />
-                        <span>Thread {threadId}</span>
-                        <span className="h-px flex-1 bg-gray-200" />
+                    return (
+                      <div key={threadId} className="space-y-6">
+                        {/* Thread separator - only show for subsequent threads when there are multiple threads */}
+                        {showThreadSeparator && (
+                          <div className="flex items-center gap-2 text-gray-400 text-xs uppercase tracking-wide">
+                            <span className="h-px flex-1 bg-gray-200" />
+                            <span>Thread {threadId}</span>
+                            <span className="h-px flex-1 bg-gray-200" />
+                          </div>
+                        )}
+
+                        {/* Render all tasks within this thread */}
+                        {Object.entries(thread.tasks).map(([taskId, task]) => {
+                          if (task.items && task.items.length > 0) {
+                            return (
+                              <ChatMessageComponent
+                                key={taskId}
+                                items={task.items}
+                              />
+                            );
+                          }
+                          return null;
+                        })}
                       </div>
-                    )}
-
-                    <ChatMessageComponent key={taskId} items={items} />
-                  </div>
-                );
-              })}
+                    );
+                  },
+                )}
 
               {/* Streaming indicator */}
               {isStreaming && (
@@ -324,7 +323,7 @@ export default function AgentChat() {
                   <span>AI is thinking...</span>
                 </div>
               )}
-            </div>
+            </ScrollContainer>
 
             {/* Input area at bottom */}
             <div className="border-gray-200 border-t p-4">
@@ -353,19 +352,6 @@ export default function AgentChat() {
                 >
                   <ArrowUp size={16} className="text-white" />
                 </Button>
-              </div>
-
-              {/* Status indicators */}
-              <div className="mt-2 flex items-center justify-between text-gray-500 text-xs">
-                <div className="flex items-center gap-4">
-                  {curConversationId.current && (
-                    <span>Session: {curConversationId.current}</span>
-                  )}
-                  {curThreadId.current && (
-                    <span>Thread: {curThreadId.current}</span>
-                  )}
-                </div>
-                <span>Press Enter to send, Shift+Enter for new line</span>
               </div>
 
               {sseError && (
