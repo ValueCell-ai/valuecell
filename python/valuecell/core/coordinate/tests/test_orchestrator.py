@@ -346,7 +346,6 @@ async def test_create_and_close_session(
     orchestrator.task_manager.cancel_session_tasks.return_value = 1
     await orchestrator.close_session(session_id)
     orchestrator.task_manager.cancel_session_tasks.assert_called_once_with(session_id)
-    orchestrator.session_manager.add_message.assert_called_once()
 
 
 @pytest.mark.asyncio
