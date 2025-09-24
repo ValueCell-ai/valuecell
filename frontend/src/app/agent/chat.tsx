@@ -7,7 +7,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { Navigate, useParams } from "react-router";
+import { useParams } from "react-router";
+import { useGetAgentInfo } from "@/api/agent";
 import { Button } from "@/components/ui/button";
 import ScrollTextarea, {
   type ScrollTextareaRef,
@@ -17,7 +18,6 @@ import { updateAgentConversationsStore } from "@/lib/agent-store";
 import { getServerUrl } from "@/lib/api-client";
 import { SSEReadyState } from "@/lib/sse-client";
 import { cn } from "@/lib/utils";
-import { agentData } from "@/mock/agent-data";
 import type {
   AgentConversationsStore,
   AgentStreamRequest,
@@ -38,7 +38,7 @@ function agentStoreReducer(
 
 export default function AgentChat() {
   const { agentName } = useParams<Route.LoaderArgs["params"]>();
-  const agent = agentData[agentName ?? ""];
+  const { data: agent } = useGetAgentInfo({ agentName: agentName ?? "" });
 
   const textareaRef = useRef<ScrollTextareaRef>(null);
   const [inputValue, setInputValue] = useState("");
@@ -76,6 +76,7 @@ export default function AgentChat() {
         }
 
         case "thread_started": {
+          console.log("🚀 ~ AgentChat ~ inputValue.trim():", inputValue.trim());
           curThreadId.current = data.thread_id;
           dispatchAgentStore({
             event: "message_chunk",
@@ -165,7 +166,7 @@ export default function AgentChat() {
       try {
         const request: AgentStreamRequest = {
           query: message,
-          agent_name: agent.name,
+          agent_name: agent?.name ?? "",
           conversation_id: curConversationId.current,
         };
 
@@ -202,7 +203,7 @@ export default function AgentChat() {
     }
   };
 
-  if (!agent) return <Navigate to="/" replace />;
+  // if (!agent) return <Navigate to="/" replace />;
 
   // Agent skills/tags
   const agentSkills = [
@@ -217,8 +218,8 @@ export default function AgentChat() {
       {/* Header with agent info and actions */}
       <header className="flex items-center justify-between border-gray-100 border-b p-6">
         <div className="flex items-center gap-4">
-          {/* Agent Avatar */}
-          <div className="relative size-12">
+          {/* TODO: Agent Avatar */}
+          <div className="relative size-14">
             <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg" />
             <div className="absolute inset-0.5 flex items-center justify-center rounded-full bg-white">
               <span className="font-semibold text-gray-700 text-sm">AI</span>
@@ -226,43 +227,36 @@ export default function AgentChat() {
           </div>
 
           {/* Agent Info */}
-          <div className="flex flex-col gap-1">
-            <h1 className="font-semibold text-gray-950 text-lg">
-              AI Hedge Fund Agent
-            </h1>
-            <div className="flex items-center gap-2">
-              {agentSkills.slice(0, 2).map((skill) => (
+          <div className="flex flex-col gap-1.5">
+            <h1 className="font-semibold text-gray-950 text-lg">{agentName}</h1>
+            <div className="flex items-center gap-1">
+              {agentSkills.map((skill) => (
                 <span
                   key={skill}
-                  className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 font-medium text-blue-700 text-xs"
+                  className="text-nowrap rounded-md bg-gray-100 px-3 py-1 font-normal text-gray-700 text-xs"
                 >
                   {skill}
                 </span>
               ))}
-              {agentSkills.length > 2 && (
-                <span className="text-gray-500 text-xs">
-                  +{agentSkills.length - 2} more
-                </span>
-              )}
             </div>
           </div>
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <Button
-            variant="ghost"
+            variant="secondary"
+            className="size-8 cursor-pointer rounded-lg"
             size="icon"
-            className="size-9 rounded-lg hover:bg-gray-100"
           >
-            <MessageCircle size={18} className="text-gray-600" />
+            <MessageCircle size={16} className="text-gray-700" />
           </Button>
           <Button
-            variant="ghost"
+            variant="secondary"
+            className="size-8 cursor-pointer rounded-lg"
             size="icon"
-            className="size-9 rounded-lg hover:bg-gray-100"
           >
-            <Settings size={18} className="text-gray-600" />
+            <Settings size={16} className="text-gray-700" />
           </Button>
         </div>
       </header>
