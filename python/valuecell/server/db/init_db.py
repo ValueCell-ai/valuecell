@@ -1,20 +1,24 @@
 """Database initialization script for ValueCell Server."""
 
+import json
 import logging
 import sys
 from pathlib import Path
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
+
+from valuecell.utils.path import get_agent_card_path
 
 if TYPE_CHECKING:
     from .models.asset import Asset
 
-from sqlalchemy import text, inspect
+from sqlalchemy import inspect, text
 from sqlalchemy.exc import SQLAlchemyError
-
-from .connection import get_database_manager, DatabaseManager
-from .models.base import Base
-from ..config.settings import get_settings
-from ..services.assets import get_asset_service
+from valuecell.server.config.settings import get_settings
+from valuecell.server.db.connection import DatabaseManager, get_database_manager
+from valuecell.server.db.models.agent import Agent
+from valuecell.server.db.models.asset import Asset
+from valuecell.server.db.models.base import Base
+from valuecell.server.services.assets import get_asset_service
 
 # Configure logging
 logging.basicConfig(
@@ -150,8 +154,6 @@ class DatabaseInitializer:
             session = self.db_manager.get_session()
 
             try:
-                from .models.asset import Asset
-
                 initialized_count = 0
 
                 for ticker in default_tickers:
@@ -293,7 +295,6 @@ class DatabaseInitializer:
 
     def _create_fallback_asset(self, ticker: str) -> Optional["Asset"]:
         """Create fallback asset data when adapter search fails."""
-        from .models.asset import Asset
 
         # Basic fallback data for common tickers (using proper EXCHANGE:SYMBOL format)
         fallback_data = {
@@ -413,90 +414,8 @@ class DatabaseInitializer:
             session = self.db_manager.get_session()
 
             try:
-                # Import models here to avoid circular imports
-                from .models.agent import Agent
-
                 # Define default agents
-                default_agents = [
-                    {
-                        "name": "AIHedgeFundAgent",
-                        "display_name": "AI Hedge Fund Agent",
-                        "description": "AI-powered hedge fund analysis and trading agent",
-                        "version": "1.0.0",
-                        "enabled": True,
-                        "capabilities": {
-                            "streaming": False,
-                            "push_notifications": False,
-                        },
-                        "metadata": {
-                            "version": "1.0.0",
-                            "author": "ValueCell Team",
-                            "tags": ["hedge-fund", "ai", "trading"],
-                        },
-                    },
-                    {
-                        "name": "Sec13FundAgent",
-                        "display_name": "SEC 13F Fund Agent",
-                        "description": "SEC 13F fund analysis and tracking agent",
-                        "version": "1.0.0",
-                        "enabled": True,
-                        "capabilities": {
-                            "streaming": False,
-                            "push_notifications": False,
-                        },
-                        "metadata": {
-                            "version": "1.0.0",
-                            "author": "ValueCell Team",
-                            "tags": ["sec", "13f", "fund-analysis"],
-                        },
-                    },
-                    {
-                        "name": "TradingAgentsAdapter",
-                        "display_name": "Trading Agents Adapter",
-                        "description": "TradingAgents - Multi-agent trading analysis system with market, sentiment, news and fundamentals analysis",
-                        "version": "1.0.0",
-                        "enabled": True,
-                        "capabilities": {
-                            "streaming": True,
-                            "push_notifications": False,
-                        },
-                        "metadata": {
-                            "version": "1.0.0",
-                            "author": "ValueCell Team",
-                            "tags": [
-                                "trading",
-                                "analysis",
-                                "multi-agent",
-                                "stocks",
-                                "finance",
-                            ],
-                            "supported_tickers": [
-                                "AAPL",
-                                "GOOGL",
-                                "MSFT",
-                                "NVDA",
-                                "TSLA",
-                                "AMZN",
-                                "META",
-                                "NFLX",
-                                "SPY",
-                            ],
-                            "supported_analysts": [
-                                "market",
-                                "social",
-                                "news",
-                                "fundamentals",
-                            ],
-                            "supported_llm_providers": [
-                                "openai",
-                                "anthropic",
-                                "google",
-                                "ollama",
-                                "openrouter",
-                            ],
-                        },
-                    },
-                ]
+                default_agents = get_local_agent_cards()
 
                 # Insert default agents
                 for agent_data in default_agents:
@@ -622,6 +541,28 @@ def init_database(force: bool = False) -> bool:
     except Exception as e:
         logger.error(f"Database initialization failed: {e}")
         return False
+
+
+def get_local_agent_cards() -> list[dict]:
+    """Get list of local agent card configurations."""
+    agent_cards_dir = Path(get_agent_card_path())
+    agent_cards = []
+
+    if not agent_cards_dir.exists() or not agent_cards_dir.is_dir():
+        logger.warning(f"Agent cards directory does not exist: {agent_cards_dir}")
+        return agent_cards
+
+    for file_path in agent_cards_dir.glob("*.json"):
+        try:
+            with file_path.open("r", encoding="utf-8") as f:
+                card_config = json.load(f)
+                agent_cards.append(card_config)
+                logger.info(f"Loaded agent card config: {file_path.name}")
+        except Exception as e:
+            logger.error(f"Error loading agent card config {file_path.name}: {e}")
+            continue
+
+    return agent_cards
 
 
 def main():

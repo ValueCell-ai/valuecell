@@ -1,5 +1,6 @@
 {
     "name": "MichaelBurryAgent",
+    "display_name": "Michael Burry Agent",
     "url": "http://localhost:10015/",
     "description": "Contrarian, deep-research driven value and special-situation analysis. **CAUTION**: Only stock symbols in {AAPL, GOOGL, MSFT, NVDA, TSLA} is/are supported and the agent will refuse to answer for other symbols. The input should contain one or more stock symbol(s) from this list. ",
     "skills": [
@@ -11,7 +12,11 @@
                 "Find contrarian opportunities overlooked by the market",
                 "Analyze distressed or deeply undervalued securities"
             ],
-            "tags": ["contrarian", "deep value", "special situations"]
+            "tags": [
+                "contrarian",
+                "deep value",
+                "special situations"
+            ]
         }
     ],
     "enabled": true

@@ -1,5 +1,6 @@
 {
     "name": "SentimentAnalystAgent",
+    "display_name": "Sentiment Analyst",
     "url": "http://localhost:10024/",
     "description": "Market sentiment and positioning analysis using newsflow, social signals, and positioning data. **CAUTION**: Only stock symbols in {AAPL, GOOGL, MSFT, NVDA, TSLA} is/are supported and the agent will refuse to answer for other symbols. The input should contain one or more stock symbol(s) from this list. ",
     "skills": [
@@ -11,7 +12,11 @@
                 "Gauge retail sentiment around meme stocks",
                 "Summarize recent news sentiment for Amazon"
             ],
-            "tags": ["sentiment", "news", "social"]
+            "tags": [
+                "sentiment",
+                "news",
+                "social"
+            ]
         }
     ],
     "enabled": true

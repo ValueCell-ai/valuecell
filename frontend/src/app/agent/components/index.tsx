@@ -1,0 +1,1 @@
+export { default as ChatBackground } from "./chat-background";

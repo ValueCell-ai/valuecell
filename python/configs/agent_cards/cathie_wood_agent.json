@@ -1,5 +1,6 @@
 {
     "name": "CathieWoodAgent",
+    "display_name": "Cathie Wood Agent",
     "url": "http://localhost:10013/",
     "description": "High-conviction growth and disruptive-innovation oriented analysis with long-term thematic views. **CAUTION**: Only stock symbols in {AAPL, GOOGL, MSFT, NVDA, TSLA} is/are supported and the agent will refuse to answer for other symbols. The input should contain one or more stock symbol(s) from this list. ",
     "skills": [
@@ -11,7 +12,11 @@
                 "Assess the long-term growth thesis for ARK-style thematic investments",
                 "How might disruptive technology revenues evolve over the next 5 years?"
             ],
-            "tags": ["growth", "disruption", "thematic"]
+            "tags": [
+                "growth",
+                "disruption",
+                "thematic"
+            ]
         }
     ],
     "enabled": true
