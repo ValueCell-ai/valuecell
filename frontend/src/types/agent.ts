@@ -23,6 +23,7 @@ type MessageWithRole<TRole extends string, TPayload> = BaseEventData & {
 export interface AgentEventMap {
   // Lifecycle Events
   conversation_started: Pick<BaseEventData, "conversation_id">;
+  thread_started: Pick<BaseEventData, "thread_id">;
   done: Pick<BaseEventData, "conversation_id" | "thread_id">;
 
   // Content Streaming Events

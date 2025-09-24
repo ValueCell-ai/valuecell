@@ -1,13 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import SSEClient, {
   type SSEEventHandlers,
   type SSEOptions,
   SSEReadyState,
 } from "@/lib/sse-client";
 
-export interface UseSSEOptions {
-  /** SSE connection options */
-  options: SSEOptions;
+export interface UseSSEOptions extends SSEOptions {
   /** Event handlers */
   handlers?: SSEEventHandlers;
   /** Whether to auto-connect on mount */
@@ -27,139 +25,65 @@ export interface UseSSEReturn {
   connect: (body?: BodyInit) => Promise<void>;
   /** Close the SSE connection */
   close: () => void;
-  /** SSE client instance for advanced usage */
-  client: SSEClient | null;
 }
 
 /**
- * React hook for Server-Sent Events (SSE) using fetch-based SSEClient
- *
- * @example
- * ```tsx
- * import { useSSE } from '@/hooks/use-sse';
- * import type { SSEData } from '@/types/agent';
- *
- * function ChatComponent() {
- *   const { connect, close, isConnected, error } = useSSE({
- *     options: {
- *       url: '/api/chat/stream',
- *       headers: { 'Authorization': 'Bearer token' }
- *     },
- *     handlers: {
- *       onData: (sseData: SSEData) => {
- *         const { event, data } = sseData;
- *         if (event === 'message_chunk' || event === 'message') {
- *           console.log('New message chunk:', data.payload.content);
- *         } else if (event === 'tool_call_started') {
- *           console.log('Tool call started:', data.payload.tool_name);
- *         } else if (event === 'done') {
- *           console.log('Conversation completed:', data.conversation_id);
- *         }
- *       },
- *       onError: (error) => console.error('SSE Error:', error)
- *     },
- *     autoConnect: true,
- *     body: JSON.stringify({
- *       message: 'Hello',
- *       conversation_id: 'conv_123'
- *     })
- *   });
- *
- *   return (
- *     <div>
- *       <p>Status: {isConnected ? 'Connected' : 'Disconnected'}</p>
- *       {error && <p>Error: {error.message}</p>}
- *       <button onClick={() => connect()}>Connect</button>
- *       <button onClick={close}>Disconnect</button>
- *     </div>
- *   );
- * }
- * ```
+ * React hook for Server-Sent Events (SSE) - simplified version
  */
 export function useSSE({
-  options,
   handlers,
   autoConnect = false,
   body,
+  ...sseOptions
 }: UseSSEOptions): UseSSEReturn {
   const [error, setError] = useState<Error | null>(null);
-  const [state, setState] = useState<SSEReadyState>(SSEReadyState.CLOSED);
-  const handlersRef = useRef<SSEEventHandlers>(handlers || {});
-  const bodyRef = useRef<BodyInit | undefined>(body);
+  const clientRef = useRef<SSEClient | null>(null);
 
-  // Update refs when props change
-  useEffect(() => {
-    handlersRef.current = handlers || {};
-  }, [handlers]);
-
-  useEffect(() => {
-    bodyRef.current = body;
-  }, [body]);
-
-  // Internal handlers referencing handlersRef to avoid re-binding
-  const internalHandlers: SSEEventHandlers = useMemo(
-    () => ({
-      onData: (sseData) => {
-        handlersRef.current.onData?.(sseData);
+  // Initialize client once
+  if (!clientRef.current) {
+    clientRef.current = new SSEClient(sseOptions, {
+      ...handlers,
+      onError: (err: Error) => {
+        setError(err);
+        handlers?.onError?.(err);
       },
       onOpen: () => {
         setError(null);
-        setState(SSEReadyState.OPEN);
-        handlersRef.current.onOpen?.();
+        handlers?.onOpen?.();
       },
-      onError: (err) => {
-        setError(err);
-        setState(SSEReadyState.CLOSED);
-        handlersRef.current.onError?.(err);
-      },
-      onClose: () => {
-        setState(SSEReadyState.CLOSED);
-        handlersRef.current.onClose?.();
-      },
-    }),
-    [],
-  );
+    });
+  }
 
-  // Create client instance (caller is responsible for options stability)
-  const client = useMemo(
-    () => new SSEClient(options, internalHandlers),
-    [options, internalHandlers],
-  );
-
-  // Cleanup on unmount or client change
+  // Auto-connect and cleanup
   useEffect(() => {
+    const client = clientRef.current!;
+
+    if (autoConnect) {
+      client.connect(body);
+    }
+
     return () => {
       client.destroy();
+      clientRef.current = null;
     };
-  }, [client]);
-
-  // Auto-connect if enabled
-  useEffect(() => {
-    if (autoConnect) {
-      setState(SSEReadyState.CONNECTING);
-      void client.connect(bodyRef.current);
-    }
-  }, [autoConnect, client]);
+  }, [autoConnect, body]);
 
   const connect = useCallback(
     async (connectBody?: BodyInit) => {
+      const client = clientRef.current;
+      if (!client) throw new Error("SSE client not initialized");
+
       setError(null);
-      try {
-        setState(SSEReadyState.CONNECTING);
-        await client.connect(connectBody ?? bodyRef.current);
-      } catch (err) {
-        setError(err as Error);
-        setState(SSEReadyState.CLOSED);
-        throw err;
-      }
+      await client.connect(connectBody || body);
     },
-    [client],
+    [body],
   );
 
   const close = useCallback(() => {
-    client.close();
-    setState(SSEReadyState.CLOSED);
-  }, [client]);
+    clientRef.current?.close();
+  }, []);
+
+  const state = clientRef.current?.state ?? SSEReadyState.CLOSED;
 
   return {
     state,
@@ -167,7 +91,6 @@ export function useSSE({
     error,
     connect,
     close,
-    client,
   };
 }
 

@@ -41,13 +41,17 @@ export class SSEClient {
   private abortController: AbortController | null = null;
 
   constructor(options: SSEOptions, handlers?: SSEEventHandlers) {
-    this.options = {
-      timeout: 30000,
-      headers: {},
-      fetchOptions: {},
-      ...options,
-    };
+    this.options = this.resolveOptions(options);
     this.handlers = handlers ?? {};
+  }
+
+  private resolveOptions(options: SSEOptions): Required<SSEOptions> {
+    return {
+      url: options.url,
+      timeout: options.timeout ?? 30 * 1000,
+      headers: { ...(options.headers ?? {}) },
+      fetchOptions: { ...(options.fetchOptions ?? {}) },
+    };
   }
 
   /**
@@ -83,11 +87,12 @@ export class SSEClient {
       const response = await fetch(this.options.url, {
         method: "POST",
         body: this.currentBody,
-        signal: this.abortController?.signal,
+        // signal: this.abortController?.signal,
         ...this.options.fetchOptions,
         headers: {
           Accept: "text/event-stream",
           "Cache-Control": "no-cache",
+          "Content-Type": "application/json",
           ...this.options.headers,
         },
       });
@@ -218,10 +223,23 @@ export class SSEClient {
     return this.readyState;
   }
 
+  updateOptions(options: SSEOptions): void {
+    this.options = this.resolveOptions(options);
+  }
+
+  updateHandlers(handlers?: SSEEventHandlers): void {
+    this.handlers = handlers ?? {};
+  }
+
   /**
    * Close the SSE connection
    */
   close(): void {
+    // Only call onClose if we had an active connection
+    const wasConnected =
+      this.readyState === SSEReadyState.OPEN ||
+      this.readyState === SSEReadyState.CONNECTING;
+
     this.isManualClose = true;
     this.readyState = SSEReadyState.CLOSED;
 
@@ -230,7 +248,10 @@ export class SSEClient {
       this.abortController = null;
     }
 
-    this.handlers.onClose?.();
+    // Only trigger onClose callback if there was an actual connection
+    if (wasConnected) {
+      this.handlers.onClose?.();
+    }
   }
 
   /**

@@ -14,6 +14,7 @@ import ScrollTextarea, {
 } from "@/components/valuecell/scroll/scroll-textarea";
 import { useSSE } from "@/hooks/use-sse";
 import { updateAgentConversationsStore } from "@/lib/agent-store";
+import { getServerUrl } from "@/lib/api-client";
 import { SSEReadyState } from "@/lib/sse-client";
 import { cn } from "@/lib/utils";
 import { agentData } from "@/mock/agent-data";
@@ -21,6 +22,7 @@ import type {
   AgentConversationsStore,
   AgentStreamRequest,
   SSEData,
+  ThreadView,
 } from "@/types/agent";
 import type { Route } from "./+types/chat";
 import { ChatBackground } from "./components";
@@ -41,101 +43,69 @@ export default function AgentChat() {
 
   // Use optimized reducer for state management
   const [agentStore, dispatchAgentStore] = useReducer(agentStoreReducer, {});
-  const [conversationId, setConversationId] = useState<string | null>(null);
-  const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
+  const curConversationId = useRef<string>("");
+  const curThreadId = useRef<string>("");
   const [isSending, setIsSending] = useState(false);
   const [shouldClose, setShouldClose] = useState(false);
 
-  // Get current conversation and thread messages
-  const currentMessages = useMemo(() => {
-    if (!conversationId || !currentThreadId || !agentStore[conversationId]) {
-      return [];
+  // Get current conversation
+  const threadEntries = useMemo(() => {
+    if (!curConversationId.current || !agentStore[curConversationId.current]) {
+      return null;
     }
-    const thread = agentStore[conversationId].threads[currentThreadId];
-    return thread?.messages || [];
-  }, [agentStore, conversationId, currentThreadId]);
-
-  // Add user message by triggering message_chunk event with role: "user"
-  const addUserMessage = useCallback(
-    (content: string) => {
-      if (!conversationId || !currentThreadId) return;
-
-      dispatchAgentStore({
-        event: "message_chunk",
-        data: {
-          conversation_id: conversationId,
-          thread_id: currentThreadId,
-          task_id: "",
-          subtask_id: "",
-          payload: { content },
-          role: "user",
-        },
-      });
-    },
-    [conversationId, currentThreadId],
-  );
+    const threads = agentStore[curConversationId.current].threads;
+    return threads
+      ? (Object.entries(threads) as Array<[string, ThreadView]>)
+      : [];
+  }, [agentStore]);
 
   // Handle SSE data events using agent store
-  const handleSSEData = useCallback((sseData: SSEData) => {
-    // Update agent store using the reducer
-    dispatchAgentStore(sseData);
+  const handleSSEData = useCallback(
+    (sseData: SSEData) => {
+      console.log("🚀 ~ AgentChat ~ sseData:", sseData);
+      // Update agent store using the reducer
+      dispatchAgentStore(sseData);
 
-    // Handle specific UI state updates
-    const { event, data } = sseData;
-    switch (event) {
-      case "conversation_started": {
-        setConversationId(data.conversation_id);
-        break;
-      }
-
-      case "done": {
-        setCurrentThreadId(data.thread_id);
-        setShouldClose(true);
-        break;
-      }
-
-      // All message-related events are handled by the store
-      default:
-        // Update current thread ID for message events
-        if ("thread_id" in data) {
-          setCurrentThreadId(data.thread_id);
+      // Handle specific UI state updates
+      const { event, data } = sseData;
+      switch (event) {
+        case "conversation_started": {
+          curConversationId.current = data.conversation_id;
+          break;
         }
-        break;
-    }
-  }, []);
 
-  // Stabilize SSE options to avoid infinite reconnects
-  const sseOptions = useMemo(
-    () => ({
-      url: "http://localhost:8000/api/v1/agents/stream",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      autoReconnect: false,
-      reconnectInterval: 5000,
-      maxReconnectAttempts: 3,
-      timeout: 60000, // Increase timeout to 60s
-    }),
-    [],
-  );
+        case "thread_started": {
+          curThreadId.current = data.thread_id;
+          dispatchAgentStore({
+            event: "message_chunk",
+            data: {
+              conversation_id: curConversationId.current,
+              thread_id: data.thread_id,
+              task_id: "",
+              subtask_id: "",
+              payload: { content: inputValue.trim() },
+              role: "user",
+            },
+          });
+          break;
+        }
 
-  const sseHandlers = useMemo(
-    () => ({
-      onData: handleSSEData,
-      onOpen: () => {
-        console.log("SSE connection opened");
-        setIsSending(false); // Reset sending state on open
-      },
-      onError: (error: Error) => {
-        console.error("SSE connection error:", error);
-        setIsSending(false); // Reset sending state on error
-      },
-      onClose: () => {
-        console.log("SSE connection closed");
-        setIsSending(false); // Reset sending state on close
-      },
-    }),
-    [handleSSEData],
+        case "done": {
+          curThreadId.current = data.thread_id;
+          setShouldClose(true);
+          break;
+        }
+
+        // All message-related events are handled by the store
+        default:
+          // Update current thread ID for message events
+          if ("thread_id" in data) {
+            curThreadId.current = data.thread_id;
+          }
+          break;
+      }
+    },
+    [inputValue],
   );
 
   // Initialize SSE connection using the useSSE hook
@@ -145,8 +115,22 @@ export default function AgentChat() {
     state,
     error: sseError,
   } = useSSE({
-    options: sseOptions,
-    handlers: sseHandlers,
+    url: getServerUrl("/agents/stream"),
+    handlers: {
+      onData: handleSSEData,
+      onOpen: () => {
+        console.log("✅ SSE connection opened");
+        setIsSending(false); // Reset sending state on open
+      },
+      onError: (error: Error) => {
+        console.error("❌ SSE connection error:", error);
+        setIsSending(false); // Reset sending state on error
+      },
+      onClose: () => {
+        console.log("🔌 SSE connection closed");
+        setIsSending(false); // Reset sending state on close
+      },
+    },
   });
 
   useEffect(() => {
@@ -154,7 +138,7 @@ export default function AgentChat() {
       close();
       setShouldClose(false);
     }
-  }, [shouldClose, close]);
+  }, [shouldClose]);
 
   // Derived state - compute from existing state instead of maintaining separately
   const isConnected = state === SSEReadyState.OPEN;
@@ -176,22 +160,10 @@ export default function AgentChat() {
       setIsSending(true);
 
       try {
-        // For new conversation, we'll let the server assign IDs
-        const newConversationId = conversationId || `conv-${Date.now()}`;
-        const newThreadId = currentThreadId || `thread-${Date.now()}`;
-
-        // Set IDs if this is a new conversation
-        if (!conversationId) setConversationId(newConversationId);
-        if (!currentThreadId) setCurrentThreadId(newThreadId);
-
-        // Add user message to store
-        addUserMessage(message);
-
         const request: AgentStreamRequest = {
           query: message,
           agent_name: "WarrenBuffettAgent",
-          conversation_id: newConversationId,
-          thread_id: newThreadId,
+          conversation_id: curConversationId.current,
         };
 
         // Connect SSE client with request body to receive streaming response
@@ -201,14 +173,7 @@ export default function AgentChat() {
         setIsSending(false); // Reset immediately on error
       }
     },
-    [
-      conversationId,
-      currentThreadId,
-      addUserMessage,
-      connect,
-      isSending,
-      isConnecting,
-    ],
+    [connect, isSending, isConnecting],
   );
 
   const handleSendMessage = useCallback(() => {
@@ -303,7 +268,7 @@ export default function AgentChat() {
 
       {/* Main content area */}
       <main className="relative flex flex-1 flex-col">
-        {currentMessages.length === 0 ? (
+        {!threadEntries?.length ? (
           <>
             {/* Background blur effects for welcome screen */}
             <ChatBackground />
@@ -354,15 +319,40 @@ export default function AgentChat() {
           <>
             {/* Chat messages with optimized rendering */}
             <div className="flex-1 space-y-6 overflow-y-auto p-6">
-              {currentMessages.map((message, index) => (
-                <ChatMessageComponent
-                  key={`${message.conversation_id}-${message.thread_id}-${index}`}
-                  message={message}
-                  index={index}
-                  conversationId={conversationId || ""}
-                  threadId={currentThreadId || ""}
-                />
-              ))}
+              {threadEntries.map(([threadId, thread], threadIndex) => {
+                if (!thread.messages.length) {
+                  return threadEntries.length > 1 ? (
+                    <div
+                      key={`${threadId}-empty`}
+                      className="flex items-center justify-center rounded-xl border border-gray-200 border-dashed bg-gray-50 p-6 text-gray-500 text-sm"
+                    >
+                      Thread {threadIndex + 1} 暂无消息
+                    </div>
+                  ) : null;
+                }
+
+                return (
+                  <div key={threadId} className="space-y-6">
+                    {threadEntries.length > 1 && (
+                      <div className="flex items-center gap-2 text-gray-400 text-xs uppercase tracking-wide">
+                        <span className="h-px flex-1 bg-gray-200" />
+                        <span>Thread {threadIndex + 1}</span>
+                        <span className="h-px flex-1 bg-gray-200" />
+                      </div>
+                    )}
+
+                    {thread.messages.map((message, index) => (
+                      <ChatMessageComponent
+                        key={`${message.conversation_id}-${threadId}-${index}`}
+                        message={message}
+                        index={index}
+                        conversationId={curConversationId.current}
+                        threadId={threadId}
+                      />
+                    ))}
+                  </div>
+                );
+              })}
 
               {/* Streaming indicator */}
               {isStreaming && (
@@ -443,8 +433,12 @@ export default function AgentChat() {
                             : "Disconnected"}
                     </span>
                   </span>
-                  {conversationId && <span>Session: {conversationId}</span>}
-                  {currentThreadId && <span>Thread: {currentThreadId}</span>}
+                  {curConversationId.current && (
+                    <span>Session: {curConversationId.current}</span>
+                  )}
+                  {curThreadId.current && (
+                    <span>Thread: {curThreadId.current}</span>
+                  )}
                 </div>
                 <span>Press Enter to send, Shift+Enter for new line</span>
               </div>
