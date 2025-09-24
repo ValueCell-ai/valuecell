@@ -1,16 +1,5 @@
+import { ArrowUp, MessageCircle, Settings } from "lucide-react";
 import {
-  AlertTriangle,
-  ArrowUp,
-  Bot,
-  CheckCircle,
-  Clock,
-  FileText,
-  MessageCircle,
-  Settings,
-  User,
-} from "lucide-react";
-import {
-  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -31,11 +20,11 @@ import { agentData } from "@/mock/agent-data";
 import type {
   AgentConversationsStore,
   AgentStreamRequest,
-  ChatMessage,
   SSEData,
 } from "@/types/agent";
 import type { Route } from "./+types/chat";
 import { ChatBackground } from "./components";
+import { ChatMessage as ChatMessageComponent } from "./components/chat-message";
 
 // Optimized reducer for agent store management
 function agentStoreReducer(
@@ -44,116 +33,6 @@ function agentStoreReducer(
 ): AgentConversationsStore {
   return updateAgentConversationsStore(state, action);
 }
-
-// Memoized Message Component for better performance
-const MessageItem = memo<{
-  message: ChatMessage;
-  index: number;
-  conversationId: string;
-  threadId: string;
-}>(({ message }) => {
-  return (
-    <div
-      className={cn(
-        "flex gap-4",
-        message.role === "user" ? "justify-end" : "justify-start",
-      )}
-    >
-      {message.role !== "user" && (
-        <div className="size-8 flex-shrink-0">
-          <div className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600">
-            <Bot size={16} className="text-white" />
-          </div>
-        </div>
-      )}
-
-      <div
-        className={cn(
-          "max-w-[80%] rounded-2xl px-4 py-3",
-          message.role === "user"
-            ? "ml-auto bg-blue-600 text-white"
-            : "bg-gray-100 text-gray-900",
-        )}
-      >
-        {/* Render different message types based on payload structure */}
-        {(() => {
-          const payload = message.payload;
-          if (!payload) return null;
-
-          // Component generator message
-          if ("component_type" in payload && "content" in payload) {
-            return (
-              <div>
-                <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
-                  <div className="mb-2 flex items-center gap-2">
-                    <FileText size={16} className="text-blue-600" />
-                    <span className="font-medium text-blue-900 text-sm capitalize">
-                      {payload.component_type} Generated
-                    </span>
-                  </div>
-                  <div className="rounded bg-white p-3 text-gray-800 text-sm">
-                    <pre className="whitespace-pre-wrap font-mono text-xs">
-                      {payload.content}
-                    </pre>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // Tool call message
-          if ("tool_call_id" in payload && "tool_name" in payload) {
-            const hasResult =
-              "tool_call_result" in payload && payload.tool_call_result;
-            return (
-              <div>
-                <div className="mt-3 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-2">
-                  {hasResult ? (
-                    <CheckCircle size={14} className="text-green-600" />
-                  ) : (
-                    <Clock size={14} className="animate-pulse text-blue-600" />
-                  )}
-                  <span className="font-medium text-blue-900 text-sm">
-                    {payload.tool_name}
-                  </span>
-                  {hasResult ? (
-                    <span className="truncate text-gray-600 text-xs">
-                      {String(payload.tool_call_result).substring(0, 50)}
-                      ...
-                    </span>
-                  ) : (
-                    <span className="text-blue-600 text-xs">Running...</span>
-                  )}
-                </div>
-              </div>
-            );
-          }
-
-          // Regular content message
-          if ("content" in payload) {
-            return (
-              <div className="whitespace-pre-wrap break-words">
-                {payload.content}
-              </div>
-            );
-          }
-
-          return null;
-        })()}
-      </div>
-
-      {message.role === "user" && (
-        <div className="size-8 flex-shrink-0">
-          <div className="flex size-8 items-center justify-center rounded-full bg-gray-600">
-            <User size={16} className="text-white" />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-});
-
-MessageItem.displayName = "MessageItem";
 
 export default function AgentChat() {
   const { agentId } = useParams<Route.LoaderArgs["params"]>();
@@ -164,9 +43,6 @@ export default function AgentChat() {
   const [agentStore, dispatchAgentStore] = useReducer(agentStoreReducer, {});
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
-  const [userInputRequired, setUserInputRequired] = useState<string | null>(
-    null,
-  );
   const [isSending, setIsSending] = useState(false);
   const [shouldClose, setShouldClose] = useState(false);
 
@@ -212,13 +88,7 @@ export default function AgentChat() {
         break;
       }
 
-      case "plan_require_user_input": {
-        setUserInputRequired(data.payload.content);
-        break;
-      }
-
       case "done": {
-        setUserInputRequired(null);
         setCurrentThreadId(data.thread_id);
         setShouldClose(true);
         break;
@@ -289,7 +159,8 @@ export default function AgentChat() {
   // Derived state - compute from existing state instead of maintaining separately
   const isConnected = state === SSEReadyState.OPEN;
   const isConnecting = state === SSEReadyState.CONNECTING;
-  const isStreaming = isConnected && !userInputRequired;
+  // isStreaming represents when AI is processing/responding, not related to user input requirements
+  const isStreaming = isConnected && isSending;
 
   // Send message to agent
   const sendMessage = useCallback(
@@ -315,7 +186,6 @@ export default function AgentChat() {
 
         // Add user message to store
         addUserMessage(message);
-        setUserInputRequired(null);
 
         const request: AgentStreamRequest = {
           query: message,
@@ -341,14 +211,6 @@ export default function AgentChat() {
     ],
   );
 
-  // Handle user input for plan_require_user_input events
-  const handleUserInputResponse = useCallback(
-    async (response: string) => {
-      await sendMessage(response);
-    },
-    [sendMessage],
-  );
-
   const handleSendMessage = useCallback(() => {
     const trimmedInput = inputValue.trim();
     // Prevent sending while connecting/sending or when input is empty
@@ -357,20 +219,10 @@ export default function AgentChat() {
       return;
     }
 
-    const messageHandler = userInputRequired
-      ? handleUserInputResponse
-      : sendMessage;
-
-    messageHandler(trimmedInput);
+    // Always use sendMessage - user input for plan_require_user_input is just normal conversation
+    sendMessage(trimmedInput);
     setInputValue("");
-  }, [
-    inputValue,
-    isConnecting,
-    isSending,
-    userInputRequired,
-    handleUserInputResponse,
-    sendMessage,
-  ]);
+  }, [inputValue, isConnecting, isSending, sendMessage]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
@@ -496,14 +348,6 @@ export default function AgentChat() {
                   <span>⚠️ Connection error: {sseError.message}</span>
                 </div>
               )}
-
-              {/* User input required prompt */}
-              {userInputRequired && (
-                <div className="flex items-center gap-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
-                  <AlertTriangle size={16} className="text-yellow-600" />
-                  <span>{userInputRequired}</span>
-                </div>
-              )}
             </div>
           </>
         ) : (
@@ -511,7 +355,7 @@ export default function AgentChat() {
             {/* Chat messages with optimized rendering */}
             <div className="flex-1 space-y-6 overflow-y-auto p-6">
               {currentMessages.map((message, index) => (
-                <MessageItem
+                <ChatMessageComponent
                   key={`${message.conversation_id}-${message.thread_id}-${index}`}
                   message={message}
                   index={index}
@@ -524,18 +368,9 @@ export default function AgentChat() {
               {isStreaming && (
                 <div className="flex items-center gap-2 text-gray-500 text-sm">
                   <div className="flex space-x-1">
-                    <div
-                      className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
-                      style={{ animationDelay: "0ms" }}
-                    />
-                    <div
-                      className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
-                      style={{ animationDelay: "150ms" }}
-                    />
-                    <div
-                      className="h-2 w-2 animate-bounce rounded-full bg-gray-400"
-                      style={{ animationDelay: "300ms" }}
-                    />
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 delay-0" />
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 delay-150" />
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 delay-300" />
                   </div>
                   <span>AI is thinking...</span>
                 </div>
@@ -556,11 +391,7 @@ export default function AgentChat() {
                   value={inputValue}
                   onInput={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  placeholder={
-                    userInputRequired
-                      ? "Agent is waiting for your response..."
-                      : "Type your message..."
-                  }
+                  placeholder="Type your message..."
                   maxHeight={120}
                   minHeight={24}
                   disabled={isStreaming || isSending}
@@ -583,13 +414,11 @@ export default function AgentChat() {
                       "flex items-center gap-1",
                       isStreaming
                         ? "text-green-600"
-                        : userInputRequired
-                          ? "text-yellow-600"
-                          : isConnecting
-                            ? "text-blue-600"
-                            : isConnected
-                              ? "text-green-600"
-                              : "text-red-600",
+                        : isConnecting
+                          ? "text-blue-600"
+                          : isConnected
+                            ? "text-green-600"
+                            : "text-red-600",
                     )}
                   >
                     <div
@@ -597,25 +426,21 @@ export default function AgentChat() {
                         "h-2 w-2 rounded-full",
                         isStreaming
                           ? "bg-green-500"
-                          : userInputRequired
-                            ? "animate-pulse bg-yellow-500"
-                            : isConnecting
-                              ? "animate-pulse bg-blue-500"
-                              : isConnected
-                                ? "bg-green-500"
-                                : "bg-red-500",
+                          : isConnecting
+                            ? "animate-pulse bg-blue-500"
+                            : isConnected
+                              ? "bg-green-500"
+                              : "bg-red-500",
                       )}
                     />
                     <span className="text-xs">
                       {isStreaming
                         ? "Streaming"
-                        : userInputRequired
-                          ? "Waiting for input"
-                          : isConnecting
-                            ? "Connecting"
-                            : isConnected
-                              ? "Ready"
-                              : "Disconnected"}
+                        : isConnecting
+                          ? "Connecting"
+                          : isConnected
+                            ? "Ready"
+                            : "Disconnected"}
                     </span>
                   </span>
                   {conversationId && <span>Session: {conversationId}</span>}
