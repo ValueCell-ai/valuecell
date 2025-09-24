@@ -1,12 +1,5 @@
 import { ArrowUp, MessageCircle, Settings } from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useMemo, useReducer, useRef, useState } from "react";
 import { useParams } from "react-router";
 import { useGetAgentInfo } from "@/api/agent";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -51,7 +44,6 @@ export default function AgentChat() {
   const curConversationId = useRef<string>("");
   const curThreadId = useRef<string>("");
   const [isSending, setIsSending] = useState(false);
-  const [shouldClose, setShouldClose] = useState(false);
 
   // Get current conversation organized by tasks
   const conversationData = useMemo(() => {
@@ -79,6 +71,7 @@ export default function AgentChat() {
   }, [agentStore]);
 
   // Handle SSE data events using agent store
+  // biome-ignore lint/correctness/useExhaustiveDependencies: close is no need to be in dependencies
   const handleSSEData = useCallback((sseData: SSEData) => {
     // Update agent store using the reducer
     dispatchAgentStore(sseData);
@@ -100,7 +93,7 @@ export default function AgentChat() {
 
       case "done": {
         curThreadId.current = data.thread_id;
-        setShouldClose(true);
+        close();
         break;
       }
 
@@ -139,18 +132,9 @@ export default function AgentChat() {
     },
   });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: shouldClose is used to close the SSE connection
-  useEffect(() => {
-    if (shouldClose) {
-      close();
-      setShouldClose(false);
-    }
-  }, [shouldClose]);
-
   // Derived state - compute from existing state instead of maintaining separately
   const isConnected = state === SSEReadyState.OPEN;
   const isConnecting = state === SSEReadyState.CONNECTING;
-  // isStreaming represents when AI is processing/responding, not related to user input requirements
   const isStreaming = isConnected && isSending;
 
   // Send message to agent
@@ -314,7 +298,7 @@ export default function AgentChat() {
                   conversationData[globalIndex - 1].threadId !== threadId;
 
                 return (
-                  <div key={`${threadId}-${taskId}`} className="space-y-6">
+                  <div key={threadId} className="space-y-6">
                     {/* Thread separator - only show when starting a new thread and there are multiple threads */}
                     {showThreadSeparator && threadCount > 1 && (
                       <div className="flex items-center gap-2 text-gray-400 text-xs uppercase tracking-wide">
@@ -324,13 +308,7 @@ export default function AgentChat() {
                       </div>
                     )}
 
-                    <ChatMessageComponent
-                      key={taskId}
-                      items={items}
-                      conversationId={curConversationId.current}
-                      threadId={threadId}
-                      taskId={taskId}
-                    />
+                    <ChatMessageComponent key={taskId} items={items} />
                   </div>
                 );
               })}

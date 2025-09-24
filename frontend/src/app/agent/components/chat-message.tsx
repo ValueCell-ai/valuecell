@@ -5,10 +5,6 @@ import type { ChatItem } from "@/types/agent";
 
 export interface ChatMessageProps {
   items: ChatItem[];
-  conversationId: string;
-  threadId: string;
-  taskId?: string;
-  itemId?: string;
 }
 
 export const ChatMessage = memo<ChatMessageProps>(({ items }) => {

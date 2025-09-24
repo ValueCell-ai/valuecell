@@ -51,12 +51,8 @@
           "fix": "safe",
           "level": "error",
           "options": {
-            "attributes": [
-              "className"
-            ],
-            "functions": [
-              "cn"
-            ]
+            "attributes": ["className"],
+            "functions": ["cn"]
           }
         }
       },
