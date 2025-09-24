@@ -56,14 +56,14 @@ export function useSSE({
 
   // Auto-connect and cleanup
   useEffect(() => {
-    const client = clientRef.current!;
+    const client = clientRef.current;
 
     if (autoConnect) {
-      client.connect(body);
+      client?.connect(body);
     }
 
     return () => {
-      client.destroy();
+      client?.destroy();
       clientRef.current = null;
     };
   }, [autoConnect, body]);

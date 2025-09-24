@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useParams } from "react-router";
 import { useGetAgentInfo } from "@/api/agent";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import ScrollTextarea, {
   type ScrollTextareaRef,
@@ -38,7 +39,9 @@ function agentStoreReducer(
 
 export default function AgentChat() {
   const { agentName } = useParams<Route.LoaderArgs["params"]>();
-  const { data: agent } = useGetAgentInfo({ agentName: agentName ?? "" });
+  const { data: agent, isLoading: isLoadingAgent } = useGetAgentInfo({
+    agentName: agentName ?? "",
+  });
 
   const textareaRef = useRef<ScrollTextareaRef>(null);
   const [inputValue, setInputValue] = useState("");
@@ -137,6 +140,7 @@ export default function AgentChat() {
     },
   });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: shouldClose is used to close the SSE connection
   useEffect(() => {
     if (shouldClose) {
       close();
@@ -166,7 +170,7 @@ export default function AgentChat() {
       try {
         const request: AgentStreamRequest = {
           query: message,
-          agent_name: agent?.name ?? "",
+          agent_name: agentName ?? "",
           conversation_id: curConversationId.current,
         };
 
@@ -205,37 +209,27 @@ export default function AgentChat() {
 
   // if (!agent) return <Navigate to="/" replace />;
 
-  // Agent skills/tags
-  const agentSkills = [
-    "Hong Kong stocks",
-    "US stocks",
-    "Predictive analysis",
-    "Stock selection",
-  ];
-
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       {/* Header with agent info and actions */}
       <header className="flex items-center justify-between border-gray-100 border-b p-6">
         <div className="flex items-center gap-4">
-          {/* TODO: Agent Avatar */}
-          <div className="relative size-14">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg" />
-            <div className="absolute inset-0.5 flex items-center justify-center rounded-full bg-white">
-              <span className="font-semibold text-gray-700 text-sm">AI</span>
-            </div>
-          </div>
+          {/* Agent Avatar */}
+          <Avatar className="size-14">
+            <AvatarImage src={agent?.agent_avatar} />
+            <AvatarFallback>{agentName?.slice(0, 2)}</AvatarFallback>
+          </Avatar>
 
           {/* Agent Info */}
           <div className="flex flex-col gap-1.5">
             <h1 className="font-semibold text-gray-950 text-lg">{agentName}</h1>
             <div className="flex items-center gap-1">
-              {agentSkills.map((skill) => (
+              {agent?.agent_metadata.tags.map((tag) => (
                 <span
-                  key={skill}
+                  key={tag}
                   className="text-nowrap rounded-md bg-gray-100 px-3 py-1 font-normal text-gray-700 text-xs"
                 >
-                  {skill}
+                  {tag}
                 </span>
               ))}
             </div>

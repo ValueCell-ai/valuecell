@@ -160,9 +160,18 @@ export type AgentStreamRequest = {
   agent_name: string;
 } & Partial<Pick<BaseEventData, "conversation_id" | "thread_id">>;
 
+export interface AgentMetadata {
+  version: string;
+  author: string;
+  tags: string[];
+}
+
 export interface AgentInfo {
-  name: string;
+  agent_name: string;
+  agent_avatar: string;
+  enabled: boolean;
+  agent_metadata: AgentMetadata;
   description: string;
-  avatar: string;
-  content: string;
+  created_at: string;
+  updated_at: string;
 }
