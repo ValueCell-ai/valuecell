@@ -13,7 +13,7 @@ from a2a.server.tasks import (
     InMemoryTaskStore,
     TaskUpdater,
 )
-from a2a.types import AgentCard, Part, TaskState, TextPart, UnsupportedOperationError
+from a2a.types import AgentCard, TaskState, UnsupportedOperationError
 from a2a.utils import new_agent_text_message, new_task
 from a2a.utils.errors import ServerError
 from valuecell.core.agent.card import find_local_agent_card_by_agent_name
@@ -142,7 +142,6 @@ class GenericAgentExecutor(AgentExecutor):
                         f"Agent {agent_name} reported failure: {response.content}"
                     )
 
-                is_complete = EventPredicates.is_task_completed(response_event)
                 metadata = {"response_event": response_event.value}
                 if EventPredicates.is_tool_call(response_event):
                     metadata["tool_call_id"] = response.metadata.get("tool_call_id")
