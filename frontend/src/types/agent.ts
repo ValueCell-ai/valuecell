@@ -167,7 +167,7 @@ export interface AgentMetadata {
 
 export interface AgentInfo {
   agent_name: string;
-  agent_avatar: string;
+  icon_url: string;
   enabled: boolean;
   agent_metadata: AgentMetadata;
   description: string;

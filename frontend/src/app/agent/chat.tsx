@@ -229,7 +229,7 @@ export default function AgentChat() {
         <div className="flex items-center gap-4">
           {/* Agent Avatar */}
           <Avatar className="size-14">
-            <AvatarImage src={agent?.agent_avatar} />
+            <AvatarImage src={agent?.icon_url} />
             <AvatarFallback>{agentName?.slice(0, 2)}</AvatarFallback>
           </Avatar>
 
