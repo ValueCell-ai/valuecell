@@ -2,6 +2,7 @@ import { create } from "mutative";
 import type {
   AgentConversationsStore,
   AgentEventMap,
+  ChatItem,
   ConversationView,
   SSEData,
   TaskView,
@@ -40,6 +41,36 @@ function ensureTask(thread: ThreadView, taskId: string): TaskView {
   return thread.tasks[taskId];
 }
 
+// Helper function: find existing item by item_id in task
+function findExistingItem(task: TaskView, itemId: string): number {
+  return task.items.findIndex((item) => item.item_id === itemId);
+}
+
+// Helper function: add or update item in task
+function addOrUpdateItem(task: TaskView, newItem: ChatItem): void {
+  const existingIndex = findExistingItem(task, newItem.item_id);
+
+  if (existingIndex >= 0) {
+    // Item exists, merge content if it's a content-based event
+    const existingItem = task.items[existingIndex];
+    if (
+      "payload" in newItem &&
+      "content" in newItem.payload &&
+      "payload" in existingItem &&
+      "content" in existingItem.payload
+    ) {
+      // Concatenate content for streaming events like message_chunk
+      existingItem.payload.content += newItem.payload.content;
+    } else {
+      // Replace item for non-content events
+      task.items[existingIndex] = newItem;
+    }
+  } else {
+    // Item doesn't exist, add new item
+    task.items.push(newItem);
+  }
+}
+
 // Event handlers: one handler function per event type
 const eventHandlers = {
   conversation_started: (
@@ -62,14 +93,14 @@ const eventHandlers = {
     const conversation = ensureConversation(draft, data.conversation_id);
     const thread = ensureThread(conversation, data.thread_id);
     const task = ensureTask(thread, data.task_id);
-    task.items.push({ role: "agent", ...data });
+    addOrUpdateItem(task, { role: "agent", ...data });
   },
 
   message: (draft: AgentConversationsStore, data: AgentEventMap["message"]) => {
     const conversation = ensureConversation(draft, data.conversation_id);
     const thread = ensureThread(conversation, data.thread_id);
     const task = ensureTask(thread, data.task_id);
-    task.items.push({ role: "agent", ...data });
+    addOrUpdateItem(task, { role: "agent", ...data });
   },
 
   reasoning: (
@@ -79,7 +110,7 @@ const eventHandlers = {
     const conversation = ensureConversation(draft, data.conversation_id);
     const thread = ensureThread(conversation, data.thread_id);
     const task = ensureTask(thread, data.task_id);
-    task.items.push({ role: "agent", ...data });
+    addOrUpdateItem(task, { role: "agent", ...data });
   },
 
   tool_call_started: (
@@ -89,7 +120,7 @@ const eventHandlers = {
     const conversation = ensureConversation(draft, data.conversation_id);
     const thread = ensureThread(conversation, data.thread_id);
     const task = ensureTask(thread, data.task_id);
-    task.items.push({
+    addOrUpdateItem(task, {
       role: "agent",
       ...data,
     });
@@ -102,7 +133,7 @@ const eventHandlers = {
     const conversation = ensureConversation(draft, data.conversation_id);
     const thread = ensureThread(conversation, data.thread_id);
     const task = ensureTask(thread, data.task_id);
-    task.items.push({ role: "agent", ...data });
+    addOrUpdateItem(task, { role: "agent", ...data });
   },
 
   component_generator: (
@@ -112,7 +143,7 @@ const eventHandlers = {
     const conversation = ensureConversation(draft, data.conversation_id);
     const thread = ensureThread(conversation, data.thread_id);
     const task = ensureTask(thread, data.task_id);
-    task.items.push({ role: "agent", ...data });
+    addOrUpdateItem(task, { role: "agent", ...data });
   },
 
   plan_failed: (
@@ -123,7 +154,7 @@ const eventHandlers = {
     const thread = ensureThread(conversation, data.thread_id);
     // plan_failed events don't have task_id, use empty string as default
     const task = ensureTask(thread, "");
-    task.items.push({
+    addOrUpdateItem(task, {
       role: "agent",
       ...data,
     });
@@ -137,7 +168,7 @@ const eventHandlers = {
     const thread = ensureThread(conversation, data.thread_id);
     // plan_require_user_input events don't have task_id, use empty string as default
     const task = ensureTask(thread, "");
-    task.items.push({
+    addOrUpdateItem(task, {
       role: "agent",
       ...data,
     });
@@ -150,7 +181,7 @@ const eventHandlers = {
     const conversation = ensureConversation(draft, data.conversation_id);
     const thread = ensureThread(conversation, data.thread_id);
     const task = ensureTask(thread, data.task_id);
-    task.items.push({ role: "agent", ...data });
+    addOrUpdateItem(task, { role: "agent", ...data });
   },
 
   reasoning_started: (
