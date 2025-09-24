@@ -47,6 +47,7 @@ export default function AgentChat() {
 
   // Use optimized reducer for state management
   const [agentStore, dispatchAgentStore] = useReducer(agentStoreReducer, {});
+  console.log("🚀 ~ AgentChat ~ agentStore:", agentStore);
   const curConversationId = useRef<string>("");
   const curThreadId = useRef<string>("");
   const [isSending, setIsSending] = useState(false);
@@ -92,17 +93,13 @@ export default function AgentChat() {
         }
 
         case "thread_started": {
-          console.log("🚀 ~ AgentChat ~ inputValue.trim():", inputValue.trim());
           curThreadId.current = data.thread_id;
           dispatchAgentStore({
             event: "message_chunk",
             data: {
-              conversation_id: curConversationId.current,
-              thread_id: data.thread_id,
-              task_id: "",
-              item_id: "",
               payload: { content: inputValue.trim() },
               role: "user",
+              ...data,
             },
           });
 
