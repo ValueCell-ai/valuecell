@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional
 
-from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
+from a2a.types import TaskState, TaskStatusUpdateEvent
 from a2a.utils import get_message_text
 from valuecell.core.agent.responses import EventPredicates
 from valuecell.core.coordinate.response import ResponseFactory
@@ -11,8 +11,6 @@ from valuecell.core.task import Task
 from valuecell.core.types import (
     BaseResponse,
     CommonResponseEvent,
-    ComponentGeneratorResponse,
-    MessageResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -95,6 +93,7 @@ async def handle_status_update(
         return RouteResult(responses)
 
     # Reasoning messages
+    content = get_message_text(event.status.message, "")
     if state == TaskState.working and EventPredicates.is_reasoning(response_event):
         responses.append(
             response_factory.reasoning(
@@ -102,27 +101,17 @@ async def handle_status_update(
                 thread_id=thread_id,
                 task_id=task.task_id,
                 event=response_event,
-                content=get_message_text(event.status.message, ""),
+                content=content,
             )
         )
         return RouteResult(responses)
 
-    return RouteResult(responses)
-
-
-async def handle_artifact_update(
-    response_factory: ResponseFactory,
-    task: Task,
-    thread_id: str,
-    event: TaskArtifactUpdateEvent,
-) -> List[MessageResponse | ComponentGeneratorResponse]:
-    responses: List[BaseResponse] = []
-    artifact = event.artifact
-    response_event = artifact.metadata.get("response_event")
-    content = get_message_text(artifact, "")
-
-    if response_event == CommonResponseEvent.COMPONENT_GENERATOR:
-        component_type = artifact.metadata.get("component_type", "unknown")
+    # component generator
+    if (
+        state == TaskState.working
+        and response_event == CommonResponseEvent.COMPONENT_GENERATOR
+    ):
+        component_type = event.metadata.get("component_type", "unknown")
         responses.append(
             response_factory.component_generator(
                 conversation_id=task.session_id,
@@ -132,15 +121,19 @@ async def handle_artifact_update(
                 component_type=component_type,
             )
         )
-        return responses
+        return RouteResult(responses)
 
-    responses.append(
-        response_factory.message_response_general(
-            event=response_event,
-            conversation_id=task.session_id,
-            thread_id=thread_id,
-            task_id=task.task_id,
-            content=content,
+    # general messages
+    if state == TaskState.working and EventPredicates.is_message(response_event):
+        responses.append(
+            response_factory.message_response_general(
+                event=response_event,
+                conversation_id=task.session_id,
+                thread_id=thread_id,
+                task_id=task.task_id,
+                content=content,
+            )
         )
-    )
-    return responses
+        return RouteResult(responses)
+
+    return RouteResult(responses)

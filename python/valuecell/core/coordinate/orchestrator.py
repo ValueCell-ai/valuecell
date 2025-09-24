@@ -9,7 +9,6 @@ from valuecell.core.coordinate.response_buffer import ResponseBuffer, SaveItem
 from valuecell.core.coordinate.response_router import (
     RouteResult,
     SideEffectKind,
-    handle_artifact_update,
     handle_status_update,
 )
 from valuecell.core.session import SessionStatus, get_default_session_manager
@@ -566,12 +565,9 @@ class AgentOrchestrator:
                     continue
 
                 if isinstance(event, TaskArtifactUpdateEvent):
-                    responses = await handle_artifact_update(
-                        self._response_factory, task, thread_id, event
+                    logger.info(
+                        f"Received unexpected artifact update for task {task.task_id}: {event}"
                     )
-                    for r in responses:
-                        r = self._response_buffer.annotate(r)
-                        yield r
                     continue
 
             # Complete task successfully

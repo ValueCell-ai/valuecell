@@ -118,33 +118,6 @@ class GenericAgentExecutor(AgentExecutor):
         task_id = task.id
         session_id = task.context_id
         updater = TaskUpdater(event_queue, task_id, session_id)
-        artifact_id = f"artifact-{agent_name}-{session_id}-{task_id}"
-        chunk_idx = -1
-
-        # Local helper to add a chunk
-        async def _add_chunk(
-            response: StreamResponse | NotifyResponse, is_complete: bool
-        ):
-            nonlocal chunk_idx
-
-            chunk_idx += 1
-            if not response.content:
-                return
-
-            parts = [Part(root=TextPart(text=response.content))]
-            response_event = response.event
-            metadata = {
-                "response_event": response_event.value,
-            }
-            if response_event == CommonResponseEvent.COMPONENT_GENERATOR:
-                metadata["component_type"] = response.metadata.get("component_type")
-            await updater.add_artifact(
-                parts=parts,
-                artifact_id=artifact_id,
-                append=chunk_idx > 0,
-                last_chunk=is_complete,
-                metadata=metadata,
-            )
 
         # Stream from the user agent and update task incrementally
         await updater.update_status(
@@ -170,32 +143,34 @@ class GenericAgentExecutor(AgentExecutor):
                     )
 
                 is_complete = EventPredicates.is_task_completed(response_event)
+                metadata = {"response_event": response_event.value}
                 if EventPredicates.is_tool_call(response_event):
+                    metadata["tool_call_id"] = response.metadata.get("tool_call_id")
+                    metadata["tool_name"] = response.metadata.get("tool_name")
+                    metadata["tool_result"] = response.metadata.get("content")
                     await updater.update_status(
                         TaskState.working,
                         message=new_agent_text_message(response.content or ""),
-                        metadata={
-                            "event": response_event.value,
-                            "tool_call_id": response.metadata.get("tool_call_id"),
-                            "tool_name": response.metadata.get("tool_name"),
-                            "tool_result": response.metadata.get("content"),
-                        },
+                        metadata=metadata,
                     )
                     continue
                 if EventPredicates.is_reasoning(response_event):
                     await updater.update_status(
                         TaskState.working,
                         message=new_agent_text_message(response.content or ""),
-                        metadata={
-                            "event": response_event.value,
-                        },
+                        metadata=metadata,
                     )
                     continue
 
-                await _add_chunk(response, is_complete=is_complete)
-                if is_complete:
-                    await updater.complete()
-                    break
+                if not response.content:
+                    continue
+                if response_event == CommonResponseEvent.COMPONENT_GENERATOR:
+                    metadata["component_type"] = response.metadata.get("component_type")
+                await updater.update_status(
+                    TaskState.working,
+                    message=new_agent_text_message(response.content or ""),
+                    metadata=metadata,
+                )
 
         except Exception as e:
             message = f"Error during {agent_name} agent execution: {e}"
@@ -203,8 +178,9 @@ class GenericAgentExecutor(AgentExecutor):
             await updater.update_status(
                 TaskState.failed,
                 message=new_agent_text_message(message, session_id, task_id),
-                final=True,
             )
+        finally:
+            await updater.complete()
 
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
         # Default cancel operation

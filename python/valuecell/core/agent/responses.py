@@ -136,6 +136,13 @@ class EventPredicates:
             StreamResponseEvent.REASONING_COMPLETED,
         }
 
+    @staticmethod
+    def is_message(response_type) -> bool:
+        return response_type in {
+            StreamResponseEvent.MESSAGE_CHUNK,
+            NotifyResponseEvent.MESSAGE,
+        }
+
 
 __all__ = [
     "streaming",
