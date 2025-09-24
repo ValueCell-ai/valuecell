@@ -260,13 +260,11 @@ class AgentOrchestrator:
         await self.provide_user_input(session_id, user_input.query)
 
         thread_id = generate_thread_id()
-        yield self._response_factory.thread_started(
-            conversation_id=session_id, thread_id=thread_id
+        response = self._response_factory.thread_started(
+            conversation_id=session_id, thread_id=thread_id, user_query=user_input.query
         )
-        await self.session_manager.add_user_message(
-            conversation_id=session_id, thread_id=thread_id, content=user_input.query
-        )
-        thread_id = generate_thread_id()
+        await self._persist_from_buffer(response)
+        yield response
         context.thread_id = thread_id
 
         # Resume based on execution stage
@@ -288,13 +286,11 @@ class AgentOrchestrator:
         """Handle a new user request"""
         session_id = user_input.meta.session_id
         thread_id = generate_thread_id()
-        yield self._response_factory.thread_started(
-            conversation_id=session_id, thread_id=thread_id
+        response = self._response_factory.thread_started(
+            conversation_id=session_id, thread_id=thread_id, user_query=user_input.query
         )
-        # Add user message to session
-        await self.session_manager.add_user_message(
-            conversation_id=session_id, thread_id=thread_id, content=user_input.query
-        )
+        await self._persist_from_buffer(response)
+        yield response
 
         # Create planning task with user input callback
         context_aware_callback = self._create_context_aware_callback(session_id)
@@ -305,7 +301,7 @@ class AgentOrchestrator:
 
         # Monitor planning progress
         async for response in self._monitor_planning_task(
-            planning_task, generate_thread_id(), user_input, context_aware_callback
+            planning_task, thread_id, user_input, context_aware_callback
         ):
             yield response
 

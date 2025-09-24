@@ -22,7 +22,7 @@ from valuecell.core.types import (
     ToolCallResponse,
     UnifiedResponseData,
 )
-from valuecell.utils.uuid import generate_item_id
+from valuecell.utils.uuid import generate_item_id, generate_uuid
 
 
 class ResponseFactory:
@@ -32,11 +32,15 @@ class ResponseFactory:
         )
 
     def thread_started(
-        self, conversation_id: str, thread_id: str
+        self, conversation_id: str, thread_id: str, user_query: str
     ) -> ThreadStartedResponse:
         return ThreadStartedResponse(
             data=UnifiedResponseData(
-                conversation_id=conversation_id, thread_id=thread_id, role=Role.SYSTEM
+                conversation_id=conversation_id,
+                thread_id=thread_id,
+                task_id=generate_uuid("user-query"),
+                payload=BaseResponseDataPayload(content=user_query),
+                role=Role.USER,
             )
         )
 
@@ -44,7 +48,8 @@ class ResponseFactory:
         return SystemFailedResponse(
             data=UnifiedResponseData(
                 conversation_id=conversation_id,
-                payload=BaseResponseDataPayload(content=content, role=Role.SYSTEM),
+                payload=BaseResponseDataPayload(content=content),
+                role=Role.SYSTEM,
             )
         )
 
@@ -64,7 +69,8 @@ class ResponseFactory:
             data=UnifiedResponseData(
                 conversation_id=conversation_id,
                 thread_id=thread_id,
-                payload=BaseResponseDataPayload(content=content, role=Role.AGENT),
+                payload=BaseResponseDataPayload(content=content),
+                role=Role.SYSTEM,
             )
         )
 
@@ -75,7 +81,8 @@ class ResponseFactory:
             data=UnifiedResponseData(
                 conversation_id=conversation_id,
                 thread_id=thread_id,
-                payload=BaseResponseDataPayload(content=content, role=Role.SYSTEM),
+                payload=BaseResponseDataPayload(content=content),
+                role=Role.SYSTEM,
             )
         )
 
@@ -91,7 +98,8 @@ class ResponseFactory:
                 conversation_id=conversation_id,
                 thread_id=thread_id,
                 task_id=task_id,
-                payload=BaseResponseDataPayload(content=content, role=Role.AGENT),
+                payload=BaseResponseDataPayload(content=content),
+                role=Role.AGENT,
             )
         )
 
@@ -179,11 +187,8 @@ class ResponseFactory:
                 conversation_id=conversation_id,
                 thread_id=thread_id,
                 task_id=task_id,
-                payload=(
-                    BaseResponseDataPayload(content=content, role=Role.AGENT)
-                    if content
-                    else None
-                ),
+                payload=(BaseResponseDataPayload(content=content) if content else None),
+                role=Role.AGENT,
             ),
         )
 
@@ -203,7 +208,7 @@ class ResponseFactory:
                 payload=ComponentGeneratorResponseDataPayload(
                     content=content,
                     component_type=component_type,
-                    role=Role.AGENT,
                 ),
+                role=Role.AGENT,
             ),
         )

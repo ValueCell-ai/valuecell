@@ -70,21 +70,6 @@ class SessionManager:
         """Check if session exists"""
         return await self.session_store.session_exists(session_id)
 
-    async def add_user_message(
-        self,
-        conversation_id: str,
-        thread_id: str,
-        content: str,
-    ) -> Optional[ConversationItem]:
-        """Add user message to session"""
-        return await self.add_message(
-            role=Role.USER,
-            event=StreamResponseEvent.MESSAGE_CHUNK,
-            conversation_id=conversation_id,
-            thread_id=thread_id,
-            payload=BaseResponseDataPayload(content=content),
-        )
-
     async def add_message(
         self,
         role: Role,

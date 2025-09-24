@@ -73,6 +73,7 @@ class ResponseBuffer:
             CommonResponseEvent.COMPONENT_GENERATOR,
             NotifyResponseEvent.MESSAGE,
             SystemResponseEvent.PLAN_REQUIRE_USER_INPUT,
+            SystemResponseEvent.THREAD_STARTED,
         }
         self._buffered_events = {
             StreamResponseEvent.MESSAGE_CHUNK,
