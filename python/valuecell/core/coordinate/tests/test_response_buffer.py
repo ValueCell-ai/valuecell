@@ -1,3 +1,4 @@
+# ruff: noqa: F811
 import time
 
 import pytest
@@ -10,8 +11,8 @@ from valuecell.core.types import (
 )
 
 
-@pytest.fixture
-def ids():
+@pytest.fixture(name="ids")
+def _ids_fixture():
     return {
         "conversation_id": "conv-1",
         "thread_id": "th-1",
@@ -20,8 +21,8 @@ def ids():
     }
 
 
-@pytest.fixture
-def factory():
+@pytest.fixture(name="factory")
+def _factory_fixture():
     return ResponseFactory()
 
 
@@ -55,6 +56,8 @@ def test_buffer_accumulate_and_flush_due(ids, factory):
     sm = out[0]
     assert sm.event == StreamResponseEvent.MESSAGE_CHUNK
     assert sm.payload.content == "Hello World"
+    # aggregated output should have its own generated item_id
+    assert sm.item_id is not None and isinstance(sm.item_id, str)
 
 
 def test_immediate_component_splits_chunks(ids, factory):
@@ -165,3 +168,5 @@ def test_immediate_message(ids, factory):
     assert len(out) == 1
     assert out[0].event == NotifyResponseEvent.MESSAGE
     assert out[0].payload.content == "hi"
+    # immediate output should carry the BaseResponse item_id
+    assert out[0].item_id == r.item_id

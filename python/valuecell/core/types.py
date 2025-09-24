@@ -4,6 +4,7 @@ from typing import AsyncGenerator, Callable, Literal, Optional, Union
 
 from a2a.types import Task, TaskArtifactUpdateEvent, TaskStatusUpdateEvent
 from pydantic import BaseModel, Field
+from valuecell.utils.uuid import generate_uuid
 
 
 class UserInputMetadata(BaseModel):
@@ -122,13 +123,13 @@ ResponsePayload = Union[
 ]
 
 
-ConversationItemEvent = (
-    StreamResponseEvent
-    | NotifyResponseEvent
-    | SystemResponseEvent
-    | CommonResponseEvent
-    | TaskStatusEvent
-)
+ConversationItemEvent = Union[
+    StreamResponseEvent,
+    NotifyResponseEvent,
+    SystemResponseEvent,
+    CommonResponseEvent,
+    TaskStatusEvent,
+]
 
 
 class Role(str, Enum):
@@ -181,6 +182,7 @@ class UnifiedResponseData(BaseModel):
 class BaseResponse(BaseModel, ABC):
     """Top-level response envelope used for all events."""
 
+    item_id: str = Field(default_factory=lambda: generate_uuid("item"))
     event: ConversationItemEvent = Field(
         ..., description="The event type of the response"
     )

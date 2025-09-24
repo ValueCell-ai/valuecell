@@ -94,6 +94,7 @@ class SessionManager:
         task_id: Optional[str] = None,
         subtask_id: Optional[str] = None,
         payload: ResponsePayload = None,
+        item_id: Optional[str] = None,
     ) -> Optional[ConversationItem]:
         """Add message to session
 
@@ -124,7 +125,7 @@ class SessionManager:
                     payload_str = None
 
         item = ConversationItem(
-            item_id=generate_uuid("item"),
+            item_id=item_id or generate_uuid("item"),
             role=role,
             event=event,
             conversation_id=conversation_id,

@@ -620,6 +620,7 @@ class AgentOrchestrator:
                 task_id=it.task_id,
                 subtask_id=it.subtask_id,
                 payload=it.payload,
+                item_id=it.item_id,
             )
 
 

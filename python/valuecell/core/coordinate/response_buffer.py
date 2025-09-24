@@ -15,10 +15,16 @@ from valuecell.core.types import (
     TaskStatusEvent,
     UnifiedResponseData,
 )
+from valuecell.utils.uuid import generate_uuid
+
+
+def generate_item_id() -> str:
+    return generate_uuid("item")
 
 
 @dataclass
 class SaveMessage:
+    item_id: str
     role: Role
     event: object  # ConversationItemEvent union; keep generic to avoid circular typing
     conversation_id: str
@@ -145,6 +151,7 @@ class ResponseBuffer:
                                 event=ev,
                                 data=data,
                                 payload=flushed,
+                                item_id=generate_item_id(),
                             )
                         )
             return out
@@ -163,6 +170,7 @@ class ResponseBuffer:
                     conv_id, thread_id, task_id, subtask_id, ev = key
                     out.append(
                         SaveMessage(
+                            item_id=generate_item_id(),
                             role=self._role_for_event(ev),
                             event=ev,
                             conversation_id=conv_id,
@@ -200,6 +208,7 @@ class ResponseBuffer:
                 conv_id, thread_id, task_id, subtask_id, ev = key
                 out.append(
                     SaveMessage(
+                        item_id=generate_item_id(),
                         role=self._role_for_event(ev),
                         event=ev,
                         conversation_id=conv_id,
@@ -245,6 +254,7 @@ class ResponseBuffer:
                 conv_id, thread_id, task_id, subtask_id, ev = key
                 out.append(
                     SaveMessage(
+                        item_id=generate_item_id(),
                         role=self._role_for_event(ev),
                         event=ev,
                         conversation_id=conv_id,
@@ -279,6 +289,7 @@ class ResponseBuffer:
                 bm = BaseResponseDataPayload(content=None)
 
         return SaveMessage(
+            item_id=getattr(resp, "item_id", generate_item_id()),
             role=self._role_for_event(resp.event),
             event=resp.event,
             conversation_id=data.conversation_id,
@@ -294,8 +305,10 @@ class ResponseBuffer:
         event: object,
         data: UnifiedResponseData,
         payload: BaseModel,
+        item_id: str | None = None,
     ) -> SaveMessage:
         return SaveMessage(
+            item_id=item_id,
             role=role,
             event=event,
             conversation_id=data.conversation_id,
