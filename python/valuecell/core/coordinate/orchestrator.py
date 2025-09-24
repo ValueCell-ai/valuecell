@@ -1,11 +1,9 @@
 import asyncio
 import logging
-from collections import defaultdict
 from typing import AsyncGenerator, Dict, Optional
 
 from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
 from valuecell.core.agent.connect import get_default_remote_connections
-from valuecell.core.agent.responses import EventPredicates
 from valuecell.core.coordinate.response import ResponseFactory
 from valuecell.core.coordinate.response_router import (
     RouteResult,
@@ -13,19 +11,13 @@ from valuecell.core.coordinate.response_router import (
     handle_artifact_update,
     handle_status_update,
 )
+from valuecell.core.coordinate.response_buffer import ResponseBuffer, SaveMessage
 from valuecell.core.session import SessionStatus, get_default_session_manager
 from valuecell.core.task import Task, get_default_task_manager
 from valuecell.core.task.models import TaskPattern
-from valuecell.core.types import (
-    BaseResponse,
-    NotifyResponseEvent,
-    Role,
-    StreamResponseEvent,
-    UserInput,
-)
+from valuecell.core.types import BaseResponse, UserInput
 from valuecell.utils.uuid import generate_thread_id
 
-from .callback import store_task_in_session
 from .models import ExecutionPlan
 from .planner import ExecutionPlanner, UserInputRequest
 
@@ -127,6 +119,8 @@ class AgentOrchestrator:
         self.planner = ExecutionPlanner(self.agent_connections)
 
         self._response_factory = ResponseFactory()
+        # Buffer for streaming responses -> persisted ConversationItems
+        self._response_buffer = ResponseBuffer()
 
     # ==================== Public API Methods ====================
 
@@ -207,17 +201,10 @@ class AgentOrchestrator:
     async def close_session(self, session_id: str):
         """Close an existing session and clean up resources"""
         # Cancel any running tasks for this session
-        cancelled_count = await self.task_manager.cancel_session_tasks(session_id)
+        await self.task_manager.cancel_session_tasks(session_id)
 
         # Clean up execution context
         await self._cancel_execution(session_id)
-
-        # Add system message to mark session as closed
-        await self.session_manager.add_message(
-            session_id,
-            Role.SYSTEM,
-            f"Session closed. {cancelled_count} tasks were cancelled.",
-        )
 
     async def get_session_history(self, session_id: str):
         """Get session message history"""
@@ -494,11 +481,11 @@ class AgentOrchestrator:
                     # Accumulate based on event
                     yield response
 
-                    # TODO: record intermediate results in session history
-                    await self.session_manager.add_message(
-                        session_id,
-                        Role.AGENT,
-                    )
+                    # Persist via ResponseBuffer
+                    await self._persist_from_buffer(response)
+
+                    # Periodic flush for buffered events based on debounce
+                    await self._flush_due()
 
             except Exception as e:
                 error_msg = f"(Error) Error executing {task.id}: {str(e)}"
@@ -510,6 +497,9 @@ class AgentOrchestrator:
                     _generate_task_default_subtask_id(task.task_id),
                     error_msg,
                 )
+        # Before signaling done, flush any remaining buffered items in this thread
+        items = self._response_buffer.flush_context(session_id, thread_id)
+        await self._persist_items(items)
 
         yield self._response_factory.done(session_id, thread_id)
 
@@ -533,7 +523,6 @@ class AgentOrchestrator:
             agent_card = await self.agent_connections.start_agent(
                 agent_name,
                 with_listener=False,
-                notification_callback=store_task_in_session,
             )
             client = await self.agent_connections.get_client(agent_name)
             if not client:
@@ -590,10 +579,38 @@ class AgentOrchestrator:
                 task_id=task.task_id,
                 subtask_id=_generate_task_default_subtask_id(task.task_id),
             )
+            # Flush buffered content for this task context
+            items = self._response_buffer.flush_context(
+                conversation_id=task.session_id,
+                thread_id=thread_id,
+                task_id=task.task_id,
+            )
+            await self._persist_items(items)
 
         except Exception as e:
             await self.task_manager.fail_task(task.task_id, str(e))
             raise e
+
+    async def _persist_from_buffer(self, response: BaseResponse):
+        """Ingest a response into the buffer and persist any SaveMessages produced."""
+        items = self._response_buffer.ingest(response)
+        await self._persist_items(items)
+
+    async def _flush_due(self):
+        items = self._response_buffer.flush_due()
+        await self._persist_items(items)
+
+    async def _persist_items(self, items: list[SaveMessage]):
+        for it in items:
+            await self.session_manager.add_message(
+                role=it.role,
+                event=it.event,
+                conversation_id=it.conversation_id,
+                thread_id=it.thread_id,
+                task_id=it.task_id,
+                subtask_id=it.subtask_id,
+                payload=it.payload,
+            )
 
 
 def _generate_task_default_subtask_id(task_id: str) -> str:

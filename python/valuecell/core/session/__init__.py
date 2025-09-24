@@ -4,9 +4,9 @@ from .manager import (
     SessionManager,
     get_default_session_manager,
 )
-from .models import Message, Role, Session, SessionStatus
+from valuecell.core.types import ConversationItem as Message, Role
+from .models import Session, SessionStatus
 from .store import InMemorySessionStore, SessionStore
-from .message_store import MessageStore, InMemoryMessageStore, SQLiteMessageStore
 
 __all__ = [
     # Models
@@ -20,8 +20,5 @@ __all__ = [
     # Session storage
     "SessionStore",
     "InMemorySessionStore",
-    # Message storage
-    "MessageStore",
-    "InMemoryMessageStore",
-    "SQLiteMessageStore",
+    # Message storage (re-exported from core.__init__)
 ]

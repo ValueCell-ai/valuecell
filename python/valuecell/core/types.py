@@ -122,7 +122,7 @@ ResponsePayload = Union[
 ]
 
 
-ConversationMessageEvent = (
+ConversationItemEvent = (
     StreamResponseEvent
     | NotifyResponseEvent
     | SystemResponseEvent
@@ -139,14 +139,12 @@ class Role(str, Enum):
     SYSTEM = "system"
 
 
-class ConversationMessage(BaseModel):
+class ConversationItem(BaseModel):
     """Message item structure for conversation history"""
 
-    message_id: str = Field(..., description="Unique message identifier")
+    item_id: str = Field(..., description="Unique message identifier")
     role: Role = Field(..., description="Role of the message sender")
-    event: ConversationMessageEvent = Field(
-        ..., description="Event type of the message"
-    )
+    event: ConversationItemEvent = Field(..., description="Event type of the message")
     conversation_id: str = Field(
         ..., description="Conversation ID this message belongs to"
     )
@@ -183,7 +181,7 @@ class UnifiedResponseData(BaseModel):
 class BaseResponse(BaseModel, ABC):
     """Top-level response envelope used for all events."""
 
-    event: ConversationMessageEvent = Field(
+    event: ConversationItemEvent = Field(
         ..., description="The event type of the response"
     )
     data: UnifiedResponseData = Field(
