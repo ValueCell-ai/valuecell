@@ -193,10 +193,6 @@ class AgentOrchestrator:
         """Get the user input prompt for a specific session"""
         return self.user_input_manager.get_request_prompt(session_id)
 
-    async def create_session(self, user_id: str, title: str = None):
-        """Create a new session for the user"""
-        return await self.session_manager.create_session(user_id, title)
-
     async def close_session(self, session_id: str):
         """Close an existing session and clean up resources"""
         # Cancel any running tasks for this session
@@ -205,13 +201,10 @@ class AgentOrchestrator:
         # Clean up execution context
         await self._cancel_execution(session_id)
 
-    async def get_session_history(self, session_id: str):
+    async def get_session_history(self, session_id: str) -> list[BaseResponse]:
         """Get session message history"""
-        return await self.session_manager.get_session_messages(session_id)
-
-    async def get_user_sessions(self, user_id: str, limit: int = 100, offset: int = 0):
-        """Get all sessions for a user"""
-        return await self.session_manager.list_user_sessions(user_id, limit, offset)
+        items = await self.session_manager.get_session_messages(session_id)
+        return [self._response_factory.from_conversation_item(it) for it in items]
 
     async def cleanup(self):
         """Cleanup resources and expired contexts"""

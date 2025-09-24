@@ -128,9 +128,6 @@ class SessionManager:
     async def get_session_messages(
         self,
         session_id: str,
-        limit: Optional[int] = None,
-        offset: int = 0,
-        role: Optional[Role] = None,
     ) -> List[ConversationItem]:
         """Get messages for a session with optional filtering and pagination
 
@@ -140,7 +137,7 @@ class SessionManager:
             offset: Number of messages to skip
             role: Filter by specific role (optional)
         """
-        return await self.message_store.get_messages(session_id, limit, offset, role)
+        return await self.message_store.get_messages(session_id)
 
     async def get_latest_message(self, session_id: str) -> Optional[ConversationItem]:
         """Get latest message in a session"""

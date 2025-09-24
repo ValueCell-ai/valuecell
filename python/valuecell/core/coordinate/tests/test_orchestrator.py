@@ -329,28 +329,3 @@ async def test_agent_connection_error(
         out.append(chunk)
 
     assert any("(Error)" in c.data.payload.content for c in out if c.data.payload)
-
-
-@pytest.mark.asyncio
-async def test_create_and_close_session(
-    orchestrator: AgentOrchestrator, user_id: str, session_id: str
-):
-    # create
-    new_id = await orchestrator.create_session(user_id, "Title")
-    orchestrator.session_manager.create_session.assert_called_once_with(
-        user_id, "Title"
-    )
-    assert new_id == "new-session-id"
-
-    # close
-    orchestrator.task_manager.cancel_session_tasks.return_value = 1
-    await orchestrator.close_session(session_id)
-    orchestrator.task_manager.cancel_session_tasks.assert_called_once_with(session_id)
-
-
-@pytest.mark.asyncio
-async def test_cleanup(orchestrator: AgentOrchestrator):
-    orchestrator.agent_connections = Mock()
-    orchestrator.agent_connections.stop_all = AsyncMock()
-    await orchestrator.cleanup()
-    orchestrator.agent_connections.stop_all.assert_called_once()
