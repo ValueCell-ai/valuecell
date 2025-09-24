@@ -23,7 +23,6 @@ import type {
   AgentConversationsStore,
   AgentStreamRequest,
   SSEData,
-  ThreadView,
 } from "@/types/agent";
 import type { Route } from "./+types/chat";
 import { ChatBackground } from "./components";
@@ -39,7 +38,7 @@ function agentStoreReducer(
 
 export default function AgentChat() {
   const { agentName } = useParams<Route.LoaderArgs["params"]>();
-  const { data: agent, isLoading: isLoadingAgent } = useGetAgentInfo({
+  const { data: agent } = useGetAgentInfo({
     agentName: agentName ?? "",
   });
 
@@ -53,15 +52,29 @@ export default function AgentChat() {
   const [isSending, setIsSending] = useState(false);
   const [shouldClose, setShouldClose] = useState(false);
 
-  // Get current conversation
-  const threadEntries = useMemo(() => {
+  // Get current conversation organized by tasks
+  const conversationData = useMemo(() => {
     if (!curConversationId.current || !agentStore[curConversationId.current]) {
       return null;
     }
     const threads = agentStore[curConversationId.current].threads;
-    return threads
-      ? (Object.entries(threads) as Array<[string, ThreadView]>)
-      : [];
+    if (!threads) return [];
+
+    // Transform the nested structure to tasks for rendering
+    const allTasks = [];
+    for (const [threadId, thread] of Object.entries(threads)) {
+      for (const [taskId, task] of Object.entries(thread.tasks)) {
+        if (task.items && task.items.length > 0) {
+          allTasks.push({
+            threadId,
+            taskId,
+            items: task.items,
+            threadCount: Object.keys(threads).length,
+          });
+        }
+      }
+    }
+    return allTasks;
   }, [agentStore]);
 
   // Handle SSE data events using agent store
@@ -87,7 +100,7 @@ export default function AgentChat() {
               conversation_id: curConversationId.current,
               thread_id: data.thread_id,
               task_id: "",
-              subtask_id: "",
+              item_id: "",
               payload: { content: inputValue.trim() },
               role: "user",
             },
@@ -257,7 +270,7 @@ export default function AgentChat() {
 
       {/* Main content area */}
       <main className="relative flex flex-1 flex-col">
-        {!threadEntries?.length ? (
+        {!conversationData?.length ? (
           <>
             {/* Background blur effects for welcome screen */}
             <ChatBackground />
@@ -308,26 +321,30 @@ export default function AgentChat() {
           <>
             {/* Chat messages with optimized rendering */}
             <div className="flex-1 space-y-6 overflow-y-auto p-6">
-              {threadEntries.map(([threadId, thread], threadIndex) => {
+              {conversationData.map((taskData, globalIndex) => {
+                const { threadId, taskId, items, threadCount } = taskData;
+                const showThreadSeparator =
+                  globalIndex === 0 ||
+                  conversationData[globalIndex - 1].threadId !== threadId;
+
                 return (
-                  <div key={threadId} className="space-y-6">
-                    {threadEntries.length > 1 && (
+                  <div key={`${threadId}-${taskId}`} className="space-y-6">
+                    {/* Thread separator - only show when starting a new thread and there are multiple threads */}
+                    {showThreadSeparator && threadCount > 1 && (
                       <div className="flex items-center gap-2 text-gray-400 text-xs uppercase tracking-wide">
                         <span className="h-px flex-1 bg-gray-200" />
-                        <span>Thread {threadIndex + 1}</span>
+                        <span>Thread {threadId}</span>
                         <span className="h-px flex-1 bg-gray-200" />
                       </div>
                     )}
 
-                    {thread.messages.map((message, index) => (
-                      <ChatMessageComponent
-                        key={`${message.conversation_id}-${threadId}-${index}`}
-                        message={message}
-                        index={index}
-                        conversationId={curConversationId.current}
-                        threadId={threadId}
-                      />
-                    ))}
+                    <ChatMessageComponent
+                      key={taskId}
+                      items={items}
+                      conversationId={curConversationId.current}
+                      threadId={threadId}
+                      taskId={taskId}
+                    />
                   </div>
                 );
               })}
@@ -377,40 +394,6 @@ export default function AgentChat() {
               {/* Status indicators */}
               <div className="mt-2 flex items-center justify-between text-gray-500 text-xs">
                 <div className="flex items-center gap-4">
-                  <span
-                    className={cn(
-                      "flex items-center gap-1",
-                      isStreaming
-                        ? "text-green-600"
-                        : isConnecting
-                          ? "text-blue-600"
-                          : isConnected
-                            ? "text-green-600"
-                            : "text-red-600",
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "h-2 w-2 rounded-full",
-                        isStreaming
-                          ? "bg-green-500"
-                          : isConnecting
-                            ? "animate-pulse bg-blue-500"
-                            : isConnected
-                              ? "bg-green-500"
-                              : "bg-red-500",
-                      )}
-                    />
-                    <span className="text-xs">
-                      {isStreaming
-                        ? "Streaming"
-                        : isConnecting
-                          ? "Connecting"
-                          : isConnected
-                            ? "Ready"
-                            : "Disconnected"}
-                    </span>
-                  </span>
                   {curConversationId.current && (
                     <span>Session: {curConversationId.current}</span>
                   )}

@@ -5,7 +5,7 @@ interface BaseEventData {
   conversation_id: string; // Top-level conversation session
   thread_id: string; // Message chain within conversation
   task_id: string; // Single agent execution unit
-  subtask_id: string; // Granular operation within task
+  item_id: string; // Minimum granular render level
 }
 
 // Payload wrapper for content events
@@ -43,10 +43,7 @@ export interface AgentEventMap {
   >;
 
   // User Interaction
-  plan_require_user_input: EventWithPayload<
-    Pick<BaseEventData, "conversation_id" | "thread_id">,
-    { content: string }
-  >;
+  plan_require_user_input: EventWithPayload<BaseEventData, { content: string }>;
 
   // Tool Execution Lifecycle
   tool_call_started: EventWithPayload<
@@ -72,10 +69,7 @@ export interface AgentEventMap {
   reasoning_completed: BaseEventData;
 
   // Error Handling
-  plan_failed: EventWithPayload<
-    Pick<BaseEventData, "conversation_id" | "thread_id">,
-    { content: string }
-  >;
+  plan_failed: EventWithPayload<BaseEventData, { content: string }>;
   task_failed: EventWithPayload<BaseEventData, { content: string }>;
 }
 
@@ -117,13 +111,13 @@ export type AgentReasoningMessage = MessageWithRole<
 
 export type AgentPlanRequireUserInputMessage = {
   role: "agent";
-} & Pick<BaseEventData, "conversation_id" | "thread_id"> &
+} & BaseEventData &
   PayloadWrapper<{ content: string }>;
 
 export type AgentPlanFailedMessage = AgentPlanRequireUserInputMessage;
 export type AgentTaskFailedMessage = AgentPlanRequireUserInputMessage;
 
-export type ChatMessage =
+export type ChatItem =
   | AgentComponentMessage
   | AgentToolCallStartedMessage
   | AgentToolCallCompletedMessage
@@ -133,8 +127,13 @@ export type ChatMessage =
   | AgentPlanFailedMessage
   | AgentTaskFailedMessage;
 
+export interface TaskView {
+  items: ChatItem[];
+}
+
 export interface ThreadView {
-  messages: ChatMessage[];
+  tasks: Record<string, TaskView>;
+  currentTaskId?: string;
 }
 
 export interface ConversationView {

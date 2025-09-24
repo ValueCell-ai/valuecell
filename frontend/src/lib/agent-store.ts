@@ -4,6 +4,7 @@ import type {
   AgentEventMap,
   ConversationView,
   SSEData,
+  TaskView,
   ThreadView,
 } from "@/types/agent";
 
@@ -24,10 +25,19 @@ function ensureThread(
   threadId: string,
 ): ThreadView {
   if (!conversation.threads[threadId]) {
-    conversation.threads[threadId] = { messages: [] };
+    conversation.threads[threadId] = { tasks: {} };
   }
   conversation.currentThreadId = threadId;
   return conversation.threads[threadId];
+}
+
+// Helper function: ensure task exists (for mutative draft)
+function ensureTask(thread: ThreadView, taskId: string): TaskView {
+  if (!thread.tasks[taskId]) {
+    thread.tasks[taskId] = { items: [] };
+  }
+  thread.currentTaskId = taskId;
+  return thread.tasks[taskId];
 }
 
 // Event handlers: one handler function per event type
@@ -42,6 +52,7 @@ const eventHandlers = {
   done: (draft: AgentConversationsStore, data: AgentEventMap["done"]) => {
     const conversation = ensureConversation(draft, data.conversation_id);
     ensureThread(conversation, data.thread_id);
+    // done events don't have task_id, so we don't need to ensure task
   },
 
   message_chunk: (
@@ -50,13 +61,15 @@ const eventHandlers = {
   ) => {
     const conversation = ensureConversation(draft, data.conversation_id);
     const thread = ensureThread(conversation, data.thread_id);
-    thread.messages.push({ role: "agent", ...data });
+    const task = ensureTask(thread, data.task_id);
+    task.items.push({ role: "agent", ...data });
   },
 
   message: (draft: AgentConversationsStore, data: AgentEventMap["message"]) => {
     const conversation = ensureConversation(draft, data.conversation_id);
     const thread = ensureThread(conversation, data.thread_id);
-    thread.messages.push({ role: "agent", ...data });
+    const task = ensureTask(thread, data.task_id);
+    task.items.push({ role: "agent", ...data });
   },
 
   reasoning: (
@@ -65,7 +78,8 @@ const eventHandlers = {
   ) => {
     const conversation = ensureConversation(draft, data.conversation_id);
     const thread = ensureThread(conversation, data.thread_id);
-    thread.messages.push({ role: "agent", ...data });
+    const task = ensureTask(thread, data.task_id);
+    task.items.push({ role: "agent", ...data });
   },
 
   tool_call_started: (
@@ -74,7 +88,8 @@ const eventHandlers = {
   ) => {
     const conversation = ensureConversation(draft, data.conversation_id);
     const thread = ensureThread(conversation, data.thread_id);
-    thread.messages.push({
+    const task = ensureTask(thread, data.task_id);
+    task.items.push({
       role: "agent",
       ...data,
     });
@@ -86,7 +101,8 @@ const eventHandlers = {
   ) => {
     const conversation = ensureConversation(draft, data.conversation_id);
     const thread = ensureThread(conversation, data.thread_id);
-    thread.messages.push({ role: "agent", ...data });
+    const task = ensureTask(thread, data.task_id);
+    task.items.push({ role: "agent", ...data });
   },
 
   component_generator: (
@@ -95,7 +111,8 @@ const eventHandlers = {
   ) => {
     const conversation = ensureConversation(draft, data.conversation_id);
     const thread = ensureThread(conversation, data.thread_id);
-    thread.messages.push({ role: "agent", ...data });
+    const task = ensureTask(thread, data.task_id);
+    task.items.push({ role: "agent", ...data });
   },
 
   plan_failed: (
@@ -104,7 +121,9 @@ const eventHandlers = {
   ) => {
     const conversation = ensureConversation(draft, data.conversation_id);
     const thread = ensureThread(conversation, data.thread_id);
-    thread.messages.push({
+    // plan_failed events don't have task_id, use empty string as default
+    const task = ensureTask(thread, "");
+    task.items.push({
       role: "agent",
       ...data,
     });
@@ -116,7 +135,9 @@ const eventHandlers = {
   ) => {
     const conversation = ensureConversation(draft, data.conversation_id);
     const thread = ensureThread(conversation, data.thread_id);
-    thread.messages.push({
+    // plan_require_user_input events don't have task_id, use empty string as default
+    const task = ensureTask(thread, "");
+    task.items.push({
       role: "agent",
       ...data,
     });
@@ -128,7 +149,8 @@ const eventHandlers = {
   ) => {
     const conversation = ensureConversation(draft, data.conversation_id);
     const thread = ensureThread(conversation, data.thread_id);
-    thread.messages.push({ role: "agent", ...data });
+    const task = ensureTask(thread, data.task_id);
+    task.items.push({ role: "agent", ...data });
   },
 
   reasoning_started: (
@@ -136,7 +158,8 @@ const eventHandlers = {
     data: AgentEventMap["reasoning_started"],
   ) => {
     const conversation = ensureConversation(draft, data.conversation_id);
-    ensureThread(conversation, data.thread_id);
+    const thread = ensureThread(conversation, data.thread_id);
+    ensureTask(thread, data.task_id);
   },
 
   reasoning_completed: (
@@ -144,7 +167,8 @@ const eventHandlers = {
     data: AgentEventMap["reasoning_completed"],
   ) => {
     const conversation = ensureConversation(draft, data.conversation_id);
-    ensureThread(conversation, data.thread_id);
+    const thread = ensureThread(conversation, data.thread_id);
+    ensureTask(thread, data.task_id);
   },
 };
 
