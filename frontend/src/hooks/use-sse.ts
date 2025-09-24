@@ -83,11 +83,9 @@ export function useSSE({
     clientRef.current?.close();
   }, []);
 
-  const state = clientRef.current?.state ?? SSEReadyState.CLOSED;
-
   return {
-    state,
-    isConnected: state === SSEReadyState.OPEN,
+    state: clientRef.current?.state ?? SSEReadyState.CLOSED,
+    isConnected: clientRef.current?. state === SSEReadyState.OPEN,
     error,
     connect,
     close,

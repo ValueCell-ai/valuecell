@@ -79,51 +79,40 @@ export default function AgentChat() {
   }, [agentStore]);
 
   // Handle SSE data events using agent store
-  const handleSSEData = useCallback(
-    (sseData: SSEData) => {
-      // Update agent store using the reducer
-      dispatchAgentStore(sseData);
+  const handleSSEData = useCallback((sseData: SSEData) => {
+    // Update agent store using the reducer
+    dispatchAgentStore(sseData);
 
-      // Handle specific UI state updates
-      const { event, data } = sseData;
-      switch (event) {
-        case "conversation_started": {
-          curConversationId.current = data.conversation_id;
-          break;
-        }
-
-        case "thread_started": {
-          curThreadId.current = data.thread_id;
-          dispatchAgentStore({
-            event: "message_chunk",
-            data: {
-              payload: { content: inputValue.trim() },
-              role: "user",
-              ...data,
-            },
-          });
-
-          setInputValue("");
-          break;
-        }
-
-        case "done": {
-          curThreadId.current = data.thread_id;
-          setShouldClose(true);
-          break;
-        }
-
-        // All message-related events are handled by the store
-        default:
-          // Update current thread ID for message events
-          if ("thread_id" in data) {
-            curThreadId.current = data.thread_id;
-          }
-          break;
+    // Handle specific UI state updates
+    const { event, data } = sseData;
+    switch (event) {
+      case "conversation_started": {
+        curConversationId.current = data.conversation_id;
+        break;
       }
-    },
-    [inputValue],
-  );
+
+      case "thread_started": {
+        curThreadId.current = data.thread_id;
+
+        setInputValue("");
+        break;
+      }
+
+      case "done": {
+        curThreadId.current = data.thread_id;
+        setShouldClose(true);
+        break;
+      }
+
+      // All message-related events are handled by the store
+      default:
+        // Update current thread ID for message events
+        if ("thread_id" in data) {
+          curThreadId.current = data.thread_id;
+        }
+        break;
+    }
+  }, []);
 
   // Initialize SSE connection using the useSSE hook
   const {
