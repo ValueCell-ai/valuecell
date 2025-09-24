@@ -38,7 +38,7 @@ class ResponseFactory:
             data=UnifiedResponseData(
                 conversation_id=conversation_id,
                 thread_id=thread_id,
-                task_id=generate_uuid("user-query"),
+                task_id=generate_uuid("ask"),
                 payload=BaseResponseDataPayload(content=user_query),
                 role=Role.USER,
             )
