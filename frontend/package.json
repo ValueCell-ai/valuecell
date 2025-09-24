@@ -7,6 +7,7 @@
     "dev": "react-router dev",
     "build": "react-router build",
     "start": "vite preview --outDir build/client",
+    "typecheck": "react-router typegen && tsc",
     "tauri": "tauri"
   },
   "dependencies": {

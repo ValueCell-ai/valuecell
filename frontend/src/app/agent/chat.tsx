@@ -37,7 +37,9 @@ function agentStoreReducer(
 }
 
 export default function AgentChat() {
-  const { agentId } = useParams<Route.LoaderArgs["params"]>();
+  const { agentName } = useParams<Route.LoaderArgs["params"]>();
+  const agent = agentData[agentName ?? ""];
+
   const textareaRef = useRef<ScrollTextareaRef>(null);
   const [inputValue, setInputValue] = useState("");
 
@@ -62,7 +64,6 @@ export default function AgentChat() {
   // Handle SSE data events using agent store
   const handleSSEData = useCallback(
     (sseData: SSEData) => {
-      console.log("🚀 ~ AgentChat ~ sseData:", sseData);
       // Update agent store using the reducer
       dispatchAgentStore(sseData);
 
@@ -87,6 +88,8 @@ export default function AgentChat() {
               role: "user",
             },
           });
+
+          setInputValue("");
           break;
         }
 
@@ -162,7 +165,7 @@ export default function AgentChat() {
       try {
         const request: AgentStreamRequest = {
           query: message,
-          agent_name: "WarrenBuffettAgent",
+          agent_name: agent.name,
           conversation_id: curConversationId.current,
         };
 
@@ -173,7 +176,7 @@ export default function AgentChat() {
         setIsSending(false); // Reset immediately on error
       }
     },
-    [connect, isSending, isConnecting],
+    [connect, isSending, isConnecting, agentName],
   );
 
   const handleSendMessage = useCallback(() => {
@@ -186,7 +189,6 @@ export default function AgentChat() {
 
     // Always use sendMessage - user input for plan_require_user_input is just normal conversation
     sendMessage(trimmedInput);
-    setInputValue("");
   }, [inputValue, isConnecting, isSending, sendMessage]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -200,7 +202,6 @@ export default function AgentChat() {
     }
   };
 
-  const agent = agentData[agentId ?? ""];
   if (!agent) return <Navigate to="/" replace />;
 
   // Agent skills/tags
@@ -320,17 +321,6 @@ export default function AgentChat() {
             {/* Chat messages with optimized rendering */}
             <div className="flex-1 space-y-6 overflow-y-auto p-6">
               {threadEntries.map(([threadId, thread], threadIndex) => {
-                if (!thread.messages.length) {
-                  return threadEntries.length > 1 ? (
-                    <div
-                      key={`${threadId}-empty`}
-                      className="flex items-center justify-center rounded-xl border border-gray-200 border-dashed bg-gray-50 p-6 text-gray-500 text-sm"
-                    >
-                      Thread {threadIndex + 1} 暂无消息
-                    </div>
-                  ) : null;
-                }
-
                 return (
                   <div key={threadId} className="space-y-6">
                     {threadEntries.length > 1 && (

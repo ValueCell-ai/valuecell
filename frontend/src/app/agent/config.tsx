@@ -7,11 +7,11 @@ import { agentData } from "@/mock/agent-data";
 import type { Route } from "./+types/config";
 
 export default function AgentConfig() {
-  const { agentId } = useParams<Route.LoaderArgs["params"]>();
+  const { agentName } = useParams<Route.LoaderArgs["params"]>();
 
-  if (!agentId) return <Navigate to="/" replace />;
+  if (!agentName) return <Navigate to="/" replace />;
 
-  const agent = agentData[agentId];
+  const agent = agentData[agentName];
 
   return (
     <div className="flex flex-1 flex-col gap-8 overflow-hidden py-8">
@@ -31,7 +31,7 @@ export default function AgentConfig() {
 
         <Link
           className="flex items-center gap-2 rounded-md bg-black px-5 py-3 font-semibold text-base text-white hover:bg-black/80"
-          to={`/agent/${agentId}`}
+          to={`/agent/${agentName}`}
         >
           Activate Chat
           <ArrowRight size={16} />
