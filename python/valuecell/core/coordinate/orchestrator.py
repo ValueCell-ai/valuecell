@@ -5,13 +5,13 @@ from typing import AsyncGenerator, Dict, Optional
 from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
 from valuecell.core.agent.connect import get_default_remote_connections
 from valuecell.core.coordinate.response import ResponseFactory
+from valuecell.core.coordinate.response_buffer import ResponseBuffer, SaveMessage
 from valuecell.core.coordinate.response_router import (
     RouteResult,
     SideEffectKind,
     handle_artifact_update,
     handle_status_update,
 )
-from valuecell.core.coordinate.response_buffer import ResponseBuffer, SaveMessage
 from valuecell.core.session import SessionStatus, get_default_session_manager
 from valuecell.core.task import Task, get_default_task_manager
 from valuecell.core.task.models import TaskPattern
@@ -259,10 +259,21 @@ class AgentOrchestrator:
         context.add_metadata(pending_response=user_input.query)
         await self.provide_user_input(session_id, user_input.query)
 
+        thread_id = generate_thread_id()
+        context.thread_id = thread_id
+        yield self._response_factory.thread_started(
+            conversation_id=session_id, thread_id=thread_id
+        )
+        await self.session_manager.add_user_message(
+            conversation_id=session_id, thread_id=thread_id, content=user_input.query
+        )
+
         # Resume based on execution stage
         if context.stage == "planning":
-            async for chunk in self._continue_planning(session_id, context):
-                yield chunk
+            async for response in self._continue_planning(
+                session_id, thread_id, context
+            ):
+                yield response
         # Resuming execution stage is not yet supported
         else:
             yield self._response_factory.system_failed(
@@ -332,9 +343,11 @@ class AgentOrchestrator:
 
                 # Update session status and send user input request
                 await self._request_user_input(session_id)
-                yield self._response_factory.plan_require_user_input(
+                response = self._response_factory.plan_require_user_input(
                     session_id, thread_id, self.get_user_input_prompt(session_id)
                 )
+                await self._persist_from_buffer(response)
+                yield response
                 return
 
             await asyncio.sleep(ASYNC_SLEEP_INTERVAL)
@@ -367,16 +380,11 @@ class AgentOrchestrator:
         return True
 
     async def _continue_planning(
-        self, session_id: str, context: ExecutionContext
+        self, session_id: str, thread_id: str, context: ExecutionContext
     ) -> AsyncGenerator[BaseResponse, None]:
         """Resume planning stage execution"""
         planning_task = context.get_metadata("planning_task")
         original_user_input = context.get_metadata("original_user_input")
-        thread_id = generate_thread_id()
-        context.thread_id = thread_id
-        yield self._response_factory.thread_started(
-            conversation_id=session_id, thread_id=thread_id
-        )
 
         if not all([planning_task, original_user_input]):
             yield self._response_factory.plan_failed(
@@ -394,9 +402,11 @@ class AgentOrchestrator:
                 prompt = self.get_user_input_prompt(session_id)
                 # Ensure session is set to require user input again for repeated prompts
                 await self._request_user_input(session_id)
-                yield self._response_factory.plan_require_user_input(
+                response = self._response_factory.plan_require_user_input(
                     session_id, thread_id, prompt
                 )
+                await self._persist_from_buffer(response)
+                yield response
                 return
 
             await asyncio.sleep(ASYNC_SLEEP_INTERVAL)
