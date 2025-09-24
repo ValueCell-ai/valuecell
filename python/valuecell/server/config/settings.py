@@ -25,7 +25,9 @@ class Settings:
         self.CORS_ORIGINS = cors_origins.split(",") if cors_origins != "*" else ["*"]
 
         # Database Configuration
-        self.DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./valuecell.db")
+        self.DATABASE_URL = os.getenv(
+            "DATABASE_URL", "sqlite:///valuecell/server/db/valuecell.db"
+        )
         self.DB_ECHO = os.getenv("DB_ECHO", "false").lower() == "true"
 
         # Redis Configuration

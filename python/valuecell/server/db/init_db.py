@@ -439,6 +439,9 @@ class DatabaseInitializer:
                         existing_agent.description = agent_data.get(
                             "description", existing_agent.description
                         )
+                        existing_agent.icon_url = agent_data.get(
+                            "icon_url", existing_agent.icon_url
+                        )
                         existing_agent.version = agent_data.get(
                             "version", existing_agent.version
                         )
