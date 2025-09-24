@@ -580,14 +580,6 @@ class SecAgent(BaseAgent):
                                 ticker, changes
                             )
 
-                            # yield {
-                            #     "content": f"🚨 **New SEC Filing Detected!**\n\n"
-                            #     f"**Ticker**: {ticker}\n"
-                            #     f"**Time**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-                            #     f"**Summary**:\n{summary}\n\n"
-                            #     f"Continuing to monitor for further changes...",
-                            #     "is_task_complete": False,
-                            # }
                             yield notification.message(summary)
 
                     # Wait before next check

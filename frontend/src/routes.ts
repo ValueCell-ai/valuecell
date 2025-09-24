@@ -12,7 +12,7 @@ export default [
     route("/stock/:stockId", "app/home/stock.tsx"),
   ]),
   ...prefix("/agent", [
-    route("/:agentId", "app/agent/chat.tsx"),
-    route("/:agentId/config", "app/agent/config.tsx"),
+    route("/:agentName", "app/agent/chat.tsx"),
+    route("/:agentName/config", "app/agent/config.tsx"),
   ]),
 ] satisfies RouteConfig;

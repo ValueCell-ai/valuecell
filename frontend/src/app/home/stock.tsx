@@ -9,6 +9,7 @@ import { STOCK_BADGE_COLORS } from "@/constants/stock";
 import { formatChange, formatPrice, getChangeType } from "@/lib/utils";
 import { stockData } from "@/mock/stock-data";
 import type { SparklineData } from "@/types/chart";
+import type { Route } from "./+types/stock";
 
 // Generate historical price data in [timestamp, value] format
 function generateHistoricalData(
@@ -37,7 +38,7 @@ function generateHistoricalData(
 }
 
 const Stock = memo(function Stock() {
-  const { stockId } = useParams();
+  const { stockId } = useParams<Route.LoaderArgs["params"]>();
 
   // Find stock information from mock data
   const stockInfo = useMemo(() => {

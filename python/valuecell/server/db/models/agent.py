@@ -40,6 +40,11 @@ class Agent(Base):
         nullable=True,
         comment="Detailed description of the agent's purpose and capabilities",
     )
+    icon_url = Column(
+        String(500),
+        nullable=True,
+        comment="URL to the agent's icon image",
+    )
 
     # Agent configuration
     version = Column(
@@ -92,6 +97,7 @@ class Agent(Base):
             "name": self.name,
             "display_name": self.display_name,
             "description": self.description,
+            "icon_url": self.icon_url,
             "version": self.version,
             "enabled": self.enabled,
             "capabilities": self.capabilities,
@@ -108,6 +114,7 @@ class Agent(Base):
             name=config_data.get("name"),
             display_name=config_data.get("display_name"),
             description=config_data.get("description"),
+            icon_url=config_data.get("icon_url"),
             version=config_data.get("version", "1.0.0"),
             enabled=config_data.get("enabled", True),
             capabilities=config_data.get(

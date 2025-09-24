@@ -7,7 +7,7 @@ import {
   StockMenuHeader,
   StockMenuListItem,
 } from "@/components/valuecell/menus/stock-menus";
-import ScrollContainer from "@/components/valuecell/scroll-container";
+import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { stockData } from "@/mock/stock-data";
 
 function StockList() {
