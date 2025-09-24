@@ -488,17 +488,16 @@ class AgentOrchestrator:
                 async for response in self._execute_task_with_input_support(
                     task, thread_id, metadata
                 ):
+                    # Ensure buffered events carry a stable paragraph item_id
+                    annotated = self._response_buffer.annotate(response)
                     # Accumulate based on event
-                    yield response
+                    yield annotated
 
                     # Persist via ResponseBuffer
-                    await self._persist_from_buffer(response)
-
-                    # Periodic flush for buffered events based on debounce
-                    await self._flush_due()
+                    await self._persist_from_buffer(annotated)
 
             except Exception as e:
-                error_msg = f"(Error) Error executing {task.id}: {str(e)}"
+                error_msg = f"(Error) Error executing {task.task_id}: {str(e)}"
                 logger.exception(f"Task execution failed: {error_msg}")
                 yield self._response_factory.task_failed(
                     session_id,
@@ -506,9 +505,6 @@ class AgentOrchestrator:
                     task.task_id,
                     error_msg,
                 )
-        # Before signaling done, flush any remaining buffered items in this thread
-        items = self._response_buffer.flush_context(session_id, thread_id)
-        await self._persist_items(items)
 
         yield self._response_factory.done(session_id, thread_id)
 
@@ -561,6 +557,7 @@ class AgentOrchestrator:
                         self._response_factory, task, thread_id, event
                     )
                     for r in result.responses:
+                        r = self._response_buffer.annotate(r)
                         yield r
                     # Apply side effects
                     for eff in result.side_effects:
@@ -577,6 +574,7 @@ class AgentOrchestrator:
                         self._response_factory, task, thread_id, event
                     )
                     for r in responses:
+                        r = self._response_buffer.annotate(r)
                         yield r
                     continue
 
@@ -587,8 +585,8 @@ class AgentOrchestrator:
                 thread_id=thread_id,
                 task_id=task.task_id,
             )
-            # Flush buffered content for this task context
-            items = self._response_buffer.flush_context(
+            # Finalize buffered aggregates for this task (explicit flush at task end)
+            items = self._response_buffer.flush_task(
                 conversation_id=task.session_id,
                 thread_id=thread_id,
                 task_id=task.task_id,
@@ -596,16 +594,19 @@ class AgentOrchestrator:
             await self._persist_items(items)
 
         except Exception as e:
+            # On failure, finalize any buffered aggregates for this task
+            items = self._response_buffer.flush_task(
+                conversation_id=task.session_id,
+                thread_id=thread_id,
+                task_id=task.task_id,
+            )
+            await self._persist_items(items)
             await self.task_manager.fail_task(task.task_id, str(e))
             raise e
 
     async def _persist_from_buffer(self, response: BaseResponse):
         """Ingest a response into the buffer and persist any SaveMessages produced."""
         items = self._response_buffer.ingest(response)
-        await self._persist_items(items)
-
-    async def _flush_due(self):
-        items = self._response_buffer.flush_due()
         await self._persist_items(items)
 
     async def _persist_items(self, items: list[SaveItem]):

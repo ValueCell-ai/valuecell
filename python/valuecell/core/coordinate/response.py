@@ -155,8 +155,8 @@ class ResponseFactory:
                 task_id=task_id,
                 payload=BaseResponseDataPayload(
                     content=content,
-                    role=Role.AGENT,
                 ),
+                role=Role.AGENT,
                 item_id=item_id or generate_item_id(),
             ),
         )

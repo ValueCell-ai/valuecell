@@ -141,7 +141,7 @@ class SQLiteMessageStore(MessageStore):
                 """
                 INSERT OR REPLACE INTO messages (
                     item_id, role, event, conversation_id, thread_id, task_id, payload
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     message.item_id,
