@@ -135,7 +135,6 @@ class GenericAgentExecutor(AgentExecutor):
             response_event = response.event
             metadata = {
                 "response_event": response_event.value,
-                "subtask_id": response.subtask_id,
             }
             if response_event == CommonResponseEvent.COMPONENT_GENERATOR:
                 metadata["component_type"] = response.metadata.get("component_type")
@@ -180,7 +179,6 @@ class GenericAgentExecutor(AgentExecutor):
                             "tool_call_id": response.metadata.get("tool_call_id"),
                             "tool_name": response.metadata.get("tool_name"),
                             "tool_result": response.metadata.get("content"),
-                            "subtask_id": response.subtask_id,
                         },
                     )
                     continue
@@ -190,7 +188,6 @@ class GenericAgentExecutor(AgentExecutor):
                         message=new_agent_text_message(response.content or ""),
                         metadata={
                             "event": response_event.value,
-                            "subtask_id": response.subtask_id,
                         },
                     )
                     continue

@@ -5,7 +5,7 @@ from typing import AsyncGenerator, Dict, Optional
 from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
 from valuecell.core.agent.connect import get_default_remote_connections
 from valuecell.core.coordinate.response import ResponseFactory
-from valuecell.core.coordinate.response_buffer import ResponseBuffer, SaveMessage
+from valuecell.core.coordinate.response_buffer import ResponseBuffer, SaveItem
 from valuecell.core.coordinate.response_router import (
     RouteResult,
     SideEffectKind,
@@ -260,13 +260,14 @@ class AgentOrchestrator:
         await self.provide_user_input(session_id, user_input.query)
 
         thread_id = generate_thread_id()
-        context.thread_id = thread_id
         yield self._response_factory.thread_started(
             conversation_id=session_id, thread_id=thread_id
         )
         await self.session_manager.add_user_message(
             conversation_id=session_id, thread_id=thread_id, content=user_input.query
         )
+        thread_id = generate_thread_id()
+        context.thread_id = thread_id
 
         # Resume based on execution stage
         if context.stage == "planning":
@@ -290,7 +291,6 @@ class AgentOrchestrator:
         yield self._response_factory.thread_started(
             conversation_id=session_id, thread_id=thread_id
         )
-
         # Add user message to session
         await self.session_manager.add_user_message(
             conversation_id=session_id, thread_id=thread_id, content=user_input.query
@@ -304,10 +304,10 @@ class AgentOrchestrator:
         )
 
         # Monitor planning progress
-        async for chunk in self._monitor_planning_task(
-            planning_task, thread_id, user_input, context_aware_callback
+        async for response in self._monitor_planning_task(
+            planning_task, generate_thread_id(), user_input, context_aware_callback
         ):
-            yield chunk
+            yield response
 
     def _create_context_aware_callback(self, session_id: str):
         """Create a callback that adds session context to user input requests"""
@@ -354,8 +354,8 @@ class AgentOrchestrator:
 
         # Planning completed, execute plan
         plan = await planning_task
-        async for chunk in self._execute_plan_with_input_support(plan, thread_id):
-            yield chunk
+        async for response in self._execute_plan_with_input_support(plan, thread_id):
+            yield response
 
     async def _request_user_input(self, session_id: str):
         """Set session to require user input and send the request"""
@@ -415,8 +415,8 @@ class AgentOrchestrator:
         plan = await planning_task
         del self._execution_contexts[session_id]
 
-        async for message in self._execute_plan_with_input_support(plan, thread_id):
-            yield message
+        async for response in self._execute_plan_with_input_support(plan, thread_id):
+            yield response
 
     async def _cancel_execution(self, session_id: str):
         """Cancel execution and clean up all related resources"""
@@ -504,7 +504,6 @@ class AgentOrchestrator:
                     session_id,
                     thread_id,
                     task.task_id,
-                    _generate_task_default_subtask_id(task.task_id),
                     error_msg,
                 )
         # Before signaling done, flush any remaining buffered items in this thread
@@ -587,7 +586,6 @@ class AgentOrchestrator:
                 conversation_id=task.session_id,
                 thread_id=thread_id,
                 task_id=task.task_id,
-                subtask_id=_generate_task_default_subtask_id(task.task_id),
             )
             # Flush buffered content for this task context
             items = self._response_buffer.flush_context(
@@ -610,7 +608,7 @@ class AgentOrchestrator:
         items = self._response_buffer.flush_due()
         await self._persist_items(items)
 
-    async def _persist_items(self, items: list[SaveMessage]):
+    async def _persist_items(self, items: list[SaveItem]):
         for it in items:
             await self.session_manager.add_message(
                 role=it.role,
@@ -618,15 +616,9 @@ class AgentOrchestrator:
                 conversation_id=it.conversation_id,
                 thread_id=it.thread_id,
                 task_id=it.task_id,
-                subtask_id=it.subtask_id,
                 payload=it.payload,
                 item_id=it.item_id,
             )
-
-
-def _generate_task_default_subtask_id(task_id: str) -> str:
-    """Generate a default subtask ID based on the main task ID"""
-    return f"{task_id}-default_subtask"
 
 
 # ==================== Module-level Factory Function ====================

@@ -92,7 +92,6 @@ class SessionManager:
         conversation_id: str,
         thread_id: Optional[str] = None,
         task_id: Optional[str] = None,
-        subtask_id: Optional[str] = None,
         payload: ResponsePayload = None,
         item_id: Optional[str] = None,
     ) -> Optional[ConversationItem]:
@@ -131,7 +130,6 @@ class SessionManager:
             conversation_id=conversation_id,
             thread_id=thread_id,
             task_id=task_id,
-            subtask_id=subtask_id,
             payload=payload_str,
         )
 

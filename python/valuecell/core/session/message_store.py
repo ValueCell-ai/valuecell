@@ -106,7 +106,6 @@ class SQLiteMessageStore(MessageStore):
                       conversation_id TEXT NOT NULL,
                       thread_id TEXT,
                       task_id TEXT,
-                      subtask_id TEXT,
                       payload TEXT,
                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     );
@@ -130,7 +129,6 @@ class SQLiteMessageStore(MessageStore):
             conversation_id=row["conversation_id"],
             thread_id=row["thread_id"],
             task_id=row["task_id"],
-            subtask_id=row["subtask_id"],
             payload=row["payload"],
         )
 
@@ -142,7 +140,7 @@ class SQLiteMessageStore(MessageStore):
             await db.execute(
                 """
                 INSERT OR REPLACE INTO messages (
-                    item_id, role, event, conversation_id, thread_id, task_id, subtask_id, payload
+                    item_id, role, event, conversation_id, thread_id, task_id, payload
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
@@ -152,7 +150,6 @@ class SQLiteMessageStore(MessageStore):
                     message.conversation_id,
                     message.thread_id,
                     message.task_id,
-                    message.subtask_id,
                     message.payload,
                 ),
             )

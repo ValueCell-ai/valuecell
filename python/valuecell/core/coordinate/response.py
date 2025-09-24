@@ -12,6 +12,7 @@ from valuecell.core.types import (
     PlanFailedResponse,
     PlanRequireUserInputResponse,
     ReasoningResponse,
+    Role,
     StreamResponseEvent,
     SystemFailedResponse,
     TaskCompletedResponse,
@@ -21,12 +22,13 @@ from valuecell.core.types import (
     ToolCallResponse,
     UnifiedResponseData,
 )
+from valuecell.utils.uuid import generate_item_id
 
 
 class ResponseFactory:
     def conversation_started(self, conversation_id: str) -> ConversationStartedResponse:
         return ConversationStartedResponse(
-            data=UnifiedResponseData(conversation_id=conversation_id)
+            data=UnifiedResponseData(conversation_id=conversation_id, role=Role.SYSTEM)
         )
 
     def thread_started(
@@ -34,7 +36,7 @@ class ResponseFactory:
     ) -> ThreadStartedResponse:
         return ThreadStartedResponse(
             data=UnifiedResponseData(
-                conversation_id=conversation_id, thread_id=thread_id
+                conversation_id=conversation_id, thread_id=thread_id, role=Role.SYSTEM
             )
         )
 
@@ -42,7 +44,7 @@ class ResponseFactory:
         return SystemFailedResponse(
             data=UnifiedResponseData(
                 conversation_id=conversation_id,
-                payload=BaseResponseDataPayload(content=content),
+                payload=BaseResponseDataPayload(content=content, role=Role.SYSTEM),
             )
         )
 
@@ -51,6 +53,7 @@ class ResponseFactory:
             data=UnifiedResponseData(
                 conversation_id=conversation_id,
                 thread_id=thread_id,
+                role=Role.SYSTEM,
             )
         )
 
@@ -61,7 +64,7 @@ class ResponseFactory:
             data=UnifiedResponseData(
                 conversation_id=conversation_id,
                 thread_id=thread_id,
-                payload=BaseResponseDataPayload(content=content),
+                payload=BaseResponseDataPayload(content=content, role=Role.AGENT),
             )
         )
 
@@ -72,7 +75,7 @@ class ResponseFactory:
             data=UnifiedResponseData(
                 conversation_id=conversation_id,
                 thread_id=thread_id,
-                payload=BaseResponseDataPayload(content=content),
+                payload=BaseResponseDataPayload(content=content, role=Role.SYSTEM),
             )
         )
 
@@ -81,7 +84,6 @@ class ResponseFactory:
         conversation_id: str,
         thread_id: str,
         task_id: str,
-        subtask_id: str | None,
         content: str,
     ) -> TaskFailedResponse:
         return TaskFailedResponse(
@@ -89,8 +91,7 @@ class ResponseFactory:
                 conversation_id=conversation_id,
                 thread_id=thread_id,
                 task_id=task_id,
-                subtask_id=subtask_id,
-                payload=BaseResponseDataPayload(content=content),
+                payload=BaseResponseDataPayload(content=content, role=Role.AGENT),
             )
         )
 
@@ -99,14 +100,13 @@ class ResponseFactory:
         conversation_id: str,
         thread_id: str,
         task_id: str,
-        subtask_id: str | None,
     ) -> TaskCompletedResponse:
         return TaskCompletedResponse(
             data=UnifiedResponseData(
                 conversation_id=conversation_id,
                 thread_id=thread_id,
                 task_id=task_id,
-                subtask_id=subtask_id,
+                role=Role.AGENT,
             ),
         )
 
@@ -115,7 +115,6 @@ class ResponseFactory:
         conversation_id: str,
         thread_id: str,
         task_id: str,
-        subtask_id: str,
         event: Literal[
             StreamResponseEvent.TOOL_CALL_STARTED,
             StreamResponseEvent.TOOL_CALL_COMPLETED,
@@ -130,12 +129,12 @@ class ResponseFactory:
                 conversation_id=conversation_id,
                 thread_id=thread_id,
                 task_id=task_id,
-                subtask_id=subtask_id,
                 payload=ToolCallPayload(
                     tool_call_id=tool_call_id,
                     tool_name=tool_name,
                     tool_result=tool_result,
                 ),
+                role=Role.AGENT,
             ),
         )
 
@@ -145,8 +144,8 @@ class ResponseFactory:
         conversation_id: str,
         thread_id: str,
         task_id: str,
-        subtask_id: str,
         content: str,
+        item_id: Optional[str] = None,
     ) -> MessageResponse:
         return MessageResponse(
             event=event,
@@ -154,8 +153,11 @@ class ResponseFactory:
                 conversation_id=conversation_id,
                 thread_id=thread_id,
                 task_id=task_id,
-                subtask_id=subtask_id,
-                payload=BaseResponseDataPayload(content=content),
+                payload=BaseResponseDataPayload(
+                    content=content,
+                    role=Role.AGENT,
+                ),
+                item_id=item_id or generate_item_id(),
             ),
         )
 
@@ -164,7 +166,6 @@ class ResponseFactory:
         conversation_id: str,
         thread_id: str,
         task_id: str,
-        subtask_id: str,
         event: Literal[
             StreamResponseEvent.REASONING,
             StreamResponseEvent.REASONING_STARTED,
@@ -178,8 +179,11 @@ class ResponseFactory:
                 conversation_id=conversation_id,
                 thread_id=thread_id,
                 task_id=task_id,
-                subtask_id=subtask_id,
-                payload=BaseResponseDataPayload(content=content) if content else None,
+                payload=(
+                    BaseResponseDataPayload(content=content, role=Role.AGENT)
+                    if content
+                    else None
+                ),
             ),
         )
 
@@ -188,7 +192,6 @@ class ResponseFactory:
         conversation_id: str,
         thread_id: str,
         task_id: str,
-        subtask_id: str,
         content: str,
         component_type: str,
     ) -> ComponentGeneratorResponse:
@@ -197,10 +200,10 @@ class ResponseFactory:
                 conversation_id=conversation_id,
                 thread_id=thread_id,
                 task_id=task_id,
-                subtask_id=subtask_id,
                 payload=ComponentGeneratorResponseDataPayload(
                     content=content,
                     component_type=component_type,
+                    role=Role.AGENT,
                 ),
             ),
         )

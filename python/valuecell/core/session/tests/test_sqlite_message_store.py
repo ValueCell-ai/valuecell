@@ -2,7 +2,6 @@ import os
 import tempfile
 
 import pytest
-
 from valuecell.core.session.message_store import SQLiteMessageStore
 from valuecell.core.types import ConversationItem, Role, SystemResponseEvent
 
@@ -22,7 +21,6 @@ async def test_sqlite_message_store_basic_crud():
             conversation_id="s1",
             thread_id="t1",
             task_id=None,
-            subtask_id=None,
             payload='{"a":1}',
         )
         m2 = ConversationItem(
@@ -32,7 +30,6 @@ async def test_sqlite_message_store_basic_crud():
             conversation_id="s1",
             thread_id="t1",
             task_id=None,
-            subtask_id=None,
             payload='{"a":1}',
         )
         await store.save_message(m1)

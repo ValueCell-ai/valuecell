@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 from pydantic import BaseModel
-
 from valuecell.core.types import (
     BaseResponse,
     BaseResponseDataPayload,
@@ -15,27 +14,22 @@ from valuecell.core.types import (
     TaskStatusEvent,
     UnifiedResponseData,
 )
-from valuecell.utils.uuid import generate_uuid
-
-
-def generate_item_id() -> str:
-    return generate_uuid("item")
+from valuecell.utils.uuid import generate_item_id
 
 
 @dataclass
-class SaveMessage:
+class SaveItem:
     item_id: str
-    role: Role
     event: object  # ConversationItemEvent union; keep generic to avoid circular typing
     conversation_id: str
     thread_id: Optional[str]
     task_id: Optional[str]
-    subtask_id: Optional[str]
     payload: Optional[BaseModel]
+    role: Role = Role.AGENT
 
 
-# conversation_id, thread_id, task_id, subtask_id, event
-BufferKey = Tuple[str, Optional[str], Optional[str], Optional[str], object]
+# conversation_id, thread_id, task_id, event
+BufferKey = Tuple[str, Optional[str], Optional[str], object]
 
 
 class BufferEntry:
@@ -67,7 +61,7 @@ class ResponseBuffer:
     - Immediate write: tool_call_completed, component_generator, message, plan_require_user_input
     - Buffered: message_chunk, reasoning (debounced or boundary-triggered)
     - Boundary triggers a flush for the same context: task_completed, task_failed, done
-    - Buffer key = (conversation_id, thread_id, task_id, subtask_id, event)
+    - Buffer key = (conversation_id, thread_id, task_id, event)
     """
 
     def __init__(
@@ -95,7 +89,7 @@ class ResponseBuffer:
             SystemResponseEvent.DONE,
         }
 
-    def ingest(self, resp: BaseResponse) -> List[SaveMessage]:
+    def ingest(self, resp: BaseResponse) -> List[SaveItem]:
         data: UnifiedResponseData = resp.data
         ev = resp.event
 
@@ -103,9 +97,8 @@ class ResponseBuffer:
             data.conversation_id,
             data.thread_id,
             data.task_id,
-            data.subtask_id,
         )
-        out: List[SaveMessage] = []
+        out: List[SaveItem] = []
 
         # Boundary-only: flush buffers for this context
         if ev in self._boundary_events:
@@ -115,7 +108,7 @@ class ResponseBuffer:
         # Immediate: flush buffers for this context, then write self
         if ev in self._immediate_events:
             out.extend(self._flush_context(*ctx))
-            out.append(self._make_save_message_from_response(resp))
+            out.append(self._make_save_item_from_response(resp))
             return out
 
         # Buffered: accumulate by (ctx + event)
@@ -146,8 +139,7 @@ class ResponseBuffer:
                     flushed = entry.flush_to_payload()
                     if flushed is not None:
                         out.append(
-                            self._make_save_message(
-                                role=self._role_for_event(ev),
+                            self._make_save_item(
                                 event=ev,
                                 data=data,
                                 payload=flushed,
@@ -159,24 +151,22 @@ class ResponseBuffer:
         # Other events: ignore for storage by default
         return out
 
-    def flush_due(self, now: Optional[float] = None) -> List[SaveMessage]:
+    def flush_due(self, now: Optional[float] = None) -> List[SaveItem]:
         now = now or time.monotonic()
-        out: List[SaveMessage] = []
+        out: List[SaveItem] = []
         to_delete: List[BufferKey] = []
         for key, entry in self._buffers.items():
             if now - entry.last_updated >= self._debounce_sec and entry.parts:
                 payload = entry.flush_to_payload()
                 if payload is not None:
-                    conv_id, thread_id, task_id, subtask_id, ev = key
+                    conv_id, thread_id, task_id, ev = key
                     out.append(
-                        SaveMessage(
+                        SaveItem(
                             item_id=generate_item_id(),
-                            role=self._role_for_event(ev),
                             event=ev,
                             conversation_id=conv_id,
                             thread_id=thread_id,
                             task_id=task_id,
-                            subtask_id=subtask_id,
                             payload=payload,
                         )
                     )
@@ -193,28 +183,25 @@ class ResponseBuffer:
         conversation_id: str,
         thread_id: Optional[str] = None,
         task_id: Optional[str] = None,
-        subtask_id: Optional[str] = None,
-    ) -> List[SaveMessage]:
-        return self._flush_context(conversation_id, thread_id, task_id, subtask_id)
+    ) -> List[SaveItem]:
+        return self._flush_context(conversation_id, thread_id, task_id)
 
-    def flush_all(self) -> List[SaveMessage]:
-        out: List[SaveMessage] = []
+    def flush_all(self) -> List[SaveItem]:
+        out: List[SaveItem] = []
         for key in list(self._buffers.keys()):
             entry = self._buffers.get(key)
             if not entry:
                 continue
             payload = entry.flush_to_payload()
             if payload is not None:
-                conv_id, thread_id, task_id, subtask_id, ev = key
+                conv_id, thread_id, task_id, ev = key
                 out.append(
-                    SaveMessage(
+                    SaveItem(
                         item_id=generate_item_id(),
-                        role=self._role_for_event(ev),
                         event=ev,
                         conversation_id=conv_id,
                         thread_id=thread_id,
                         task_id=task_id,
-                        subtask_id=subtask_id,
                         payload=payload,
                     )
                 )
@@ -226,9 +213,8 @@ class ResponseBuffer:
         conversation_id: str,
         thread_id: Optional[str],
         task_id: Optional[str],
-        subtask_id: Optional[str],
-    ) -> List[SaveMessage]:
-        out: List[SaveMessage] = []
+    ) -> List[SaveItem]:
+        out: List[SaveItem] = []
 
         # Collect keys matching the context and buffered events only
         def match(val, want):
@@ -240,8 +226,7 @@ class ResponseBuffer:
                 key[0] == conversation_id
                 and match(key[1], thread_id)
                 and match(key[2], task_id)
-                and match(key[3], subtask_id)
-                and key[4] in self._buffered_events
+                and key[3] in self._buffered_events
             ):
                 keys.append(key)
 
@@ -251,16 +236,14 @@ class ResponseBuffer:
                 continue
             payload = entry.flush_to_payload()
             if payload is not None:
-                conv_id, thread_id, task_id, subtask_id, ev = key
+                conv_id, thread_id, task_id, ev = key
                 out.append(
-                    SaveMessage(
+                    SaveItem(
                         item_id=generate_item_id(),
-                        role=self._role_for_event(ev),
                         event=ev,
                         conversation_id=conv_id,
                         thread_id=thread_id,
                         task_id=task_id,
-                        subtask_id=subtask_id,
                         payload=payload,
                     )
                 )
@@ -270,7 +253,7 @@ class ResponseBuffer:
 
         return out
 
-    def _make_save_message_from_response(self, resp: BaseResponse) -> SaveMessage:
+    def _make_save_item_from_response(self, resp: BaseResponse) -> SaveItem:
         data: UnifiedResponseData = resp.data
         payload = data.payload
 
@@ -288,38 +271,27 @@ class ResponseBuffer:
             except Exception:
                 bm = BaseResponseDataPayload(content=None)
 
-        return SaveMessage(
-            item_id=getattr(resp, "item_id", generate_item_id()),
-            role=self._role_for_event(resp.event),
+        return SaveItem(
+            item_id=resp.item_id,
             event=resp.event,
             conversation_id=data.conversation_id,
             thread_id=data.thread_id,
             task_id=data.task_id,
-            subtask_id=data.subtask_id,
             payload=bm,
         )
 
-    def _make_save_message(
+    def _make_save_item(
         self,
-        role: Role,
         event: object,
         data: UnifiedResponseData,
         payload: BaseModel,
         item_id: str | None = None,
-    ) -> SaveMessage:
-        return SaveMessage(
+    ) -> SaveItem:
+        return SaveItem(
             item_id=item_id,
-            role=role,
             event=event,
             conversation_id=data.conversation_id,
             thread_id=data.thread_id,
             task_id=data.task_id,
-            subtask_id=data.subtask_id,
             payload=payload,
         )
-
-    def _role_for_event(self, ev: object) -> Role:
-        # Agent-originated by default; some system events are SYSTEM
-        if ev in {SystemResponseEvent.PLAN_REQUIRE_USER_INPUT}:
-            return Role.SYSTEM
-        return Role.AGENT

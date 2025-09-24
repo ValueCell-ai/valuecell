@@ -8,5 +8,9 @@ def generate_uuid(prefix: str = None) -> str:
     return f"{prefix}-{uuid4().hex}"
 
 
+def generate_item_id() -> str:
+    return generate_uuid("item")
+
+
 def generate_thread_id() -> str:
     return generate_uuid("th")

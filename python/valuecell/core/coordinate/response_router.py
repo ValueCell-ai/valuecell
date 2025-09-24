@@ -39,10 +39,6 @@ class RouteResult:
             self.side_effects = []
 
 
-def _default_subtask_id(task_id: str) -> str:
-    return f"{task_id}_default-subtask"
-
-
 async def handle_status_update(
     response_factory: ResponseFactory,
     task: Task,
@@ -63,7 +59,6 @@ async def handle_status_update(
                 conversation_id=task.session_id,
                 thread_id=thread_id,
                 task_id=task.task_id,
-                subtask_id=_default_subtask_id(task.task_id),
                 content=err_msg,
             )
         )
@@ -77,9 +72,6 @@ async def handle_status_update(
         return RouteResult(responses)
 
     response_event = event.metadata.get("response_event")
-    subtask_id = event.metadata.get("subtask_id")
-    if not subtask_id:
-        subtask_id = _default_subtask_id(task.task_id)
 
     # Tool call events
     if state == TaskState.working and EventPredicates.is_tool_call(response_event):
@@ -94,7 +86,6 @@ async def handle_status_update(
                 conversation_id=task.session_id,
                 thread_id=thread_id,
                 task_id=task.task_id,
-                subtask_id=subtask_id,
                 event=response_event,
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
@@ -110,7 +101,6 @@ async def handle_status_update(
                 conversation_id=task.session_id,
                 thread_id=thread_id,
                 task_id=task.task_id,
-                subtask_id=subtask_id,
                 event=response_event,
                 content=get_message_text(event.status.message, ""),
             )
@@ -128,9 +118,6 @@ async def handle_artifact_update(
 ) -> List[MessageResponse | ComponentGeneratorResponse]:
     responses: List[BaseResponse] = []
     artifact = event.artifact
-    subtask_id = artifact.metadata.get("subtask_id") if artifact.metadata else None
-    if not subtask_id:
-        subtask_id = _default_subtask_id(task.task_id)
     response_event = artifact.metadata.get("response_event")
     content = get_message_text(artifact, "")
 
@@ -141,7 +128,6 @@ async def handle_artifact_update(
                 conversation_id=task.session_id,
                 thread_id=thread_id,
                 task_id=task.task_id,
-                subtask_id=subtask_id,
                 content=content,
                 component_type=component_type,
             )
@@ -154,7 +140,6 @@ async def handle_artifact_update(
             conversation_id=task.session_id,
             thread_id=thread_id,
             task_id=task.task_id,
-            subtask_id=subtask_id,
             content=content,
         )
     )

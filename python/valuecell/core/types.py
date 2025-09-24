@@ -4,7 +4,7 @@ from typing import AsyncGenerator, Callable, Literal, Optional, Union
 
 from a2a.types import Task, TaskArtifactUpdateEvent, TaskStatusUpdateEvent
 from pydantic import BaseModel, Field
-from valuecell.utils.uuid import generate_uuid
+from valuecell.utils.uuid import generate_item_id
 
 
 class UserInputMetadata(BaseModel):
@@ -80,10 +80,6 @@ class StreamResponse(BaseModel):
         None,
         description="Optional metadata providing additional context about the response",
     )
-    subtask_id: Optional[str] = Field(
-        None,
-        description="Optional subtask ID if the response is related to a specific subtask",
-    )
 
 
 class NotifyResponse(BaseModel):
@@ -153,9 +149,6 @@ class ConversationItem(BaseModel):
     task_id: Optional[str] = Field(
         None, description="Task ID if associated with a task"
     )
-    subtask_id: Optional[str] = Field(
-        None, description="Subtask ID if associated with a subtask"
-    )
     payload: str = Field(..., description="The actual message payload")
 
 
@@ -171,18 +164,16 @@ class UnifiedResponseData(BaseModel):
         None, description="Unique ID for the message thread"
     )
     task_id: Optional[str] = Field(None, description="Unique ID for the task")
-    subtask_id: Optional[str] = Field(
-        None, description="Unique ID for the subtask, if any"
-    )
     payload: Optional[ResponsePayload] = Field(
         None, description="The message data payload"
     )
+    role: Role = Field(..., description="The role of the message sender")
+    item_id: str = Field(default_factory=generate_item_id)
 
 
 class BaseResponse(BaseModel, ABC):
     """Top-level response envelope used for all events."""
 
-    item_id: str = Field(default_factory=lambda: generate_uuid("item"))
     event: ConversationItemEvent = Field(
         ..., description="The event type of the response"
     )
