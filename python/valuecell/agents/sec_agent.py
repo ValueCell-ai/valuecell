@@ -101,7 +101,7 @@ class SecAgent(BaseAgent):
             )
             # Analysis agent
             self.analysis_agent = Agent(
-                model=OpenRouter(id=self.config.analysis_model_id),
+                model=OpenRouter(id=self.config.analysis_model_id, max_tokens=None),
                 markdown=True,
             )
             logger.info("SEC intelligent analysis agent initialized successfully")
@@ -348,7 +348,7 @@ class SecAgent(BaseAgent):
             ] = await self.analysis_agent.arun(
                 analysis_prompt, stream=True, stream_intermediate_steps=True
             )
-            for event in response_stream:
+            async for event in response_stream:
                 if event.event == "RunResponseContent":
                     yield streaming.message_chunk(event.content)
                 elif event.event == "ToolCallStarted":
@@ -444,7 +444,7 @@ class SecAgent(BaseAgent):
             ] = await self.analysis_agent.arun(
                 analysis_prompt, stream=True, stream_intermediate_steps=True
             )
-            for event in response_stream:
+            async for event in response_stream:
                 if event.event == "RunResponseContent":
                     yield streaming.message_chunk(event.content)
                 elif event.event == "ToolCallStarted":

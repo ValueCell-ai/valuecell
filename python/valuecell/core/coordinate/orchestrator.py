@@ -267,11 +267,6 @@ class AgentOrchestrator:
             await self._cancel_execution(conversation_id)
             return
 
-        # Provide user response and resume execution
-        # If we are in an execution stage, store the pending response for resume
-        context.add_metadata(pending_response=user_input.query)
-        await self.provide_user_input(conversation_id, user_input.query)
-
         thread_id = generate_thread_id()
         response = self._response_factory.thread_started(
             conversation_id=conversation_id,
@@ -280,6 +275,11 @@ class AgentOrchestrator:
         )
         await self._persist_from_buffer(response)
         yield response
+
+        # Provide user response and resume execution
+        # If we are in an execution stage, store the pending response for resume
+        context.add_metadata(pending_response=user_input.query)
+        await self.provide_user_input(conversation_id, user_input.query)
         context.thread_id = thread_id
 
         # Resume based on execution stage

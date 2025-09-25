@@ -74,7 +74,7 @@ class StreamResponse(BaseModel):
         None,
         description="The content of the stream response, typically a chunk of data or message.",
     )
-    event: StreamResponseEvent | TaskStatusEvent = Field(
+    event: StreamResponseEvent | TaskStatusEvent | CommonResponseEvent = Field(
         ...,
         description="The type of stream response, indicating its purpose or content nature.",
     )
@@ -91,7 +91,7 @@ class NotifyResponse(BaseModel):
         ...,
         description="The content of the notification response",
     )
-    event: NotifyResponseEvent | TaskStatusEvent = Field(
+    event: NotifyResponseEvent | TaskStatusEvent | CommonResponseEvent = Field(
         ...,
         description="The type of notification response",
     )
