@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { useSSE } from "@/hooks/use-sse";
 import { updateAgentConversationsStore } from "@/lib/agent-store";
 import { getServerUrl } from "@/lib/api-client";
-import { SSEReadyState } from "@/lib/sse-client";
 import type {
   AgentConversationsStore,
   AgentStreamRequest,
@@ -32,7 +31,7 @@ export default function AgentChat() {
 
   // Use optimized reducer for state management
   const [agentStore, dispatchAgentStore] = useReducer(agentStoreReducer, {});
-  const curConversationId = useRef<string>("");
+  const curConversationId = useRef<string>(`${agentName}_session_default_user`);
   const curThreadId = useRef<string>("");
 
   // Get current conversation using original data structure
@@ -74,7 +73,7 @@ export default function AgentChat() {
   }, []);
 
   // Initialize SSE connection using the useSSE hook
-  const { connect, close, state } = useSSE({
+  const { connect, close, isStreaming } = useSSE({
     url: getServerUrl("/agents/stream"),
     handlers: {
       onData: handleSSEData,
@@ -89,10 +88,7 @@ export default function AgentChat() {
       },
     },
   });
-
-  const isStreaming = useMemo(() => {
-    return state === SSEReadyState.OPEN || state === SSEReadyState.CONNECTING;
-  }, [state]);
+  console.log("🚀 ~ AgentChat ~ isStreaming:", isStreaming);
 
   // Send message to agent
   // biome-ignore lint/correctness/useExhaustiveDependencies: connect is no need to be in dependencies

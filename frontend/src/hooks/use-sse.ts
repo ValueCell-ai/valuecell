@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import SSEClient, {
   type SSEEventHandlers,
   type SSEOptions,
@@ -16,9 +16,7 @@ export interface UseSSEOptions extends SSEOptions {
 
 export interface UseSSEReturn {
   /** Current connection state */
-  state: SSEReadyState;
-  /** Current error, if any */
-  error: Error | null;
+  isStreaming: boolean;
   /** Connect to the SSE endpoint */
   connect: (body?: BodyInit) => Promise<void>;
   /** Close the SSE connection */
@@ -30,48 +28,39 @@ export interface UseSSEReturn {
  */
 export function useSSE({
   handlers,
-  autoConnect = false,
   body,
   ...sseOptions
 }: UseSSEOptions): UseSSEReturn {
-  const [error, setError] = useState<Error | null>(null);
   const clientRef = useRef<SSEClient | null>(null);
+  const [isStreaming, setIsStreaming] = useState<boolean>(false);
+
+  // Handle state changes from SSE client
+  const handleStateChange = useCallback((state: SSEReadyState) => {
+    console.log("🚀 ~ handleStateChange ~ state:", state);
+    setIsStreaming(
+      state === SSEReadyState.OPEN || state === SSEReadyState.CONNECTING,
+    );
+  }, []);
 
   // Initialize client once
   if (!clientRef.current) {
     clientRef.current = new SSEClient(sseOptions, {
       ...handlers,
       onError: (err: Error) => {
-        setError(err);
         handlers?.onError?.(err);
       },
       onOpen: () => {
-        setError(null);
         handlers?.onOpen?.();
       },
+      onStateChange: handleStateChange,
     });
   }
-
-  // Auto-connect and cleanup
-  useEffect(() => {
-    const client = clientRef.current;
-
-    if (autoConnect) {
-      client?.connect(body);
-    }
-
-    return () => {
-      client?.destroy();
-      clientRef.current = null;
-    };
-  }, [autoConnect, body]);
 
   const connect = useCallback(
     async (connectBody?: BodyInit) => {
       const client = clientRef.current;
       if (!client) throw new Error("SSE client not initialized");
 
-      setError(null);
       await client.connect(connectBody || body);
     },
     [body],
@@ -82,8 +71,7 @@ export function useSSE({
   }, []);
 
   return {
-    state: clientRef.current?.state ?? SSEReadyState.CLOSED,
-    error,
+    isStreaming,
     connect,
     close,
   };

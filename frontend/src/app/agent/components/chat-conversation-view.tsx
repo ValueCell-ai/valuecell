@@ -1,5 +1,5 @@
 import { ArrowUp } from "lucide-react";
-import { type FC, useEffect, useState } from "react";
+import { type FC, useState } from "react";
 import { Button } from "@/components/ui/button";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import ScrollTextarea from "@/components/valuecell/scroll/scroll-textarea";
@@ -19,8 +19,6 @@ const ChatConversationView: FC<ChatConversationViewProps> = ({
   isStreaming,
   sendMessage,
 }) => {
-  console.log("🚀 ~ ChatConversationView ~ isStreaming:", isStreaming);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [inputValue, setInputValue] = useState<string>("");
 
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -32,14 +30,9 @@ const ChatConversationView: FC<ChatConversationViewProps> = ({
   };
 
   const handleSendMessage = async () => {
-    setIsLoading(true);
     await sendMessage(inputValue);
     setInputValue("");
   };
-
-  useEffect(() => {
-    setIsLoading(isStreaming);
-  }, [isStreaming]);
 
   const threads = currentConversation?.threads;
 
@@ -69,13 +62,13 @@ const ChatConversationView: FC<ChatConversationViewProps> = ({
             placeholder="You can inquire and analyze the trend of NVIDIA in the next three months"
             maxHeight={120}
             minHeight={24}
-            disabled={isLoading}
+            disabled={isStreaming}
           />
           <Button
             size="icon"
             className="size-8 cursor-pointer self-end rounded-full"
             onClick={handleSendMessage}
-            disabled={isLoading}
+            disabled={isStreaming}
           >
             <ArrowUp size={16} className="text-white" />
           </Button>
@@ -147,13 +140,13 @@ const ChatConversationView: FC<ChatConversationViewProps> = ({
               placeholder="Type your message..."
               maxHeight={120}
               minHeight={24}
-              disabled={isLoading}
+              disabled={isStreaming}
             />
             <Button
               size="icon"
               className="size-8 cursor-pointer self-end rounded-full"
               onClick={handleSendMessage}
-              disabled={isLoading}
+              disabled={isStreaming}
             >
               <ArrowUp size={16} className="text-white" />
             </Button>
