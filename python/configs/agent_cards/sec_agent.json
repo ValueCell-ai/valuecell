@@ -20,94 +20,29 @@
                 "institutional investors"
             ]
         },
-        {
-            "id": "compare_quarterly_reports",
-            "name": "Compare Quarterly Financial Reports",
-            "description": "Compare and analyze quarterly financial reports (10-Q) across multiple periods to identify trends, performance changes, and key financial metrics evolution.",
+
+         {
+            "id": "financial_data_queries",
+            "name": "Financial data queries",
+            "description": "Analyze financial extract stock holdings and provide insights on institutional investment managers' portfolios.",
             "examples": [
-                "Compare Tesla's last three quarterly 10-Q reports",
-                "Analyze Apple's Q1 vs Q4 financial performance from their 10-Q filings",
-                "What are the key changes in Amazon's quarterly revenue and expenses over the past year?"
+                "What are the 10K fillings of Berkshire Hathaway indicate?"
             ],
             "tags": [
-                "10-Q",
-                "quarterly reports",
-                "financial analysis"
+                "stock holdings",
+                "institutional investors"
             ]
         },
+
         {
-            "id": "summarize_annual_reports",
-            "name": "Summarize Annual Financial Reports",
-            "description": "Extract and summarize key information from annual 10-K reports, including business overview, risk factors, financial highlights, and strategic initiatives.",
+            "id": "track_company_info",
+            "name": "Track company sec info update",
+            "description": "Track and analyze company's information changes .",
             "examples": [
-                "Help me summarize Nvidia's latest 10-K report",
-                "What are the main highlights from Microsoft's annual 10-K filing?",
-                "Provide a comprehensive summary of Meta's business segments from their 10-K report"
+                "Please check Berkshire Hathaway’s filings and notify me with an analysis whenever there’s an update."
             ],
             "tags": [
-                "10-K",
-                "annual reports",
-                "financial summary"
-            ]
-        },
-        {
-            "id": "compare_industry_performance",
-            "name": "Compare Industry Financial Performance",
-            "description": "Analyze and compare financial performance metrics across companies within the same industry sector, identifying competitive positioning and market leaders.",
-            "examples": [
-                "How does AMD's financial performance compare to Intel and Nvidia?",
-                "Compare the profitability metrics of JPMorgan, Bank of America, and Wells Fargo",
-                "Analyze the revenue growth rates of Netflix, Disney, and Warner Bros Discovery"
-            ],
-            "tags": [
-                "industry comparison",
-                "financial metrics",
-                "competitive analysis"
-            ]
-        },
-        {
-            "id": "analyze_revenue_mix_evolution",
-            "name": "Analyze Revenue Mix Evolution",
-            "description": "Track and analyze changes in company revenue composition, business segment performance, and revenue diversification strategies over time.",
-            "examples": [
-                "How has Google's revenue mix changed over the past 3 years?",
-                "Analyze the evolution of Amazon's revenue streams from 2020 to 2023",
-                "What changes occurred in Apple's product revenue mix in the last 5 years?"
-            ],
-            "tags": [
-                "revenue mix",
-                "business segments",
-                "financial evolution"
-            ]
-        },
-        {
-            "id": "assess_financial_health_metrics",
-            "name": "Assess Financial Health Metrics",
-            "description": "Evaluate company financial health through key metrics analysis including liquidity ratios, debt levels, profitability margins, and cash flow patterns.",
-            "examples": [
-                "Assess Tesla's current financial health based on their latest filings",
-                "What do the debt-to-equity ratios tell us about Boeing's financial stability?",
-                "Analyze the cash flow trends and liquidity position of General Electric"
-            ],
-            "tags": [
-                "financial health",
-                "liquidity",
-                "debt analysis"
-            ]
-        },
-        {
-            "id": "identify_risk_factors",
-            "name": "Identify Financial Risk Factors",
-            "description": "Extract and analyze risk factors disclosed in SEC filings, categorize risks by type, and assess potential impact on business operations and financial performance.",
-            "examples": [
-                "What are the main risk factors disclosed in Uber's latest 10-K filing?",
-                "Analyze the regulatory risks mentioned in JPMorgan's annual report",
-                "Compare the risk disclosures between traditional automakers and EV companies"
-            ],
-            "tags": [
-                "risk factors",
-                "financial risk",
-                "SEC filings"
+                "track_company"
             ]
         }
     ],
