@@ -99,7 +99,7 @@ class SQLiteItemStore(ItemStore):
             async with aiosqlite.connect(self.db_path) as db:
                 await db.execute(
                     """
-                    CREATE TABLE IF NOT EXISTS messages (
+                    CREATE TABLE IF NOT EXISTS conversation_items (
                       item_id TEXT PRIMARY KEY,
                       role TEXT NOT NULL,
                       event TEXT NOT NULL,
@@ -113,8 +113,8 @@ class SQLiteItemStore(ItemStore):
                 )
                 await db.execute(
                     """
-                    CREATE INDEX IF NOT EXISTS idx_messages_conv_time
-                    ON messages (conversation_id, created_at);
+                    CREATE INDEX IF NOT EXISTS idx_item_conv_time
+                    ON conversation_items (conversation_id, created_at);
                     """
                 )
                 await db.commit()
@@ -139,7 +139,7 @@ class SQLiteItemStore(ItemStore):
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute(
                 """
-                INSERT OR REPLACE INTO messages (
+                INSERT OR REPLACE INTO conversation_items (
                     item_id, role, event, conversation_id, thread_id, task_id, payload
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
@@ -168,7 +168,7 @@ class SQLiteItemStore(ItemStore):
         if role is not None:
             where += " AND role = ?"
             params.append(getattr(role, "value", str(role)))
-        sql = f"SELECT * FROM messages {where} ORDER BY datetime(created_at) ASC"
+        sql = f"SELECT * FROM conversation_items {where} ORDER BY datetime(created_at) ASC"
         if limit is not None:
             sql += " LIMIT ?"
             params.append(int(limit))
@@ -188,7 +188,7 @@ class SQLiteItemStore(ItemStore):
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = sqlite3.Row
             cur = await db.execute(
-                "SELECT * FROM messages WHERE conversation_id = ? ORDER BY datetime(created_at) DESC LIMIT 1",
+                "SELECT * FROM conversation_items WHERE conversation_id = ? ORDER BY datetime(created_at) DESC LIMIT 1",
                 (conversation_id,),
             )
             row = await cur.fetchone()
@@ -199,7 +199,7 @@ class SQLiteItemStore(ItemStore):
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = sqlite3.Row
             cur = await db.execute(
-                "SELECT * FROM messages WHERE item_id = ?",
+                "SELECT * FROM conversation_items WHERE item_id = ?",
                 (item_id,),
             )
             row = await cur.fetchone()
@@ -209,7 +209,7 @@ class SQLiteItemStore(ItemStore):
         await self._ensure_initialized()
         async with aiosqlite.connect(self.db_path) as db:
             cur = await db.execute(
-                "SELECT COUNT(1) FROM messages WHERE conversation_id = ?",
+                "SELECT COUNT(1) FROM conversation_items WHERE conversation_id = ?",
                 (conversation_id,),
             )
             row = await cur.fetchone()
@@ -219,7 +219,7 @@ class SQLiteItemStore(ItemStore):
         await self._ensure_initialized()
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute(
-                "DELETE FROM messages WHERE conversation_id = ?",
+                "DELETE FROM conversation_items WHERE conversation_id = ?",
                 (conversation_id,),
             )
             await db.commit()
