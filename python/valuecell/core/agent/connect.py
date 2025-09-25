@@ -17,7 +17,10 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class AgentContext:
-    """Unified context for remote agents."""
+    """Unified context for remote agents.
+
+    Stores connection state, URLs, and configuration for a remote agent.
+    """
 
     name: str
     # Connection/runtime state
