@@ -35,6 +35,8 @@ class UserInput(BaseModel):
 
 
 class SystemResponseEvent(str, Enum):
+    """Events related to system-level responses and status updates."""
+
     CONVERSATION_STARTED = "conversation_started"
     THREAD_STARTED = "thread_started"
     PLAN_REQUIRE_USER_INPUT = "plan_require_user_input"
@@ -44,6 +46,8 @@ class SystemResponseEvent(str, Enum):
 
 
 class TaskStatusEvent(str, Enum):
+    """Events related to task lifecycle status changes."""
+
     TASK_STARTED = "task_started"
     TASK_COMPLETED = "task_completed"
     TASK_FAILED = "task_failed"
@@ -51,10 +55,14 @@ class TaskStatusEvent(str, Enum):
 
 
 class CommonResponseEvent(str, Enum):
+    """Common response events shared across different response types."""
+
     COMPONENT_GENERATOR = "component_generator"
 
 
 class StreamResponseEvent(str, Enum):
+    """Events specific to streaming agent responses."""
+
     MESSAGE_CHUNK = "message_chunk"
     TOOL_CALL_STARTED = "tool_call_started"
     TOOL_CALL_COMPLETED = "tool_call_completed"
@@ -64,11 +72,18 @@ class StreamResponseEvent(str, Enum):
 
 
 class NotifyResponseEvent(str, Enum):
+    """Events specific to notification agent responses."""
+
     MESSAGE = "message"
 
 
 class StreamResponse(BaseModel):
-    """Response model for streaming agent responses"""
+    """Response model for streaming agent responses.
+
+    Used by agents that stream progress, tool calls, reasoning, or
+    component-generation updates. `event` determines how the response
+    should be interpreted.
+    """
 
     content: Optional[str] = Field(
         None,
@@ -98,6 +113,11 @@ class NotifyResponse(BaseModel):
 
 
 class ToolCallPayload(BaseModel):
+    """Payload describing a tool call made by an agent.
+
+    Contains identifiers and optional result content produced by the tool.
+    """
+
     tool_call_id: str = Field(..., description="Unique ID for the tool call")
     tool_name: str = Field(..., description="Name of the tool being called")
     tool_result: Optional[str] = Field(
@@ -107,10 +127,17 @@ class ToolCallPayload(BaseModel):
 
 
 class BaseResponseDataPayload(BaseModel, ABC):
+    """Base class for response data payloads."""
+
     content: Optional[str] = Field(None, description="The message content")
 
 
 class ComponentGeneratorResponseDataPayload(BaseResponseDataPayload):
+    """Payload for responses that generate UI components.
+
+    `component_type` describes the kind of component produced.
+    """
+
     component_type: str = Field(..., description="The component type")
 
 
@@ -131,7 +158,7 @@ ConversationItemEvent = Union[
 
 
 class Role(str, Enum):
-    """Message role enumeration"""
+    """Message role enumeration."""
 
     USER = "user"
     AGENT = "agent"
@@ -139,7 +166,11 @@ class Role(str, Enum):
 
 
 class ConversationItem(BaseModel):
-    """Message item structure for conversation history"""
+    """Message item structure for conversation history.
+
+    Represents a single message/event within a conversation and stores
+    identifiers, role, event type and payload.
+    """
 
     item_id: str = Field(..., description="Unique message identifier")
     role: Role = Field(..., description="Role of the message sender")
@@ -174,7 +205,11 @@ class UnifiedResponseData(BaseModel):
 
 
 class BaseResponse(BaseModel, ABC):
-    """Top-level response envelope used for all events."""
+    """Top-level response envelope used for all events.
+
+    Subclasses narrow the `event` literal and `data` payload for specific
+    response kinds (message, task updates, system events, etc.).
+    """
 
     event: ConversationItemEvent = Field(
         ..., description="The event type of the response"
@@ -185,6 +220,8 @@ class BaseResponse(BaseModel, ABC):
 
 
 class ConversationStartedResponse(BaseResponse):
+    """Response indicating a conversation has started."""
+
     event: Literal[SystemResponseEvent.CONVERSATION_STARTED] = Field(
         SystemResponseEvent.CONVERSATION_STARTED,
         description="The event type of the response",
@@ -192,6 +229,8 @@ class ConversationStartedResponse(BaseResponse):
 
 
 class ThreadStartedResponse(BaseResponse):
+    """Response indicating a thread has started."""
+
     event: Literal[SystemResponseEvent.THREAD_STARTED] = Field(
         SystemResponseEvent.THREAD_STARTED,
         description="The event type of the response",
@@ -199,6 +238,8 @@ class ThreadStartedResponse(BaseResponse):
 
 
 class PlanRequireUserInputResponse(BaseResponse):
+    """Response indicating the execution plan requires user input."""
+
     event: Literal[SystemResponseEvent.PLAN_REQUIRE_USER_INPUT] = Field(
         SystemResponseEvent.PLAN_REQUIRE_USER_INPUT,
         description="The event type of the response",
@@ -207,6 +248,8 @@ class PlanRequireUserInputResponse(BaseResponse):
 
 
 class MessageResponse(BaseResponse):
+    """Response containing a message payload (streamed or notified)."""
+
     event: Literal[
         StreamResponseEvent.MESSAGE_CHUNK,
         NotifyResponseEvent.MESSAGE,
@@ -215,6 +258,8 @@ class MessageResponse(BaseResponse):
 
 
 class ComponentGeneratorResponse(BaseResponse):
+    """Response that carries component generation data for UI rendering."""
+
     event: Literal[CommonResponseEvent.COMPONENT_GENERATOR] = Field(
         CommonResponseEvent.COMPONENT_GENERATOR,
         description="The event type of the response",
@@ -223,6 +268,8 @@ class ComponentGeneratorResponse(BaseResponse):
 
 
 class ToolCallResponse(BaseResponse):
+    """Response representing tool call lifecycle events."""
+
     event: Literal[
         StreamResponseEvent.TOOL_CALL_STARTED, StreamResponseEvent.TOOL_CALL_COMPLETED
     ] = Field(
@@ -233,6 +280,8 @@ class ToolCallResponse(BaseResponse):
 
 
 class ReasoningResponse(BaseResponse):
+    """Response containing intermediate reasoning events from the agent."""
+
     event: Literal[
         StreamResponseEvent.REASONING_STARTED,
         StreamResponseEvent.REASONING,
@@ -242,6 +291,8 @@ class ReasoningResponse(BaseResponse):
 
 
 class DoneResponse(BaseResponse):
+    """Response indicating a thread or conversation is done."""
+
     event: Literal[SystemResponseEvent.DONE] = Field(
         SystemResponseEvent.DONE, description="The event type of the response"
     )
@@ -249,6 +300,8 @@ class DoneResponse(BaseResponse):
 
 
 class PlanFailedResponse(BaseResponse):
+    """Response indicating a plan execution failure."""
+
     event: Literal[SystemResponseEvent.PLAN_FAILED] = Field(
         SystemResponseEvent.PLAN_FAILED, description="The event type of the response"
     )
@@ -256,6 +309,8 @@ class PlanFailedResponse(BaseResponse):
 
 
 class TaskStartedResponse(BaseResponse):
+    """Response indicating a task has been started."""
+
     event: Literal[TaskStatusEvent.TASK_STARTED] = Field(
         TaskStatusEvent.TASK_STARTED, description="The event type of the response"
     )
@@ -263,6 +318,8 @@ class TaskStartedResponse(BaseResponse):
 
 
 class TaskFailedResponse(BaseResponse):
+    """Response indicating a task has failed."""
+
     event: Literal[TaskStatusEvent.TASK_FAILED] = Field(
         TaskStatusEvent.TASK_FAILED, description="The event type of the response"
     )
@@ -270,6 +327,8 @@ class TaskFailedResponse(BaseResponse):
 
 
 class TaskCompletedResponse(BaseResponse):
+    """Response indicating a task has completed successfully."""
+
     event: Literal[TaskStatusEvent.TASK_COMPLETED] = Field(
         TaskStatusEvent.TASK_COMPLETED, description="The event type of the response"
     )
@@ -277,6 +336,8 @@ class TaskCompletedResponse(BaseResponse):
 
 
 class SystemFailedResponse(BaseResponse):
+    """Response indicating a system-level failure for the conversation."""
+
     event: Literal[SystemResponseEvent.SYSTEM_FAILED] = Field(
         SystemResponseEvent.SYSTEM_FAILED, description="The event type of the response"
     )

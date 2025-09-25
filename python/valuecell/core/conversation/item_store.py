@@ -10,6 +10,12 @@ from valuecell.core.types import ConversationItem, Role
 
 
 class ItemStore(ABC):
+    """Abstract storage interface for conversation items.
+
+    Implementations must provide async methods for saving and querying
+    ConversationItem instances.
+    """
+
     @abstractmethod
     async def save_item(self, item: ConversationItem) -> None: ...
 
@@ -38,6 +44,11 @@ class ItemStore(ABC):
 
 
 class InMemoryItemStore(ItemStore):
+    """In-memory store for conversation items.
+
+    Useful for tests and lightweight usage where persistence is not required.
+    """
+
     def __init__(self):
         # conversation_id -> list[ConversationItem]
         self._items: Dict[str, List[ConversationItem]] = {}
@@ -81,7 +92,12 @@ class InMemoryItemStore(ItemStore):
 
 
 class SQLiteItemStore(ItemStore):
-    """SQLite-backed item store using aiosqlite for true async I/O."""
+    """SQLite-backed item store using aiosqlite for true async I/O.
+
+    Lazily initializes the database schema on first use. Uses aiosqlite to
+    perform non-blocking DB operations and converts rows to ConversationItem
+    instances.
+    """
 
     def __init__(self, db_path: str):
         self.db_path = db_path

@@ -15,7 +15,12 @@ from .conversation_store import InMemoryConversationStore, ConversationStore
 
 
 class ConversationManager:
-    """Conversation manager - handles both conversation metadata and items through separate stores"""
+    """High-level manager coordinating conversation metadata and items.
+
+    Conversation metadata is delegated to a ConversationStore while message
+    items are delegated to an ItemStore. This class exposes convenience
+    methods for creating conversations, adding items, and querying state.
+    """
 
     def __init__(
         self,

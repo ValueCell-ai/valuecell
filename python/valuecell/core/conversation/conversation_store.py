@@ -7,7 +7,9 @@ from .models import Conversation
 class ConversationStore(ABC):
     """Conversation storage abstract base class - handles conversation metadata only.
 
-    Items are stored separately using ItemStore implementations.
+    Implementations should provide async methods to save, load, delete and
+    list conversation metadata. Conversation items themselves are managed
+    separately by ItemStore implementations.
     """
 
     @abstractmethod
@@ -34,7 +36,10 @@ class ConversationStore(ABC):
 
 
 class InMemoryConversationStore(ConversationStore):
-    """In-memory conversation storage implementation"""
+    """In-memory ConversationStore implementation used for testing and simple scenarios.
+
+    Stores conversations in a dict keyed by conversation_id.
+    """
 
     def __init__(self):
         self._conversations: Dict[str, Conversation] = {}
