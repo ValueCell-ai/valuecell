@@ -13,7 +13,7 @@ from a2a.server.tasks import (
     InMemoryTaskStore,
     TaskUpdater,
 )
-from a2a.types import AgentCard, Part, TaskState, TextPart, UnsupportedOperationError
+from a2a.types import AgentCard, TaskState, UnsupportedOperationError
 from a2a.utils import new_agent_text_message, new_task
 from a2a.utils.errors import ServerError
 from valuecell.core.agent.card import find_local_agent_card_by_agent_name
@@ -21,7 +21,7 @@ from valuecell.core.types import (
     BaseAgent,
     NotifyResponse,
     StreamResponse,
-    StreamResponseEvent,
+    CommonResponseEvent,
 )
 from valuecell.utils import parse_host_port
 from .responses import EventPredicates
@@ -116,49 +116,21 @@ class GenericAgentExecutor(AgentExecutor):
 
         # Helper state
         task_id = task.id
-        session_id = task.context_id
-        updater = TaskUpdater(event_queue, task_id, session_id)
-        artifact_id = f"artifact-{agent_name}-{session_id}-{task_id}"
-        chunk_idx = -1
-
-        # Local helper to add a chunk
-        async def _add_chunk(
-            response: StreamResponse | NotifyResponse, is_complete: bool
-        ):
-            nonlocal chunk_idx
-
-            chunk_idx += 1
-            if not response.content:
-                return
-
-            parts = [Part(root=TextPart(text=response.content))]
-            response_event = response.event
-            metadata = {
-                "response_event": response_event.value,
-                "subtask_id": response.subtask_id,
-            }
-            if response_event == StreamResponseEvent.COMPONENT_GENERATOR:
-                metadata["component_type"] = response.metadata.get("component_type")
-            await updater.add_artifact(
-                parts=parts,
-                artifact_id=artifact_id,
-                append=chunk_idx > 0,
-                last_chunk=is_complete,
-                metadata=metadata,
-            )
+        context_id = task.context_id
+        updater = TaskUpdater(event_queue, task_id, context_id)
 
         # Stream from the user agent and update task incrementally
         await updater.update_status(
             TaskState.working,
             message=new_agent_text_message(
-                f"Task received by {agent_name}", session_id, task_id
+                f"Task received by {agent_name}", context_id, task_id
             ),
         )
         try:
             query_handler = (
                 self.agent.notify if task_meta.get("notify") else self.agent.stream
             )
-            async for response in query_handler(query, session_id, task_id):
+            async for response in query_handler(query, context_id, task_id):
                 if not isinstance(response, (StreamResponse, NotifyResponse)):
                     raise ValueError(
                         f"Agent {agent_name} yielded invalid response type: {type(response)}"
@@ -170,44 +142,44 @@ class GenericAgentExecutor(AgentExecutor):
                         f"Agent {agent_name} reported failure: {response.content}"
                     )
 
-                is_complete = EventPredicates.is_task_completed(response_event)
+                metadata = {"response_event": response_event.value}
                 if EventPredicates.is_tool_call(response_event):
+                    metadata["tool_call_id"] = response.metadata.get("tool_call_id")
+                    metadata["tool_name"] = response.metadata.get("tool_name")
+                    metadata["tool_result"] = response.metadata.get("content")
                     await updater.update_status(
                         TaskState.working,
                         message=new_agent_text_message(response.content or ""),
-                        metadata={
-                            "event": response_event.value,
-                            "tool_call_id": response.metadata.get("tool_call_id"),
-                            "tool_name": response.metadata.get("tool_name"),
-                            "tool_result": response.metadata.get("content"),
-                            "subtask_id": response.subtask_id,
-                        },
+                        metadata=metadata,
                     )
                     continue
                 if EventPredicates.is_reasoning(response_event):
                     await updater.update_status(
                         TaskState.working,
                         message=new_agent_text_message(response.content or ""),
-                        metadata={
-                            "event": response_event.value,
-                            "subtask_id": response.subtask_id,
-                        },
+                        metadata=metadata,
                     )
                     continue
 
-                await _add_chunk(response, is_complete=is_complete)
-                if is_complete:
-                    await updater.complete()
-                    break
+                if not response.content:
+                    continue
+                if response_event == CommonResponseEvent.COMPONENT_GENERATOR:
+                    metadata["component_type"] = response.metadata.get("component_type")
+                await updater.update_status(
+                    TaskState.working,
+                    message=new_agent_text_message(response.content or ""),
+                    metadata=metadata,
+                )
 
         except Exception as e:
             message = f"Error during {agent_name} agent execution: {e}"
             logger.error(message)
             await updater.update_status(
                 TaskState.failed,
-                message=new_agent_text_message(message, session_id, task_id),
-                final=True,
+                message=new_agent_text_message(message, context_id, task_id),
             )
+        finally:
+            await updater.complete()
 
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
         # Default cancel operation

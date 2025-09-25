@@ -2,144 +2,96 @@
 
 // Base event data structures
 interface BaseEventData {
+  role: "user" | "agent" | "system";
   conversation_id: string; // Top-level conversation session
   thread_id: string; // Message chain within conversation
   task_id: string; // Single agent execution unit
-  subtask_id: string; // Granular operation within task
-}
-
-// Payload wrapper for content events
-interface PayloadWrapper<T> {
-  payload: T;
+  item_id: string; // Minimum granular render level
 }
 
 // Helper types to reduce repetition
-type EventWithPayload<TEvent, TPayload> = TEvent & PayloadWrapper<TPayload>;
-type MessageWithRole<TRole extends string, TPayload> = BaseEventData & {
-  role: TRole;
-} & PayloadWrapper<TPayload>;
+interface PayloadWrapper<T> {
+  payload: T;
+}
+type MessageWithPayload<TPayload> = BaseEventData & PayloadWrapper<TPayload>;
 
-// Agent SSE event mapping
+// Final chat message shapes used by UI
+export type AgentChunkMessage = MessageWithPayload<{ content: string }>;
+export type AgentReasoningMessage = AgentChunkMessage;
+export type AgentThreadStartedMessage = AgentChunkMessage;
+export type AgentPlanRequireUserInputMessage = AgentChunkMessage;
+export type AgentPlanFailedMessage = AgentChunkMessage;
+export type AgentTaskFailedMessage = AgentChunkMessage;
+export type AgentSystemFailedMessage = AgentChunkMessage;
+
+export type AgentComponentMessage = MessageWithPayload<{
+  component_type: string;
+  content: string;
+}>;
+
+export type AgentToolCallStartedMessage = MessageWithPayload<{
+  tool_call_id: string;
+  tool_name: string;
+}>;
+
+export type AgentToolCallCompletedMessage = MessageWithPayload<{
+  tool_call_id: string;
+  tool_name: string;
+  tool_call_result: string;
+}>;
+
+type ChatMessage =
+  | AgentChunkMessage
+  | AgentComponentMessage
+  | AgentToolCallStartedMessage
+  | AgentToolCallCompletedMessage;
+
+export type ChatItem = ChatMessage & {
+  component_type: string;
+};
+
 export interface AgentEventMap {
   // Lifecycle Events
   conversation_started: Pick<BaseEventData, "conversation_id">;
-  thread_started: Pick<BaseEventData, "thread_id">;
+  thread_started: AgentThreadStartedMessage;
   done: Pick<BaseEventData, "conversation_id" | "thread_id">;
 
   // Content Streaming Events
-  message_chunk: EventWithPayload<
-    BaseEventData & { role?: "user" | "agent" | "system" },
-    { content: string }
-  >;
-  message: EventWithPayload<BaseEventData, { content: string }>;
+  message_chunk: AgentChunkMessage;
+  message: AgentChunkMessage;
 
   // Component Generation
-  component_generator: EventWithPayload<
-    BaseEventData,
-    {
-      component_type: string;
-      content: string;
-    }
-  >;
+  component_generator: AgentComponentMessage;
 
   // User Interaction
-  plan_require_user_input: EventWithPayload<
-    Pick<BaseEventData, "conversation_id" | "thread_id">,
-    { content: string }
-  >;
+  plan_require_user_input: AgentPlanRequireUserInputMessage;
 
   // Tool Execution Lifecycle
-  tool_call_started: EventWithPayload<
-    BaseEventData,
-    {
-      tool_call_id: string;
-      tool_name: string;
-    }
-  >;
+  tool_call_started: AgentToolCallStartedMessage;
 
-  tool_call_completed: EventWithPayload<
-    BaseEventData,
-    {
-      tool_call_id: string;
-      tool_name: string;
-      tool_call_result: string;
-    }
-  >;
+  tool_call_completed: AgentToolCallCompletedMessage;
 
   // Reasoning Process
-  reasoning: EventWithPayload<BaseEventData, { content: string }>;
+  reasoning: AgentReasoningMessage;
   reasoning_started: BaseEventData;
   reasoning_completed: BaseEventData;
 
   // Error Handling
-  plan_failed: EventWithPayload<
-    Pick<BaseEventData, "conversation_id" | "thread_id">,
-    { content: string }
-  >;
-  task_failed: EventWithPayload<BaseEventData, { content: string }>;
+  plan_failed: AgentPlanFailedMessage;
+  task_failed: AgentTaskFailedMessage;
+  system_failed: AgentSystemFailedMessage;
 }
 
-// Final chat message shapes used by UI
-export type AgentChunkMessage = MessageWithRole<
-  "agent" | "user" | "system",
-  { content: string }
->;
-
-export type AgentComponentMessage = MessageWithRole<
-  "agent",
-  {
-    component_type: string;
-    content: string;
-  }
->;
-
-export type AgentToolCallStartedMessage = MessageWithRole<
-  "agent",
-  {
-    tool_call_id: string;
-    tool_name: string;
-  }
->;
-
-export type AgentToolCallCompletedMessage = MessageWithRole<
-  "agent",
-  {
-    tool_call_id: string;
-    tool_name: string;
-    tool_call_result: string;
-  }
->;
-
-export type AgentReasoningMessage = MessageWithRole<
-  "agent",
-  { content: string }
->;
-
-export type AgentPlanRequireUserInputMessage = {
-  role: "agent";
-} & Pick<BaseEventData, "conversation_id" | "thread_id"> &
-  PayloadWrapper<{ content: string }>;
-
-export type AgentPlanFailedMessage = AgentPlanRequireUserInputMessage;
-export type AgentTaskFailedMessage = AgentPlanRequireUserInputMessage;
-
-export type ChatMessage =
-  | AgentComponentMessage
-  | AgentToolCallStartedMessage
-  | AgentToolCallCompletedMessage
-  | AgentReasoningMessage
-  | AgentChunkMessage
-  | AgentPlanRequireUserInputMessage
-  | AgentPlanFailedMessage
-  | AgentTaskFailedMessage;
+export interface TaskView {
+  items: ChatItem[];
+}
 
 export interface ThreadView {
-  messages: ChatMessage[];
+  tasks: Record<string, TaskView>;
 }
 
 export interface ConversationView {
   threads: Record<string, ThreadView>;
-  currentThreadId?: string;
 }
 
 export type AgentConversationsStore = Record<string, ConversationView>;
@@ -159,3 +111,19 @@ export type AgentStreamRequest = {
   query: string;
   agent_name: string;
 } & Partial<Pick<BaseEventData, "conversation_id" | "thread_id">>;
+
+export interface AgentMetadata {
+  version: string;
+  author: string;
+  tags: string[];
+}
+
+export interface AgentInfo {
+  agent_name: string;
+  icon_url: string;
+  enabled: boolean;
+  agent_metadata: AgentMetadata;
+  description: string;
+  created_at: string;
+  updated_at: string;
+}

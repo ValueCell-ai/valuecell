@@ -52,11 +52,12 @@ class AgentService:
         agent_data_list = [
             AgentData(
                 id=agent.id,
-                name=agent.name,
+                agent_name=agent.name,
                 display_name=agent.display_name,
                 description=agent.description,
                 version=agent.version,
                 enabled=agent.enabled,
+                icon_url=agent.icon_url,
                 agent_metadata=agent.agent_metadata,
                 config=agent.config,
                 created_at=agent.created_at,
@@ -92,11 +93,12 @@ class AgentService:
 
         return AgentData(
             id=agent.id,
-            name=agent.name,
+            agent_name=agent.name,
             display_name=agent.display_name,
             description=agent.description,
             version=agent.version,
             enabled=agent.enabled,
+            icon_url=agent.icon_url,
             agent_metadata=agent.agent_metadata,
             config=agent.config,
             created_at=agent.created_at,
@@ -122,11 +124,12 @@ class AgentService:
 
         return AgentData(
             id=agent.id,
-            name=agent.name,
+            agent_name=agent.name,
             display_name=agent.display_name,
             description=agent.description,
             version=agent.version,
             enabled=agent.enabled,
+            icon_url=agent.icon_url,
             agent_metadata=agent.agent_metadata,
             config=agent.config,
             created_at=agent.created_at,

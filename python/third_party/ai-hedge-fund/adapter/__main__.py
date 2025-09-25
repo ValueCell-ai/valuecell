@@ -62,7 +62,7 @@ class AIHedgeFundAgent(BaseAgent):
         logger.info(
             f"Parsing query: {query}. Task ID: {task_id}, Session ID: {session_id}"
         )
-        run_response = self.agno_agent.run(
+        run_response = await self.agno_agent.arun(
             f"Parse the following hedge fund analysis request and extract the parameters: {query}"
         )
         hedge_fund_request = run_response.content
@@ -101,7 +101,7 @@ class AIHedgeFundAgent(BaseAgent):
         }
 
         logger.info(f"Start analyzing. Task ID: {task_id}, Session ID: {session_id}")
-        for _, chunk in run_hedge_fund_stream(
+        async for _, chunk in run_hedge_fund_stream(
             tickers=hedge_fund_request.tickers,
             start_date=start_date,
             end_date=end_date,
@@ -116,7 +116,7 @@ class AIHedgeFundAgent(BaseAgent):
         yield streaming.done()
 
 
-def run_hedge_fund_stream(
+async def run_hedge_fund_stream(
     tickers: list[str],
     start_date: str,
     end_date: str,
@@ -153,7 +153,8 @@ def run_hedge_fund_stream(
                 "model_provider": model_provider,
             },
         }
-        yield from _agent.stream(inputs, stream_mode=["custom", "messages"])
+        async for res in _agent.astream(inputs, stream_mode=["custom", "messages"]):
+            yield res
     finally:
         # Stop progress tracking
         progress.stop()

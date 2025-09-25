@@ -56,14 +56,14 @@ export function useSSE({
 
   // Auto-connect and cleanup
   useEffect(() => {
-    const client = clientRef.current!;
+    const client = clientRef.current;
 
     if (autoConnect) {
-      client.connect(body);
+      client?.connect(body);
     }
 
     return () => {
-      client.destroy();
+      client?.destroy();
       clientRef.current = null;
     };
   }, [autoConnect, body]);
@@ -83,11 +83,9 @@ export function useSSE({
     clientRef.current?.close();
   }, []);
 
-  const state = clientRef.current?.state ?? SSEReadyState.CLOSED;
-
   return {
-    state,
-    isConnected: state === SSEReadyState.OPEN,
+    state: clientRef.current?.state ?? SSEReadyState.CLOSED,
+    isConnected: clientRef.current?. state === SSEReadyState.OPEN,
     error,
     connect,
     close,

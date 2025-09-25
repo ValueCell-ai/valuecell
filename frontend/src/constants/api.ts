@@ -13,8 +13,13 @@ const STOCK_QUERY_KEYS = {
   stockAdd: queryKeyFn(["stock", "add"]),
 } as const;
 
+const AGENT_QUERY_KEYS = {
+  agentInfo: queryKeyFn(["agent", "info"]),
+} as const;
+
 export const API_QUERY_KEYS = {
   STOCK: STOCK_QUERY_KEYS,
+  AGENT: AGENT_QUERY_KEYS,
 } as const;
 
 /**

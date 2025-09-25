@@ -1,14 +1,10 @@
 import { ArrowUp, MessageCircle, Settings } from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-} from "react";
-import { Navigate, useParams } from "react-router";
+import { useCallback, useMemo, useReducer, useRef, useState } from "react";
+import { useParams } from "react-router";
+import { useGetAgentInfo } from "@/api/agent";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import ScrollTextarea, {
   type ScrollTextareaRef,
 } from "@/components/valuecell/scroll/scroll-textarea";
@@ -17,12 +13,10 @@ import { updateAgentConversationsStore } from "@/lib/agent-store";
 import { getServerUrl } from "@/lib/api-client";
 import { SSEReadyState } from "@/lib/sse-client";
 import { cn } from "@/lib/utils";
-import { agentData } from "@/mock/agent-data";
 import type {
   AgentConversationsStore,
   AgentStreamRequest,
   SSEData,
-  ThreadView,
 } from "@/types/agent";
 import type { Route } from "./+types/chat";
 import { ChatBackground } from "./components";
@@ -38,7 +32,9 @@ function agentStoreReducer(
 
 export default function AgentChat() {
   const { agentName } = useParams<Route.LoaderArgs["params"]>();
-  const agent = agentData[agentName ?? ""];
+  const { data: agent } = useGetAgentInfo({
+    agentName: agentName ?? "",
+  });
 
   const textareaRef = useRef<ScrollTextareaRef>(null);
   const [inputValue, setInputValue] = useState("");
@@ -47,69 +43,49 @@ export default function AgentChat() {
   const [agentStore, dispatchAgentStore] = useReducer(agentStoreReducer, {});
   const curConversationId = useRef<string>("");
   const curThreadId = useRef<string>("");
-  const [isSending, setIsSending] = useState(false);
-  const [shouldClose, setShouldClose] = useState(false);
 
-  // Get current conversation
-  const threadEntries = useMemo(() => {
-    if (!curConversationId.current || !agentStore[curConversationId.current]) {
-      return null;
-    }
-    const threads = agentStore[curConversationId.current].threads;
-    return threads
-      ? (Object.entries(threads) as Array<[string, ThreadView]>)
-      : [];
+  // Get current conversation using original data structure
+  const currentConversation = useMemo(() => {
+    return curConversationId.current in agentStore
+      ? agentStore[curConversationId.current]
+      : null;
   }, [agentStore]);
 
   // Handle SSE data events using agent store
-  const handleSSEData = useCallback(
-    (sseData: SSEData) => {
-      // Update agent store using the reducer
-      dispatchAgentStore(sseData);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: close is no need to be in dependencies
+  const handleSSEData = useCallback((sseData: SSEData) => {
+    // Update agent store using the reducer
+    dispatchAgentStore(sseData);
 
-      // Handle specific UI state updates
-      const { event, data } = sseData;
-      switch (event) {
-        case "conversation_started": {
-          curConversationId.current = data.conversation_id;
-          break;
-        }
+    // Handle specific UI state updates
+    const { event, data } = sseData;
+    switch (event) {
+      case "conversation_started":
+        curConversationId.current = data.conversation_id;
+        break;
 
-        case "thread_started": {
+      case "thread_started":
+        curThreadId.current = data.thread_id;
+        setInputValue("");
+        break;
+
+      case "plan_require_user_input":
+      case "plan_failed":
+      case "task_failed":
+      case "system_failed":
+      case "done":
+        close();
+        break;
+
+      // All message-related events are handled by the store
+      default:
+        // Update current thread ID for message events
+        if ("thread_id" in data) {
           curThreadId.current = data.thread_id;
-          dispatchAgentStore({
-            event: "message_chunk",
-            data: {
-              conversation_id: curConversationId.current,
-              thread_id: data.thread_id,
-              task_id: "",
-              subtask_id: "",
-              payload: { content: inputValue.trim() },
-              role: "user",
-            },
-          });
-
-          setInputValue("");
-          break;
         }
-
-        case "done": {
-          curThreadId.current = data.thread_id;
-          setShouldClose(true);
-          break;
-        }
-
-        // All message-related events are handled by the store
-        default:
-          // Update current thread ID for message events
-          if ("thread_id" in data) {
-            curThreadId.current = data.thread_id;
-          }
-          break;
-      }
-    },
-    [inputValue],
-  );
+        break;
+    }
+  }, []);
 
   // Initialize SSE connection using the useSSE hook
   const {
@@ -123,49 +99,29 @@ export default function AgentChat() {
       onData: handleSSEData,
       onOpen: () => {
         console.log("✅ SSE connection opened");
-        setIsSending(false); // Reset sending state on open
       },
       onError: (error: Error) => {
         console.error("❌ SSE connection error:", error);
-        setIsSending(false); // Reset sending state on error
       },
       onClose: () => {
         console.log("🔌 SSE connection closed");
-        setIsSending(false); // Reset sending state on close
       },
     },
   });
 
-  useEffect(() => {
-    if (shouldClose) {
-      close();
-      setShouldClose(false);
-    }
-  }, [shouldClose]);
-
-  // Derived state - compute from existing state instead of maintaining separately
-  const isConnected = state === SSEReadyState.OPEN;
-  const isConnecting = state === SSEReadyState.CONNECTING;
-  // isStreaming represents when AI is processing/responding, not related to user input requirements
-  const isStreaming = isConnected && isSending;
+  const isStreaming = useMemo(
+    () => state === SSEReadyState.OPEN || state === SSEReadyState.CONNECTING,
+    [state],
+  );
 
   // Send message to agent
+  // biome-ignore lint/correctness/useExhaustiveDependencies: connect is no need to be in dependencies
   const sendMessage = useCallback(
     async (message: string) => {
-      // Prevent duplicate sends
-      if (isSending || isConnecting) {
-        console.log(
-          "Already sending or connecting, ignoring duplicate request",
-        );
-        return;
-      }
-
-      setIsSending(true);
-
       try {
         const request: AgentStreamRequest = {
           query: message,
-          agent_name: agent.name,
+          agent_name: agentName ?? "",
           conversation_id: curConversationId.current,
         };
 
@@ -173,44 +129,32 @@ export default function AgentChat() {
         await connect(JSON.stringify(request));
       } catch (error) {
         console.error("Failed to send message:", error);
-        setIsSending(false); // Reset immediately on error
       }
     },
-    [connect, isSending, isConnecting, agentName],
+    [agentName],
   );
 
   const handleSendMessage = useCallback(() => {
     const trimmedInput = inputValue.trim();
     // Prevent sending while connecting/sending or when input is empty
-    if (!trimmedInput || isConnecting || isSending) {
+    if (!trimmedInput || isStreaming) {
       console.log("Cannot send: empty input, connecting, or already sending");
       return;
     }
 
     // Always use sendMessage - user input for plan_require_user_input is just normal conversation
     sendMessage(trimmedInput);
-  }, [inputValue, isConnecting, isSending, sendMessage]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(e.target.value);
-  };
+  }, [inputValue, isStreaming, sendMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    // Send message on Enter key (excluding Shift+Enter line breaks and IME composition state)
+    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       handleSendMessage();
     }
   };
 
-  if (!agent) return <Navigate to="/" replace />;
-
-  // Agent skills/tags
-  const agentSkills = [
-    "Hong Kong stocks",
-    "US stocks",
-    "Predictive analysis",
-    "Stock selection",
-  ];
+  // if (!agent) return <Navigate to="/" replace />;
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
@@ -218,58 +162,50 @@ export default function AgentChat() {
       <header className="flex items-center justify-between border-gray-100 border-b p-6">
         <div className="flex items-center gap-4">
           {/* Agent Avatar */}
-          <div className="relative size-12">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg" />
-            <div className="absolute inset-0.5 flex items-center justify-center rounded-full bg-white">
-              <span className="font-semibold text-gray-700 text-sm">AI</span>
-            </div>
-          </div>
+          <Avatar className="size-14">
+            <AvatarImage src={agent?.icon_url} />
+            <AvatarFallback>{agentName?.slice(0, 2)}</AvatarFallback>
+          </Avatar>
 
           {/* Agent Info */}
-          <div className="flex flex-col gap-1">
-            <h1 className="font-semibold text-gray-950 text-lg">
-              AI Hedge Fund Agent
-            </h1>
-            <div className="flex items-center gap-2">
-              {agentSkills.slice(0, 2).map((skill) => (
+          <div className="flex flex-col gap-1.5">
+            <h1 className="font-semibold text-gray-950 text-lg">{agentName}</h1>
+            <div className="flex items-center gap-1">
+              {agent?.agent_metadata.tags.map((tag) => (
                 <span
-                  key={skill}
-                  className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 font-medium text-blue-700 text-xs"
+                  key={tag}
+                  className="text-nowrap rounded-md bg-gray-100 px-3 py-1 font-normal text-gray-700 text-xs"
                 >
-                  {skill}
+                  {tag}
                 </span>
               ))}
-              {agentSkills.length > 2 && (
-                <span className="text-gray-500 text-xs">
-                  +{agentSkills.length - 2} more
-                </span>
-              )}
             </div>
           </div>
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <Button
-            variant="ghost"
+            variant="secondary"
+            className="size-8 cursor-pointer rounded-lg"
             size="icon"
-            className="size-9 rounded-lg hover:bg-gray-100"
           >
-            <MessageCircle size={18} className="text-gray-600" />
+            <MessageCircle size={16} className="text-gray-700" />
           </Button>
           <Button
-            variant="ghost"
+            variant="secondary"
+            className="size-8 cursor-pointer rounded-lg"
             size="icon"
-            className="size-9 rounded-lg hover:bg-gray-100"
           >
-            <Settings size={18} className="text-gray-600" />
+            <Settings size={16} className="text-gray-700" />
           </Button>
         </div>
       </header>
 
       {/* Main content area */}
-      <main className="relative flex flex-1 flex-col">
-        {!threadEntries?.length ? (
+      <main className="relative flex flex-1 flex-col overflow-hidden">
+        {!currentConversation?.threads ||
+        Object.keys(currentConversation.threads).length === 0 ? (
           <>
             {/* Background blur effects for welcome screen */}
             <ChatBackground />
@@ -291,58 +227,64 @@ export default function AgentChat() {
                 <ScrollTextarea
                   ref={textareaRef}
                   value={inputValue}
-                  onInput={handleInputChange}
+                  onInput={(e) => setInputValue(e.currentTarget.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="You can inquire and analyze the trend of NVIDIA in the next three months"
                   maxHeight={120}
                   minHeight={24}
-                  disabled={isStreaming || isSending}
+                  disabled={isStreaming}
                 />
                 <Button
                   size="icon"
                   className="size-8 cursor-pointer self-end rounded-full"
                   onClick={handleSendMessage}
-                  disabled={isStreaming || isSending || !inputValue.trim()}
+                  disabled={isStreaming || !inputValue.trim()}
                 >
                   <ArrowUp size={16} className="text-white" />
                 </Button>
               </div>
-
-              {/* Connection status */}
-              {sseError && (
-                <div className="flex items-center gap-2 text-red-600 text-sm">
-                  <span>⚠️ Connection error: {sseError.message}</span>
-                </div>
-              )}
             </div>
           </>
         ) : (
           <>
-            {/* Chat messages with optimized rendering */}
-            <div className="flex-1 space-y-6 overflow-y-auto p-6">
-              {threadEntries.map(([threadId, thread], threadIndex) => {
-                return (
-                  <div key={threadId} className="space-y-6">
-                    {threadEntries.length > 1 && (
-                      <div className="flex items-center gap-2 text-gray-400 text-xs uppercase tracking-wide">
-                        <span className="h-px flex-1 bg-gray-200" />
-                        <span>Thread {threadIndex + 1}</span>
-                        <span className="h-px flex-1 bg-gray-200" />
-                      </div>
-                    )}
+            {/* Chat messages using original data structure */}
+            <ScrollContainer className="flex-1 space-y-6 p-6">
+              {currentConversation &&
+                Object.entries(currentConversation.threads).map(
+                  ([threadId, thread], threadIndex) => {
+                    const threadCount = Object.keys(
+                      currentConversation.threads,
+                    ).length;
+                    const showThreadSeparator =
+                      threadIndex > 0 && threadCount > 1;
 
-                    {thread.messages.map((message, index) => (
-                      <ChatMessageComponent
-                        key={`${message.conversation_id}-${threadId}-${index}`}
-                        message={message}
-                        index={index}
-                        conversationId={curConversationId.current}
-                        threadId={threadId}
-                      />
-                    ))}
-                  </div>
-                );
-              })}
+                    return (
+                      <div key={threadId} className="space-y-6">
+                        {/* Thread separator - only show for subsequent threads when there are multiple threads */}
+                        {showThreadSeparator && (
+                          <div className="flex items-center gap-2 text-gray-400 text-xs uppercase tracking-wide">
+                            <span className="h-px flex-1 bg-gray-200" />
+                            <span>Thread {threadId}</span>
+                            <span className="h-px flex-1 bg-gray-200" />
+                          </div>
+                        )}
+
+                        {/* Render all tasks within this thread */}
+                        {Object.entries(thread.tasks).map(([taskId, task]) => {
+                          if (task.items && task.items.length > 0) {
+                            return (
+                              <ChatMessageComponent
+                                key={taskId}
+                                items={task.items}
+                              />
+                            );
+                          }
+                          return null;
+                        })}
+                      </div>
+                    );
+                  },
+                )}
 
               {/* Streaming indicator */}
               {isStreaming && (
@@ -355,7 +297,7 @@ export default function AgentChat() {
                   <span>AI is thinking...</span>
                 </div>
               )}
-            </div>
+            </ScrollContainer>
 
             {/* Input area at bottom */}
             <div className="border-gray-200 border-t p-4">
@@ -369,68 +311,21 @@ export default function AgentChat() {
                 <ScrollTextarea
                   ref={textareaRef}
                   value={inputValue}
-                  onInput={handleInputChange}
+                  onInput={(e) => setInputValue(e.currentTarget.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Type your message..."
                   maxHeight={120}
                   minHeight={24}
-                  disabled={isStreaming || isSending}
+                  disabled={isStreaming}
                 />
                 <Button
                   size="icon"
                   className="size-8 cursor-pointer self-end rounded-full"
                   onClick={handleSendMessage}
-                  disabled={isStreaming || isSending || !inputValue.trim()}
+                  disabled={isStreaming}
                 >
                   <ArrowUp size={16} className="text-white" />
                 </Button>
-              </div>
-
-              {/* Status indicators */}
-              <div className="mt-2 flex items-center justify-between text-gray-500 text-xs">
-                <div className="flex items-center gap-4">
-                  <span
-                    className={cn(
-                      "flex items-center gap-1",
-                      isStreaming
-                        ? "text-green-600"
-                        : isConnecting
-                          ? "text-blue-600"
-                          : isConnected
-                            ? "text-green-600"
-                            : "text-red-600",
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "h-2 w-2 rounded-full",
-                        isStreaming
-                          ? "bg-green-500"
-                          : isConnecting
-                            ? "animate-pulse bg-blue-500"
-                            : isConnected
-                              ? "bg-green-500"
-                              : "bg-red-500",
-                      )}
-                    />
-                    <span className="text-xs">
-                      {isStreaming
-                        ? "Streaming"
-                        : isConnecting
-                          ? "Connecting"
-                          : isConnected
-                            ? "Ready"
-                            : "Disconnected"}
-                    </span>
-                  </span>
-                  {curConversationId.current && (
-                    <span>Session: {curConversationId.current}</span>
-                  )}
-                  {curThreadId.current && (
-                    <span>Thread: {curThreadId.current}</span>
-                  )}
-                </div>
-                <span>Press Enter to send, Shift+Enter for new line</span>
               </div>
 
               {sseError && (

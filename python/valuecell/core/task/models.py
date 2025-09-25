@@ -32,7 +32,9 @@ class Task(BaseModel):
         description="Task identifier determined by the remote agent after submission",
     )
     query: str = Field(..., description="The task to be performed")
-    session_id: str = Field(..., description="Session ID this task belongs to")
+    conversation_id: str = Field(
+        ..., description="Conversation ID this task belongs to"
+    )
     user_id: str = Field(..., description="User ID who initiated this task")
     agent_name: str = Field(..., description="Name of the agent executing this task")
     status: TaskStatus = Field(

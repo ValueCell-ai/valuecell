@@ -3,38 +3,32 @@ from __future__ import annotations
 from typing import Optional
 
 from valuecell.core.types import (
+    CommonResponseEvent,
     NotifyResponse,
     NotifyResponseEvent,
     StreamResponse,
     StreamResponseEvent,
-    SystemResponseEvent,
+    TaskStatusEvent,
     ToolCallPayload,
-    _TaskResponseEvent,
 )
 
 
 class _StreamResponseNamespace:
     """Factory methods for streaming responses."""
 
-    def message_chunk(
-        self, content: str, subtask_id: str | None = None
-    ) -> StreamResponse:
+    def message_chunk(self, content: str) -> StreamResponse:
         return StreamResponse(
             event=StreamResponseEvent.MESSAGE_CHUNK,
             content=content,
-            subtask_id=subtask_id,
         )
 
-    def tool_call_started(
-        self, tool_call_id: str, tool_name: str, subtask_id: str | None = None
-    ) -> StreamResponse:
+    def tool_call_started(self, tool_call_id: str, tool_name: str) -> StreamResponse:
         return StreamResponse(
             event=StreamResponseEvent.TOOL_CALL_STARTED,
             metadata=ToolCallPayload(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
             ).model_dump(),
-            subtask_id=subtask_id,
         )
 
     def tool_call_completed(
@@ -42,7 +36,6 @@ class _StreamResponseNamespace:
         tool_result: str,
         tool_call_id: str,
         tool_name: str,
-        subtask_id: str | None = None,
     ) -> StreamResponse:
         return StreamResponse(
             event=StreamResponseEvent.TOOL_CALL_COMPLETED,
@@ -51,48 +44,25 @@ class _StreamResponseNamespace:
                 tool_name=tool_name,
                 tool_result=tool_result,
             ).model_dump(),
-            subtask_id=subtask_id,
         )
 
-    def reasoning_started(self, subtask_id: str | None = None) -> StreamResponse:
+    def component_generator(self, content: str, component_type: str) -> StreamResponse:
         return StreamResponse(
-            event=StreamResponseEvent.REASONING_STARTED,
-            subtask_id=subtask_id,
-        )
-
-    def reasoning(self, content: str, subtask_id: str | None = None) -> StreamResponse:
-        return StreamResponse(
-            event=StreamResponseEvent.REASONING,
-            content=content,
-            subtask_id=subtask_id,
-        )
-
-    def reasoning_completed(self, subtask_id: str | None = None) -> StreamResponse:
-        return StreamResponse(
-            event=StreamResponseEvent.REASONING_COMPLETED,
-            subtask_id=subtask_id,
-        )
-
-    def component_generator(
-        self, content: str, component_type: str, subtask_id: str | None = None
-    ) -> StreamResponse:
-        return StreamResponse(
-            event=StreamResponseEvent.COMPONENT_GENERATOR,
+            event=CommonResponseEvent.COMPONENT_GENERATOR,
             content=content,
             metadata={"component_type": component_type},
-            subtask_id=subtask_id,
         )
 
     def done(self, content: Optional[str] = None) -> StreamResponse:
         return StreamResponse(
             content=content,
-            event=_TaskResponseEvent.TASK_COMPLETED,
+            event=TaskStatusEvent.TASK_COMPLETED,
         )
 
     def failed(self, content: Optional[str] = None) -> StreamResponse:
         return StreamResponse(
             content=content,
-            event=SystemResponseEvent.TASK_FAILED,
+            event=TaskStatusEvent.TASK_FAILED,
         )
 
 
@@ -108,16 +78,23 @@ class _NotifyResponseNamespace:
             event=NotifyResponseEvent.MESSAGE,
         )
 
+    def component_generator(self, content: str, component_type: str) -> StreamResponse:
+        return StreamResponse(
+            event=CommonResponseEvent.COMPONENT_GENERATOR,
+            content=content,
+            metadata={"component_type": component_type},
+        )
+
     def done(self, content: Optional[str] = None) -> NotifyResponse:
         return NotifyResponse(
             content=content,
-            event=_TaskResponseEvent.TASK_COMPLETED,
+            event=TaskStatusEvent.TASK_COMPLETED,
         )
 
     def failed(self, content: Optional[str] = None) -> NotifyResponse:
         return NotifyResponse(
             content=content,
-            event=SystemResponseEvent.TASK_FAILED,
+            event=TaskStatusEvent.TASK_FAILED,
         )
 
 
@@ -134,13 +111,13 @@ class EventPredicates:
     @staticmethod
     def is_task_completed(response_type) -> bool:
         return response_type in {
-            _TaskResponseEvent.TASK_COMPLETED,
+            TaskStatusEvent.TASK_COMPLETED,
         }
 
     @staticmethod
     def is_task_failed(response_type) -> bool:
         return response_type in {
-            SystemResponseEvent.TASK_FAILED,
+            TaskStatusEvent.TASK_FAILED,
         }
 
     @staticmethod
@@ -156,6 +133,13 @@ class EventPredicates:
             StreamResponseEvent.REASONING_STARTED,
             StreamResponseEvent.REASONING,
             StreamResponseEvent.REASONING_COMPLETED,
+        }
+
+    @staticmethod
+    def is_message(response_type) -> bool:
+        return response_type in {
+            StreamResponseEvent.MESSAGE_CHUNK,
+            NotifyResponseEvent.MESSAGE,
         }
 
 

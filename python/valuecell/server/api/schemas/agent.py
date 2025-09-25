@@ -29,11 +29,12 @@ class AgentData(BaseModel):
     """Data model for a single agent."""
 
     id: int = Field(..., description="Agent unique ID")
-    name: str = Field(..., description="Agent unique name/identifier")
+    agent_name: str = Field(..., description="Agent unique name/identifier")
     display_name: Optional[str] = Field(None, description="Human-readable display name")
     description: Optional[str] = Field(None, description="Agent description")
     version: Optional[str] = Field(None, description="Agent version")
     enabled: bool = Field(..., description="Whether the agent is enabled")
+    icon_url: Optional[str] = Field(None, description="Agent icon URL")
     agent_metadata: Optional[Dict[str, Any]] = Field(None, description="Agent metadata")
     config: Optional[Dict[str, Any]] = Field(None, description="Agent configuration")
     created_at: Optional[datetime] = Field(None, description="Creation timestamp")
@@ -43,11 +44,12 @@ class AgentData(BaseModel):
         json_schema_extra = {
             "example": {
                 "id": 1,
-                "name": "MarketAnalystAgent",
+                "agent_name": "MarketAnalystAgent",
                 "display_name": "Market Analyst Agent",
                 "description": "AI-powered market analysis agent",
                 "version": "1.0.0",
                 "enabled": True,
+                "icon_url": "https://example.com/icons/market_analyst.png",
                 "agent_metadata": {
                     "author": "ValueCell Team",
                     "tags": ["market", "analysis", "ai"],
@@ -72,11 +74,12 @@ class AgentListData(BaseModel):
                 "agents": [
                     {
                         "id": 1,
-                        "name": "MarketAnalystAgent",
+                        "agent_name": "MarketAnalystAgent",
                         "display_name": "Market Analyst Agent",
                         "description": "AI-powered market analysis agent",
                         "version": "1.0.0",
                         "enabled": True,
+                        "icon_url": "https://example.com/icons/market_analyst.png",
                         "agent_metadata": {
                             "author": "ValueCell Team",
                             "tags": ["market", "analysis", "ai"],

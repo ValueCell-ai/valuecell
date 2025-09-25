@@ -4,16 +4,15 @@ import logging
 import os
 from datetime import datetime
 from enum import Enum
-from typing import Dict, Iterator, AsyncGenerator
+from typing import AsyncGenerator, Dict, Iterator
 
-from agno.agent import Agent, RunResponse, RunResponseEvent  # noqa
+from agno.agent import Agent, RunResponseEvent
 from agno.models.openrouter import OpenRouter
 from edgar import Company, set_identity
 from pydantic import BaseModel, Field, field_validator
-
-from valuecell.core.agent.responses import streaming, notification
-from valuecell.core.types import BaseAgent, StreamResponse
 from valuecell.core.agent.decorator import create_wrapped_agent
+from valuecell.core.agent.responses import notification, streaming
+from valuecell.core.types import BaseAgent, StreamResponse
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -344,7 +343,9 @@ class SecAgent(BaseAgent):
             Please ensure the analysis is objective and professional, based on actual data, avoiding excessive speculation.
             """
 
-            response_stream: Iterator[RunResponseEvent] = self.analysis_agent.run(
+            response_stream: Iterator[
+                RunResponseEvent
+            ] = await self.analysis_agent.arun(
                 analysis_prompt, stream=True, stream_intermediate_steps=True
             )
             for event in response_stream:
@@ -358,8 +359,6 @@ class SecAgent(BaseAgent):
                     yield streaming.tool_call_completed(
                         event.tool.result, event.tool.tool_call_id, event.tool.tool_name
                     )
-                elif event.event == "ReasoningStep":
-                    yield streaming.reasoning(event.reasoning_content)
             logger.info("Financial data analysis completed")
 
             yield streaming.done()
@@ -440,7 +439,9 @@ class SecAgent(BaseAgent):
             Please ensure the analysis is objective and professional, based on actual data, avoiding excessive speculation.
             """
 
-            response_stream: Iterator[RunResponseEvent] = self.analysis_agent.run(
+            response_stream: Iterator[
+                RunResponseEvent
+            ] = await self.analysis_agent.arun(
                 analysis_prompt, stream=True, stream_intermediate_steps=True
             )
             for event in response_stream:
@@ -454,8 +455,6 @@ class SecAgent(BaseAgent):
                     yield streaming.tool_call_completed(
                         event.tool.result, event.tool.tool_call_id, event.tool.tool_name
                     )
-                elif event.event == "ReasoningStep":
-                    yield streaming.reasoning(event.reasoning_content)
             logger.info("Financial data analysis completed")
 
             streaming.done()
@@ -580,14 +579,6 @@ class SecAgent(BaseAgent):
                                 ticker, changes
                             )
 
-                            # yield {
-                            #     "content": f"🚨 **New SEC Filing Detected!**\n\n"
-                            #     f"**Ticker**: {ticker}\n"
-                            #     f"**Time**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-                            #     f"**Summary**:\n{summary}\n\n"
-                            #     f"Continuing to monitor for further changes...",
-                            #     "is_task_complete": False,
-                            # }
                             yield notification.message(summary)
 
                     # Wait before next check

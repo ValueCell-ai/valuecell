@@ -6,7 +6,7 @@ import type { Stock } from "@/types/stock";
 export const useGetWatchlist = () =>
   useQuery({
     queryKey: API_QUERY_KEYS.STOCK.watchlist,
-    queryFn: (): Promise<Stock[]> => apiClient.get<Stock[]>("watchlist"),
+    queryFn: () => apiClient.get<Stock[]>("watchlist"),
   });
 
 export const useGetStocksList = (params: { query: string }) =>

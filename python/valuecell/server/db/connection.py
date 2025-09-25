@@ -34,7 +34,6 @@ class DatabaseManager:
 
         self.engine = create_engine(
             database_config["url"],
-            echo=database_config["echo"],
             connect_args=connect_args,
             poolclass=StaticPool
             if database_config["url"].startswith("sqlite")

@@ -277,13 +277,3 @@ class RemoteConnections:
         if ctx.local_agent_card:
             return ctx.local_agent_card
         return None
-
-
-# Global default instance for backward compatibility and ease of use
-_default_remote_connections = RemoteConnections()
-
-
-# Convenience functions that delegate to the default instance
-def get_default_remote_connections() -> RemoteConnections:
-    """Get the default RemoteConnections instance"""
-    return _default_remote_connections

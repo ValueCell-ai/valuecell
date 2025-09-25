@@ -27,7 +27,7 @@ export interface RequestConfig {
 export const getServerUrl = (endpoint: string) => {
   if (endpoint.startsWith("http")) return endpoint;
 
-  return `${import.meta.env.API_BASE_URL ?? "http://localhost:8000/api/v1"}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+  return `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1"}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
 };
 
 class ApiClient {

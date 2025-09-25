@@ -3,12 +3,15 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional
 
-from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
+from a2a.types import TaskState, TaskStatusUpdateEvent
 from a2a.utils import get_message_text
 from valuecell.core.agent.responses import EventPredicates
 from valuecell.core.coordinate.response import ResponseFactory
 from valuecell.core.task import Task
-from valuecell.core.types import BaseResponse, StreamResponseEvent
+from valuecell.core.types import (
+    BaseResponse,
+    CommonResponseEvent,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +37,6 @@ class RouteResult:
             self.side_effects = []
 
 
-def _default_subtask_id(task_id: str) -> str:
-    return f"{task_id}_default-subtask"
-
-
 async def handle_status_update(
     response_factory: ResponseFactory,
     task: Task,
@@ -55,10 +54,9 @@ async def handle_status_update(
         err_msg = get_message_text(event.status.message)
         responses.append(
             response_factory.task_failed(
-                conversation_id=task.session_id,
+                conversation_id=task.conversation_id,
                 thread_id=thread_id,
                 task_id=task.task_id,
-                subtask_id=_default_subtask_id(task.task_id),
                 content=err_msg,
             )
         )
@@ -72,9 +70,6 @@ async def handle_status_update(
         return RouteResult(responses)
 
     response_event = event.metadata.get("response_event")
-    subtask_id = event.metadata.get("subtask_id")
-    if not subtask_id:
-        subtask_id = _default_subtask_id(task.task_id)
 
     # Tool call events
     if state == TaskState.working and EventPredicates.is_tool_call(response_event):
@@ -86,10 +81,9 @@ async def handle_status_update(
             tool_result = get_message_text(event.metadata.get("tool_result", ""))
         responses.append(
             response_factory.tool_call(
-                conversation_id=task.session_id,
+                conversation_id=task.conversation_id,
                 thread_id=thread_id,
                 task_id=task.task_id,
-                subtask_id=subtask_id,
                 event=response_event,
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
@@ -99,58 +93,47 @@ async def handle_status_update(
         return RouteResult(responses)
 
     # Reasoning messages
+    content = get_message_text(event.status.message, "")
     if state == TaskState.working and EventPredicates.is_reasoning(response_event):
         responses.append(
             response_factory.reasoning(
-                conversation_id=task.session_id,
+                conversation_id=task.conversation_id,
                 thread_id=thread_id,
                 task_id=task.task_id,
-                subtask_id=subtask_id,
                 event=response_event,
-                content=get_message_text(event.status.message, ""),
+                content=content,
+            )
+        )
+        return RouteResult(responses)
+
+    # component generator
+    if (
+        state == TaskState.working
+        and response_event == CommonResponseEvent.COMPONENT_GENERATOR
+    ):
+        component_type = event.metadata.get("component_type", "unknown")
+        responses.append(
+            response_factory.component_generator(
+                conversation_id=task.conversation_id,
+                thread_id=thread_id,
+                task_id=task.task_id,
+                content=content,
+                component_type=component_type,
+            )
+        )
+        return RouteResult(responses)
+
+    # general messages
+    if state == TaskState.working and EventPredicates.is_message(response_event):
+        responses.append(
+            response_factory.message_response_general(
+                event=response_event,
+                conversation_id=task.conversation_id,
+                thread_id=thread_id,
+                task_id=task.task_id,
+                content=content,
             )
         )
         return RouteResult(responses)
 
     return RouteResult(responses)
-
-
-async def handle_artifact_update(
-    response_factory: ResponseFactory,
-    task: Task,
-    thread_id: str,
-    event: TaskArtifactUpdateEvent,
-) -> List[BaseResponse]:
-    responses: List[BaseResponse] = []
-    artifact = event.artifact
-    subtask_id = artifact.metadata.get("subtask_id") if artifact.metadata else None
-    if not subtask_id:
-        subtask_id = _default_subtask_id(task.task_id)
-    response_event = artifact.metadata.get("response_event")
-    content = get_message_text(artifact, "")
-
-    if response_event == StreamResponseEvent.COMPONENT_GENERATOR:
-        component_type = artifact.metadata.get("component_type", "unknown")
-        responses.append(
-            response_factory.component_generator(
-                conversation_id=task.session_id,
-                thread_id=thread_id,
-                task_id=task.task_id,
-                subtask_id=subtask_id,
-                content=content,
-                component_type=component_type,
-            )
-        )
-        return responses
-
-    responses.append(
-        response_factory.message_response_general(
-            event=response_event,
-            conversation_id=task.session_id,
-            thread_id=thread_id,
-            task_id=task.task_id,
-            subtask_id=subtask_id,
-            content=content,
-        )
-    )
-    return responses
