@@ -207,21 +207,21 @@ class SessionManager:
 
 # Default session manager instance
 def _default_db_path() -> str:
-    """Resolve repository root and return default DB path valuecell_core.db.
+    """Resolve repository root and return default DB path valuecell.db.
 
     Layout assumption: this file is at repo_root/python/valuecell/core/session/manager.py
     We walk up 4 levels to reach repo_root.
     """
     here = os.path.dirname(__file__)
     repo_root = os.path.abspath(os.path.join(here, "..", "..", "..", ".."))
-    return os.path.join(repo_root, "valuecell_core.db")
+    return os.path.join(repo_root, "valuecell.db")
 
 
 def _resolve_db_path() -> str:
     return os.environ.get("VALUECELL_SQLITE_DB") or _default_db_path()
 
 
-# Default: use SQLite at repo root valuecell_core.db (env VALUECELL_SQLITE_DB overrides)
+# Default: use SQLite at repo root valuecell.db (env VALUECELL_SQLITE_DB overrides)
 _session_manager = SessionManager(message_store=SQLiteMessageStore(_resolve_db_path()))
 
 
