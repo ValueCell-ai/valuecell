@@ -98,6 +98,7 @@ export function updateAgentConversationsStore(
       case "component_generator":
       case "task_failed":
       case "plan_failed":
+      case "system_failed":
       case "plan_require_user_input":
         handleChatItemEvent(draft, data);
         break;

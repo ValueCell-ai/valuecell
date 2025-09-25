@@ -44,7 +44,6 @@ export default function AgentChat() {
   console.log("🚀 ~ AgentChat ~ agentStore:", agentStore);
   const curConversationId = useRef<string>("");
   const curThreadId = useRef<string>("");
-  const [isSending, setIsSending] = useState(false);
 
   // Get current conversation using original data structure
   const currentConversation = useMemo(() => {
@@ -100,37 +99,25 @@ export default function AgentChat() {
       onData: handleSSEData,
       onOpen: () => {
         console.log("✅ SSE connection opened");
-        setIsSending(false); // Reset sending state on open
       },
       onError: (error: Error) => {
         console.error("❌ SSE connection error:", error);
-        setIsSending(false); // Reset sending state on error
       },
       onClose: () => {
         console.log("🔌 SSE connection closed");
-        setIsSending(false); // Reset sending state on close
       },
     },
   });
 
-  // Derived state - compute from existing state instead of maintaining separately
-  const isConnected = state === SSEReadyState.OPEN;
-  const isConnecting = state === SSEReadyState.CONNECTING;
-  const isStreaming = isConnected && isSending;
+  const isStreaming = useMemo(
+    () => state === SSEReadyState.OPEN || state === SSEReadyState.CONNECTING,
+    [state],
+  );
 
   // Send message to agent
+  // biome-ignore lint/correctness/useExhaustiveDependencies: connect is no need to be in dependencies
   const sendMessage = useCallback(
     async (message: string) => {
-      // Prevent duplicate sends
-      if (isSending || isConnecting) {
-        console.log(
-          "Already sending or connecting, ignoring duplicate request",
-        );
-        return;
-      }
-
-      setIsSending(true);
-
       try {
         const request: AgentStreamRequest = {
           query: message,
@@ -142,23 +129,22 @@ export default function AgentChat() {
         await connect(JSON.stringify(request));
       } catch (error) {
         console.error("Failed to send message:", error);
-        setIsSending(false); // Reset immediately on error
       }
     },
-    [connect, isSending, isConnecting, agentName],
+    [agentName],
   );
 
   const handleSendMessage = useCallback(() => {
     const trimmedInput = inputValue.trim();
     // Prevent sending while connecting/sending or when input is empty
-    if (!trimmedInput || isConnecting || isSending) {
+    if (!trimmedInput || isStreaming) {
       console.log("Cannot send: empty input, connecting, or already sending");
       return;
     }
 
     // Always use sendMessage - user input for plan_require_user_input is just normal conversation
     sendMessage(trimmedInput);
-  }, [inputValue, isConnecting, isSending, sendMessage]);
+  }, [inputValue, isStreaming, sendMessage]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
@@ -250,13 +236,13 @@ export default function AgentChat() {
                   placeholder="You can inquire and analyze the trend of NVIDIA in the next three months"
                   maxHeight={120}
                   minHeight={24}
-                  disabled={isStreaming || isSending}
+                  disabled={isStreaming}
                 />
                 <Button
                   size="icon"
                   className="size-8 cursor-pointer self-end rounded-full"
                   onClick={handleSendMessage}
-                  disabled={isStreaming || isSending || !inputValue.trim()}
+                  disabled={isStreaming || !inputValue.trim()}
                 >
                   <ArrowUp size={16} className="text-white" />
                 </Button>
@@ -341,13 +327,13 @@ export default function AgentChat() {
                   placeholder="Type your message..."
                   maxHeight={120}
                   minHeight={24}
-                  disabled={isStreaming || isSending}
+                  disabled={isStreaming}
                 />
                 <Button
                   size="icon"
                   className="size-8 cursor-pointer self-end rounded-full"
                   onClick={handleSendMessage}
-                  disabled={isStreaming || isSending || !inputValue.trim()}
+                  disabled={isStreaming}
                 >
                   <ArrowUp size={16} className="text-white" />
                 </Button>

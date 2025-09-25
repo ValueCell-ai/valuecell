@@ -19,6 +19,10 @@ type MessageWithPayload<TPayload> = BaseEventData & PayloadWrapper<TPayload>;
 export type AgentChunkMessage = MessageWithPayload<{ content: string }>;
 export type AgentReasoningMessage = AgentChunkMessage;
 export type AgentThreadStartedMessage = AgentChunkMessage;
+export type AgentPlanRequireUserInputMessage = AgentChunkMessage;
+export type AgentPlanFailedMessage = AgentChunkMessage;
+export type AgentTaskFailedMessage = AgentChunkMessage;
+export type AgentSystemFailedMessage = AgentChunkMessage;
 
 export type AgentComponentMessage = MessageWithPayload<{
   component_type: string;
@@ -36,23 +40,12 @@ export type AgentToolCallCompletedMessage = MessageWithPayload<{
   tool_call_result: string;
 }>;
 
-export type AgentPlanRequireUserInputMessage = MessageWithPayload<{
-  content: string;
-}>;
-
-export type AgentPlanFailedMessage = AgentPlanRequireUserInputMessage;
-export type AgentTaskFailedMessage = AgentPlanRequireUserInputMessage;
-
 export type ChatItem =
   | AgentComponentMessage
   | AgentToolCallStartedMessage
   | AgentToolCallCompletedMessage
-  | AgentReasoningMessage
-  | AgentThreadStartedMessage
   | AgentChunkMessage
-  | AgentPlanRequireUserInputMessage
-  | AgentPlanFailedMessage
-  | AgentTaskFailedMessage;
+  
 
 export interface AgentEventMap {
   // Lifecycle Events
@@ -83,6 +76,7 @@ export interface AgentEventMap {
   // Error Handling
   plan_failed: AgentPlanFailedMessage;
   task_failed: AgentTaskFailedMessage;
+  system_failed: AgentSystemFailedMessage;
 }
 
 export interface TaskView {
