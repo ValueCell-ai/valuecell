@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from valuecell.core.task.manager import TaskManager
-from valuecell.core.task.models import Task, TaskPattern, TaskStatus
+from valuecell.core.task.models import Task, TaskStatus
 
 
 class TestTaskManager:
@@ -76,8 +76,10 @@ class TestTaskManager:
         )
         manager._tasks["test-task-123"] = task
 
-        with patch("valuecell.core.task.models.datetime") as mock_datetime, \
-             patch.object(manager, "update_task", new_callable=AsyncMock) as mock_update:
+        with (
+            patch("valuecell.core.task.models.datetime") as mock_datetime,
+            patch.object(manager, "update_task", new_callable=AsyncMock) as mock_update,
+        ):
             start_time = datetime(2023, 1, 1, 12, 1, 0)
             mock_datetime.now.return_value = start_time
 
@@ -128,8 +130,10 @@ class TestTaskManager:
         )
         manager._tasks["test-task-123"] = task
 
-        with patch("valuecell.core.task.models.datetime") as mock_datetime, \
-             patch.object(manager, "update_task", new_callable=AsyncMock) as mock_update:
+        with (
+            patch("valuecell.core.task.models.datetime") as mock_datetime,
+            patch.object(manager, "update_task", new_callable=AsyncMock) as mock_update,
+        ):
             complete_time = datetime(2023, 1, 1, 12, 5, 0)
             mock_datetime.now.return_value = complete_time
 
@@ -180,8 +184,10 @@ class TestTaskManager:
         )
         manager._tasks["test-task-123"] = task
 
-        with patch("valuecell.core.task.models.datetime") as mock_datetime, \
-             patch.object(manager, "update_task", new_callable=AsyncMock) as mock_update:
+        with (
+            patch("valuecell.core.task.models.datetime") as mock_datetime,
+            patch.object(manager, "update_task", new_callable=AsyncMock) as mock_update,
+        ):
             fail_time = datetime(2023, 1, 1, 12, 5, 0)
             mock_datetime.now.return_value = fail_time
 
@@ -233,8 +239,10 @@ class TestTaskManager:
         )
         manager._tasks["test-task-123"] = task
 
-        with patch("valuecell.core.task.models.datetime") as mock_datetime, \
-             patch.object(manager, "update_task", new_callable=AsyncMock) as mock_update:
+        with (
+            patch("valuecell.core.task.models.datetime") as mock_datetime,
+            patch.object(manager, "update_task", new_callable=AsyncMock) as mock_update,
+        ):
             cancel_time = datetime(2023, 1, 1, 12, 5, 0)
             mock_datetime.now.return_value = cancel_time
 
@@ -317,8 +325,10 @@ class TestTaskManager:
             "task-4": task4,
         }
 
-        with patch("valuecell.core.task.models.datetime") as mock_datetime, \
-             patch.object(manager, "update_task", new_callable=AsyncMock) as mock_update:
+        with (
+            patch("valuecell.core.task.models.datetime") as mock_datetime,
+            patch.object(manager, "update_task", new_callable=AsyncMock) as mock_update,
+        ):
             cancel_time = datetime(2023, 1, 1, 12, 5, 0)
             mock_datetime.now.return_value = cancel_time
 
@@ -332,7 +342,9 @@ class TestTaskManager:
             assert task2.completed_at == cancel_time
             assert task2.updated_at == cancel_time
             assert task3.status == TaskStatus.COMPLETED  # Unchanged
-            assert task4.status == TaskStatus.RUNNING  # Different conversation, unchanged
+            assert (
+                task4.status == TaskStatus.RUNNING
+            )  # Different conversation, unchanged
 
             # update_task should be called twice
             assert mock_update.call_count == 2

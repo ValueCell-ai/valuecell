@@ -5,7 +5,6 @@ Unit tests for valuecell.core.task.models module
 from datetime import datetime
 from unittest.mock import patch
 
-import pytest
 
 from valuecell.core.task.models import Task, TaskPattern, TaskStatus
 
