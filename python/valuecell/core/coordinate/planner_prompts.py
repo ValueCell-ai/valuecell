@@ -1,17 +1,39 @@
+"""Planner prompt helpers and constants.
+
+This module provides utilities for constructing the planner's instruction
+prompt, including injecting the current date/time into prompts. The
+large `PLANNER_INSTRUCTIONS` constant contains the guidance used by the
+ExecutionPlanner when calling the LLM-based planning agent.
+"""
+
 from datetime import datetime
 from textwrap import dedent
 
 
 def create_prompt_with_datetime(base_prompt: str) -> str:
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    return dedent(
-        f"""
-        {base_prompt}
+  """
+  Inject the current date/time into a base prompt string.
+
+  The planner benefits from a stable timestamp in its instructions so it can
+  make time-sensitive decisions (for example, when interpreting requests
+  mentioning "today", "this week", etc.). This helper formats the current
+  local date/time and appends it to the provided prompt text.
+
+  Args:
+    base_prompt: The base instructions that should receive the timestamp.
+
+  Returns:
+    A dedented, multi-line prompt string that includes the current date/time.
+  """
+  now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+  return dedent(
+    f"""
+    {base_prompt}
         
-        **Other Important Context**
-        - Current date and time: {now}
-        """
-    )
+    **Other Important Context**
+    - Current date and time: {now}
+    """
+  )
 
 
 # noqa: E501

@@ -32,6 +32,13 @@ BufferKey = Tuple[str, Optional[str], Optional[str], object]
 
 
 class BufferEntry:
+    """Represents an in-memory paragraph buffer for streamed chunks.
+
+    A BufferEntry collects sequential message chunks belonging to the same
+    logical paragraph. It maintains a stable `item_id` so streamed chunks can
+    be correlated with the final persisted ConversationItem.
+    """
+
     def __init__(self, item_id: Optional[str] = None, role: Optional[Role] = None):
         self.parts: List[str] = []
         self.last_updated: float = time.monotonic()
@@ -42,12 +49,16 @@ class BufferEntry:
         self.role: Optional[Role] = role
 
     def append(self, text: str):
+        """Append a chunk of text to this buffer and update the timestamp."""
         if text:
             self.parts.append(text)
             self.last_updated = time.monotonic()
 
     def snapshot_payload(self) -> Optional[BaseResponseDataPayload]:
-        """Return current aggregate content without clearing the buffer."""
+        """Return the current aggregate content as a payload without clearing.
+
+        Returns None when there is no content buffered.
+        """
         if not self.parts:
             return None
         content = "".join(self.parts)
@@ -55,14 +66,16 @@ class BufferEntry:
 
 
 class ResponseBuffer:
-    """Buffers streaming responses and emits SaveMessage at suitable boundaries.
+    """Buffer streaming responses and produce persistence-ready SaveItem objects.
 
-    Simplified rules (no debounce, no size-based rotation):
-    - Immediate write-through: tool_call_completed, component_generator, message, plan_require_user_input
-    - Buffered: message_chunk, reasoning
-        - Maintain a stable paragraph item_id per (conversation, thread, task, event)
-        - On every chunk, update the aggregate and return a SaveItem for upsert
-    - Buffer key = (conversation_id, thread_id, task_id, event)
+    The ResponseBuffer implements a simple buffering strategy:
+    - Some events are "immediate" and should be persisted as-is (tool results,
+        component generator events, notify messages, system-level events).
+    - Other events (message chunks, reasoning) are buffered and aggregated
+        into paragraph-level items which are upserted as streaming progress
+        is received. This preserves a stable paragraph `item_id` across chunks.
+
+    The buffer key is a tuple (conversation_id, thread_id, task_id, event).
     """
 
     def __init__(self):
@@ -81,12 +94,12 @@ class ResponseBuffer:
         }
 
     def annotate(self, resp: BaseResponse) -> BaseResponse:
-        """Ensure buffered events carry a stable paragraph item_id on the response.
+        """Stamp buffered responses with a stable paragraph `item_id`.
 
-        For buffered events (message_chunk, reasoning), we assign a stable
-        paragraph id per (conversation, thread, task, event) key and stamp it
-        into resp.data.item_id so the frontend can correlate chunks and the
-        final persisted SaveItem. Immediate and boundary events are left as-is.
+        For events that are buffered (e.g. message chunks, reasoning), assign a
+        stable paragraph `item_id` to resp.data.item_id so the frontend and
+        storage layer can correlate incremental chunks with the final saved
+        conversation item.
         """
         data: UnifiedResponseData = resp.data
         ev = resp.event
@@ -108,6 +121,16 @@ class ResponseBuffer:
         return resp
 
     def ingest(self, resp: BaseResponse) -> List[SaveItem]:
+        """Ingest a response and return a list of SaveItem objects to persist.
+
+        Depending on the event type this will either:
+        - Flush and emit an immediate item (for immediate events), or
+        - Accumulate buffered chunks and emit an upsert SaveItem with the
+          current aggregated payload for the paragraph entry.
+
+        Returns:
+            A list of SaveItem objects that should be persisted by the caller.
+        """
         data: UnifiedResponseData = resp.data
         ev = resp.event
 

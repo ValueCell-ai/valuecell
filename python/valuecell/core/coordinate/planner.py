@@ -1,3 +1,15 @@
+"""Planner: create execution plans from user input.
+
+This module implements the ExecutionPlanner which uses an LLM-based
+planning agent to convert a user request into a structured
+`ExecutionPlan` consisting of `Task` objects. The planner supports
+Human-in-the-Loop flows by emitting `UserInputRequest` objects (backed by
+an asyncio.Event) when the planner requires clarification.
+
+The planner is intentionally thin: it delegates reasoning to an AI agent
+and performs JSON parsing/validation of the planner's output.
+"""
+
 import asyncio
 import logging
 import os
@@ -31,17 +43,31 @@ class UserInputRequest:
     """
 
     def __init__(self, prompt: str):
+        """Create a new request object for planner-driven user input.
+
+        Args:
+            prompt: Human-readable prompt describing the information needed.
+        """
         self.prompt = prompt
         self.response: Optional[str] = None
         self.event = asyncio.Event()
 
     async def wait_for_response(self) -> str:
-        """Wait for user response asynchronously"""
+        """Block until a response is provided and return it.
+
+        This is an awaitable helper designed to be used by planner code that
+        wants to pause execution until the external caller supplies the
+        requested value via `provide_response`.
+        """
         await self.event.wait()
         return self.response
 
     def provide_response(self, response: str):
-        """Provide the user's response and signal completion"""
+        """Supply the user's response and wake any waiter.
+
+        Args:
+            response: The text provided by the user to satisfy the prompt.
+        """
         self.response = response
         self.event.set()
 
@@ -67,11 +93,19 @@ class ExecutionPlanner:
         """
         Create an execution plan from user input.
 
+        This method orchestrates the planning agent run and returns a
+        validated `ExecutionPlan` instance. The optional `user_input_callback`
+        is called whenever the planner requests clarification; the callback
+        should accept a `UserInputRequest` and arrange for the user's answer to
+        be provided (typically by calling `UserInputRequest.provide_response`).
+
         Args:
-            user_input: The user's request to be planned
+            user_input: The user's request to be planned.
+            user_input_callback: Optional async callback invoked with
+                `UserInputRequest` instances when clarification is required.
 
         Returns:
-            ExecutionPlan: A structured plan with tasks for execution
+            ExecutionPlan: A structured plan with tasks for execution.
         """
         plan = ExecutionPlan(
             plan_id=generate_uuid("plan"),
@@ -93,10 +127,19 @@ class ExecutionPlanner:
         self, user_input: UserInput, user_input_callback: Optional[Callable] = None
     ) -> List[Task]:
         """
-        Analyze user input and create tasks for appropriate agents.
+        Analyze user input and produce a list of `Task` objects.
 
-        This method uses an AI agent to understand the user's request and determine
-        what agents should be involved and what tasks they should perform.
+        The planner delegates reasoning to an LLM agent which must output a
+        JSON document conforming to `PlannerResponse`. If the planner pauses to
+        request user input, the provided `user_input_callback` will be
+        invoked for each requested field.
+
+        Args:
+            user_input: The original user input to analyze.
+            user_input_callback: Optional async callback used for Human-in-the-Loop.
+
+        Returns:
+            A list of `Task` objects derived from the planner response.
         """
         # Create planning agent with appropriate tools and instructions
         agent = Agent(
@@ -198,7 +241,7 @@ class ExecutionPlanner:
             pattern: Execution pattern (once or recurring)
 
         Returns:
-            Task: Configured task ready for execution
+            Task: Configured task ready for execution.
         """
         return Task(
             task_id=generate_uuid("task"),
@@ -221,7 +264,7 @@ class ExecutionPlanner:
             agent_name: The name of the agent whose capabilities are to be retrieved
 
         Returns:
-            str: A description of the agent's capabilities and supported operations
+            str: A description of the agent's capabilities and supported operations.
         """
         if card := self.agent_connections.get_agent_card(agent_name):
             if isinstance(card, AgentCard):
@@ -234,14 +277,13 @@ class ExecutionPlanner:
 
 
 def agentcard_to_prompt(card: AgentCard):
-    """
-    Convert AgentCard JSON structure to LLM-friendly prompt string.
+    """Convert an AgentCard to an LLM-friendly prompt string.
 
     Args:
-        agentcard (AgentCard): The agentcard JSON structure
+        card: The AgentCard object or JSON structure describing an agent.
 
     Returns:
-        str: Formatted prompt string for LLM processing
+        A formatted string suitable for inclusion in the planner's instructions.
     """
 
     # Start with basic agent information
