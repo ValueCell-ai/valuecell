@@ -69,7 +69,6 @@ export default function AgentChat() {
 
       case "thread_started": {
         curThreadId.current = data.thread_id;
-
         setInputValue("");
         break;
       }
@@ -222,7 +221,7 @@ export default function AgentChat() {
       </header>
 
       {/* Main content area */}
-      <main className="relative flex flex-1 flex-col">
+      <main className="relative flex flex-1 flex-col overflow-hidden">
         {!currentConversation?.threads ||
         Object.keys(currentConversation.threads).length === 0 ? (
           <>
