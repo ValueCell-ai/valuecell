@@ -5,13 +5,10 @@ Unit tests for valuecell.core.agent.responses module
 from __future__ import annotations
 
 import pytest
-
-from valuecell.core.agent.responses import (
-    EventPredicates,
-    notification,
-    streaming,
-)
+from pydantic import ValidationError
+from valuecell.core.agent.responses import EventPredicates, notification, streaming
 from valuecell.core.types import (
+    CommonResponseEvent,
     NotifyResponseEvent,
     StreamResponseEvent,
     TaskStatusEvent,
@@ -54,10 +51,11 @@ class TestStreamingNamespace:
 
     def test_component_generator(self):
         """Test component_generator method."""
-        # Skip this test as the method uses an invalid event type
-        pytest.skip(
-            "component_generator uses invalid event type CommonResponseEvent.COMPONENT_GENERATOR"
-        )
+        response = streaming.component_generator("<div/>", "widget")
+        # With types updated, this should validate
+        assert response.event == CommonResponseEvent.COMPONENT_GENERATOR
+        assert response.content == "<div/>"
+        assert response.metadata == {"component_type": "widget"}
 
     def test_done(self):
         """Test done method."""
@@ -68,8 +66,9 @@ class TestStreamingNamespace:
 
     def test_done_without_content(self):
         """Test done method without content."""
-        # Skip this test as the method requires content
-        pytest.skip("done method requires content parameter")
+        response = streaming.done()
+        assert response.event == TaskStatusEvent.TASK_COMPLETED
+        assert response.content is None
 
     def test_failed(self):
         """Test failed method."""
@@ -98,10 +97,10 @@ class TestNotificationNamespace:
 
     def test_component_generator(self):
         """Test component_generator method."""
-        # Skip this test as the method uses an invalid event type
-        pytest.skip(
-            "component_generator uses invalid event type CommonResponseEvent.COMPONENT_GENERATOR"
-        )
+        response = notification.component_generator("<div/>", "notice")
+        assert response.event == CommonResponseEvent.COMPONENT_GENERATOR
+        assert response.content == "<div/>"
+        assert response.metadata == {"component_type": "notice"}
 
     def test_done(self):
         """Test done method."""
@@ -112,8 +111,8 @@ class TestNotificationNamespace:
 
     def test_done_without_content(self):
         """Test done method without content."""
-        # Skip this test as the method requires content parameter
-        pytest.skip("done method requires content parameter")
+        with pytest.raises(ValidationError):
+            notification.done()
 
     def test_failed(self):
         """Test failed method."""
@@ -124,8 +123,8 @@ class TestNotificationNamespace:
 
     def test_failed_without_content(self):
         """Test failed method without content."""
-        # Skip this test as the method requires content parameter
-        pytest.skip("failed method requires content parameter")
+        with pytest.raises(ValidationError):
+            notification.failed()
 
 
 class TestEventPredicates:
