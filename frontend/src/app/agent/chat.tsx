@@ -41,7 +41,6 @@ export default function AgentChat() {
 
   // Use optimized reducer for state management
   const [agentStore, dispatchAgentStore] = useReducer(agentStoreReducer, {});
-  console.log("🚀 ~ AgentChat ~ agentStore:", agentStore);
   const curConversationId = useRef<string>("");
   const curThreadId = useRef<string>("");
 
@@ -61,21 +60,22 @@ export default function AgentChat() {
     // Handle specific UI state updates
     const { event, data } = sseData;
     switch (event) {
-      case "conversation_started": {
+      case "conversation_started":
         curConversationId.current = data.conversation_id;
         break;
-      }
 
-      case "thread_started": {
+      case "thread_started":
         curThreadId.current = data.thread_id;
         setInputValue("");
         break;
-      }
 
-      case "done": {
+      case "plan_require_user_input":
+      case "plan_failed":
+      case "task_failed":
+      case "system_failed":
+      case "done":
         close();
         break;
-      }
 
       // All message-related events are handled by the store
       default:
@@ -145,10 +145,6 @@ export default function AgentChat() {
     // Always use sendMessage - user input for plan_require_user_input is just normal conversation
     sendMessage(trimmedInput);
   }, [inputValue, isStreaming, sendMessage]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputValue(e.target.value);
-  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Send message on Enter key (excluding Shift+Enter line breaks and IME composition state)
@@ -231,7 +227,7 @@ export default function AgentChat() {
                 <ScrollTextarea
                   ref={textareaRef}
                   value={inputValue}
-                  onInput={handleInputChange}
+                  onInput={(e) => setInputValue(e.currentTarget.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="You can inquire and analyze the trend of NVIDIA in the next three months"
                   maxHeight={120}
@@ -247,13 +243,6 @@ export default function AgentChat() {
                   <ArrowUp size={16} className="text-white" />
                 </Button>
               </div>
-
-              {/* Connection status */}
-              {sseError && (
-                <div className="flex items-center gap-2 text-red-600 text-sm">
-                  <span>⚠️ Connection error: {sseError.message}</span>
-                </div>
-              )}
             </div>
           </>
         ) : (
@@ -322,7 +311,7 @@ export default function AgentChat() {
                 <ScrollTextarea
                   ref={textareaRef}
                   value={inputValue}
-                  onInput={handleInputChange}
+                  onInput={(e) => setInputValue(e.currentTarget.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Type your message..."
                   maxHeight={120}
