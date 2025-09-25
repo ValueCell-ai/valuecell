@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import sqlite3
-import aiosqlite
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
-from valuecell.core.types import ConversationItem, Role
+import aiosqlite
+from valuecell.core.types import ConversationItem, ConversationItemEvent, Role
 
 
 class ItemStore(ABC):
@@ -20,6 +20,7 @@ class ItemStore(ABC):
         limit: Optional[int] = None,
         offset: int = 0,
         role: Optional[Role] = None,
+        **kwargs,
     ) -> List[ConversationItem]: ...
 
     @abstractmethod
@@ -52,6 +53,7 @@ class InMemoryItemStore(ItemStore):
         limit: Optional[int] = None,
         offset: int = 0,
         role: Optional[Role] = None,
+        **kwargs,
     ) -> List[ConversationItem]:
         items = list(self._items.get(conversation_id, []))
         if role is not None:
@@ -161,6 +163,9 @@ class SQLiteItemStore(ItemStore):
         limit: Optional[int] = None,
         offset: int = 0,
         role: Optional[Role] = None,
+        event: Optional[ConversationItemEvent] = None,
+        component_type: Optional[str] = None,
+        **kwargs,
     ) -> List[ConversationItem]:
         await self._ensure_initialized()
         params = [conversation_id]
@@ -177,6 +182,12 @@ class SQLiteItemStore(ItemStore):
                 sql += " LIMIT -1"
             sql += " OFFSET ?"
             params.append(int(offset))
+        if event is not None:
+            where += " AND event = ?"
+            params.append(getattr(event, "value", str(event)))
+        if component_type is not None:
+            where += " AND json_extract(payload, '$.component_type') = ?"
+            params.append(component_type)
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = sqlite3.Row
             cur = await db.execute(sql, params)
