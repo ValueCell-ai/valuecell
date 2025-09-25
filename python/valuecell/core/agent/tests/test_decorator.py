@@ -18,7 +18,6 @@ from valuecell.core.agent.decorator import (
 )
 from valuecell.core.types import (
     BaseAgent,
-    CommonResponseEvent,
     StreamResponse,
     StreamResponseEvent,
     NotifyResponse,
