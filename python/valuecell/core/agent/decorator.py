@@ -128,7 +128,9 @@ class GenericAgentExecutor(AgentExecutor):
         )
         try:
             query_handler = (
-                self.agent.notify if task_meta.get("notify") else self.agent.stream
+                self.agent.notify
+                if task_meta and task_meta.get("notify")
+                else self.agent.stream
             )
             async for response in query_handler(query, context_id, task_id):
                 if not isinstance(response, (StreamResponse, NotifyResponse)):
