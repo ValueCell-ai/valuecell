@@ -80,4 +80,3 @@ class TaskManager:
                 cancelled_count += 1
 
         return cancelled_count
-
