@@ -1,24 +1,19 @@
-import { ArrowUp, MessageCircle, Settings } from "lucide-react";
-import { useCallback, useMemo, useReducer, useRef, useState } from "react";
+import { MessageCircle, Settings } from "lucide-react";
+import { useCallback, useMemo, useReducer, useRef } from "react";
 import { useParams } from "react-router";
 import { useGetAgentInfo } from "@/api/agent";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import ScrollTextarea, {
-  type ScrollTextareaRef,
-} from "@/components/valuecell/scroll/scroll-textarea";
 import { useSSE } from "@/hooks/use-sse";
 import { updateAgentConversationsStore } from "@/lib/agent-store";
 import { getServerUrl } from "@/lib/api-client";
 import { SSEReadyState } from "@/lib/sse-client";
-import { cn } from "@/lib/utils";
 import type {
   AgentConversationsStore,
   AgentStreamRequest,
   SSEData,
 } from "@/types/agent";
 import type { Route } from "./+types/chat";
-import { ChatBackground } from "./components";
 import ChatConversationView from "./components/chat-conversation-view";
 
 // Optimized reducer for agent store management
@@ -34,9 +29,6 @@ export default function AgentChat() {
   const { data: agent } = useGetAgentInfo({
     agentName: agentName ?? "",
   });
-
-  const textareaRef = useRef<ScrollTextareaRef>(null);
-  const [inputValue, setInputValue] = useState("");
 
   // Use optimized reducer for state management
   const [agentStore, dispatchAgentStore] = useReducer(agentStoreReducer, {});
@@ -65,7 +57,6 @@ export default function AgentChat() {
 
       case "thread_started":
         curThreadId.current = data.thread_id;
-        setInputValue("");
         break;
 
       case "done":
@@ -123,21 +114,6 @@ export default function AgentChat() {
     [agentName],
   );
 
-  const handleSendMessage = useCallback(() => {
-    const trimmedInput = inputValue.trim();
-
-    // Always use sendMessage - user input for plan_require_user_input is just normal conversation
-    sendMessage(trimmedInput);
-  }, [inputValue, sendMessage]);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Send message on Enter key (excluding Shift+Enter line breaks and IME composition state)
-    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
   // if (!agent) return <Navigate to="/" replace />;
 
   return (
@@ -188,58 +164,11 @@ export default function AgentChat() {
 
       {/* Main content area */}
       <main className="relative flex flex-1 flex-col overflow-hidden">
-        {!currentConversation?.threads ||
-        Object.keys(currentConversation.threads).length === 0 ? (
-          <>
-            {/* Background blur effects for welcome screen */}
-            <ChatBackground />
-
-            {/* Welcome content */}
-            <div className="flex flex-1 flex-col items-center justify-center gap-4">
-              <h1 className="text-center font-semibold text-2xl text-gray-950 leading-12">
-                Welcome to AI hedge fund agent！
-              </h1>
-
-              {/* Input card */}
-              <div
-                className={cn(
-                  "flex w-2/3 min-w-[600px] flex-col gap-2 rounded-2xl bg-white p-4",
-                  "border border-gray-200 shadow-[0px_4px_20px_8px_rgba(17,17,17,0.04)]",
-                  "focus-within:border-gray-300 focus-within:shadow-[0px_4px_20px_8px_rgba(17,17,17,0.08)]",
-                )}
-              >
-                <ScrollTextarea
-                  ref={textareaRef}
-                  value={inputValue}
-                  onInput={(e) => setInputValue(e.currentTarget.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="You can inquire and analyze the trend of NVIDIA in the next three months"
-                  maxHeight={120}
-                  minHeight={24}
-                  disabled={isStreaming}
-                />
-                <Button
-                  size="icon"
-                  className="size-8 cursor-pointer self-end rounded-full"
-                  onClick={handleSendMessage}
-                  disabled={isStreaming}
-                >
-                  <ArrowUp size={16} className="text-white" />
-                </Button>
-              </div>
-            </div>
-          </>
-        ) : (
-          <ChatConversationView
-            currentConversation={currentConversation}
-            isStreaming={isStreaming}
-            textareaRef={textareaRef}
-            inputValue={inputValue}
-            setInputValue={setInputValue}
-            handleKeyDown={handleKeyDown}
-            handleSendMessage={handleSendMessage}
-          />
-        )}
+        <ChatConversationView
+          currentConversation={currentConversation}
+          isStreaming={isStreaming}
+          sendMessage={sendMessage}
+        />
       </main>
     </div>
   );

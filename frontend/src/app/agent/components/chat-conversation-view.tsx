@@ -1,34 +1,88 @@
 import { ArrowUp } from "lucide-react";
-import type { FC } from "react";
+import { type FC, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
-import ScrollTextarea, {
-  type ScrollTextareaRef,
-} from "@/components/valuecell/scroll/scroll-textarea";
+import ScrollTextarea from "@/components/valuecell/scroll/scroll-textarea";
 import { cn } from "@/lib/utils";
 import type { ConversationView } from "@/types/agent";
+import ChatBackground from "./chat-background";
 import ChatItemView from "./chat-item-view";
 
 interface ChatConversationViewProps {
-  currentConversation: ConversationView;
+  currentConversation: ConversationView | null;
   isStreaming: boolean;
-  textareaRef: React.RefObject<ScrollTextareaRef | null>;
-  inputValue: string;
-  setInputValue: (value: string) => void;
-  handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  handleSendMessage: () => void;
+  sendMessage: (message: string) => Promise<void>;
 }
 
 const ChatConversationView: FC<ChatConversationViewProps> = ({
   currentConversation,
   isStreaming,
-  textareaRef,
-  inputValue,
-  setInputValue,
-  handleKeyDown,
-  handleSendMessage,
+  sendMessage,
 }) => {
-  return (
+  console.log("🚀 ~ ChatConversationView ~ isStreaming:", isStreaming);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [inputValue, setInputValue] = useState<string>("");
+
+  const handleKeyDown = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Send message on Enter key (excluding Shift+Enter line breaks and IME composition state)
+    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+      e.preventDefault();
+      await handleSendMessage();
+    }
+  };
+
+  const handleSendMessage = async () => {
+    setIsLoading(true);
+    await sendMessage(inputValue);
+    setInputValue("");
+  };
+
+  useEffect(() => {
+    setIsLoading(isStreaming);
+  }, [isStreaming]);
+
+  const threads = currentConversation?.threads;
+
+  return !threads || Object.keys(threads).length === 0 ? (
+    <>
+      {/* Background blur effects for welcome screen */}
+      <ChatBackground />
+
+      {/* Welcome content */}
+      <div className="flex flex-1 flex-col items-center justify-center gap-4">
+        <h1 className="text-center font-semibold text-2xl text-gray-950 leading-12">
+          Welcome to AI hedge fund agent！
+        </h1>
+
+        {/* Input card */}
+        <div
+          className={cn(
+            "flex w-2/3 min-w-[600px] flex-col gap-2 rounded-2xl bg-white p-4",
+            "border border-gray-200 shadow-[0px_4px_20px_8px_rgba(17,17,17,0.04)]",
+            "focus-within:border-gray-300 focus-within:shadow-[0px_4px_20px_8px_rgba(17,17,17,0.08)]",
+          )}
+        >
+          <ScrollTextarea
+            value={inputValue}
+            onInput={(e) => setInputValue(e.currentTarget.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="You can inquire and analyze the trend of NVIDIA in the next three months"
+            maxHeight={120}
+            minHeight={24}
+            disabled={isLoading}
+          />
+          <Button
+            size="icon"
+            className="size-8 cursor-pointer self-end rounded-full"
+            onClick={handleSendMessage}
+            disabled={isLoading}
+          >
+            <ArrowUp size={16} className="text-white" />
+          </Button>
+        </div>
+      </div>
+    </>
+  ) : (
     <div className="flex flex-1 overflow-hidden">
       <section className="flex flex-1 flex-col">
         {/* Chat messages using original data structure */}
@@ -87,20 +141,19 @@ const ChatConversationView: FC<ChatConversationViewProps> = ({
             )}
           >
             <ScrollTextarea
-              ref={textareaRef}
               value={inputValue}
               onInput={(e) => setInputValue(e.currentTarget.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type your message..."
               maxHeight={120}
               minHeight={24}
-              disabled={isStreaming}
+              disabled={isLoading}
             />
             <Button
               size="icon"
               className="size-8 cursor-pointer self-end rounded-full"
               onClick={handleSendMessage}
-              disabled={isStreaming}
+              disabled={isLoading}
             >
               <ArrowUp size={16} className="text-white" />
             </Button>
