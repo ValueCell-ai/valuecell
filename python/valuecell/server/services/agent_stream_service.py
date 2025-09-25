@@ -37,6 +37,7 @@ class AgentStreamService:
 
             user_id = "default_user"
             desired_agent_name = agent_name
+
             session_id = agent_name + "_session_" + user_id
 
             user_input_meta = UserInputMetadata(user_id=user_id, session_id=session_id)
