@@ -38,7 +38,7 @@ def parse_local_agent_card_dict(agent_card_dict: dict) -> Optional[AgentCard]:
 
 
 def find_local_agent_card_by_agent_name(
-    agent_name: str, ignore_disabled: bool = True, base_dir: Optional[str | Path] = None
+    agent_name: str, base_dir: Optional[str | Path] = None
 ) -> Optional[AgentCard]:
     """
     Reads JSON files from agent_cards directory and returns the first one where name matches.
@@ -66,7 +66,7 @@ def find_local_agent_card_by_agent_name(
                 continue
             if agent_card_dict.get("name") != agent_name:
                 continue
-            if agent_card_dict.get("enabled", True) is False and ignore_disabled:
+            if agent_card_dict.get("enabled", True) is False:
                 continue
             return parse_local_agent_card_dict(agent_card_dict)
 
