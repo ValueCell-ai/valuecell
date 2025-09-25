@@ -9,7 +9,6 @@ The ValueCell Agent System is a distributed intelligent agent framework based on
 - 🌐 **Distributed Architecture**: Support for both local and remote Agent connections
 - 📡 **Push Notifications**: Optional push notification functionality
 - 🔧 **Flexible Configuration**: Support for automatic port allocation and custom configuration
-- 📋 **Agent Registry**: Unified management of all Agent instances
 
 ## Quick Start
 
@@ -154,23 +153,6 @@ card = await client.get_agent_card()
 
 # Close connection
 await client.close()
-```
-
-### 4. Agent Registry
-
-`AgentRegistry` manages all registered Agents:
-
-```python
-from valuecell.core.agent.registry import AgentRegistry
-
-# List all registered Agents
-agents = AgentRegistry.list_agents()
-
-# Get specific Agent class
-agent_class = AgentRegistry.get_agent("AgentName")
-
-# Get registry detailed information
-info = AgentRegistry.get_registry_info()
 ```
 
 ## Complete Examples
