@@ -543,7 +543,7 @@ class AgentOrchestrator:
             async for remote_task, event in remote_response:
                 if event is None and remote_task.status.state == TaskState.submitted:
                     task.remote_task_ids.append(remote_task.id)
-                    yield self._response_factory.task_completed(
+                    yield self._response_factory.task_started(
                         conversation_id=conversation_id,
                         thread_id=thread_id,
                         task_id=task_id,
