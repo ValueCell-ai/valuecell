@@ -3,8 +3,6 @@ from .agent.decorator import create_wrapped_agent
 from .agent.responses import notification, streaming
 from .session import (
     InMemorySessionStore,
-    Message,
-    Role,
     Session,
     SessionManager,
     SessionStatus,
@@ -30,8 +28,6 @@ from .types import (
 
 __all__ = [
     # Session exports
-    "Message",
-    "Role",
     "Session",
     "SessionStatus",
     "SessionManager",

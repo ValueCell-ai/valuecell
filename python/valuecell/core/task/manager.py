@@ -170,10 +170,3 @@ class TaskManager:
                 cancelled_count += 1
 
         return cancelled_count
-
-
-_task_manager = TaskManager()
-
-
-def get_default_task_manager() -> TaskManager:
-    return _task_manager

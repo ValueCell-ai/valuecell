@@ -3,7 +3,7 @@ import logging
 from typing import AsyncGenerator, Dict, Optional
 
 from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
-from valuecell.core.agent.connect import get_default_remote_connections
+from valuecell.core.agent.connect import RemoteConnections
 from valuecell.core.coordinate.response import ResponseFactory
 from valuecell.core.coordinate.response_buffer import ResponseBuffer, SaveItem
 from valuecell.core.coordinate.response_router import (
@@ -11,10 +11,11 @@ from valuecell.core.coordinate.response_router import (
     SideEffectKind,
     handle_status_update,
 )
-from valuecell.core.session import SessionStatus, get_default_session_manager
-from valuecell.core.task import Task, get_default_task_manager
+from valuecell.core.session import SessionManager, SessionStatus, SQLiteMessageStore
+from valuecell.core.task import Task, TaskManager
 from valuecell.core.task.models import TaskPattern
 from valuecell.core.types import BaseResponse, UserInput
+from valuecell.utils import resolve_db_path
 from valuecell.utils.uuid import generate_thread_id
 
 from .models import ExecutionPlan
@@ -104,9 +105,11 @@ class AgentOrchestrator:
     """
 
     def __init__(self):
-        self.session_manager = get_default_session_manager()
-        self.task_manager = get_default_task_manager()
-        self.agent_connections = get_default_remote_connections()
+        self.session_manager = SessionManager(
+            message_store=SQLiteMessageStore(resolve_db_path())
+        )
+        self.task_manager = TaskManager()
+        self.agent_connections = RemoteConnections()
 
         # Initialize user input management
         self.user_input_manager = UserInputManager()
@@ -605,13 +608,3 @@ class AgentOrchestrator:
                 payload=it.payload,
                 item_id=it.item_id,
             )
-
-
-# ==================== Module-level Factory Function ====================
-
-_orchestrator = AgentOrchestrator()
-
-
-def get_default_orchestrator() -> AgentOrchestrator:
-    """Get the default singleton instance of AgentOrchestrator"""
-    return _orchestrator
