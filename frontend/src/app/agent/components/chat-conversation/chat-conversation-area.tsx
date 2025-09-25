@@ -53,7 +53,7 @@ const ChatConversationArea: FC<ChatConversationAreaProps> = ({
       <section className="flex flex-1 flex-col">
         {/* Chat messages using original data structure */}
         <ChatThreadArea
-          conversation={currentConversation}
+          threads={currentConversation.threads}
           isStreaming={isStreaming}
         />
 
