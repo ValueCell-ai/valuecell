@@ -54,9 +54,7 @@ class Settings:
 
     def get_database_config(self) -> dict:
         """Get database configuration."""
-        return {
-            "url": self.DATABASE_URL
-        }
+        return {"url": self.DATABASE_URL}
 
     def update_language(self, language: str) -> None:
         """Update current language setting.
