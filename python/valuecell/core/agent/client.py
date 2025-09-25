@@ -69,10 +69,21 @@ class AgentClient:
         metadata: dict = None,
         streaming: bool = False,
     ) -> AsyncIterator[RemoteAgentResponse]:
-        """Send message to Agent.
+        """Send a message to the remote agent and return an async iterator.
 
-        If `streaming` is True, return an async iterator producing (task, event) pairs.
-        If `streaming` is False, return the first (task, event) pair (and close the generator).
+        This method always returns an async iterator producing (remote_task,
+        event) pairs. When `streaming` is True the iterator yields streaming
+        events as they arrive. When `streaming` is False the iterator yields a
+        single (task, event) pair and then completes.
+
+        Args:
+            query: The user query to send to the agent.
+            conversation_id: Optional conversation id to correlate messages.
+            metadata: Optional metadata to send alongside the message.
+            streaming: Whether to request streaming responses from the agent.
+
+        Returns:
+            An async iterator yielding `RemoteAgentResponse` items (task,event).
         """
         await self.ensure_initialized()
 

@@ -85,7 +85,12 @@ class _StreamResponseNamespace:
             component_type: Type of the component being generated
 
         Returns:
-            StreamResponse with COMPONENT_GENERATOR event
+            StreamResponse with COMPONENT_GENERATOR event.
+
+        Note:
+            This factory returns a `StreamResponse` (not a `NotifyResponse`) so
+            the same component generator payload can be streamed and handled by
+            the existing streaming pipeline. This is intentional.
         """
         return StreamResponse(
             event=CommonResponseEvent.COMPONENT_GENERATOR,

@@ -203,9 +203,20 @@ class RemoteConnections:
         self,
         host: str = "localhost",
         port: Optional[int] = None,
-        notification_callback: callable = None,
+        notification_callback: NotificationCallbackType = None,
     ) -> tuple[asyncio.Task, str]:
-        """Start a NotificationListener and return (task, url)."""
+        """Start a NotificationListener and return (task, url).
+
+        Args:
+            host: Host to bind the listener to.
+            port: Optional port to bind; if None a free port will be selected.
+            notification_callback: Callback invoked when notifications arrive;
+                should conform to `NotificationCallbackType`.
+
+        Returns:
+            Tuple of (asyncio.Task, listener_url) where listener_url is the
+            http URL where notifications should be posted.
+        """
         if port is None:
             port = get_next_available_port(5000)
         listener = NotificationListener(
