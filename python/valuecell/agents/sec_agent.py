@@ -344,7 +344,9 @@ class SecAgent(BaseAgent):
             Please ensure the analysis is objective and professional, based on actual data, avoiding excessive speculation.
             """
 
-            response_stream: Iterator[RunResponseEvent] = self.analysis_agent.run(
+            response_stream: Iterator[
+                RunResponseEvent
+            ] = await self.analysis_agent.arun(
                 analysis_prompt, stream=True, stream_intermediate_steps=True
             )
             for event in response_stream:
@@ -440,7 +442,9 @@ class SecAgent(BaseAgent):
             Please ensure the analysis is objective and professional, based on actual data, avoiding excessive speculation.
             """
 
-            response_stream: Iterator[RunResponseEvent] = self.analysis_agent.run(
+            response_stream: Iterator[
+                RunResponseEvent
+            ] = await self.analysis_agent.arun(
                 analysis_prompt, stream=True, stream_intermediate_steps=True
             )
             for event in response_stream:
