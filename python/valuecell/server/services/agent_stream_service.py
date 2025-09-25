@@ -2,10 +2,11 @@
 Agent stream service for handling streaming agent interactions.
 """
 
-from typing import AsyncGenerator, Optional
-from valuecell.core.coordinate.orchestrator import get_default_orchestrator
-from valuecell.core.types import UserInput, UserInputMetadata
 import logging
+from typing import AsyncGenerator, Optional
+
+from valuecell.core.coordinate.orchestrator import AgentOrchestrator
+from valuecell.core.types import UserInput, UserInputMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ class AgentStreamService:
 
     def __init__(self):
         """Initialize the agent stream service."""
-        self.orchestrator = get_default_orchestrator()
+        self.orchestrator = AgentOrchestrator()
         logger.info("Agent stream service initialized")
 
     async def stream_query_agent(
