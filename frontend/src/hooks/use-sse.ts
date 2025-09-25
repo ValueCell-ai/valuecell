@@ -17,8 +17,6 @@ export interface UseSSEOptions extends SSEOptions {
 export interface UseSSEReturn {
   /** Current connection state */
   state: SSEReadyState;
-  /** Whether the connection is open */
-  isConnected: boolean;
   /** Current error, if any */
   error: Error | null;
   /** Connect to the SSE endpoint */
@@ -85,7 +83,6 @@ export function useSSE({
 
   return {
     state: clientRef.current?.state ?? SSEReadyState.CLOSED,
-    isConnected: clientRef.current?. state === SSEReadyState.OPEN,
     error,
     connect,
     close,

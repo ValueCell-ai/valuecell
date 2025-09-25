@@ -1,13 +1,13 @@
 import { Bot, CheckCircle, Clock, FileText, User } from "lucide-react";
-import { memo } from "react";
+import { type FC, memo } from "react";
 import { cn } from "@/lib/utils";
 import type { ChatItem } from "@/types/agent";
 
-export interface ChatMessageProps {
+export interface ChatItemViewProps {
   items: ChatItem[];
 }
 
-export const ChatMessage = memo<ChatMessageProps>(({ items }) => {
+const ChatItemView: FC<ChatItemViewProps> = ({ items }) => {
   // If no items, don't render anything
   if (!items || items.length === 0) return null;
 
@@ -120,6 +120,6 @@ export const ChatMessage = memo<ChatMessageProps>(({ items }) => {
       ))}
     </div>
   );
-});
+};
 
-ChatMessage.displayName = "ChatMessage";
+export default memo(ChatItemView);

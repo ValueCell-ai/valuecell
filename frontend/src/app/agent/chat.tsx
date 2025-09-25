@@ -4,7 +4,6 @@ import { useParams } from "react-router";
 import { useGetAgentInfo } from "@/api/agent";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import ScrollTextarea, {
   type ScrollTextareaRef,
 } from "@/components/valuecell/scroll/scroll-textarea";
@@ -20,7 +19,7 @@ import type {
 } from "@/types/agent";
 import type { Route } from "./+types/chat";
 import { ChatBackground } from "./components";
-import { ChatMessage as ChatMessageComponent } from "./components/chat-message";
+import ChatConversationView from "./components/chat-conversation-view";
 
 // Optimized reducer for agent store management
 function agentStoreReducer(
@@ -69,10 +68,6 @@ export default function AgentChat() {
         setInputValue("");
         break;
 
-      case "plan_require_user_input":
-      case "plan_failed":
-      case "task_failed":
-      case "system_failed":
       case "done":
         close();
         break;
@@ -88,12 +83,7 @@ export default function AgentChat() {
   }, []);
 
   // Initialize SSE connection using the useSSE hook
-  const {
-    connect,
-    close,
-    state,
-    error: sseError,
-  } = useSSE({
+  const { connect, close, state } = useSSE({
     url: getServerUrl("/agents/stream"),
     handlers: {
       onData: handleSSEData,
@@ -109,10 +99,9 @@ export default function AgentChat() {
     },
   });
 
-  const isStreaming = useMemo(
-    () => state === SSEReadyState.OPEN || state === SSEReadyState.CONNECTING,
-    [state],
-  );
+  const isStreaming = useMemo(() => {
+    return state === SSEReadyState.OPEN || state === SSEReadyState.CONNECTING;
+  }, [state]);
 
   // Send message to agent
   // biome-ignore lint/correctness/useExhaustiveDependencies: connect is no need to be in dependencies
@@ -136,15 +125,10 @@ export default function AgentChat() {
 
   const handleSendMessage = useCallback(() => {
     const trimmedInput = inputValue.trim();
-    // Prevent sending while connecting/sending or when input is empty
-    if (!trimmedInput || isStreaming) {
-      console.log("Cannot send: empty input, connecting, or already sending");
-      return;
-    }
 
     // Always use sendMessage - user input for plan_require_user_input is just normal conversation
     sendMessage(trimmedInput);
-  }, [inputValue, isStreaming, sendMessage]);
+  }, [inputValue, sendMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Send message on Enter key (excluding Shift+Enter line breaks and IME composition state)
@@ -238,7 +222,7 @@ export default function AgentChat() {
                   size="icon"
                   className="size-8 cursor-pointer self-end rounded-full"
                   onClick={handleSendMessage}
-                  disabled={isStreaming || !inputValue.trim()}
+                  disabled={isStreaming}
                 >
                   <ArrowUp size={16} className="text-white" />
                 </Button>
@@ -246,95 +230,15 @@ export default function AgentChat() {
             </div>
           </>
         ) : (
-          <>
-            {/* Chat messages using original data structure */}
-            <ScrollContainer className="flex-1 space-y-6 p-6">
-              {currentConversation &&
-                Object.entries(currentConversation.threads).map(
-                  ([threadId, thread], threadIndex) => {
-                    const threadCount = Object.keys(
-                      currentConversation.threads,
-                    ).length;
-                    const showThreadSeparator =
-                      threadIndex > 0 && threadCount > 1;
-
-                    return (
-                      <div key={threadId} className="space-y-6">
-                        {/* Thread separator - only show for subsequent threads when there are multiple threads */}
-                        {showThreadSeparator && (
-                          <div className="flex items-center gap-2 text-gray-400 text-xs uppercase tracking-wide">
-                            <span className="h-px flex-1 bg-gray-200" />
-                            <span>Thread {threadId}</span>
-                            <span className="h-px flex-1 bg-gray-200" />
-                          </div>
-                        )}
-
-                        {/* Render all tasks within this thread */}
-                        {Object.entries(thread.tasks).map(([taskId, task]) => {
-                          if (task.items && task.items.length > 0) {
-                            return (
-                              <ChatMessageComponent
-                                key={taskId}
-                                items={task.items}
-                              />
-                            );
-                          }
-                          return null;
-                        })}
-                      </div>
-                    );
-                  },
-                )}
-
-              {/* Streaming indicator */}
-              {isStreaming && (
-                <div className="flex items-center gap-2 text-gray-500 text-sm">
-                  <div className="flex space-x-1">
-                    <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 delay-0" />
-                    <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 delay-150" />
-                    <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 delay-300" />
-                  </div>
-                  <span>AI is thinking...</span>
-                </div>
-              )}
-            </ScrollContainer>
-
-            {/* Input area at bottom */}
-            <div className="border-gray-200 border-t p-4">
-              <div
-                className={cn(
-                  "flex w-full flex-col gap-2 rounded-2xl bg-white p-4",
-                  "border border-gray-200 shadow-[0px_4px_20px_8px_rgba(17,17,17,0.04)]",
-                  "focus-within:border-gray-300 focus-within:shadow-[0px_4px_20px_8px_rgba(17,17,17,0.08)]",
-                )}
-              >
-                <ScrollTextarea
-                  ref={textareaRef}
-                  value={inputValue}
-                  onInput={(e) => setInputValue(e.currentTarget.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Type your message..."
-                  maxHeight={120}
-                  minHeight={24}
-                  disabled={isStreaming}
-                />
-                <Button
-                  size="icon"
-                  className="size-8 cursor-pointer self-end rounded-full"
-                  onClick={handleSendMessage}
-                  disabled={isStreaming}
-                >
-                  <ArrowUp size={16} className="text-white" />
-                </Button>
-              </div>
-
-              {sseError && (
-                <div className="mt-2 rounded border border-red-200 bg-red-50 p-2 text-red-600 text-sm">
-                  Error: {sseError.message}
-                </div>
-              )}
-            </div>
-          </>
+          <ChatConversationView
+            currentConversation={currentConversation}
+            isStreaming={isStreaming}
+            textareaRef={textareaRef}
+            inputValue={inputValue}
+            setInputValue={setInputValue}
+            handleKeyDown={handleKeyDown}
+            handleSendMessage={handleSendMessage}
+          />
         )}
       </main>
     </div>
