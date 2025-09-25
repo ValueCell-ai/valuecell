@@ -4,7 +4,7 @@ Lean pytest tests for AgentOrchestrator.
 Focus on essential behavior without over-engineering:
 - Happy path (streaming and non-streaming)
 - Planner error and agent connection error
-- Session create/close and cleanup
+- Conversation create/close and cleanup
 """
 
 from types import SimpleNamespace
@@ -27,7 +27,7 @@ from a2a.types import (
 
 from valuecell.core.coordinate.models import ExecutionPlan
 from valuecell.core.coordinate.orchestrator import AgentOrchestrator
-from valuecell.core.session import SessionStatus
+from valuecell.core.conversation import ConversationStatus
 from valuecell.core.task import Task, TaskStatus as CoreTaskStatus
 from valuecell.core.types import UserInput, UserInputMetadata
 
@@ -37,9 +37,9 @@ from valuecell.core.types import UserInput, UserInputMetadata
 # -------------------------
 
 
-@pytest.fixture(name="session_id")
-def _session_id() -> str:
-    return "test-session-123"
+@pytest.fixture(name="conversation_id")
+def _conversation_id() -> str:
+    return "test-conversation-123"
 
 
 @pytest.fixture(name="user_id")
@@ -53,19 +53,21 @@ def _sample_query() -> str:
 
 
 @pytest.fixture(name="sample_user_input")
-def _sample_user_input(session_id: str, user_id: str, sample_query: str) -> UserInput:
+def _sample_user_input(
+    conversation_id: str, user_id: str, sample_query: str
+) -> UserInput:
     return UserInput(
         query=sample_query,
         desired_agent_name="TestAgent",
-        meta=UserInputMetadata(session_id=session_id, user_id=user_id),
+        meta=UserInputMetadata(conversation_id=conversation_id, user_id=user_id),
     )
 
 
 @pytest.fixture(name="sample_task")
-def _sample_task(session_id: str, user_id: str, sample_query: str) -> Task:
+def _sample_task(conversation_id: str, user_id: str, sample_query: str) -> Task:
     return Task(
         task_id="task-1",
-        session_id=session_id,
+        conversation_id=conversation_id,
         user_id=user_id,
         agent_name="TestAgent",
         query=sample_query,
@@ -76,11 +78,11 @@ def _sample_task(session_id: str, user_id: str, sample_query: str) -> Task:
 
 @pytest.fixture(name="sample_plan")
 def _sample_plan(
-    session_id: str, user_id: str, sample_query: str, sample_task: Task
+    conversation_id: str, user_id: str, sample_query: str, sample_task: Task
 ) -> ExecutionPlan:
     return ExecutionPlan(
         plan_id="plan-1",
-        session_id=session_id,
+        conversation_id=conversation_id,
         user_id=user_id,
         orig_query=sample_query,
         tasks=[sample_task],
@@ -88,30 +90,30 @@ def _sample_plan(
     )
 
 
-def _stub_session(status: Any = SessionStatus.ACTIVE):
-    # Minimal session stub with status and basic methods used by orchestrator
+def _stub_conversation(status: Any = ConversationStatus.ACTIVE):
+    # Minimal conversation stub with status and basic methods used by orchestrator
     s = SimpleNamespace(status=status)
 
     def activate():
-        s.status = SessionStatus.ACTIVE
+        s.status = ConversationStatus.ACTIVE
 
     def require_user_input():
-        s.status = SessionStatus.REQUIRE_USER_INPUT
+        s.status = ConversationStatus.REQUIRE_USER_INPUT
 
     s.activate = activate
     s.require_user_input = require_user_input
     return s
 
 
-@pytest.fixture(name="mock_session_manager")
-def _mock_session_manager() -> Mock:
+@pytest.fixture(name="mock_conversation_manager")
+def _mock_conversation_manager() -> Mock:
     m = Mock()
-    m.add_message = AsyncMock()
-    m.create_session = AsyncMock(return_value="new-session-id")
-    m.get_session_messages = AsyncMock(return_value=[])
-    m.list_user_sessions = AsyncMock(return_value=[])
-    m.get_session = AsyncMock(return_value=_stub_session())
-    m.update_session = AsyncMock()
+    m.add_item = AsyncMock()
+    m.create_conversation = AsyncMock(return_value="new-conversation-id")
+    m.get_conversation_items = AsyncMock(return_value=[])
+    m.list_user_conversations = AsyncMock(return_value=[])
+    m.get_conversation = AsyncMock(return_value=_stub_conversation())
+    m.update_conversation = AsyncMock()
     return m
 
 
@@ -122,7 +124,7 @@ def _mock_task_manager() -> Mock:
     m.start_task = AsyncMock()
     m.complete_task = AsyncMock()
     m.fail_task = AsyncMock()
-    m.cancel_session_tasks = AsyncMock(return_value=0)
+    m.cancel_conversation_tasks = AsyncMock(return_value=0)
     return m
 
 
@@ -172,10 +174,10 @@ def _mock_planner(sample_plan: ExecutionPlan) -> Mock:
 
 @pytest.fixture(name="orchestrator")
 def _orchestrator(
-    mock_session_manager: Mock, mock_task_manager: Mock, mock_planner: Mock
+    mock_conversation_manager: Mock, mock_task_manager: Mock, mock_planner: Mock
 ) -> AgentOrchestrator:
     o = AgentOrchestrator()
-    o.session_manager = mock_session_manager
+    o.conversation_manager = mock_conversation_manager
     o.task_manager = mock_task_manager
     o.planner = mock_planner
     return o

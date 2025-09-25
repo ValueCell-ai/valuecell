@@ -68,9 +68,11 @@ class TaskManager:
         return True
 
     # Batch operations
-    async def cancel_session_tasks(self, session_id: str) -> int:
-        """Cancel all unfinished tasks in a session"""
-        tasks = [t for t in self._tasks.values() if t.session_id == session_id]
+    async def cancel_conversation_tasks(self, conversation_id: str) -> int:
+        """Cancel all unfinished tasks in a conversation"""
+        tasks = [
+            t for t in self._tasks.values() if t.conversation_id == conversation_id
+        ]
         cancelled_count = 0
 
         for task in tasks:

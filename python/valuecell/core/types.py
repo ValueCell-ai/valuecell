@@ -10,7 +10,9 @@ from valuecell.utils.uuid import generate_item_id
 class UserInputMetadata(BaseModel):
     """Metadata associated with user input"""
 
-    session_id: Optional[str] = Field(None, description="Session ID for this request")
+    conversation_id: Optional[str] = Field(
+        None, description="Conversation ID for this request"
+    )
     user_id: str = Field(..., description="User ID who made this request")
 
 
@@ -288,14 +290,14 @@ class BaseAgent(ABC):
 
     @abstractmethod
     async def stream(
-        self, query: str, session_id: str, task_id: str
+        self, query: str, conversation_id: str, task_id: str
     ) -> AsyncGenerator[StreamResponse, None]:
         """
         Process user queries and return streaming responses (user-initiated)
 
         Args:
             query: User query content
-            session_id: Session ID
+            conversation_id: Conversation ID
             task_id: Task ID
 
         Yields:
@@ -304,14 +306,14 @@ class BaseAgent(ABC):
         raise NotImplementedError
 
     async def notify(
-        self, query: str, session_id: str, task_id: str
+        self, query: str, conversation_id: str, task_id: str
     ) -> AsyncGenerator[NotifyResponse, None]:
         """
         Send proactive notifications to subscribed users (agent-initiated)
 
         Args:
             query: User query content, can be empty for some agents
-            session_id: Session ID for the notification
+            conversation_id: Conversation ID for the notification
             user_id: Target user ID for the notification
 
         Yields:

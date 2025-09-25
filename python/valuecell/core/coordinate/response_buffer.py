@@ -229,7 +229,7 @@ class ResponseBuffer:
         data: UnifiedResponseData = resp.data
         payload = data.payload
 
-        # Ensure payload is BaseModel for SessionManager
+        # Ensure payload is BaseModel
         if isinstance(payload, BaseModel):
             bm = payload
         elif isinstance(payload, str):

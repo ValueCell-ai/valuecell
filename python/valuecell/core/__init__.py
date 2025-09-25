@@ -1,17 +1,17 @@
-# Session management
+# Conversation management
 from .agent.decorator import create_wrapped_agent
 from .agent.responses import notification, streaming
-from .session import (
-    InMemorySessionStore,
-    Session,
-    SessionManager,
-    SessionStatus,
-    SessionStore,
+from .conversation import (
+    InMemoryConversationStore,
+    Conversation,
+    ConversationManager,
+    ConversationStatus,
+    ConversationStore,
 )
-from .session.message_store import (
-    InMemoryMessageStore,
-    MessageStore,
-    SQLiteMessageStore,
+from .conversation.item_store import (
+    InMemoryItemStore,
+    ItemStore,
+    SQLiteItemStore,
 )
 
 # Task management
@@ -27,15 +27,15 @@ from .types import (
 )
 
 __all__ = [
-    # Session exports
-    "Session",
-    "SessionStatus",
-    "SessionManager",
-    "SessionStore",
-    "InMemorySessionStore",
-    "MessageStore",
-    "InMemoryMessageStore",
-    "SQLiteMessageStore",
+    # Conversation exports
+    "Conversation",
+    "ConversationStatus",
+    "ConversationManager",
+    "ConversationStore",
+    "InMemoryConversationStore",
+    "ItemStore",
+    "InMemoryItemStore",
+    "SQLiteItemStore",
     # Task exports
     "Task",
     "TaskStatus",
