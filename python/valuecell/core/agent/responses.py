@@ -8,7 +8,6 @@ from valuecell.core.types import (
     NotifyResponseEvent,
     StreamResponse,
     StreamResponseEvent,
-    SystemResponseEvent,
     TaskStatusEvent,
     ToolCallPayload,
 )
