@@ -172,6 +172,8 @@ class AgentOrchestrator:
                 session_id,
                 f"(Error) Error processing request: {str(e)}",
             )
+        finally:
+            yield self._response_factory.done(session_id)
 
     async def provide_user_input(self, session_id: str, response: str):
         """
@@ -496,8 +498,6 @@ class AgentOrchestrator:
                     task.task_id,
                     error_msg,
                 )
-
-        yield self._response_factory.done(session_id, thread_id)
 
     async def _execute_task_with_input_support(
         self, task: Task, thread_id: str, metadata: Optional[dict] = None
