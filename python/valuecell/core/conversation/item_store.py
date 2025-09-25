@@ -173,6 +173,14 @@ class SQLiteItemStore(ItemStore):
         if role is not None:
             where += " AND role = ?"
             params.append(getattr(role, "value", str(role)))
+        # Add additional optional filters before building the final SQL string
+        if event is not None:
+            where += " AND event = ?"
+            params.append(getattr(event, "value", str(event)))
+        if component_type is not None:
+            where += " AND json_extract(payload, '$.component_type') = ?"
+            params.append(component_type)
+
         sql = f"SELECT * FROM conversation_items {where} ORDER BY datetime(created_at) ASC"
         if limit is not None:
             sql += " LIMIT ?"
@@ -182,12 +190,6 @@ class SQLiteItemStore(ItemStore):
                 sql += " LIMIT -1"
             sql += " OFFSET ?"
             params.append(int(offset))
-        if event is not None:
-            where += " AND event = ?"
-            params.append(getattr(event, "value", str(event)))
-        if component_type is not None:
-            where += " AND json_extract(payload, '$.component_type') = ?"
-            params.append(component_type)
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = sqlite3.Row
             cur = await db.execute(sql, params)
