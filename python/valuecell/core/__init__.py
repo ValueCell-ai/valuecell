@@ -15,7 +15,7 @@ from .session.message_store import (
 )
 
 # Task management
-from .task import InMemoryTaskStore, Task, TaskManager, TaskStatus, TaskStore
+from .task import Task, TaskManager, TaskStatus
 
 # Type system
 from .types import (
@@ -40,8 +40,6 @@ __all__ = [
     "Task",
     "TaskStatus",
     "TaskManager",
-    "TaskStore",
-    "InMemoryTaskStore",
     # Type system exports
     "UserInput",
     "UserInputMetadata",

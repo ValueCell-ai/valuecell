@@ -474,8 +474,8 @@ class AgentOrchestrator:
 
         for task in plan.tasks:
             try:
-                # Register the task with TaskManager
-                await self.task_manager.store.save_task(task)
+                # Register the task with TaskManager (persist in-memory)
+                await self.task_manager.update_task(task)
 
                 # Execute task with input support
                 async for response in self._execute_task_with_input_support(

@@ -37,23 +37,23 @@ from valuecell.core.types import UserInput, UserInputMetadata
 # -------------------------
 
 
-@pytest.fixture
-def session_id() -> str:
+@pytest.fixture(name="session_id")
+def _session_id() -> str:
     return "test-session-123"
 
 
-@pytest.fixture
-def user_id() -> str:
+@pytest.fixture(name="user_id")
+def _user_id() -> str:
     return "test-user-456"
 
 
-@pytest.fixture
-def sample_query() -> str:
+@pytest.fixture(name="sample_query")
+def _sample_query() -> str:
     return "What is the latest stock price for AAPL?"
 
 
-@pytest.fixture
-def sample_user_input(session_id: str, user_id: str, sample_query: str) -> UserInput:
+@pytest.fixture(name="sample_user_input")
+def _sample_user_input(session_id: str, user_id: str, sample_query: str) -> UserInput:
     return UserInput(
         query=sample_query,
         desired_agent_name="TestAgent",
@@ -61,8 +61,8 @@ def sample_user_input(session_id: str, user_id: str, sample_query: str) -> UserI
     )
 
 
-@pytest.fixture
-def sample_task(session_id: str, user_id: str, sample_query: str) -> Task:
+@pytest.fixture(name="sample_task")
+def _sample_task(session_id: str, user_id: str, sample_query: str) -> Task:
     return Task(
         task_id="task-1",
         session_id=session_id,
@@ -74,8 +74,8 @@ def sample_task(session_id: str, user_id: str, sample_query: str) -> Task:
     )
 
 
-@pytest.fixture
-def sample_plan(
+@pytest.fixture(name="sample_plan")
+def _sample_plan(
     session_id: str, user_id: str, sample_query: str, sample_task: Task
 ) -> ExecutionPlan:
     return ExecutionPlan(
@@ -103,8 +103,8 @@ def _stub_session(status: Any = SessionStatus.ACTIVE):
     return s
 
 
-@pytest.fixture
-def mock_session_manager() -> Mock:
+@pytest.fixture(name="mock_session_manager")
+def _mock_session_manager() -> Mock:
     m = Mock()
     m.add_message = AsyncMock()
     m.create_session = AsyncMock(return_value="new-session-id")
@@ -115,11 +115,10 @@ def mock_session_manager() -> Mock:
     return m
 
 
-@pytest.fixture
-def mock_task_manager() -> Mock:
+@pytest.fixture(name="mock_task_manager")
+def _mock_task_manager() -> Mock:
     m = Mock()
-    m.store = Mock()
-    m.store.save_task = AsyncMock()
+    m.update_task = AsyncMock()
     m.start_task = AsyncMock()
     m.complete_task = AsyncMock()
     m.fail_task = AsyncMock()
@@ -127,8 +126,8 @@ def mock_task_manager() -> Mock:
     return m
 
 
-@pytest.fixture
-def mock_agent_card_streaming() -> AgentCard:
+@pytest.fixture(name="mock_agent_card_streaming")
+def _mock_agent_card_streaming() -> AgentCard:
     return AgentCard(
         name="TestAgent",
         description="",
@@ -142,8 +141,8 @@ def mock_agent_card_streaming() -> AgentCard:
     )
 
 
-@pytest.fixture
-def mock_agent_card_non_streaming() -> AgentCard:
+@pytest.fixture(name="mock_agent_card_non_streaming")
+def _mock_agent_card_non_streaming() -> AgentCard:
     return AgentCard(
         name="TestAgent",
         description="",
@@ -157,22 +156,22 @@ def mock_agent_card_non_streaming() -> AgentCard:
     )
 
 
-@pytest.fixture
-def mock_agent_client() -> Mock:
+@pytest.fixture(name="mock_agent_client")
+def _mock_agent_client() -> Mock:
     c = Mock()
     c.send_message = AsyncMock()
     return c
 
 
-@pytest.fixture
-def mock_planner(sample_plan: ExecutionPlan) -> Mock:
+@pytest.fixture(name="mock_planner")
+def _mock_planner(sample_plan: ExecutionPlan) -> Mock:
     p = Mock()
     p.create_plan = AsyncMock(return_value=sample_plan)
     return p
 
 
-@pytest.fixture
-def orchestrator(
+@pytest.fixture(name="orchestrator")
+def _orchestrator(
     mock_session_manager: Mock, mock_task_manager: Mock, mock_planner: Mock
 ) -> AgentOrchestrator:
     o = AgentOrchestrator()
@@ -262,7 +261,7 @@ async def test_happy_path_streaming(
         out.append(chunk)
 
     # Minimal assertions
-    orchestrator.task_manager.store.save_task.assert_called_once()
+    orchestrator.task_manager.update_task.assert_called_once()
     orchestrator.task_manager.start_task.assert_called_once()
     ac.start_agent.assert_called_once()
     ac.get_client.assert_called_once_with("TestAgent")
