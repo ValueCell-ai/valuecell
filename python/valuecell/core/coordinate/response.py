@@ -20,6 +20,7 @@ from valuecell.core.types import (
     SystemResponseEvent,
     TaskCompletedResponse,
     TaskFailedResponse,
+    TaskStartedResponse,
     TaskStatusEvent,
     ThreadStartedResponse,
     ToolCallPayload,
@@ -209,6 +210,21 @@ class ResponseFactory:
                 payload=BaseResponseDataPayload(content=content),
                 role=Role.AGENT,
             )
+        )
+
+    def task_started(
+        self,
+        conversation_id: str,
+        thread_id: str,
+        task_id: str,
+    ) -> TaskStartedResponse:
+        return TaskStartedResponse(
+            data=UnifiedResponseData(
+                conversation_id=conversation_id,
+                thread_id=thread_id,
+                task_id=task_id,
+                role=Role.AGENT,
+            ),
         )
 
     def task_completed(

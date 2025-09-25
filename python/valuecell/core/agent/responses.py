@@ -63,7 +63,7 @@ class _StreamResponseNamespace:
     def failed(self, content: Optional[str] = None) -> StreamResponse:
         return StreamResponse(
             content=content,
-            event=SystemResponseEvent.TASK_FAILED,
+            event=TaskStatusEvent.TASK_FAILED,
         )
 
 
@@ -95,7 +95,7 @@ class _NotifyResponseNamespace:
     def failed(self, content: Optional[str] = None) -> NotifyResponse:
         return NotifyResponse(
             content=content,
-            event=SystemResponseEvent.TASK_FAILED,
+            event=TaskStatusEvent.TASK_FAILED,
         )
 
 
@@ -118,7 +118,7 @@ class EventPredicates:
     @staticmethod
     def is_task_failed(response_type) -> bool:
         return response_type in {
-            SystemResponseEvent.TASK_FAILED,
+            TaskStatusEvent.TASK_FAILED,
         }
 
     @staticmethod

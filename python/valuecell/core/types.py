@@ -37,7 +37,6 @@ class SystemResponseEvent(str, Enum):
     THREAD_STARTED = "thread_started"
     PLAN_REQUIRE_USER_INPUT = "plan_require_user_input"
     PLAN_FAILED = "plan_failed"
-    TASK_FAILED = "task_failed"
     SYSTEM_FAILED = "system_failed"
     DONE = "done"
 
@@ -45,6 +44,7 @@ class SystemResponseEvent(str, Enum):
 class TaskStatusEvent(str, Enum):
     TASK_STARTED = "task_started"
     TASK_COMPLETED = "task_completed"
+    TASK_FAILED = "task_failed"
     TASK_CANCELLED = "task_cancelled"
 
 
@@ -253,9 +253,16 @@ class PlanFailedResponse(BaseResponse):
     data: UnifiedResponseData = Field(..., description="The plan data payload")
 
 
+class TaskStartedResponse(BaseResponse):
+    event: Literal[TaskStatusEvent.TASK_STARTED] = Field(
+        TaskStatusEvent.TASK_STARTED, description="The event type of the response"
+    )
+    data: UnifiedResponseData = Field(..., description="The task data payload")
+
+
 class TaskFailedResponse(BaseResponse):
-    event: Literal[SystemResponseEvent.TASK_FAILED] = Field(
-        SystemResponseEvent.TASK_FAILED, description="The event type of the response"
+    event: Literal[TaskStatusEvent.TASK_FAILED] = Field(
+        TaskStatusEvent.TASK_FAILED, description="The event type of the response"
     )
     data: UnifiedResponseData = Field(..., description="The task data payload")
 

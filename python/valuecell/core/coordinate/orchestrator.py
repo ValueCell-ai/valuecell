@@ -512,7 +512,9 @@ class AgentOrchestrator:
         """
         try:
             # Start task execution
-            await self.task_manager.start_task(task.task_id)
+            task_id = task.task_id
+            conversation_id = task.session_id
+            await self.task_manager.start_task(task_id)
 
             # Get agent connection
             agent_name = task.agent_name
@@ -532,7 +534,7 @@ class AgentOrchestrator:
             # Send message to agent
             remote_response = await client.send_message(
                 task.query,
-                session_id=task.session_id,
+                session_id=conversation_id,
                 metadata=metadata,
                 streaming=agent_card.capabilities.streaming,
             )
@@ -541,6 +543,11 @@ class AgentOrchestrator:
             async for remote_task, event in remote_response:
                 if event is None and remote_task.status.state == TaskState.submitted:
                     task.remote_task_ids.append(remote_task.id)
+                    yield self._response_factory.task_completed(
+                        conversation_id=conversation_id,
+                        thread_id=thread_id,
+                        task_id=task_id,
+                    )
                     continue
 
                 if isinstance(event, TaskStatusUpdateEvent):
@@ -553,43 +560,41 @@ class AgentOrchestrator:
                     # Apply side effects
                     for eff in result.side_effects:
                         if eff.kind == SideEffectKind.FAIL_TASK:
-                            await self.task_manager.fail_task(
-                                task.task_id, eff.reason or ""
-                            )
+                            await self.task_manager.fail_task(task_id, eff.reason or "")
                     if result.done:
                         return
                     continue
 
                 if isinstance(event, TaskArtifactUpdateEvent):
                     logger.info(
-                        f"Received unexpected artifact update for task {task.task_id}: {event}"
+                        f"Received unexpected artifact update for task {task_id}: {event}"
                     )
                     continue
 
             # Complete task successfully
-            await self.task_manager.complete_task(task.task_id)
+            await self.task_manager.complete_task(task_id)
             yield self._response_factory.task_completed(
-                conversation_id=task.session_id,
+                conversation_id=conversation_id,
                 thread_id=thread_id,
-                task_id=task.task_id,
+                task_id=task_id,
             )
             # Finalize buffered aggregates for this task (explicit flush at task end)
             items = self._response_buffer.flush_task(
-                conversation_id=task.session_id,
+                conversation_id=conversation_id,
                 thread_id=thread_id,
-                task_id=task.task_id,
+                task_id=task_id,
             )
             await self._persist_items(items)
 
         except Exception as e:
             # On failure, finalize any buffered aggregates for this task
             items = self._response_buffer.flush_task(
-                conversation_id=task.session_id,
+                conversation_id=conversation_id,
                 thread_id=thread_id,
-                task_id=task.task_id,
+                task_id=task_id,
             )
             await self._persist_items(items)
-            await self.task_manager.fail_task(task.task_id, str(e))
+            await self.task_manager.fail_task(task_id, str(e))
             raise e
 
     async def _persist_from_buffer(self, response: BaseResponse):
