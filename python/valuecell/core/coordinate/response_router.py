@@ -54,7 +54,7 @@ async def handle_status_update(
         err_msg = get_message_text(event.status.message)
         responses.append(
             response_factory.task_failed(
-                conversation_id=task.session_id,
+                conversation_id=task.conversation_id,
                 thread_id=thread_id,
                 task_id=task.task_id,
                 content=err_msg,
@@ -81,7 +81,7 @@ async def handle_status_update(
             tool_result = get_message_text(event.metadata.get("tool_result", ""))
         responses.append(
             response_factory.tool_call(
-                conversation_id=task.session_id,
+                conversation_id=task.conversation_id,
                 thread_id=thread_id,
                 task_id=task.task_id,
                 event=response_event,
@@ -97,7 +97,7 @@ async def handle_status_update(
     if state == TaskState.working and EventPredicates.is_reasoning(response_event):
         responses.append(
             response_factory.reasoning(
-                conversation_id=task.session_id,
+                conversation_id=task.conversation_id,
                 thread_id=thread_id,
                 task_id=task.task_id,
                 event=response_event,
@@ -114,7 +114,7 @@ async def handle_status_update(
         component_type = event.metadata.get("component_type", "unknown")
         responses.append(
             response_factory.component_generator(
-                conversation_id=task.session_id,
+                conversation_id=task.conversation_id,
                 thread_id=thread_id,
                 task_id=task.task_id,
                 content=content,
@@ -128,7 +128,7 @@ async def handle_status_update(
         responses.append(
             response_factory.message_response_general(
                 event=response_event,
-                conversation_id=task.session_id,
+                conversation_id=task.conversation_id,
                 thread_id=thread_id,
                 task_id=task.task_id,
                 content=content,

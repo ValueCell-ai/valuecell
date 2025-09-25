@@ -132,8 +132,8 @@ class RemoteConnections:
                 ctx.desired_listener_port = listener_port
                 ctx.notification_callback = notification_callback
 
-            # If already connected, return card (may be None if only URL known)
-            if ctx.client:
+            # If already connected, return card
+            if ctx.client and ctx.client.agent_card:
                 return ctx.client.agent_card
 
             # Ensure client connection (uses URL from context)
@@ -169,16 +169,32 @@ class RemoteConnections:
 
     async def _ensure_client(self, ctx: AgentContext) -> None:
         """Ensure AgentClient is created and connected."""
-        if ctx.client:
+        # Only treat as connected if a client exists AND has a resolved agent_card
+        if ctx.client and getattr(ctx.client, "agent_card", None):
             return
         url = ctx.url or (ctx.local_agent_card.url if ctx.local_agent_card else None)
         if not url:
             raise ValueError(f"Unable to determine URL for agent '{ctx.name}'")
-        ctx.client = AgentClient(url, push_notification_url=ctx.listener_url)
-        await ctx.client.ensure_initialized()
-        logger.info(f"Connected to agent '{ctx.name}' at {url}")
-        if ctx.listener_url:
-            logger.info(f"  └─ with listener at {ctx.listener_url}")
+        # Initialize a temporary client; only assign to context on success
+        tmp_client = AgentClient(url, push_notification_url=ctx.listener_url)
+        try:
+            await tmp_client.ensure_initialized()
+            # Ensure agent card was resolved by the resolver
+            if not getattr(tmp_client, "agent_card", None):
+                raise RuntimeError("Agent card resolution returned None")
+            # Success: assign to context
+            ctx.client = tmp_client
+            logger.info(f"Connected to agent '{ctx.name}' at {url}")
+            if ctx.listener_url:
+                logger.info(f"  └─ with listener at {ctx.listener_url}")
+        except Exception as e:
+            # Defensive: close any underlying resources of the temporary client
+            try:
+                await tmp_client.close()
+            except Exception:
+                pass
+            logger.error(f"Failed to initialize client for '{ctx.name}' at {url}: {e}")
+            raise
 
     async def _start_listener(
         self,
@@ -253,7 +269,12 @@ class RemoteConnections:
 
     def list_running_agents(self) -> List[str]:
         """List running agents"""
-        return [name for name, ctx in self._contexts.items() if ctx.client]
+        # An agent is considered running only if the client exists and has a resolved card
+        return [
+            name
+            for name, ctx in self._contexts.items()
+            if ctx.client and getattr(ctx.client, "agent_card", None)
+        ]
 
     def list_available_agents(self) -> List[str]:
         """List all available agents from local config cards"""

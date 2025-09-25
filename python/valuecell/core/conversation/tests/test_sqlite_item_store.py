@@ -2,19 +2,19 @@ import os
 import tempfile
 
 import pytest
-from valuecell.core.session.message_store import SQLiteMessageStore
+from valuecell.core.conversation.item_store import SQLiteItemStore
 from valuecell.core.types import ConversationItem, Role, SystemResponseEvent
 
 
 @pytest.mark.asyncio
-async def test_sqlite_message_store_basic_crud():
+async def test_sqlite_item_store_basic_crud():
     fd, path = tempfile.mkstemp(suffix=".db")
     os.close(fd)
     try:
-        store = SQLiteMessageStore(path)
+        store = SQLiteItemStore(path)
 
-        # create and save two messages
-        m1 = ConversationItem(
+        # create and save two items
+        i1 = ConversationItem(
             item_id="i1",
             role=Role.SYSTEM,
             event=SystemResponseEvent.THREAD_STARTED,
@@ -23,7 +23,7 @@ async def test_sqlite_message_store_basic_crud():
             task_id=None,
             payload='{"a":1}',
         )
-        m2 = ConversationItem(
+        i2 = ConversationItem(
             item_id="i2",
             role=Role.SYSTEM,
             event=SystemResponseEvent.DONE,
@@ -32,32 +32,32 @@ async def test_sqlite_message_store_basic_crud():
             task_id=None,
             payload='{"a":1}',
         )
-        await store.save_message(m1)
-        await store.save_message(m2)
+        await store.save_item(i1)
+        await store.save_item(i2)
 
         # count
-        cnt = await store.get_message_count("s1")
+        cnt = await store.get_item_count("s1")
         assert cnt == 2
 
         # get latest
-        latest = await store.get_latest_message("s1")
+        latest = await store.get_latest_item("s1")
         assert latest is not None
         assert latest.item_id in {"i1", "i2"}
 
         # list
-        msgs = await store.get_messages("s1")
-        assert len(msgs) == 2
-        ids = {m.item_id for m in msgs}
+        items = await store.get_items("s1")
+        assert len(items) == 2
+        ids = {i.item_id for i in items}
         assert ids == {"i1", "i2"}
 
         # get one
-        one = await store.get_message("i1")
+        one = await store.get_item("i1")
         assert one is not None
         assert one.item_id == "i1"
 
         # delete
-        await store.delete_session_messages("s1")
-        cnt2 = await store.get_message_count("s1")
+        await store.delete_conversation_items("s1")
+        cnt2 = await store.get_item_count("s1")
         assert cnt2 == 0
     finally:
         if os.path.exists(path):

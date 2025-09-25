@@ -106,7 +106,7 @@ class GenericAgentExecutor(AgentExecutor):
         # Prepare query and ensure a task exists in the system
         query = context.get_user_input()
         task = context.current_task
-        task_meta = context.message.metadata or {}
+        task_meta = context.message.metadata
         agent_name = self.agent.__class__.__name__
         if not task:
             message = context.message
@@ -116,21 +116,23 @@ class GenericAgentExecutor(AgentExecutor):
 
         # Helper state
         task_id = task.id
-        session_id = task.context_id
-        updater = TaskUpdater(event_queue, task_id, session_id)
+        context_id = task.context_id
+        updater = TaskUpdater(event_queue, task_id, context_id)
 
         # Stream from the user agent and update task incrementally
         await updater.update_status(
             TaskState.working,
             message=new_agent_text_message(
-                f"Task received by {agent_name}", session_id, task_id
+                f"Task received by {agent_name}", context_id, task_id
             ),
         )
         try:
             query_handler = (
-                self.agent.notify if task_meta.get("notify") else self.agent.stream
+                self.agent.notify
+                if task_meta and task_meta.get("notify")
+                else self.agent.stream
             )
-            async for response in query_handler(query, session_id, task_id):
+            async for response in query_handler(query, context_id, task_id):
                 if not isinstance(response, (StreamResponse, NotifyResponse)):
                     raise ValueError(
                         f"Agent {agent_name} yielded invalid response type: {type(response)}"
@@ -176,7 +178,7 @@ class GenericAgentExecutor(AgentExecutor):
             logger.error(message)
             await updater.update_status(
                 TaskState.failed,
-                message=new_agent_text_message(message, session_id, task_id),
+                message=new_agent_text_message(message, context_id, task_id),
             )
         finally:
             await updater.complete()

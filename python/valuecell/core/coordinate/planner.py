@@ -75,7 +75,7 @@ class ExecutionPlanner:
         """
         plan = ExecutionPlan(
             plan_id=generate_uuid("plan"),
-            session_id=user_input.meta.session_id,
+            conversation_id=user_input.meta.conversation_id,
             user_id=user_input.meta.user_id,
             orig_query=user_input.query,  # Store the original query
             created_at=datetime.now().isoformat(),
@@ -170,7 +170,7 @@ class ExecutionPlanner:
             )
         return [
             self._create_task(
-                user_input.meta.session_id,
+                user_input.meta.conversation_id,
                 user_input.meta.user_id,
                 task.agent_name,
                 task.query,
@@ -181,7 +181,7 @@ class ExecutionPlanner:
 
     def _create_task(
         self,
-        session_id: str,
+        conversation_id: str,
         user_id: str,
         agent_name: str,
         query: str,
@@ -191,7 +191,7 @@ class ExecutionPlanner:
         Create a new task for the specified agent.
 
         Args:
-            session_id: Session this task belongs to
+            conversation_id: Conversation this task belongs to
             user_id: User who requested this task
             agent_name: Name of the agent to execute the task
             query: Query/prompt for the agent
@@ -202,7 +202,7 @@ class ExecutionPlanner:
         """
         return Task(
             task_id=generate_uuid("task"),
-            session_id=session_id,
+            conversation_id=conversation_id,
             user_id=user_id,
             agent_name=agent_name,
             status=TaskStatus.PENDING,

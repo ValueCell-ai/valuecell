@@ -9,51 +9,51 @@ from typing import Dict, List, Optional
 from valuecell.core.types import ConversationItem, Role
 
 
-class MessageStore(ABC):
+class ItemStore(ABC):
     @abstractmethod
-    async def save_message(self, message: ConversationItem) -> None: ...
+    async def save_item(self, item: ConversationItem) -> None: ...
 
     @abstractmethod
-    async def get_messages(
+    async def get_items(
         self,
-        session_id: str,
+        conversation_id: str,
         limit: Optional[int] = None,
         offset: int = 0,
         role: Optional[Role] = None,
     ) -> List[ConversationItem]: ...
 
     @abstractmethod
-    async def get_latest_message(
-        self, session_id: str
+    async def get_latest_item(
+        self, conversation_id: str
     ) -> Optional[ConversationItem]: ...
 
     @abstractmethod
-    async def get_message(self, message_id: str) -> Optional[ConversationItem]: ...
+    async def get_item(self, item_id: str) -> Optional[ConversationItem]: ...
 
     @abstractmethod
-    async def get_message_count(self, session_id: str) -> int: ...
+    async def get_item_count(self, conversation_id: str) -> int: ...
 
     @abstractmethod
-    async def delete_session_messages(self, session_id: str) -> None: ...
+    async def delete_conversation_items(self, conversation_id: str) -> None: ...
 
 
-class InMemoryMessageStore(MessageStore):
+class InMemoryItemStore(ItemStore):
     def __init__(self):
-        # session_id -> list[ConversationItem]
-        self._messages: Dict[str, List[ConversationItem]] = {}
+        # conversation_id -> list[ConversationItem]
+        self._items: Dict[str, List[ConversationItem]] = {}
 
-    async def save_message(self, message: ConversationItem) -> None:
-        arr = self._messages.setdefault(message.conversation_id, [])
-        arr.append(message)
+    async def save_item(self, item: ConversationItem) -> None:
+        arr = self._items.setdefault(item.conversation_id, [])
+        arr.append(item)
 
-    async def get_messages(
+    async def get_items(
         self,
-        session_id: str,
+        conversation_id: str,
         limit: Optional[int] = None,
         offset: int = 0,
         role: Optional[Role] = None,
     ) -> List[ConversationItem]:
-        items = list(self._messages.get(session_id, []))
+        items = list(self._items.get(conversation_id, []))
         if role is not None:
             items = [m for m in items if m.role == role]
         if offset:
@@ -62,26 +62,26 @@ class InMemoryMessageStore(MessageStore):
             items = items[:limit]
         return items
 
-    async def get_latest_message(self, session_id: str) -> Optional[ConversationItem]:
-        items = self._messages.get(session_id, [])
+    async def get_latest_item(self, conversation_id: str) -> Optional[ConversationItem]:
+        items = self._items.get(conversation_id, [])
         return items[-1] if items else None
 
-    async def get_message(self, message_id: str) -> Optional[ConversationItem]:
-        for arr in self._messages.values():
+    async def get_item(self, item_id: str) -> Optional[ConversationItem]:
+        for arr in self._items.values():
             for m in arr:
-                if m.item_id == message_id:
+                if m.item_id == item_id:
                     return m
         return None
 
-    async def get_message_count(self, session_id: str) -> int:
-        return len(self._messages.get(session_id, []))
+    async def get_item_count(self, conversation_id: str) -> int:
+        return len(self._items.get(conversation_id, []))
 
-    async def delete_session_messages(self, session_id: str) -> None:
-        self._messages.pop(session_id, None)
+    async def delete_conversation_items(self, conversation_id: str) -> None:
+        self._items.pop(conversation_id, None)
 
 
-class SQLiteMessageStore(MessageStore):
-    """SQLite-backed message store using aiosqlite for true async I/O."""
+class SQLiteItemStore(ItemStore):
+    """SQLite-backed item store using aiosqlite for true async I/O."""
 
     def __init__(self, db_path: str):
         self.db_path = db_path
@@ -99,7 +99,7 @@ class SQLiteMessageStore(MessageStore):
             async with aiosqlite.connect(self.db_path) as db:
                 await db.execute(
                     """
-                    CREATE TABLE IF NOT EXISTS messages (
+                    CREATE TABLE IF NOT EXISTS conversation_items (
                       item_id TEXT PRIMARY KEY,
                       role TEXT NOT NULL,
                       event TEXT NOT NULL,
@@ -113,15 +113,15 @@ class SQLiteMessageStore(MessageStore):
                 )
                 await db.execute(
                     """
-                    CREATE INDEX IF NOT EXISTS idx_messages_conv_time
-                    ON messages (conversation_id, created_at);
+                    CREATE INDEX IF NOT EXISTS idx_item_conv_time
+                    ON conversation_items (conversation_id, created_at);
                     """
                 )
                 await db.commit()
             self._initialized = True
 
     @staticmethod
-    def _row_to_message(row: sqlite3.Row) -> ConversationItem:
+    def _row_to_item(row: sqlite3.Row) -> ConversationItem:
         return ConversationItem(
             item_id=row["item_id"],
             role=row["role"],
@@ -132,43 +132,43 @@ class SQLiteMessageStore(MessageStore):
             payload=row["payload"],
         )
 
-    async def save_message(self, message: ConversationItem) -> None:
+    async def save_item(self, item: ConversationItem) -> None:
         await self._ensure_initialized()
-        role_val = getattr(message.role, "value", str(message.role))
-        event_val = getattr(message.event, "value", str(message.event))
+        role_val = getattr(item.role, "value", str(item.role))
+        event_val = getattr(item.event, "value", str(item.event))
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute(
                 """
-                INSERT OR REPLACE INTO messages (
+                INSERT OR REPLACE INTO conversation_items (
                     item_id, role, event, conversation_id, thread_id, task_id, payload
                 ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    message.item_id,
+                    item.item_id,
                     role_val,
                     event_val,
-                    message.conversation_id,
-                    message.thread_id,
-                    message.task_id,
-                    message.payload,
+                    item.conversation_id,
+                    item.thread_id,
+                    item.task_id,
+                    item.payload,
                 ),
             )
             await db.commit()
 
-    async def get_messages(
+    async def get_items(
         self,
-        session_id: str,
+        conversation_id: str,
         limit: Optional[int] = None,
         offset: int = 0,
         role: Optional[Role] = None,
     ) -> List[ConversationItem]:
         await self._ensure_initialized()
-        params = [session_id]
+        params = [conversation_id]
         where = "WHERE conversation_id = ?"
         if role is not None:
             where += " AND role = ?"
             params.append(getattr(role, "value", str(role)))
-        sql = f"SELECT * FROM messages {where} ORDER BY datetime(created_at) ASC"
+        sql = f"SELECT * FROM conversation_items {where} ORDER BY datetime(created_at) ASC"
         if limit is not None:
             sql += " LIMIT ?"
             params.append(int(limit))
@@ -181,45 +181,45 @@ class SQLiteMessageStore(MessageStore):
             db.row_factory = sqlite3.Row
             cur = await db.execute(sql, params)
             rows = await cur.fetchall()
-            return [self._row_to_message(r) for r in rows]
+            return [self._row_to_item(r) for r in rows]
 
-    async def get_latest_message(self, session_id: str) -> Optional[ConversationItem]:
+    async def get_latest_item(self, conversation_id: str) -> Optional[ConversationItem]:
         await self._ensure_initialized()
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = sqlite3.Row
             cur = await db.execute(
-                "SELECT * FROM messages WHERE conversation_id = ? ORDER BY datetime(created_at) DESC LIMIT 1",
-                (session_id,),
+                "SELECT * FROM conversation_items WHERE conversation_id = ? ORDER BY datetime(created_at) DESC LIMIT 1",
+                (conversation_id,),
             )
             row = await cur.fetchone()
-            return self._row_to_message(row) if row else None
+            return self._row_to_item(row) if row else None
 
-    async def get_message(self, message_id: str) -> Optional[ConversationItem]:
+    async def get_item(self, item_id: str) -> Optional[ConversationItem]:
         await self._ensure_initialized()
         async with aiosqlite.connect(self.db_path) as db:
             db.row_factory = sqlite3.Row
             cur = await db.execute(
-                "SELECT * FROM messages WHERE item_id = ?",
-                (message_id,),
+                "SELECT * FROM conversation_items WHERE item_id = ?",
+                (item_id,),
             )
             row = await cur.fetchone()
-            return self._row_to_message(row) if row else None
+            return self._row_to_item(row) if row else None
 
-    async def get_message_count(self, session_id: str) -> int:
+    async def get_item_count(self, conversation_id: str) -> int:
         await self._ensure_initialized()
         async with aiosqlite.connect(self.db_path) as db:
             cur = await db.execute(
-                "SELECT COUNT(1) FROM messages WHERE conversation_id = ?",
-                (session_id,),
+                "SELECT COUNT(1) FROM conversation_items WHERE conversation_id = ?",
+                (conversation_id,),
             )
             row = await cur.fetchone()
             return int(row[0] if row else 0)
 
-    async def delete_session_messages(self, session_id: str) -> None:
+    async def delete_conversation_items(self, conversation_id: str) -> None:
         await self._ensure_initialized()
         async with aiosqlite.connect(self.db_path) as db:
             await db.execute(
-                "DELETE FROM messages WHERE conversation_id = ?",
-                (session_id,),
+                "DELETE FROM conversation_items WHERE conversation_id = ?",
+                (conversation_id,),
             )
             await db.commit()
