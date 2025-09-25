@@ -1,5 +1,6 @@
 import { type FC, memo, useCallback, useState } from "react";
-import type { ConversationView } from "@/types/agent";
+import type { ConversationView, SectionComponentType } from "@/types/agent";
+import ChatDynamicComponent from "./chat-dynamic-component";
 import ChatInputArea from "./chat-input-area";
 import ChatThreadArea from "./chat-thread-area";
 import ChatWelcomeScreen from "./chat-welcome-screen";
@@ -49,15 +50,15 @@ const ChatConversationArea: FC<ChatConversationAreaProps> = ({
   }
 
   return (
-    <div className="flex flex-1 overflow-hidden">
+    <div className="flex flex-1 gap-2 overflow-hidden">
+      {/* main section */}
       <section className="flex flex-1 flex-col">
-        {/* Chat messages using original data structure */}
         <ChatThreadArea
           threads={currentConversation.threads}
           isStreaming={isStreaming}
         />
 
-        {/* Input area at bottom */}
+        {/* Input area now only in main section */}
         <div className="border-gray-200 border-t p-4">
           <ChatInputArea
             value={inputValue}
@@ -69,6 +70,21 @@ const ChatConversationArea: FC<ChatConversationAreaProps> = ({
           />
         </div>
       </section>
+
+      {/* Dynamic sections: one section per special component_type */}
+      {currentConversation.sections &&
+        Object.entries(currentConversation.sections).map(
+          ([componentType, items]) => (
+            <section key={componentType} className="flex flex-1 flex-col">
+              {/* Section content using dynamic component rendering */}
+              <ChatDynamicComponent
+                // TODO: componentType as type assertion is not safe, find a better way to do this
+                componentType={componentType as SectionComponentType}
+                items={items}
+              />
+            </section>
+          ),
+        )}
     </div>
   );
 };

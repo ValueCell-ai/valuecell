@@ -1,5 +1,10 @@
 // Agent communication types for SSE events and business logic
 
+import type {
+  AGENT_COMPONENT_TYPE,
+  AGENT_SECTION_COMPONENT_TYPE,
+} from "@/constants/agent";
+
 // Base event data structures
 interface BaseEventData {
   role: "user" | "agent" | "system";
@@ -25,7 +30,7 @@ export type AgentTaskFailedMessage = AgentChunkMessage;
 export type AgentSystemFailedMessage = AgentChunkMessage;
 
 export type AgentComponentMessage = MessageWithPayload<{
-  component_type: string;
+  component_type: (typeof AGENT_COMPONENT_TYPE)[number];
   content: string;
 }>;
 
@@ -47,7 +52,7 @@ type ChatMessage =
   | AgentToolCallCompletedMessage;
 
 export type ChatItem = ChatMessage & {
-  component_type: string;
+  component_type: (typeof AGENT_COMPONENT_TYPE)[number];
 };
 
 export interface AgentEventMap {
@@ -90,8 +95,16 @@ export interface ThreadView {
   tasks: Record<string, TaskView>;
 }
 
+export type SectionComponentType =
+  (typeof AGENT_SECTION_COMPONENT_TYPE)[number];
+
 export interface ConversationView {
   threads: Record<string, ThreadView>;
+  /**
+   * By component_type grouped sections
+   * @description this is rendered outside of the threads (main section)
+   */
+  sections?: Record<SectionComponentType, ChatItem[]>;
 }
 
 export type AgentConversationsStore = Record<string, ConversationView>;
