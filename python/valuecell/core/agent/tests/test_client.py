@@ -75,7 +75,9 @@ class TestAgentClient:
         with (
             patch("httpx.AsyncClient") as mock_httpx_client,
             patch("valuecell.core.agent.client.ClientFactory") as mock_client_factory,
-            patch("valuecell.core.agent.client.A2ACardResolver") as mock_card_resolver_class,
+            patch(
+                "valuecell.core.agent.client.A2ACardResolver"
+            ) as mock_card_resolver_class,
         ):
             mock_httpx_instance = MagicMock()
             mock_httpx_client.return_value = mock_httpx_instance
@@ -142,7 +144,9 @@ class TestAgentClient:
         with (
             patch("httpx.AsyncClient") as mock_httpx_client,
             patch("valuecell.core.agent.client.ClientFactory") as mock_client_factory,
-            patch("valuecell.core.agent.client.A2ACardResolver") as mock_card_resolver_class,
+            patch(
+                "valuecell.core.agent.client.A2ACardResolver"
+            ) as mock_card_resolver_class,
         ):
             mock_httpx_instance = MagicMock()
             mock_httpx_client.return_value = mock_httpx_instance
@@ -211,6 +215,7 @@ class TestAgentClient:
         client = AgentClient("http://localhost:8000")
 
         with patch.object(client, "ensure_initialized", new_callable=AsyncMock):
+
             class FakeGen:
                 def __init__(self):
                     self.items = [("t1", "e1"), ("t2", "e2")]
