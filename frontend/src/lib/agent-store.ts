@@ -72,10 +72,7 @@ function addOrUpdateItem(task: TaskView, newItem: ChatItem): void {
 }
 
 // Generic handler for events that create chat items
-function handleChatItemEvent(
-  draft: AgentConversationsStore,
-  data: ChatItem,
-): void {
+function handleChatItemEvent(draft: AgentConversationsStore, data: ChatItem) {
   const { task } = ensurePath(draft, data);
   addOrUpdateItem(task, data);
 }
@@ -100,7 +97,7 @@ export function updateAgentConversationsStore(
       case "plan_failed":
       case "system_failed":
       case "plan_require_user_input":
-        handleChatItemEvent(draft, data);
+        handleChatItemEvent(draft, { component_type: "markdown", ...data });
         break;
 
       case "reasoning_started":

@@ -40,12 +40,15 @@ export type AgentToolCallCompletedMessage = MessageWithPayload<{
   tool_call_result: string;
 }>;
 
-export type ChatItem =
+type ChatMessage =
+  | AgentChunkMessage
   | AgentComponentMessage
   | AgentToolCallStartedMessage
-  | AgentToolCallCompletedMessage
-  | AgentChunkMessage
-  
+  | AgentToolCallCompletedMessage;
+
+export type ChatItem = ChatMessage & {
+  component_type: string;
+};
 
 export interface AgentEventMap {
   // Lifecycle Events
