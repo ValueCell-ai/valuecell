@@ -308,7 +308,7 @@ async def test_planner_error(
     async for chunk in orchestrator.process_user_input(sample_user_input):
         out.append(chunk)
 
-    assert len(out) == 2
+    assert len(out) == 3
     assert "(Error)" in out[1].data.payload.content
     assert "Planning failed" in out[1].data.payload.content
 
