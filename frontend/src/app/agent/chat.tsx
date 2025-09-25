@@ -13,7 +13,7 @@ import type {
   SSEData,
 } from "@/types/agent";
 import type { Route } from "./+types/chat";
-import ChatConversationView from "./components/chat-conversation-view";
+import ChatConversationArea from "./components/chat-conversation/chat-conversation-area";
 
 // Optimized reducer for agent store management
 function agentStoreReducer(
@@ -160,7 +160,7 @@ export default function AgentChat() {
 
       {/* Main content area */}
       <main className="relative flex flex-1 flex-col overflow-hidden">
-        <ChatConversationView
+        <ChatConversationArea
           currentConversation={currentConversation}
           isStreaming={isStreaming}
           sendMessage={sendMessage}

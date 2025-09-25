@@ -3,11 +3,11 @@ import { type FC, memo } from "react";
 import { cn } from "@/lib/utils";
 import type { ChatItem } from "@/types/agent";
 
-export interface ChatItemViewProps {
+export interface ChatItemAreaProps {
   items: ChatItem[];
 }
 
-const ChatItemView: FC<ChatItemViewProps> = ({ items }) => {
+const ChatItemArea: FC<ChatItemAreaProps> = ({ items }) => {
   // If no items, don't render anything
   if (!items || items.length === 0) return null;
 
@@ -122,4 +122,4 @@ const ChatItemView: FC<ChatItemViewProps> = ({ items }) => {
   );
 };
 
-export default memo(ChatItemView);
+export default memo(ChatItemArea);
