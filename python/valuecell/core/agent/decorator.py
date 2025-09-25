@@ -106,7 +106,7 @@ class GenericAgentExecutor(AgentExecutor):
         # Prepare query and ensure a task exists in the system
         query = context.get_user_input()
         task = context.current_task
-        task_meta = context.metadata
+        task_meta = context.message.metadata
         agent_name = self.agent.__class__.__name__
         if not task:
             message = context.message

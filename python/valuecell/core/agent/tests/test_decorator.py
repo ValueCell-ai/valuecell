@@ -16,7 +16,14 @@ from valuecell.core.agent.decorator import (
     _serve,
     create_wrapped_agent,
 )
-from valuecell.core.types import BaseAgent, CommonResponseEvent, StreamResponse
+from valuecell.core.types import (
+    BaseAgent,
+    CommonResponseEvent,
+    StreamResponse,
+    StreamResponseEvent,
+    NotifyResponse,
+    NotifyResponseEvent,
+)
 
 
 class MockAgent(BaseAgent):
@@ -28,16 +35,14 @@ class MockAgent(BaseAgent):
 
     async def stream(self, query, context_id, task_id):
         self.stream_called = True
-        yield StreamResponse(event=CommonResponseEvent.STREAM_START, content="Starting")
         yield StreamResponse(
-            event=CommonResponseEvent.MESSAGE_CHUNK, content="Hello world"
+            event=StreamResponseEvent.MESSAGE_CHUNK, content="Hello world"
         )
-        yield StreamResponse(event=CommonResponseEvent.STREAM_END, content="Done")
 
     async def notify(self, query, context_id, task_id):
         self.notify_called = True
-        yield StreamResponse(
-            event=CommonResponseEvent.NOTIFY_MESSAGE, content="Notification sent"
+        yield NotifyResponse(
+            event=NotifyResponseEvent.MESSAGE, content="Notification sent"
         )
 
 
@@ -58,6 +63,7 @@ class TestGenericAgentExecutor:
         context.current_task.context_id = "context-456"
         context.metadata = {}
         context.message = MagicMock()
+        context.message.metadata = {}
 
         # Mock event queue
         event_queue = MagicMock(spec=EventQueue)
@@ -95,6 +101,7 @@ class TestGenericAgentExecutor:
         context.current_task = None
         context.metadata = {}
         context.message = MagicMock()
+        context.message.metadata = {}
 
         event_queue = MagicMock(spec=EventQueue)
         event_queue.enqueue_event = AsyncMock()
@@ -133,6 +140,7 @@ class TestGenericAgentExecutor:
         context.current_task.context_id = "context-456"
         context.metadata = {"notify": True}
         context.message = MagicMock()
+        context.message.metadata = {"notify": True}
 
         event_queue = MagicMock(spec=EventQueue)
         event_queue.enqueue_event = AsyncMock()
@@ -167,6 +175,8 @@ class TestGenericAgentExecutor:
         context.current_task.id = "task-123"
         context.current_task.context_id = "context-456"
         context.metadata = {}
+        context.message = MagicMock()
+        context.message.metadata = {}
 
         event_queue = MagicMock(spec=EventQueue)
 
