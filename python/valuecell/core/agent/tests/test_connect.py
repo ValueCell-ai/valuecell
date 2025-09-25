@@ -1,11 +1,3 @@
-"""
-Unit tests for valuecell.core.agent.connect.RemoteConnections
-
-Notes:
-- We avoid real network and uvicorn by monkeypatching AgentClient and NotificationListener.
-- AgentCard JSONs are generated with all required fields to satisfy a2a.types.AgentCard.
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -15,12 +7,10 @@ from pathlib import Path
 from typing import ClassVar, Dict, Optional
 
 import pytest
-
 from a2a.client.client_factory import minimal_agent_card
 from a2a.types import AgentCard
-
+from valuecell.core.agent import connect as connect_mod
 from valuecell.core.agent.connect import RemoteConnections
-
 
 # ----------------------------
 # Test helpers and fakes
@@ -124,8 +114,6 @@ async def test_load_from_dir_and_list(tmp_path: Path, monkeypatch: pytest.Monkey
             json.dump(c, f)
 
     # Wire FakeAgentClient and DummyNotificationListener
-    from valuecell.core.agent import connect as connect_mod
-
     monkeypatch.setattr(connect_mod, "AgentClient", FakeAgentClient)
     monkeypatch.setattr(connect_mod, "NotificationListener", DummyNotificationListener)
 
@@ -154,8 +142,6 @@ async def test_start_agent_without_listener(
     dir_path.mkdir(parents=True)
     with open(dir_path / f"{card['name']}.json", "w", encoding="utf-8") as f:
         json.dump(card, f)
-
-    from valuecell.core.agent import connect as connect_mod
 
     monkeypatch.setattr(connect_mod, "AgentClient", FakeAgentClient)
     monkeypatch.setattr(connect_mod, "NotificationListener", DummyNotificationListener)
@@ -187,8 +173,6 @@ async def test_start_agent_with_listener_when_supported(
     with open(dir_path / f"{card['name']}.json", "w", encoding="utf-8") as f:
         json.dump(card, f)
 
-    from valuecell.core.agent import connect as connect_mod
-
     monkeypatch.setattr(connect_mod, "AgentClient", FakeAgentClient)
     monkeypatch.setattr(connect_mod, "NotificationListener", DummyNotificationListener)
     FakeAgentClient.cards_by_url = {card["url"]: AgentCard.model_validate(card)}
@@ -215,6 +199,35 @@ async def test_start_agent_with_listener_when_supported(
 
 
 @pytest.mark.asyncio
+async def test_start_agent_failure_does_not_set_client(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    # Arrange a card and a failing client ensure_initialized
+    card = make_card_dict(
+        "FailAgent", "http://127.0.0.1:8399", push_notifications=False
+    )
+    dir_path = tmp_path / "agent_cards"
+    dir_path.mkdir(parents=True)
+    with open(dir_path / f"{card['name']}.json", "w", encoding="utf-8") as f:
+        json.dump(card, f)
+
+    class FailingClient(FakeAgentClient):
+        async def ensure_initialized(self):
+            raise RuntimeError("resolver failed")
+
+    monkeypatch.setattr(connect_mod, "AgentClient", FailingClient)
+    monkeypatch.setattr(connect_mod, "NotificationListener", DummyNotificationListener)
+
+    rc = RemoteConnections()
+    rc.load_from_dir(str(dir_path))
+
+    with pytest.raises(RuntimeError, match="failed"):
+        await rc.start_agent("FailAgent", with_listener=False)
+
+    assert "FailAgent" not in rc.list_running_agents()
+
+
+@pytest.mark.asyncio
 async def test_start_agent_with_listener_but_not_supported(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -224,8 +237,6 @@ async def test_start_agent_with_listener_but_not_supported(
     dir_path.mkdir(parents=True)
     with open(dir_path / f"{card['name']}.json", "w", encoding="utf-8") as f:
         json.dump(card, f)
-
-    from valuecell.core.agent import connect as connect_mod
 
     monkeypatch.setattr(connect_mod, "AgentClient", FakeAgentClient)
     monkeypatch.setattr(connect_mod, "NotificationListener", DummyNotificationListener)
@@ -252,8 +263,6 @@ async def test_concurrent_start_calls_single_initialization(
     dir_path.mkdir(parents=True)
     with open(dir_path / f"{card['name']}.json", "w", encoding="utf-8") as f:
         json.dump(card, f)
-
-    from valuecell.core.agent import connect as connect_mod
 
     monkeypatch.setattr(connect_mod, "AgentClient", FakeAgentClient)
     monkeypatch.setattr(connect_mod, "NotificationListener", DummyNotificationListener)
@@ -284,8 +293,6 @@ async def test_stop_agent_and_stop_all(tmp_path: Path, monkeypatch: pytest.Monke
         with open(dir_path / f"{c['name']}.json", "w", encoding="utf-8") as f:
             json.dump(c, f)
 
-    from valuecell.core.agent import connect as connect_mod
-
     monkeypatch.setattr(connect_mod, "AgentClient", FakeAgentClient)
     monkeypatch.setattr(connect_mod, "NotificationListener", DummyNotificationListener)
     FakeAgentClient.cards_by_url = {
@@ -314,8 +321,6 @@ async def test_unknown_agent_raises(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     # Empty directory (no cards)
     dir_path = tmp_path / "agent_cards"
     dir_path.mkdir(parents=True)
-
-    from valuecell.core.agent import connect as connect_mod
 
     monkeypatch.setattr(connect_mod, "AgentClient", FakeAgentClient)
 
