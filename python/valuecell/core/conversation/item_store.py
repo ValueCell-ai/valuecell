@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import sqlite3
-import aiosqlite
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 
-from valuecell.core.types import ConversationItem, Role
+import aiosqlite
+from valuecell.core.types import ConversationItem, ConversationItemEvent, Role
 
 
 class ItemStore(ABC):
@@ -26,6 +26,7 @@ class ItemStore(ABC):
         limit: Optional[int] = None,
         offset: int = 0,
         role: Optional[Role] = None,
+        **kwargs,
     ) -> List[ConversationItem]: ...
 
     @abstractmethod
@@ -63,6 +64,7 @@ class InMemoryItemStore(ItemStore):
         limit: Optional[int] = None,
         offset: int = 0,
         role: Optional[Role] = None,
+        **kwargs,
     ) -> List[ConversationItem]:
         items = list(self._items.get(conversation_id, []))
         if role is not None:
@@ -177,6 +179,9 @@ class SQLiteItemStore(ItemStore):
         limit: Optional[int] = None,
         offset: int = 0,
         role: Optional[Role] = None,
+        event: Optional[ConversationItemEvent] = None,
+        component_type: Optional[str] = None,
+        **kwargs,
     ) -> List[ConversationItem]:
         await self._ensure_initialized()
         params = [conversation_id]
@@ -184,6 +189,14 @@ class SQLiteItemStore(ItemStore):
         if role is not None:
             where += " AND role = ?"
             params.append(getattr(role, "value", str(role)))
+        # Add additional optional filters before building the final SQL string
+        if event is not None:
+            where += " AND event = ?"
+            params.append(getattr(event, "value", str(event)))
+        if component_type is not None:
+            where += " AND json_extract(payload, '$.component_type') = ?"
+            params.append(component_type)
+
         sql = f"SELECT * FROM conversation_items {where} ORDER BY datetime(created_at) ASC"
         if limit is not None:
             sql += " LIMIT ?"

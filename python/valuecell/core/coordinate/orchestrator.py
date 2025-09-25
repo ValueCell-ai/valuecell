@@ -18,7 +18,7 @@ from valuecell.core.coordinate.response_router import (
 )
 from valuecell.core.task import Task, TaskManager
 from valuecell.core.task.models import TaskPattern
-from valuecell.core.types import BaseResponse, UserInput
+from valuecell.core.types import BaseResponse, ConversationItemEvent, UserInput
 from valuecell.utils import resolve_db_path
 from valuecell.utils.uuid import generate_thread_id
 
@@ -253,18 +253,25 @@ class AgentOrchestrator:
         await self._cancel_execution(conversation_id)
 
     async def get_conversation_history(
-        self, conversation_id: str
+        self,
+        conversation_id: str,
+        event: Optional[ConversationItemEvent] = None,
+        component_type: Optional[str] = None,
     ) -> list[BaseResponse]:
         """Return the persisted conversation history as a list of responses.
 
         Args:
             conversation_id: The conversation to retrieve history for.
+            event: Optional filter to include only items with this event type.
+            component_type: Optional filter to include only items with this component type.
 
         Returns:
             A list of `BaseResponse` instances reconstructed from persisted
             ConversationItems.
         """
-        items = await self.conversation_manager.get_conversation_items(conversation_id)
+        items = await self.conversation_manager.get_conversation_items(
+            conversation_id, event=event, component_type=component_type
+        )
         return [self._response_factory.from_conversation_item(it) for it in items]
 
     async def cleanup(self):
