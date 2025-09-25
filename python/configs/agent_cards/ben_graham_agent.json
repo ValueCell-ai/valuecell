@@ -18,5 +18,14 @@
             ]
         }
     ],
-    "enabled": true
+    "enabled": true,
+    "metadata": {
+        "version": "1.0.0",
+        "author": "ValueCell Team",
+        "tags": [
+            "value-investing",
+            "margin-of-safety",
+            "screening"
+        ]
+    }
 }
