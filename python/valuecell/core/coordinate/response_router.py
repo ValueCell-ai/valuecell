@@ -23,6 +23,7 @@ class SideEffectKind(Enum):
     routed events (for example, failing a task when the agent reports an
     unrecoverable error).
     """
+
     FAIL_TASK = "fail_task"
 
 
@@ -34,6 +35,7 @@ class SideEffect:
         kind: The kind of side effect to apply (see SideEffectKind).
         reason: Optional human-readable reason for the side-effect.
     """
+
     kind: SideEffectKind
     reason: Optional[str] = None
 
@@ -47,6 +49,7 @@ class RouteResult:
     optional list of `SideEffect` objects describing actions the orchestrator
     should apply (for example, failing a task).
     """
+
     responses: List[BaseResponse]
     done: bool = False
     side_effects: List[SideEffect] = None

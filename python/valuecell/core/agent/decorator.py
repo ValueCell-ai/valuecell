@@ -38,6 +38,7 @@ def _serve(agent_card: AgentCard):
     Returns:
         A decorator function that adds serve() method to agent classes
     """
+
     def decorator(cls: Type) -> Type:
         # Determine the agent name consistently
         agent_name = cls.__name__
