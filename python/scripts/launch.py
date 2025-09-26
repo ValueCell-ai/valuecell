@@ -34,18 +34,24 @@ SEC_AGENT_NAME = "SecAgent"
 TRADING_AGENTS_NAME = "TradingAgentsAdapter"
 PROJECT_DIR = Path(__file__).resolve().parent.parent.parent
 PYTHON_DIR = PROJECT_DIR / "python"
+ENV_PATH = PROJECT_DIR / ".env"
+ENV_PATH_STR = str(ENV_PATH.resolve())
 
 # Mapping from agent name to launch command
 MAP_NAME_COMMAND: Dict[str, str] = {}
 for name, analyst in MAP_NAME_ANALYST.items():
     MAP_NAME_COMMAND[name] = (
-        f"cd {PYTHON_DIR}/third_party/ai-hedge-fund && uv run python -m adapter --analyst {analyst}"
+        f"cd {PYTHON_DIR}/third_party/ai-hedge-fund && uv run --env-file {ENV_PATH} -m adapter --analyst {analyst}"
     )
-MAP_NAME_COMMAND[SEC_AGENT_NAME] = "uv run -m valuecell.agents.sec_agent"
-MAP_NAME_COMMAND[TRADING_AGENTS_NAME] = (
-    f"cd {PYTHON_DIR}/third_party/TradingAgents && uv run -m adapter"
+MAP_NAME_COMMAND[SEC_AGENT_NAME] = (
+    f"uv run --env-file {ENV_PATH} -m valuecell.agents.sec_agent"
 )
-ENV_PATH = PROJECT_DIR / ".env"
+MAP_NAME_COMMAND[TRADING_AGENTS_NAME] = (
+    f"cd {PYTHON_DIR}/third_party/TradingAgents && uv run --env-file {ENV_PATH} -m adapter"
+)
+BACKEND_COMMAND = (
+    f"cd {PYTHON_DIR} && uv run --env-file {ENV_PATH} -m valuecell.server.main"
+)
 
 
 def check_envfile_is_set():
@@ -60,7 +66,7 @@ def check_envfile_is_set():
 def main():
     check_envfile_is_set()
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    log_dir = f"logs/{timestamp}"
+    log_dir = f"{PROJECT_DIR}/logs/{timestamp}"
     agents = list(MAP_NAME_COMMAND.keys())
 
     # Use questionary multi-select to allow choosing multiple agents
@@ -80,16 +86,15 @@ def main():
     logfiles = []
     for selected_agent in selected_agents:
         logfile_path = f"{log_dir}/{selected_agent}.log"
-        print(f"Starting agent: {selected_agent} - output to {logfile_path}")
+        print(f"Starting agent: {selected_agent} - output to {logfile_path} - regarding env: {ENV_PATH_STR}")
 
         # Open logfile for writing
         logfile = open(logfile_path, "w")
         logfiles.append(logfile)
 
         # Launch command using Popen with output redirected to logfile
-        launch_command = MAP_NAME_COMMAND[selected_agent]
         process = subprocess.Popen(
-            launch_command, shell=True, stdout=logfile, stderr=logfile
+            MAP_NAME_COMMAND[selected_agent], shell=True, stdout=logfile, stderr=logfile
         )
         processes.append(process)
     print("All agents launched. Waiting for tasks...")
@@ -99,9 +104,8 @@ def main():
     print(f"Starting backend - output to {logfile_path}")
     logfile = open(logfile_path, "w")
     logfiles.append(logfile)
-    launch_command = f"cd {PYTHON_DIR} && uv run -m valuecell.server.main"
     process = subprocess.Popen(
-        launch_command, shell=True, stdout=logfile, stderr=logfile
+        BACKEND_COMMAND, shell=True, stdout=logfile, stderr=logfile
     )
     processes.append(process)
 
