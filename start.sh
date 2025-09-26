@@ -80,7 +80,7 @@ compile() {
   # Backend deps
   if [[ -d "$PY_DIR" ]]; then
     info "Sync Python dependencies (uv sync)..."
-    (cd "$PY_DIR" && bash scripts/prepare_envs.sh)
+    (cd "$PY_DIR" && bash scripts/prepare_envs.sh && uv run valuecell/server/db/init_db.py)
     success "Python dependencies synced"
   else
     warn "Backend directory not found: $PY_DIR. Skipping"
