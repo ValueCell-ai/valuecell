@@ -51,7 +51,7 @@ jobs:
       - name: Run style checks
         run: uv run --no-project isort --check-only ./valuecell
 
-  unit_test:
+  test:
     runs-on: ubuntu-latest
     defaults:
       run:
