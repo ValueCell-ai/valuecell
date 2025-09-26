@@ -1,6 +1,6 @@
 # ValueCell Core Architecture
 
-This document explains how the modules under `valuecell/core/` collaborate at runtime. Instead of listing files, it focuses on the end-to-end execution flow, key abstractions, and important design choices (async, reentrancy, and human-in-the-loop).
+This document explains how the modules under `valuecell/core/` collaborate at runtime.
 
 ## Highlights
 
@@ -76,13 +76,11 @@ sequenceDiagram
 
 The orchestrator entrypoint (conceptually `process_user_input`) receives a user message (plus context IDs) and coordinates the entire lifecycle:
 
-1. Load conversation context and prior items (via ConversationStore/ItemStore)
-2. Normalize the query into a typed request model
-3. Delegate to the Planner to derive an actionable plan
-4. If the plan needs confirmation or extra parameters, trigger Human-in-the-Loop (HITL)
-5. Execute the plan as one or more tasks
-6. Stream partial responses while executing
-7. Persist results and emit final responses
+1. Delegate to the Planner to derive an actionable plan
+2. If the plan needs confirmation or extra parameters, trigger Human-in-the-Loop (HITL)
+3. Execute the plan as one or more tasks
+4. Stream partial responses while executing
+5. Persist results and emit final responses
 
 The orchestrator is async and re-entrant:
 
