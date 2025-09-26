@@ -1,10 +1,10 @@
 """Watchlist related API routes."""
 
-from datetime import datetime, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Path, Query
 
+from ....utils.i18n_utils import parse_and_validate_utc_dates
 from ...db.repositories.watchlist_repository import get_watchlist_repository
 from ...services.assets.asset_service import get_asset_service
 from ..schemas import (
@@ -301,7 +301,7 @@ def create_watchlist_router() -> APIRouter:
         description="Create a new watchlist",
     )
     async def create_watchlist(
-        request: CreateWatchlistRequest = None,
+        request: CreateWatchlistRequest,
     ):
         """Create a new watchlist."""
         try:
@@ -341,7 +341,7 @@ def create_watchlist_router() -> APIRouter:
         summary="Add asset to watchlist",
         description="Add a asset to a watchlist",
     )
-    async def add_asset_to_watchlist(request: AddAssetRequest = None):
+    async def add_asset_to_watchlist(request: AddAssetRequest):
         """Add a asset to a watchlist."""
         try:
             success = watchlist_repo.add_asset_to_watchlist(
@@ -453,8 +453,8 @@ def create_watchlist_router() -> APIRouter:
         description="Update notes for a asset in a watchlist",
     )
     async def update_asset_notes(
+        request: UpdateAssetNotesRequest,
         ticker: str = Path(..., description="Asset ticker"),
-        request: UpdateAssetNotesRequest = None,
         watchlist_name: Optional[str] = Query(
             None, description="Watchlist name (uses default if not provided)"
         ),
@@ -499,10 +499,12 @@ def create_watchlist_router() -> APIRouter:
     async def get_asset_historical_prices(
         ticker: str = Path(..., description="Asset ticker"),
         start_date: Optional[str] = Query(
-            None, description="Start date (YYYY-MM-DD), defaults to 30 days ago"
+            None,
+            description="Start date in UTC format (YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DDTHH:MM:SS.fffZ), defaults to 30 days ago",
         ),
         end_date: Optional[str] = Query(
-            None, description="End date (YYYY-MM-DD), defaults to today"
+            None,
+            description="End date in UTC format (YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DDTHH:MM:SS.fffZ), defaults to now",
         ),
         interval: str = Query("1d", description="Data interval (1d, 1h, 5m, etc.)"),
         language: Optional[str] = Query(
@@ -511,22 +513,8 @@ def create_watchlist_router() -> APIRouter:
     ):
         """Get historical prices for a asset."""
         try:
-            # Parse dates
-            if end_date:
-                end_dt = datetime.strptime(end_date, "%Y-%m-%d")
-            else:
-                end_dt = datetime.now()
-
-            if start_date:
-                start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-            else:
-                start_dt = end_dt - timedelta(days=30)
-
-            # Validate date range
-            if start_dt >= end_dt:
-                raise HTTPException(
-                    status_code=400, detail="Start date must be before end date"
-                )
+            # Parse and validate UTC dates using i18n_utils
+            start_dt, end_dt = parse_and_validate_utc_dates(start_date, end_date)
 
             # Get historical price data
             result = asset_service.get_historical_prices(
@@ -569,7 +557,7 @@ def create_watchlist_router() -> APIRouter:
             raise
         except ValueError as e:
             raise HTTPException(
-                status_code=400, detail=f"Invalid date format: {str(e)}"
+                status_code=400, detail=f"Invalid UTC datetime format: {str(e)}"
             )
         except Exception as e:
             raise HTTPException(

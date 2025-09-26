@@ -33,7 +33,7 @@ export const useAddStockToWatchlist = () => {
 
   return useMutation({
     mutationFn: (ticker: Pick<Stock, "ticker">) =>
-      apiClient.post<ApiResponse<null>>("watchlist/stocks", ticker),
+      apiClient.post<ApiResponse<null>>("watchlist/asset", ticker),
     onSuccess: () => {
       // invalidate watchlist query cache to trigger re-fetch
       queryClient.invalidateQueries({

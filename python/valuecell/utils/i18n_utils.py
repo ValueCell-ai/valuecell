@@ -1,7 +1,7 @@
 """Internationalization utility functions for ValueCell application."""
 
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -163,6 +163,111 @@ def convert_timezone(dt: datetime, from_tz: str, to_tz: str) -> datetime:
         return dt.astimezone(to_timezone)
     except pytz.UnknownTimeZoneError:
         return dt
+
+
+def parse_utc_datetime(date_str: str) -> datetime:
+    """Parse UTC datetime string into timezone-aware datetime object.
+
+    Args:
+        date_str: UTC datetime string in ISO format (YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DDTHH:MM:SS.fffZ)
+
+    Returns:
+        Timezone-aware datetime object in UTC
+
+    Raises:
+        ValueError: If date string format is invalid
+    """
+    # Try different UTC datetime formats
+    formats = [
+        "%Y-%m-%dT%H:%M:%SZ",  # 2023-12-01T10:30:00Z
+        "%Y-%m-%dT%H:%M:%S.%fZ",  # 2023-12-01T10:30:00.123Z
+        "%Y-%m-%dT%H:%M:%S.%f",  # 2023-12-01T10:30:00.123 (without Z)
+        "%Y-%m-%dT%H:%M:%S",  # 2023-12-01T10:30:00 (without Z)
+        "%Y-%m-%d",  # 2023-12-01 (date only)
+    ]
+
+    for fmt in formats:
+        try:
+            dt = datetime.strptime(date_str, fmt)
+            # If no timezone info, assume UTC
+            if dt.tzinfo is None:
+                dt = pytz.UTC.localize(dt)
+            return dt
+        except ValueError:
+            continue
+
+    raise ValueError(
+        f"Invalid UTC datetime format: {date_str}. Expected formats: YYYY-MM-DDTHH:MM:SSZ, YYYY-MM-DDTHH:MM:SS.fffZ, or YYYY-MM-DD"
+    )
+
+
+def format_utc_datetime(dt: datetime, format_type: str = "iso") -> str:
+    """Format datetime as UTC string.
+
+    Args:
+        dt: Datetime object to format
+        format_type: Format type ('iso', 'date', 'time', 'datetime')
+
+    Returns:
+        Formatted UTC datetime string
+    """
+    # Ensure datetime is in UTC
+    if dt.tzinfo is None:
+        dt = pytz.UTC.localize(dt)
+    elif dt.tzinfo != pytz.UTC:
+        dt = dt.astimezone(pytz.UTC)
+
+    if format_type == "iso":
+        return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    elif format_type == "date":
+        return dt.strftime("%Y-%m-%d")
+    elif format_type == "time":
+        return dt.strftime("%H:%M:%SZ")
+    else:  # datetime
+        return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def get_utc_now() -> datetime:
+    """Get current UTC datetime.
+
+    Returns:
+        Current datetime in UTC timezone
+    """
+    return datetime.now(pytz.UTC)
+
+
+def parse_and_validate_utc_dates(
+    start_date: Optional[str], end_date: Optional[str]
+) -> tuple[datetime, datetime]:
+    """Parse and validate UTC date parameters for API endpoints.
+
+    Args:
+        start_date: Start date string in UTC format (optional)
+        end_date: End date string in UTC format (optional)
+
+    Returns:
+        Tuple of (start_datetime, end_datetime) in UTC
+
+    Raises:
+        ValueError: If date format is invalid or start_date >= end_date
+    """
+    # Parse end date
+    if end_date:
+        end_dt = parse_utc_datetime(end_date)
+    else:
+        end_dt = get_utc_now()
+
+    # Parse start date
+    if start_date:
+        start_dt = parse_utc_datetime(start_date)
+    else:
+        start_dt = end_dt - timedelta(days=30)
+
+    # Validate date range
+    if start_dt >= end_dt:
+        raise ValueError("Start date must be before end date")
+
+    return start_dt, end_dt
 
 
 def format_file_size(size_bytes: int, language: Optional[str] = None) -> str:
