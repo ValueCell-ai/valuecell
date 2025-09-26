@@ -41,8 +41,12 @@ echo -e "${BLUE}==========================================${NC}"
 echo -e "${GREEN}Project root confirmed. Preparing environments...${NC}"
 
 echo -e "${YELLOW}Setting up main Python environment...${NC}"
-highlight_command "uv venv --python 3.12"
-uv venv --python 3.12
+if [ ! -d ".venv" ]; then
+    highlight_command "uv venv --python 3.12"
+    uv venv --python 3.12
+else
+    echo -e "${YELLOW}.venv already exists, skipping venv creation.${NC}"
+fi
 highlight_command "uv sync --group dev"
 uv sync --group dev
 echo -e "${GREEN}Main environment setup complete.${NC}"
@@ -52,8 +56,12 @@ echo -e "${BLUE}Setting up third-party environments...${NC}"
 echo -e "${BLUE}==========================================${NC}"
 echo -e "${YELLOW}Setting up ai-hedge-fund environment...${NC}"
 pushd ./third_party/ai-hedge-fund
-highlight_command "uv venv --python 3.12"
-uv venv --python 3.12
+if [ ! -d ".venv" ]; then
+    highlight_command "uv venv --python 3.12"
+    uv venv --python 3.12
+else
+    echo -e "${YELLOW}.venv already exists, skipping venv creation.${NC}"
+fi
 highlight_command "uv sync"
 uv sync
 popd
@@ -63,8 +71,12 @@ echo -e "${YELLOW}------------------------------------------${NC}"
 echo -e "${YELLOW}Setting up TradingAgents environment...${NC}"
 echo -e "${YELLOW}------------------------------------------${NC}"
 pushd ./third_party/TradingAgents
-highlight_command "uv venv --python 3.12"
-uv venv --python 3.12
+if [ ! -d ".venv" ]; then
+    highlight_command "uv venv --python 3.12"
+    uv venv --python 3.12
+else
+    echo -e "${YELLOW}.venv already exists, skipping venv creation.${NC}"
+fi
 highlight_command "uv sync"
 uv sync
 popd
