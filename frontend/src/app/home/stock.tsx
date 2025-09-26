@@ -2,11 +2,12 @@ import BackButton from "@valuecell/button/back-button";
 import Sparkline from "@valuecell/charts/sparkline";
 import { StockIcon } from "@valuecell/menus/stock-menus";
 import { memo, useMemo } from "react";
-import { useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import {
   useGetStockDetail,
   useGetStockHistory,
   useGetStockPrice,
+  useRemoveStockFromWatchlist,
 } from "@/api/stock";
 import { Button } from "@/components/ui/button";
 import { STOCK_BADGE_COLORS } from "@/constants/stock";
@@ -17,7 +18,7 @@ import type { Route } from "./+types/stock";
 
 const Stock = memo(function Stock() {
   const { stockId } = useParams<Route.LoaderArgs["params"]>();
-
+  const navigate = useNavigate();
   // Use stockId as ticker to fetch real data from API
   const ticker = stockId || "";
 
@@ -38,6 +39,21 @@ const Stock = memo(function Stock() {
   } = useGetStockDetail({
     ticker,
   });
+
+  // Remove stock from watchlist mutation
+  const removeStockMutation = useRemoveStockFromWatchlist();
+
+  // Handle remove stock from watchlist
+  const handleRemoveStock = async () => {
+    try {
+      await removeStockMutation.mutateAsync(ticker);
+
+      navigate(-1);
+    } catch (error) {
+      console.error("Failed to remove stock from watchlist:", error);
+      // Handle error - could show error toast
+    }
+  };
 
   // Calculate date range for 60-day historical data
   const dateRange = useMemo(() => {
@@ -102,57 +118,6 @@ const Stock = memo(function Stock() {
     };
   }, [stockPriceData, stockDetailData, ticker]);
 
-  // Create details data from API response
-  const detailsData = useMemo(() => {
-    if (!stockPriceData || !stockHistoryData?.prices) return undefined;
-
-    // Calculate previous close, day range from historical data
-    const prices = stockHistoryData.prices;
-    const yesterdayPrices = prices.slice(-2, -1)[0]; // Previous day's data
-
-    // Get min/max from recent prices for day range
-    const recentPrices = prices.slice(-5); // Last 5 days
-    const dayLow = Math.min(...recentPrices.map((p) => p.low_price));
-    const dayHigh = Math.max(...recentPrices.map((p) => p.high_price));
-
-    // Get min/max from all historical data for year range
-    const yearLow = Math.min(...prices.map((p) => p.low_price));
-    const yearHigh = Math.max(...prices.map((p) => p.high_price));
-
-    // Format market cap from detail data
-    const formatMarketCap = (value: number) => {
-      if (value >= 1e12) {
-        return `$${(value / 1e12).toFixed(2)}T`;
-      }
-      if (value >= 1e9) {
-        return `$${(value / 1e9).toFixed(2)}B`;
-      }
-      if (value >= 1e6) {
-        return `$${(value / 1e6).toFixed(2)}M`;
-      }
-      return `$${value.toLocaleString()}`;
-    };
-
-    return {
-      previousClose: yesterdayPrices?.close_price?.toFixed(2) || "N/A",
-      dayRange: `${dayLow.toFixed(2)} - ${dayHigh.toFixed(2)}`,
-      yearRange: `${yearLow.toFixed(2)} - ${yearHigh.toFixed(2)}`,
-      marketCap: stockDetailData?.properties?.market_cap
-        ? formatMarketCap(stockDetailData.properties.market_cap)
-        : "N/A",
-      volume: stockPriceData.market_cap_formatted || "N/A",
-      dividendYield: stockDetailData?.properties?.dividend_yield.toFixed(2)
-        ? `${stockDetailData.properties.dividend_yield.toFixed(2)}%`
-        : "N/A",
-      peRatio: stockDetailData?.properties?.pe_ratio.toFixed(2)
-        ? stockDetailData.properties.pe_ratio.toFixed(2)
-        : "N/A",
-      beta: stockDetailData?.properties?.beta.toFixed(2)
-        ? stockDetailData.properties.beta.toFixed(2)
-        : "N/A",
-    };
-  }, [stockPriceData, stockHistoryData, stockDetailData]);
-
   // Handle loading states
   if (isPriceLoading || isHistoryLoading || isDetailLoading) {
     return (
@@ -165,11 +130,19 @@ const Stock = memo(function Stock() {
   // Handle error states
   if (priceError || historyError || detailError) {
     return (
-      <div className="flex h-96 items-center justify-center">
+      <div className="flex h-96 flex-col items-center justify-center gap-4">
         <div className="text-lg text-red-500">
           Error loading stock data:{" "}
           {priceError?.message || historyError?.message || detailError?.message}
         </div>
+        <Button
+          variant="secondary"
+          className="text-neutral-400"
+          onClick={handleRemoveStock}
+          disabled={removeStockMutation.isPending}
+        >
+          {removeStockMutation.isPending ? "Removing..." : "Remove"}
+        </Button>
       </div>
     );
   }
@@ -195,8 +168,13 @@ const Stock = memo(function Stock() {
           <StockIcon stock={stockInfo} />
           <span className="font-bold text-lg">{stockInfo.symbol}</span>
 
-          <Button variant="secondary" className="ml-auto text-neutral-400">
-            Remove
+          <Button
+            variant="secondary"
+            className="ml-auto text-neutral-400"
+            onClick={handleRemoveStock}
+            disabled={removeStockMutation.isPending}
+          >
+            {removeStockMutation.isPending ? "Removing..." : "Remove"}
           </Button>
         </div>
 

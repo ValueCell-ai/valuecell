@@ -43,6 +43,21 @@ export const useAddStockToWatchlist = () => {
   });
 };
 
+export const useRemoveStockFromWatchlist = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (ticker: string) =>
+      apiClient.delete<ApiResponse<null>>(`watchlist/asset/${ticker}`),
+    onSuccess: () => {
+      // invalidate watchlist query cache to trigger re-fetch
+      queryClient.invalidateQueries({
+        queryKey: API_QUERY_KEYS.STOCK.watchlist,
+      });
+    },
+  });
+};
+
 export const useGetStockPrice = (params: { ticker: string }) =>
   useQuery({
     queryKey: API_QUERY_KEYS.STOCK.stockPrice(Object.values(params)),
