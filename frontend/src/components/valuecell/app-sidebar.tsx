@@ -174,7 +174,7 @@ const AppSidebar: FC = () => {
 
       <Separator />
 
-      <SidebarContent className="max-h-[calc(100vh-23rem)]">
+      <SidebarContent className="max-h-[calc(100vh-11rem)]">
         <ScrollContainer>
           <SidebarMenu>
             {agentItems?.map((item) => {
@@ -197,7 +197,7 @@ const AppSidebar: FC = () => {
         </ScrollContainer>
       </SidebarContent>
 
-      <SidebarFooter className="mt-auto">
+      {/* <SidebarFooter className="mt-auto">
         <SidebarMenu>
           {navItems.config.map((item) => {
             return (
@@ -212,7 +212,7 @@ const AppSidebar: FC = () => {
             );
           })}
         </SidebarMenu>
-      </SidebarFooter>
+      </SidebarFooter> */}
     </Sidebar>
   );
 };

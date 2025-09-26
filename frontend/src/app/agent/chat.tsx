@@ -1,6 +1,6 @@
 import { Settings } from "lucide-react";
 import { useCallback, useMemo, useReducer, useRef } from "react";
-import { Link, useParams } from "react-router";
+import { Link, Navigate, useParams } from "react-router";
 import { useGetAgentInfo } from "@/api/agent";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -111,7 +111,7 @@ export default function AgentChat() {
     [agentName],
   );
 
-  // if (!agent) return <Navigate to="/" replace />;
+  if (!agent) return <Navigate to="/" replace />;
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
