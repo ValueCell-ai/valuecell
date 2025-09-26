@@ -1,9 +1,15 @@
 export type StockChangeType = "positive" | "negative" | "neutral";
 
+export interface Watchlist {
+  name: string;
+  items: Stock[];
+}
+
 export interface Stock {
   ticker: string;
   asset_type: "stock" | "etf" | "index" | "crypto";
   display_name: string;
+  symbol: string;
   exchange: string;
 }
 
