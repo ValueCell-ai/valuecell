@@ -54,6 +54,7 @@ MAP_NAME_COMMAND[TRADING_AGENTS_NAME] = (
 BACKEND_COMMAND = (
     f"cd {PYTHON_DIR} && uv run --env-file {ENV_PATH} -m valuecell.server.main"
 )
+FRONTEND_URL = "http://localhost:1420"
 
 
 def check_envfile_is_set():
@@ -102,12 +103,13 @@ def main():
 
     for selected_agent in selected_agents:
         print(
-            f"You can monitor {selected_agent} logs at {log_dir}/{selected_agent}.log or chat using: $frontend_url/agent/{selected_agent}"
+            f"You can monitor {selected_agent} logs at {log_dir}/{selected_agent}.log or chat on: {FRONTEND_URL}/agent/{selected_agent}"
         )
 
     # Launch backend
     logfile_path = f"{log_dir}/backend.log"
     print(f"Starting backend - output to {logfile_path}")
+    print(f"Frontend available at {FRONTEND_URL}")
     logfile = open(logfile_path, "w")
     logfiles.append(logfile)
     process = subprocess.Popen(
