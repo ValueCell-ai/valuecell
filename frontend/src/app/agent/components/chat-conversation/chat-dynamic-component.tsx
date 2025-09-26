@@ -1,17 +1,38 @@
 import { type FC, memo } from "react";
+import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
+import { COMPONENT_RENDERER_MAP } from "@/constants/agent";
+import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import type { ChatItem, SectionComponentType } from "@/types/agent";
-import ChatItemArea from "./chat-item-area";
 
 // define different component types and their specific rendering components
+const SecFeedComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
+  const Component = COMPONENT_RENDERER_MAP.sec_feed;
 
-const SecFeedComponent: FC<{ items: ChatItem[] }> = ({ items }) => (
-  <div className="space-y-4">
-    <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
-      <h4 className="mb-3 font-medium text-orange-900 text-sm">📰 News</h4>
-      <ChatItemArea items={items} />
-    </div>
-  </div>
-);
+  return (
+    <>
+      <h4 className="mb-3 px-4 font-medium text-sm">
+        {TimeUtils.now().format(TIME_FORMATS.DATETIME_SHORT)}
+      </h4>
+
+      {/* render items */}
+      <ScrollContainer className="flex-1 px-4">
+        {items.length > 0 && (
+          <div className="space-y-3">
+            {items.map(
+              (item) =>
+                item.payload && (
+                  <Component
+                    key={item.item_id}
+                    content={item.payload.content}
+                  />
+                ),
+            )}
+          </div>
+        )}
+      </ScrollContainer>
+    </>
+  );
+};
 
 // component mapping table
 const COMPONENT_MAP: Record<SectionComponentType, FC<{ items: ChatItem[] }>> = {

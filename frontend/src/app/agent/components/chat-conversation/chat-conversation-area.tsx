@@ -75,7 +75,7 @@ const ChatConversationArea: FC<ChatConversationAreaProps> = ({
       {currentConversation.sections &&
         Object.entries(currentConversation.sections).map(
           ([componentType, items]) => (
-            <section key={componentType} className="flex flex-1 flex-col">
+            <section key={componentType} className="flex flex-1 flex-col py-4">
               {/* Section content using dynamic component rendering */}
               <ChatDynamicComponent
                 // TODO: componentType as type assertion is not safe, find a better way to do this

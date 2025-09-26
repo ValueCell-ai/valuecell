@@ -76,7 +76,6 @@ function addOrUpdateItem(task: TaskView, newItem: ChatItem): void {
 // Generic handler for events that create chat items
 function handleChatItemEvent(draft: AgentConversationsStore, data: ChatItem) {
   const { conversation, task } = ensurePath(draft, data);
-  addOrUpdateItem(task, data);
 
   // Auto-maintain sections - only non-markdown types create independent sections
   const componentType = data.component_type;
@@ -97,7 +96,11 @@ function handleChatItemEvent(draft: AgentConversationsStore, data: ChatItem) {
 
     // Add item to corresponding section (components are complete, no merging)
     conversation.sections[componentType as SectionComponentType].push(data);
+
+    return;
   }
+
+  addOrUpdateItem(task, data);
 }
 
 export function updateAgentConversationsStore(

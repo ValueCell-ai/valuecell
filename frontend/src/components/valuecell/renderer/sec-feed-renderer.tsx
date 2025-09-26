@@ -1,4 +1,5 @@
 import { type FC, memo } from "react";
+import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import MarkdownRenderer from "./markdown-renderer";
 
 interface SecFeedRendererProps {
@@ -58,7 +59,7 @@ const SecFeedRenderer: FC<SecFeedRendererProps> = ({ content, onClick }) => {
 
         <div className="relative flex shrink-0 items-center gap-[8px]">
           <p className="relative shrink-0 whitespace-pre text-nowrap font-['PingFang_SC'] font-normal text-[12px] text-gray-400 not-italic leading-[18px]">
-            {create_time}
+            {TimeUtils.fromUTC(create_time).format(TIME_FORMATS.DATETIME_SHORT)}
           </p>
         </div>
       </div>
