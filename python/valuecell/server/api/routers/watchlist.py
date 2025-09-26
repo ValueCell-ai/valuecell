@@ -9,8 +9,8 @@ from ..schemas import (
     WatchlistData,
     WatchlistItemData,
     CreateWatchlistRequest,
-    AddStockRequest,
-    UpdateStockNotesRequest,
+    AddAssetRequest,
+    UpdateAssetNotesRequest,
     AssetSearchResultData,
     AssetInfoData,
     AssetDetailData,
@@ -327,15 +327,15 @@ def create_watchlist_router() -> APIRouter:
             )
 
     @router.post(
-        "/stocks",
+        "/asset",
         response_model=SuccessResponse[dict],
-        summary="Add stock to watchlist",
-        description="Add a stock to a watchlist",
+        summary="Add asset to watchlist",
+        description="Add a asset to a watchlist",
     )
-    async def add_stock_to_watchlist(request: AddStockRequest = None):
-        """Add a stock to a watchlist."""
+    async def add_asset_to_watchlist(request: AddAssetRequest = None):
+        """Add a asset to a watchlist."""
         try:
-            success = watchlist_repo.add_stock_to_watchlist(
+            success = watchlist_repo.add_asset_to_watchlist(
                 user_id=DEFAULT_USER_ID,
                 ticker=request.ticker,
                 watchlist_name=request.watchlist_name,
@@ -345,7 +345,7 @@ def create_watchlist_router() -> APIRouter:
             if not success:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Failed to add stock '{request.ticker}' to watchlist. Stock may already exist or watchlist not found.",
+                    detail=f"Failed to add asset '{request.ticker}' to watchlist. Asset may already exist or watchlist not found.",
                 )
 
             return SuccessResponse.create(
@@ -354,38 +354,38 @@ def create_watchlist_router() -> APIRouter:
                     "watchlist_name": request.watchlist_name,
                     "notes": request.notes,
                 },
-                msg="Stock added to watchlist successfully",
+                msg="Asset added to watchlist successfully",
             )
 
         except HTTPException:
             raise
         except Exception as e:
             raise HTTPException(
-                status_code=500, detail=f"Failed to add stock: {str(e)}"
+                status_code=500, detail=f"Failed to add asset: {str(e)}"
             )
 
     @router.delete(
-        "/stocks/{ticker}",
+        "/asset/{ticker}",
         response_model=SuccessResponse[dict],
-        summary="Remove stock from watchlist",
-        description="Remove a stock from a watchlist",
+        summary="Remove asset from watchlist",
+        description="Remove a asset from a watchlist",
     )
-    async def remove_stock_from_watchlist(
-        ticker: str = Path(..., description="Stock ticker to remove"),
+    async def remove_asset_from_watchlist(
+        ticker: str = Path(..., description="Asset ticker to remove"),
         watchlist_name: Optional[str] = Query(
             None, description="Watchlist name (uses default if not provided)"
         ),
     ):
-        """Remove a stock from a watchlist."""
+        """Remove a asset from a watchlist."""
         try:
-            success = watchlist_repo.remove_stock_from_watchlist(
+            success = watchlist_repo.remove_asset_from_watchlist(
                 user_id=DEFAULT_USER_ID, ticker=ticker, watchlist_name=watchlist_name
             )
 
             if not success:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Stock '{ticker}' not found in watchlist or watchlist not found",
+                    detail=f"Asset '{ticker}' not found in watchlist or watchlist not found",
                 )
 
             return SuccessResponse.create(
@@ -393,14 +393,14 @@ def create_watchlist_router() -> APIRouter:
                     "ticker": ticker,
                     "watchlist_name": watchlist_name,
                 },
-                msg="Stock removed from watchlist successfully",
+                msg="Asset removed from watchlist successfully",
             )
 
         except HTTPException:
             raise
         except Exception as e:
             raise HTTPException(
-                status_code=500, detail=f"Failed to remove stock: {str(e)}"
+                status_code=500, detail=f"Failed to remove asset: {str(e)}"
             )
 
     @router.delete(
@@ -437,21 +437,21 @@ def create_watchlist_router() -> APIRouter:
             )
 
     @router.put(
-        "/stocks/{ticker}/notes",
+        "/asset/{ticker}/notes",
         response_model=SuccessResponse[dict],
-        summary="Update stock notes",
-        description="Update notes for a stock in a watchlist",
+        summary="Update asset notes",
+        description="Update notes for a asset in a watchlist",
     )
-    async def update_stock_notes(
-        ticker: str = Path(..., description="Stock ticker"),
-        request: UpdateStockNotesRequest = None,
+    async def update_asset_notes(
+        ticker: str = Path(..., description="Asset ticker"),
+        request: UpdateAssetNotesRequest = None,
         watchlist_name: Optional[str] = Query(
             None, description="Watchlist name (uses default if not provided)"
         ),
     ):
-        """Update notes for a stock in a watchlist."""
+        """Update notes for a asset in a watchlist."""
         try:
-            success = watchlist_repo.update_stock_notes(
+            success = watchlist_repo.update_asset_notes(
                 user_id=DEFAULT_USER_ID,
                 ticker=ticker,
                 notes=request.notes,
@@ -461,7 +461,7 @@ def create_watchlist_router() -> APIRouter:
             if not success:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Stock '{ticker}' not found in watchlist or watchlist not found",
+                    detail=f"Asset '{ticker}' not found in watchlist or watchlist not found",
                 )
 
             return SuccessResponse.create(
@@ -470,7 +470,7 @@ def create_watchlist_router() -> APIRouter:
                     "notes": request.notes,
                     "watchlist_name": watchlist_name,
                 },
-                msg="Stock notes updated successfully",
+                msg="Asset notes updated successfully",
             )
 
         except HTTPException:

@@ -217,7 +217,7 @@ class WatchlistRepository:
             if not self.db_session:
                 session.close()
 
-    def add_stock_to_watchlist(
+    def add_asset_to_watchlist(
         self,
         user_id: str,
         ticker: str,
@@ -225,7 +225,7 @@ class WatchlistRepository:
         notes: str = "",
         order_index: Optional[int] = None,
     ) -> bool:
-        """Add a stock to a watchlist."""
+        """Add a asset to a watchlist."""
         session = self._get_session()
 
         try:
@@ -291,10 +291,10 @@ class WatchlistRepository:
             if not self.db_session:
                 session.close()
 
-    def remove_stock_from_watchlist(
+    def remove_asset_from_watchlist(
         self, user_id: str, ticker: str, watchlist_name: Optional[str] = None
     ) -> bool:
-        """Remove a stock from a watchlist."""
+        """Remove a asset from a watchlist."""
         session = self._get_session()
 
         try:
@@ -342,10 +342,10 @@ class WatchlistRepository:
             if not self.db_session:
                 session.close()
 
-    def get_watchlist_stocks(
+    def get_watchlist_assets(
         self, user_id: str, watchlist_name: Optional[str] = None
     ) -> List[WatchlistItem]:
-        """Get all stocks in a watchlist."""
+        """Get all assets in a watchlist."""
         session = self._get_session()
 
         try:
@@ -385,10 +385,10 @@ class WatchlistRepository:
             if not self.db_session:
                 session.close()
 
-    def is_stock_in_watchlist(
+    def is_asset_in_watchlist(
         self, user_id: str, ticker: str, watchlist_name: Optional[str] = None
     ) -> bool:
-        """Check if a stock is in a watchlist."""
+        """Check if a asset is in a watchlist."""
         session = self._get_session()
 
         try:
@@ -416,14 +416,14 @@ class WatchlistRepository:
             if not self.db_session:
                 session.close()
 
-    def update_stock_notes(
+    def update_asset_notes(
         self,
         user_id: str,
         ticker: str,
         notes: str,
         watchlist_name: Optional[str] = None,
     ) -> bool:
-        """Update notes for a stock in a watchlist."""
+        """Update notes for a asset in a watchlist."""
         session = self._get_session()
 
         try:

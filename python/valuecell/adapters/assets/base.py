@@ -36,26 +36,10 @@ class TickerConverter:
                 "HKEX": ".HK",  # Hong Kong Exchange
                 "TSE": ".T",  # Tokyo Stock Exchange
             },
-            DataSource.TUSHARE: {
-                "SSE": ".SH",  # Shanghai Stock Exchange in TuShare
-                "SZSE": ".SZ",  # Shenzhen Stock Exchange in TuShare
-            },
             DataSource.AKSHARE: {
                 "SSE": "",  # AKShare uses plain symbols for Chinese stocks
                 "SZSE": "",  # AKShare uses plain symbols for Chinese stocks
                 "BSE": "",  # Beijing Stock Exchange
-            },
-            DataSource.FINNHUB: {
-                "NASDAQ": "",  # Finnhub uses plain symbols for US stocks
-                "NYSE": "",  # Finnhub uses plain symbols for US stocks
-                "AMEX": "",  # American Stock Exchange
-                "HKEX": ".HK",  # Hong Kong stocks need .HK suffix
-                "TSE": ".T",  # Tokyo Stock Exchange
-                "LSE": ".L",  # London Stock Exchange
-                "XETRA": ".DE",  # German Exchange
-            },
-            DataSource.COINMARKETCAP: {
-                "CRYPTO": "",  # Crypto symbols are used as-is
             },
         }
 
@@ -250,8 +234,8 @@ class BaseDataAdapter(ABC):
 
         Args:
             ticker: Asset ticker in internal format
-            start_date: Start date for historical data
-            end_date: End date for historical data
+            start_date: Start date for historical data, format: YYYY-MM-DD, timezone: UTC
+            end_date: End date for historical data, format: YYYY-MM-DD, timezone: UTC
             interval: Data interval (e.g., "1d", "1h", "5m")
 
         Returns:
