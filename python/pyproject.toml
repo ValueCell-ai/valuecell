@@ -37,10 +37,15 @@ dev = [
 [dependency-groups]
 dev = [
     {include-group = "lint"},
+    {include-group = "style"},
     {include-group = "test"}
 ]
 lint = [
     "ruff"
+]
+style = [
+    "ruff",
+    "isort",
 ]
 test = [
     "pytest>=7.4.0",
@@ -94,4 +99,15 @@ norecursedirs = [
     "third_party",
     "examples",
     "docs",
+]
+
+[tool.isort]
+profile = "black"
+skip_glob = [
+    "third_party/**",
+    "**/third_party/**",
+    "tests/**",
+    "**/tests/**",
+    "docs/**",
+    "**/docs/**",
 ]

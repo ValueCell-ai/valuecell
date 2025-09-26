@@ -1,4 +1,4 @@
-name: Python Linting & Unit Tests
+name: Python Checks
 
 permissions:
   contents: read
@@ -21,16 +21,35 @@ jobs:
         working-directory: ./python
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Ruff
         uses: astral-sh/ruff-action@v3
 
-      - name: Ruff Format
-        run: ruff format --check --config ./pyproject.toml .
-
       - name: Ruff Lint
         run: ruff check --config ./pyproject.toml .
+
+  style:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./python
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version-file: "./python/pyproject.toml"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+      
+      - name: Install style dependencies
+        run: uv sync --locked --only-group style
+      
+      - name: Run style checks
+        run: uv run isort --check-only ./valuecell
 
   unit_test:
     runs-on: ubuntu-latest
