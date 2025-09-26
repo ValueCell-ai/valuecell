@@ -23,47 +23,28 @@ const ChatItemArea: FC<ChatItemAreaProps> = ({ items }) => {
           )}
         >
           <div
-            className={cn(
-              "max-w-[80%] rounded-2xl px-4 py-3",
-              item.role === "user"
-                ? "ml-auto bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-900",
-            )}
+            className={cn("max-w-[80%] rounded-2xl bg-gray-100 px-4 py-3", {
+              "ml-auto": item.role === "user",
+            })}
           >
             {/* Render different message types based on payload structure */}
             {(() => {
-              const payload = item.payload;
-              if (!payload) return null;
-
-              // Component generator message
-              if ("component_type" in payload) {
+              if ("component_type" in item) {
                 const RendererComponent =
-                  COMPONENT_RENDERER_MAP[payload.component_type];
+                  COMPONENT_RENDERER_MAP[item.component_type];
 
-                if (RendererComponent) {
-                  return (
-                    <div>
-                      <div className="mb-2 flex items-center gap-2">
-                        <FileText size={16} className="text-blue-600" />
-                        <span className="font-medium text-blue-900 text-sm capitalize">
-                          {payload.component_type}
-                        </span>
-                      </div>
-                      <div className="rounded-lg">
-                        <RendererComponent content={payload.content} />
-                      </div>
-                    </div>
-                  );
-                }
+                const payload = item.payload;
+                if (!payload) return null;
 
-                // fallback renderer
-                return (
+                return RendererComponent ? (
+                  <RendererComponent content={payload.content} />
+                ) : (
                   <div>
                     <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
                       <div className="mb-2 flex items-center gap-2">
                         <FileText size={16} className="text-blue-600" />
                         <span className="font-medium text-blue-900 text-sm capitalize">
-                          {payload.component_type} (Unknown Component Type)
+                          {item.component_type} (Unknown Component Type)
                         </span>
                       </div>
                       <div className="rounded bg-white p-3 text-gray-800 text-sm">
@@ -75,7 +56,6 @@ const ChatItemArea: FC<ChatItemAreaProps> = ({ items }) => {
                   </div>
                 );
               }
-
               return null;
             })()}
           </div>

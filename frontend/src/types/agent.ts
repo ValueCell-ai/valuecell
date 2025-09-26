@@ -51,11 +51,10 @@ export type AgentToolCallCompletedMessage = MessageWithPayload<{
   tool_call_result: string;
 }>;
 
-type ChatMessage =
-  | AgentChunkMessage
-  | AgentComponentMessage
-  | AgentToolCallStartedMessage
-  | AgentToolCallCompletedMessage;
+type ChatMessage = AgentChunkMessage | AgentComponentMessage;
+// TODO: tool call is not supported yet
+// | AgentToolCallStartedMessage
+// | AgentToolCallCompletedMessage;
 
 export type ChatItem = ChatMessage & {
   component_type: AgentComponentType;

@@ -121,8 +121,6 @@ export function updateAgentConversationsStore(
       case "message_chunk":
       case "message":
       case "reasoning":
-      case "tool_call_started":
-      case "tool_call_completed":
       case "task_failed":
       case "plan_failed":
       case "system_failed":
@@ -130,6 +128,12 @@ export function updateAgentConversationsStore(
         // Other events are set as markdown type
         handleChatItemEvent(draft, { component_type: "markdown", ...data });
         break;
+
+      // TODO: tool call is not supported yet
+      // case "tool_call_started":
+      // case "tool_call_completed":
+      //   handleChatItemEvent(draft, { component_type: "tool_call", ...data });
+      //   break;
 
       case "reasoning_started":
       case "reasoning_completed":
