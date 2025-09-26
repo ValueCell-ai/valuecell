@@ -223,6 +223,7 @@ class WatchlistRepository:
         user_id: str,
         ticker: str,
         watchlist_name: Optional[str] = None,
+        display_name: Optional[str] = None,
         notes: str = "",
         order_index: Optional[int] = None,
     ) -> bool:
@@ -273,6 +274,7 @@ class WatchlistRepository:
             item = WatchlistItem(
                 watchlist_id=watchlist.id,
                 ticker=ticker,
+                display_name=display_name,
                 notes=notes,
                 order_index=order_index,
             )

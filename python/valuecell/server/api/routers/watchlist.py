@@ -190,6 +190,9 @@ def create_watchlist_router() -> APIRouter:
                     item_dict = item.to_dict()
                     item_dict["exchange"] = item.exchange
                     item_dict["symbol"] = item.symbol
+                    # Use display_name if available, otherwise fallback to symbol
+                    if not item_dict.get("display_name"):
+                        item_dict["display_name"] = item.symbol
                     items_data.append(WatchlistItemData(**item_dict))
 
                 # Convert watchlist to data format
@@ -246,9 +249,16 @@ def create_watchlist_router() -> APIRouter:
             # Convert assets to WatchlistItemData format
             items_data = []
             for asset in watchlist_info.get("assets", []):
+                symbol = (
+                    asset["ticker"].split(":")[1]
+                    if ":" in asset["ticker"]
+                    else asset["ticker"]
+                )
                 item_data = {
                     "id": 0,  # This would be set from database
                     "ticker": asset["ticker"],
+                    "display_name": asset.get("display_name")
+                    or symbol,  # Use display_name or fallback to symbol
                     "notes": asset.get("notes", ""),
                     "order_index": asset.get("order", 0),
                     "added_at": asset["added_at"],
@@ -256,9 +266,7 @@ def create_watchlist_router() -> APIRouter:
                     "exchange": asset["ticker"].split(":")[0]
                     if ":" in asset["ticker"]
                     else "",
-                    "symbol": asset["ticker"].split(":")[1]
-                    if ":" in asset["ticker"]
-                    else asset["ticker"],
+                    "symbol": symbol,
                 }
                 items_data.append(WatchlistItemData(**item_data))
 
@@ -340,6 +348,7 @@ def create_watchlist_router() -> APIRouter:
                 user_id=DEFAULT_USER_ID,
                 ticker=request.ticker,
                 watchlist_name=request.watchlist_name,
+                display_name=request.display_name,
                 notes=request.notes or "",
             )
 

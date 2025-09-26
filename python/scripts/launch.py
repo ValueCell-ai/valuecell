@@ -4,9 +4,9 @@ Allows users to select an agent from available options and launch it using uv.
 """
 
 import os
-from pathlib import Path
 import subprocess
 from datetime import datetime
+from pathlib import Path
 from typing import Dict
 
 import questionary

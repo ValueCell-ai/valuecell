@@ -267,17 +267,22 @@ class TestAgentClient:
     async def test_ensure_initialized_card_resolution_failure(self):
         """Test that ensure_initialized raises RuntimeError with helpful message on card resolution failure."""
         client = AgentClient("http://invalid-url.com")
-        
-        with patch('valuecell.core.agent.client.A2ACardResolver') as mock_resolver_class, \
-             patch('httpx.AsyncClient'):
-            
+
+        with (
+            patch("valuecell.core.agent.client.A2ACardResolver") as mock_resolver_class,
+            patch("httpx.AsyncClient"),
+        ):
             mock_resolver = mock_resolver_class.return_value
-            mock_resolver.get_agent_card = AsyncMock(side_effect=Exception("Connection timeout"))
-            
+            mock_resolver.get_agent_card = AsyncMock(
+                side_effect=Exception("Connection timeout")
+            )
+
             with pytest.raises(RuntimeError) as exc_info:
                 await client.ensure_initialized()
-            
+
             error_message = str(exc_info.value)
             assert "Failed to resolve agent card" in error_message
             assert "scripts/launch_agent.py" in error_message
-            assert "Connection timeout" in str(exc_info.value.__cause__)  # Original exception should be chained
+            assert "Connection timeout" in str(
+                exc_info.value.__cause__
+            )  # Original exception should be chained

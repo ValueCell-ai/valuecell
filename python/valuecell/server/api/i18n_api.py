@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Header, HTTPException
 
-from ...core.constants import LANGUAGE_TIMEZONE_MAPPING, SUPPORTED_LANGUAGES
+from ...config.constants import LANGUAGE_TIMEZONE_MAPPING, SUPPORTED_LANGUAGES
 from ...utils.i18n_utils import (
     detect_browser_language,
     get_common_timezones,

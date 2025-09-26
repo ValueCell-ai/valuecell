@@ -11,6 +11,10 @@ class WatchlistItemData(BaseModel):
 
     id: int = Field(..., description="Item ID")
     ticker: str = Field(..., description="Asset ticker in format 'EXCHANGE:SYMBOL'")
+    display_name: Optional[str] = Field(
+        None,
+        description="Display name from search results, falls back to symbol if not available",
+    )
     notes: Optional[str] = Field(None, description="User notes about the asset")
     order_index: int = Field(..., description="Display order in the watchlist")
     added_at: datetime = Field(..., description="When the asset was added")
@@ -57,6 +61,9 @@ class AddAssetRequest(BaseModel):
         description="Asset ticker in format 'EXCHANGE:SYMBOL'",
         min_length=1,
         max_length=50,
+    )
+    display_name: Optional[str] = Field(
+        None, description="Display name from search results", max_length=200
     )
     watchlist_name: Optional[str] = Field(
         None, description="Watchlist name (uses default if not provided)"
