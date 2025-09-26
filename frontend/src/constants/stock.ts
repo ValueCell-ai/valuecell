@@ -24,3 +24,18 @@ export const STOCK_BADGE_COLORS: Record<
   negative: { bg: "#FFEAEA", text: "#E25C5C" },
   neutral: { bg: "#F5F5F5", text: "#707070" },
 };
+
+export const HOME_STOCK_SHOW = [
+  {
+    ticker: "NASDAQ:IXIC",
+    symbol: "NASDAQ",
+  },
+  {
+    ticker: "HKEX:HSI",
+    symbol: "HSI",
+  },
+  {
+    ticker: "SSE:000001",
+    symbol: "SSE",
+  },
+] as const;

@@ -11,7 +11,7 @@ import type { EChartsOption } from "echarts/types/dist/shared";
 import { useEffect, useMemo, useRef } from "react";
 import { STOCK_COLORS, STOCK_GRADIENT_COLORS } from "@/constants/stock";
 import { useChartResize } from "@/hooks/use-chart-resize";
-import { format } from "@/lib/time";
+import { TimeUtils } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import type { SparklineData } from "@/types/chart";
 import type { StockChangeType } from "@/types/stock";
@@ -119,9 +119,9 @@ function Sparkline({
           const timestamp = param.data[0];
           const value = param.data[1];
 
-          // Use our time utility for formatting
-          const formatDate = format(timestamp, "MMM D");
-          const formatTime = format(timestamp, "h:mm:ss A");
+          // Format UTC millisecond timestamp to local time for display
+          const formatDate = TimeUtils.format(timestamp, "MMM D");
+          const formatTime = TimeUtils.format(timestamp, "h:mm:ss A");
 
           return `
             <div style="font-weight: 500; font-size: 12px; margin-bottom: 8px; letter-spacing: -0.42px;">

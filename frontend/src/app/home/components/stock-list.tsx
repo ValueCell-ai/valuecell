@@ -23,7 +23,7 @@ function StockList() {
   }, [stockList]);
 
   // Extract stock symbol (e.g., AAPL) from path like /stock/AAPL
-  const stockSymbol = pathname.split("/")[2];
+  const stockTicker = pathname.split("/")[2];
 
   // define a stock item component
   const StockItem = ({ stock }: { stock: Stock }) => {
@@ -34,8 +34,8 @@ function StockList() {
       () => ({
         symbol: stock.symbol,
         companyName: stock.display_name,
-        price: stockPrice?.price_formatted ?? "--",
-        changePercent: stockPrice?.change_percent_formatted ?? "--",
+        price: stockPrice?.price_formatted ?? "N/A",
+        changePercent: stockPrice?.change_percent_formatted ?? "N/A",
       }),
       [stock, stockPrice],
     );
@@ -44,15 +44,15 @@ function StockList() {
       <StockMenuListItem
         className="min-w-52"
         stock={transformedStock}
-        to={`/stock/${stock.symbol}`}
-        isActive={stockSymbol === stock.symbol}
-        replace={!!stockSymbol}
+        to={`/stock/${stock.ticker}`}
+        isActive={stockTicker === stock.ticker}
+        replace={!!stockTicker}
       />
     );
   };
 
   return (
-    <StockMenu>
+    <StockMenu className="min-w-52">
       <StockMenuHeader>My Stocks</StockMenuHeader>
       <ScrollContainer>
         {stockData?.map((group) => (

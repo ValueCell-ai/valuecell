@@ -48,11 +48,18 @@ export const useGetStockPrice = (params: { ticker: string }) =>
     enabled: !!params.ticker,
   });
 
-export const useGetStockHistory = (params: { ticker: string }) =>
+export const useGetStockHistory = (params: {
+  ticker: string;
+  interval: "m" | "h" | "d" | "w" | "mo" | "y";
+  start_date: string;
+  end_date: string;
+}) =>
   useQuery({
     queryKey: API_QUERY_KEYS.STOCK.stockHistory(Object.values(params)),
     queryFn: () =>
-      apiClient.get<ApiResponse<{ results: StockHistory[] }>>(
-        `watchlist/asset/${params.ticker}/price/historical`,
+      apiClient.get<ApiResponse<StockHistory>>(
+        `watchlist/asset/${params.ticker}/price/historical?interval=${params.interval}&start_date=${params.start_date}&end_date=${params.end_date}`,
       ),
+    select: (data) => data.data,
+    enabled: !!params.ticker,
   });

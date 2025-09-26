@@ -25,5 +25,19 @@ export interface StockPrice {
 
 export interface StockHistory {
   ticker: string;
-  interval: "1d" | "3m" | "2Y";
+  interval: "m" | "h" | "d" | "w" | "mo" | "y";
+  prices: {
+    ticker: string;
+    price: number;
+    timestamp: string;
+    open_price: number;
+    high_price: number;
+    low_price: number;
+    close_price: number;
+    volume: number;
+    change: number;
+    change_percent: number;
+    currency: string;
+    source: string;
+  }[];
 }
