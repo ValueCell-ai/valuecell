@@ -12,9 +12,18 @@ highlight_command() {
     echo -e "${BLUE}Running: $1${NC}"
 }
 
-# Check if current directory is project root
+# Check current directory and switch to python if needed
+if [ -d "python" ] && [ -f "python/pyproject.toml" ] && [ -f ".gitignore" ]; then
+    echo -e "${YELLOW}Detected project root. Switching to python directory...${NC}"
+    cd python
+elif [ ! -f "pyproject.toml" ] || [ ! -d "third_party" ]; then
+    echo -e "${RED}Error: This script must be run from the project python directory or project root. You are in $(pwd)${NC}"
+    exit 1
+fi
+
+# Final check if in python directory
 if [ ! -f "pyproject.toml" ] || [ ! -d "third_party" ]; then
-    echo -e "${RED}Error: This script must be run from the project python directory.${NC}"
+    echo -e "${RED}Error: Failed to switch to python directory. You are in $(pwd)${NC}"
     exit 1
 fi
 
