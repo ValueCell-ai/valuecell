@@ -21,11 +21,6 @@ Usage Example:
         get_asset_service, search_assets, add_to_watchlist
     )
 
-    # Configure data adapters
-    manager = get_adapter_manager()
-    manager.configure_yfinance()
-    manager.configure_tushare(api_key="your_tushare_key")
-
     # Search for assets (now via service layer)
     results = search_assets("AAPL", language="zh-Hans")
 
@@ -62,10 +57,7 @@ from .base import (
 
 # Specific adapter implementations
 from .yfinance_adapter import YFinanceAdapter
-from .tushare_adapter import TuShareAdapter
-from .coinmarketcap_adapter import CoinMarketCapAdapter
 from .akshare_adapter import AKShareAdapter
-from .finnhub_adapter import FinnhubAdapter
 
 # Management and coordination
 from .manager import (
@@ -111,10 +103,7 @@ __all__ = [
     "InvalidTickerError",
     # Adapters
     "YFinanceAdapter",
-    "TuShareAdapter",
-    "CoinMarketCapAdapter",
     "AKShareAdapter",
-    "FinnhubAdapter",
     # Managers
     "AdapterManager",
     "WatchlistManager",

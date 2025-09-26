@@ -12,8 +12,6 @@ chromadb
 setuptools
 backtrader
 akshare
-tushare
-finnhub-python
 parsel
 requests
 tqdm
