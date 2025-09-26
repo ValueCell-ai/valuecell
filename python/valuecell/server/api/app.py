@@ -1,24 +1,25 @@
 """FastAPI application factory for ValueCell Server."""
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
+
+from ...adapters.assets import get_adapter_manager
+from ..config.settings import get_settings
 from .exceptions import (
     APIException,
     api_exception_handler,
-    validation_exception_handler,
     general_exception_handler,
+    validation_exception_handler,
 )
-
-from ..config.settings import get_settings
+from .routers.agent import create_agent_router
+from .routers.agent_stream import create_agent_stream_router
 from .routers.i18n import create_i18n_router
 from .routers.system import create_system_router
 from .routers.watchlist import create_watchlist_router
-from .routers.agent_stream import create_agent_stream_router
-from .routers.agent import create_agent_router
-from .schemas import SuccessResponse, AppInfoData
-from ...adapters.assets import get_adapter_manager
+from .schemas import AppInfoData, SuccessResponse
 
 
 def create_app() -> FastAPI:

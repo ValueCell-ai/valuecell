@@ -3,6 +3,7 @@ import logging
 from typing import AsyncGenerator, Dict, Optional
 
 from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
+
 from valuecell.core.agent.connect import RemoteConnections
 from valuecell.core.conversation import (
     ConversationManager,

@@ -3,11 +3,12 @@ Agent service layer for handling agent-related business logic.
 """
 
 from typing import Optional
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_
 
-from valuecell.server.db.models.agent import Agent
+from sqlalchemy import and_, or_
+from sqlalchemy.orm import Session
+
 from valuecell.server.api.schemas.agent import AgentData, AgentListData
+from valuecell.server.db.models.agent import Agent
 
 
 class AgentService:

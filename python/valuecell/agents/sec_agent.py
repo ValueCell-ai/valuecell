@@ -10,6 +10,7 @@ from agno.agent import Agent, RunResponseEvent
 from agno.models.openrouter import OpenRouter
 from edgar import Company, set_identity
 from pydantic import BaseModel, Field, field_validator
+
 from valuecell.core.agent.decorator import create_wrapped_agent
 from valuecell.core.agent.responses import notification, streaming
 from valuecell.core.types import BaseAgent, StreamResponse

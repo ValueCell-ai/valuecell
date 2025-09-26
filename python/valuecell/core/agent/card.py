@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional
 
 from a2a.types import AgentCapabilities, AgentCard
+
 from valuecell.utils import get_agent_card_path
 
 FIELDS_UNDEFINED_IN_AGENT_CARD_MODEL = {"enabled", "metadata", "display_name"}

@@ -3,13 +3,14 @@ Agent API router for handling agent-related endpoints.
 """
 
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, Path
+
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.orm import Session
 
-from valuecell.server.db import get_db
-from valuecell.server.services.agent_service import AgentService
 from valuecell.server.api.schemas.agent import AgentListResponse, AgentResponse
 from valuecell.server.api.schemas.base import SuccessResponse
+from valuecell.server.db import get_db
+from valuecell.server.services.agent_service import AgentService
 
 
 def create_agent_router() -> APIRouter:

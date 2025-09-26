@@ -26,13 +26,13 @@ Usage Example:
 
 from .asset_service import (
     AssetService,
-    get_asset_service,
-    reset_asset_service,
-    search_assets,
+    add_to_watchlist,
     get_asset_info,
     get_asset_price,
-    add_to_watchlist,
+    get_asset_service,
     get_watchlist,
+    reset_asset_service,
+    search_assets,
 )
 
 __version__ = "1.0.0"

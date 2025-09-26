@@ -1,9 +1,10 @@
 """API exception handling module."""
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from fastapi import HTTPException, Request
-from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
 from .schemas import ErrorResponse, StatusCode
 

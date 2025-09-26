@@ -2,11 +2,13 @@
 Agent stream router for handling streaming agent queries.
 """
 
+import json
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
+
 from valuecell.server.api.schemas.agent_stream import AgentStreamRequest
 from valuecell.server.services.agent_stream_service import AgentStreamService
-import json
 
 
 def create_agent_stream_router() -> APIRouter:

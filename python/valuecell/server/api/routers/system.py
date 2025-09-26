@@ -1,10 +1,11 @@
 """System related API routes."""
 
 from datetime import datetime
+
 from fastapi import APIRouter
 
-from ..schemas import SuccessResponse, AppInfoData, HealthCheckData
 from ...config.settings import get_settings
+from ..schemas import AppInfoData, HealthCheckData, SuccessResponse
 
 
 def create_system_router() -> APIRouter:

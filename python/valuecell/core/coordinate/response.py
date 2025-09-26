@@ -1,6 +1,7 @@
 from typing import Optional
 
 from typing_extensions import Literal
+
 from valuecell.core.types import (
     BaseResponseDataPayload,
     CommonResponseEvent,

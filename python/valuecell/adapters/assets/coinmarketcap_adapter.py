@@ -5,27 +5,28 @@ market data, including prices, market caps, and metadata.
 """
 
 import logging
-from typing import Dict, List, Optional, Any
+import time
 from datetime import datetime
 from decimal import Decimal
+from typing import Any, Dict, List, Optional
+
 import requests
-import time
 
 from .base import (
+    AuthenticationError,
     BaseDataAdapter,
     DataNotAvailableError,
-    AuthenticationError,
     RateLimitError,
 )
 from .types import (
     Asset,
     AssetPrice,
-    AssetSearchResult,
     AssetSearchQuery,
-    DataSource,
+    AssetSearchResult,
     AssetType,
-    MarketInfo,
+    DataSource,
     LocalizedName,
+    MarketInfo,
     MarketStatus,
 )
 

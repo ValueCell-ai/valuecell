@@ -5,26 +5,26 @@ and routing requests to the appropriate providers based on asset types and avail
 """
 
 import logging
-from typing import Dict, List, Optional, Any
-from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
+from .akshare_adapter import AKShareAdapter
 from .base import BaseDataAdapter
+from .coinmarketcap_adapter import CoinMarketCapAdapter
+from .finnhub_adapter import FinnhubAdapter
+from .tushare_adapter import TuShareAdapter
 from .types import (
     Asset,
     AssetPrice,
-    AssetSearchResult,
     AssetSearchQuery,
-    DataSource,
+    AssetSearchResult,
     AssetType,
+    DataSource,
     Watchlist,
 )
 from .yfinance_adapter import YFinanceAdapter
-from .tushare_adapter import TuShareAdapter
-from .coinmarketcap_adapter import CoinMarketCapAdapter
-from .akshare_adapter import AKShareAdapter
-from .finnhub_adapter import FinnhubAdapter
 
 logger = logging.getLogger(__name__)
 

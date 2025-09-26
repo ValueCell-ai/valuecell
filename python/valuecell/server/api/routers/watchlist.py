@@ -1,25 +1,26 @@
 """Watchlist related API routes."""
 
-from typing import Optional, List
 from datetime import datetime, timedelta
-from fastapi import APIRouter, HTTPException, Query, Path
+from typing import List, Optional
 
+from fastapi import APIRouter, HTTPException, Path, Query
+
+from ...db.repositories.watchlist_repository import get_watchlist_repository
+from ...services.assets.asset_service import get_asset_service
 from ..schemas import (
+    AddStockRequest,
+    AssetDetailData,
+    AssetHistoricalPriceData,
+    AssetHistoricalPricesData,
+    AssetInfoData,
+    AssetPriceData,
+    AssetSearchResultData,
+    CreateWatchlistRequest,
     SuccessResponse,
+    UpdateStockNotesRequest,
     WatchlistData,
     WatchlistItemData,
-    CreateWatchlistRequest,
-    AddStockRequest,
-    UpdateStockNotesRequest,
-    AssetSearchResultData,
-    AssetInfoData,
-    AssetDetailData,
-    AssetPriceData,
-    AssetHistoricalPricesData,
-    AssetHistoricalPriceData,
 )
-from ...services.assets.asset_service import get_asset_service
-from ...db.repositories.watchlist_repository import get_watchlist_repository
 
 # Global default user ID for open source API
 DEFAULT_USER_ID = "default_user"

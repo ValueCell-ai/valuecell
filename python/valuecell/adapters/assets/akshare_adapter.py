@@ -4,14 +4,15 @@ This adapter provides integration with AKShare library to fetch comprehensive
 Global financial market data including stocks, funds, bonds, and economic indicators.
 """
 
+import decimal
 import logging
-from typing import List, Optional, Any
+import threading
+import time
 from datetime import datetime, timedelta
 from decimal import Decimal
-import decimal
+from typing import Any, List, Optional
+
 import pandas as pd
-import time
-import threading
 
 try:
     import akshare as ak
@@ -22,12 +23,12 @@ from .base import BaseDataAdapter
 from .types import (
     Asset,
     AssetPrice,
-    AssetSearchResult,
     AssetSearchQuery,
-    DataSource,
+    AssetSearchResult,
     AssetType,
-    MarketInfo,
+    DataSource,
     LocalizedName,
+    MarketInfo,
     MarketStatus,
 )
 

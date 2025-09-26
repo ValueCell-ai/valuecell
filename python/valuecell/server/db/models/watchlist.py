@@ -4,19 +4,20 @@ ValueCell Server - Watchlist Models
 This module defines the database models for user watchlists in the ValueCell system.
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from sqlalchemy import (
+    Boolean,
     Column,
+    DateTime,
+    ForeignKey,
     Integer,
     String,
     Text,
-    Boolean,
-    DateTime,
-    ForeignKey,
     UniqueConstraint,
 )
-from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 
 from .base import Base
 

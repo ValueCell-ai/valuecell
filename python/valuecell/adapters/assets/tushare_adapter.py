@@ -5,25 +5,25 @@ including A-shares, indices, and fundamental data.
 """
 
 import logging
-from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
 from decimal import Decimal
+from typing import Any, Dict, List, Optional
 
 try:
     import tushare as ts
 except ImportError:
     ts = None
 
-from .base import BaseDataAdapter, AuthenticationError
+from .base import AuthenticationError, BaseDataAdapter
 from .types import (
     Asset,
     AssetPrice,
-    AssetSearchResult,
     AssetSearchQuery,
-    DataSource,
+    AssetSearchResult,
     AssetType,
-    MarketInfo,
+    DataSource,
     LocalizedName,
+    MarketInfo,
     MarketStatus,
 )
 
