@@ -35,11 +35,17 @@ export type AgentComponentMessage = MessageWithPayload<{
 }>;
 
 export type AgentToolCallStartedMessage = MessageWithPayload<{
+  /**
+   * @deprecated the tool call id is similar to the item_id
+   */
   tool_call_id: string;
   tool_name: string;
 }>;
 
 export type AgentToolCallCompletedMessage = MessageWithPayload<{
+  /**
+   * @deprecated the tool call id is similar to the item_id
+   */
   tool_call_id: string;
   tool_name: string;
   tool_call_result: string;

@@ -1,5 +1,6 @@
-import { CheckCircle, Clock, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import { type FC, memo } from "react";
+import { COMPONENT_RENDERER_MAP } from "@/constants/agent";
 import { cn } from "@/lib/utils";
 import type { ChatItem } from "@/types/agent";
 
@@ -35,14 +36,34 @@ const ChatItemArea: FC<ChatItemAreaProps> = ({ items }) => {
               if (!payload) return null;
 
               // Component generator message
-              if ("component_type" in payload && "content" in payload) {
+              if ("component_type" in payload) {
+                const RendererComponent =
+                  COMPONENT_RENDERER_MAP[payload.component_type];
+
+                if (RendererComponent) {
+                  return (
+                    <div>
+                      <div className="mb-2 flex items-center gap-2">
+                        <FileText size={16} className="text-blue-600" />
+                        <span className="font-medium text-blue-900 text-sm capitalize">
+                          {payload.component_type}
+                        </span>
+                      </div>
+                      <div className="rounded-lg">
+                        <RendererComponent content={payload.content} />
+                      </div>
+                    </div>
+                  );
+                }
+
+                // fallback renderer
                 return (
                   <div>
                     <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
                       <div className="mb-2 flex items-center gap-2">
                         <FileText size={16} className="text-blue-600" />
                         <span className="font-medium text-blue-900 text-sm capitalize">
-                          {payload.component_type} Generated
+                          {payload.component_type} (Unknown Component Type)
                         </span>
                       </div>
                       <div className="rounded bg-white p-3 text-gray-800 text-sm">
@@ -51,48 +72,6 @@ const ChatItemArea: FC<ChatItemAreaProps> = ({ items }) => {
                         </pre>
                       </div>
                     </div>
-                  </div>
-                );
-              }
-
-              // Tool call message
-              if ("tool_call_id" in payload && "tool_name" in payload) {
-                const hasResult =
-                  "tool_call_result" in payload && payload.tool_call_result;
-                return (
-                  <div>
-                    <div className="mt-3 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-2">
-                      {hasResult ? (
-                        <CheckCircle size={14} className="text-green-600" />
-                      ) : (
-                        <Clock
-                          size={14}
-                          className="animate-pulse text-blue-600"
-                        />
-                      )}
-                      <span className="font-medium text-blue-900 text-sm">
-                        {payload.tool_name}
-                      </span>
-                      {hasResult ? (
-                        <span className="truncate text-gray-600 text-xs">
-                          {String(payload.tool_call_result).substring(0, 50)}
-                          ...
-                        </span>
-                      ) : (
-                        <span className="text-blue-600 text-xs">
-                          Running...
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              }
-
-              // Regular content message
-              if ("content" in payload) {
-                return (
-                  <div className="whitespace-pre-wrap break-words">
-                    {payload.content}
                   </div>
                 );
               }
