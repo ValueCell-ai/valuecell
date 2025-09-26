@@ -7,11 +7,10 @@ localized asset names, descriptions, and other text content.
 import logging
 from typing import Dict, List, Optional
 
+from ...server.config.i18n import I18nConfig, get_i18n_config
 from ...server.services.i18n_service import get_i18n_service, t
-from ...server.config.i18n import get_i18n_config
-from ...server.config.i18n import I18nConfig
-from .types import Asset, AssetSearchResult, AssetType, MarketStatus
 from .manager import AdapterManager
+from .types import Asset, AssetSearchResult, AssetType, MarketStatus
 
 logger = logging.getLogger(__name__)
 

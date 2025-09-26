@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import sqlite3
-import aiosqlite
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
+
+import aiosqlite
 
 from valuecell.core.types import ConversationItem, Role
 

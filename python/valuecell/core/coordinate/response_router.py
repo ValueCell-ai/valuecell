@@ -5,6 +5,7 @@ from typing import List, Optional
 
 from a2a.types import TaskState, TaskStatusUpdateEvent
 from a2a.utils import get_message_text
+
 from valuecell.core.agent.responses import EventPredicates
 from valuecell.core.coordinate.response import ResponseFactory
 from valuecell.core.task import Task

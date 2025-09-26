@@ -1,9 +1,9 @@
 """Conversation module initialization"""
 
-from .manager import ConversationManager
+from .conversation_store import ConversationStore, InMemoryConversationStore
 from .item_store import InMemoryItemStore, ItemStore, SQLiteItemStore
+from .manager import ConversationManager
 from .models import Conversation, ConversationStatus
-from .conversation_store import InMemoryConversationStore, ConversationStore
 
 __all__ = [
     # Models

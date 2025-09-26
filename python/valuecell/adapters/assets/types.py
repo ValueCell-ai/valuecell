@@ -4,11 +4,12 @@ This module defines the core data structures for representing financial assets
 across different data sources and markets, with support for internationalization.
 """
 
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field, validator
 
 

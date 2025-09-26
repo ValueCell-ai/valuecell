@@ -1,8 +1,8 @@
 """Settings configuration for ValueCell Server."""
 
 import os
-from pathlib import Path
 from functools import lru_cache
+from pathlib import Path
 
 
 def _get_project_root() -> str:

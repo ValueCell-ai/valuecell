@@ -1,6 +1,7 @@
 """RESTful i18n API router module."""
 
 from fastapi import APIRouter
+
 from ..i18n_api import get_i18n_api
 
 

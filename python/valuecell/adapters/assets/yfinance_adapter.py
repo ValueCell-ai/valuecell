@@ -5,9 +5,9 @@ to fetch stock market data, including real-time prices and historical data.
 """
 
 import logging
-from typing import Dict, List, Optional, Any
 from datetime import datetime
 from decimal import Decimal
+from typing import Any, Dict, List, Optional
 
 try:
     import yfinance as yf
@@ -18,14 +18,14 @@ from .base import BaseDataAdapter
 from .types import (
     Asset,
     AssetPrice,
-    AssetSearchResult,
     AssetSearchQuery,
-    DataSource,
+    AssetSearchResult,
     AssetType,
-    MarketInfo,
-    LocalizedName,
-    MarketStatus,
+    DataSource,
     Interval,
+    LocalizedName,
+    MarketInfo,
+    MarketStatus,
 )
 
 logger = logging.getLogger(__name__)

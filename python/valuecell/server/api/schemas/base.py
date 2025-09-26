@@ -1,8 +1,9 @@
 """Base API schemas for ValueCell application."""
 
-from typing import Optional, Generic, TypeVar
 from datetime import datetime
 from enum import IntEnum
+from typing import Generic, Optional, TypeVar
+
 from pydantic import BaseModel, Field
 
 T = TypeVar("T")

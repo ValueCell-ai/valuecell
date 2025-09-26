@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 from pydantic import BaseModel
+
 from valuecell.core.types import (
     BaseResponse,
     BaseResponseDataPayload,

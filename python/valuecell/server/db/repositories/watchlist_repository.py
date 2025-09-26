@@ -5,12 +5,13 @@ This module provides database operations for watchlist management.
 """
 
 from typing import List, Optional
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy import desc, asc
 
-from ..models.watchlist import Watchlist, WatchlistItem
+from sqlalchemy import asc, desc
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
 from ..connection import get_database_manager
+from ..models.watchlist import Watchlist, WatchlistItem
 
 
 class WatchlistRepository:
