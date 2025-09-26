@@ -31,6 +31,7 @@ dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
     "pytest-asyncio>=1.0.0",
+    "diff-cover>=9.0.0",
 ]
 
 [dependency-groups]
@@ -45,6 +46,7 @@ test = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
     "pytest-asyncio>=1.0.0",
+    "diff-cover>=9.0.0",
 ]
 
 [tool.ruff]

@@ -53,5 +53,6 @@ jobs:
       run: uv sync --locked --all-extras --dev
 
     - name: Run tests
-      run: uv run pytest
-
+      run: |
+        uv run pytest valuecell/core/ --cov=valuecell.core --cov-report=xml
+        uv run diff-cover coverage.xml --fail-under=90
