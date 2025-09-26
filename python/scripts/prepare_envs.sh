@@ -13,8 +13,8 @@ highlight_command() {
 }
 
 # Check if current directory is project root
-if [ ! -f ".gitignore" ] || [ ! -d "python" ] || [ ! -d "python/third_party" ]; then
-    echo -e "${RED}Error: This script must be run from the project root directory.${NC}"
+if [ ! -f "pyproject.toml" ] || [ ! -d "third_party" ]; then
+    echo -e "${RED}Error: This script must be run from the project python directory.${NC}"
     exit 1
 fi
 
@@ -24,21 +24,25 @@ if ! command -v uv &> /dev/null; then
     exit 1
 fi
 
+echo -e "${BLUE}==========================================${NC}"
+echo -e "${BLUE}Starting environment preparation...${NC}"
+echo -e "${BLUE}==========================================${NC}"
+
 # Prepare environments
 echo -e "${GREEN}Project root confirmed. Preparing environments...${NC}"
 
 echo -e "${YELLOW}Setting up main Python environment...${NC}"
-pushd ./python
 highlight_command "uv venv --python 3.12"
 uv venv --python 3.12
 highlight_command "uv sync --group dev"
 uv sync --group dev
-popd
 echo -e "${GREEN}Main environment setup complete.${NC}"
 
-echo -e "${YELLOW}Setting up third-party environments...${NC}"
+echo -e "${BLUE}==========================================${NC}"
+echo -e "${BLUE}Setting up third-party environments...${NC}"
+echo -e "${BLUE}==========================================${NC}"
 echo -e "${YELLOW}Setting up ai-hedge-fund environment...${NC}"
-pushd ./python/third_party/ai-hedge-fund
+pushd ./third_party/ai-hedge-fund
 highlight_command "uv venv --python 3.12"
 uv venv --python 3.12
 highlight_command "uv sync"
@@ -46,12 +50,17 @@ uv sync
 popd
 echo -e "${GREEN}ai-hedge-fund environment setup complete.${NC}"
 
+echo -e "${YELLOW}------------------------------------------${NC}"
 echo -e "${YELLOW}Setting up TradingAgents environment...${NC}"
-pushd ./python/third_party/TradingAgents
+echo -e "${YELLOW}------------------------------------------${NC}"
+pushd ./third_party/TradingAgents
 highlight_command "uv venv --python 3.12"
 uv venv --python 3.12
 highlight_command "uv sync"
 uv sync
 popd
 echo -e "${GREEN}TradingAgents environment setup complete.${NC}"
+
+echo -e "${GREEN}==========================================${NC}"
 echo -e "${GREEN}All environments are set up.${NC}"
+echo -e "${GREEN}==========================================${NC}"
