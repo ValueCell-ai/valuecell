@@ -1,16 +1,11 @@
 import {
   BarChart3,
-  Brain,
-  Briefcase,
   Calendar,
-  DollarSign,
   Newspaper,
   Shield,
   Target,
   TrendingUp,
-  User,
 } from "lucide-react";
-import type { AgentRecommendation } from "@/app/home/components/agent-recommend-list";
 import type { AgentSuggestion } from "@/app/home/components/agent-suggestions-list";
 
 const UserAvatar = ({ bgColor, text }: { bgColor: string; text: string }) => (
@@ -76,81 +71,5 @@ export const agentSuggestions: AgentSuggestion[] = [
       <UserAvatar key="1" bgColor="#14B8A6" text="K" />,
       <UserAvatar key="2" bgColor="#F43F5E" text="L" />,
     ],
-  },
-];
-
-// Agent recommendations for horizontal marquee carousel
-export const agentRecommendations: AgentRecommendation[] = [
-  {
-    id: "recommend-1",
-    title: "Tu share Agent",
-    icon: (
-      <div className="flex size-8 items-center justify-center rounded-full bg-[#A7BAFE]">
-        <User size={16} className="text-white" />
-      </div>
-    ),
-  },
-  {
-    id: "recommend-2",
-    title: "Stock selection",
-    icon: (
-      <div className="flex size-8 items-center justify-center rounded-full bg-[#D9D9D9]">
-        <TrendingUp size={16} className="text-gray-600" />
-      </div>
-    ),
-  },
-  {
-    id: "recommend-3",
-    title: "Peter Lynch agent",
-    icon: (
-      <div className="flex size-8 items-center justify-center rounded-full bg-[#3C3D44]">
-        <Brain size={16} className="text-white" />
-      </div>
-    ),
-  },
-  {
-    id: "recommend-4",
-    title: "Graham Agent",
-    icon: (
-      <div className="flex size-8 items-center justify-center rounded-full bg-[#D9D9D9]">
-        <Briefcase size={16} className="text-gray-600" />
-      </div>
-    ),
-  },
-  {
-    id: "recommend-5",
-    title: "Buffett Investment Agent",
-    icon: (
-      <div className="flex size-8 items-center justify-center rounded-full bg-[#D9D9D9]">
-        <DollarSign size={16} className="text-gray-600" />
-      </div>
-    ),
-  },
-  {
-    id: "recommend-6",
-    title: "Geweidong Agent",
-    icon: (
-      <div className="flex size-8 items-center justify-center rounded-full bg-[#3C3D44]">
-        <User size={16} className="text-white" />
-      </div>
-    ),
-  },
-  {
-    id: "recommend-7",
-    title: "AI Hedge fund",
-    icon: (
-      <div className="flex size-8 items-center justify-center rounded-full bg-[#D9D9D9]">
-        <BarChart3 size={16} className="text-gray-600" />
-      </div>
-    ),
-  },
-  {
-    id: "recommend-8",
-    title: "Event interpretation",
-    icon: (
-      <div className="flex size-8 items-center justify-center rounded-full bg-[#D9D9D9]">
-        <Calendar size={16} className="text-gray-600" />
-      </div>
-    ),
   },
 ];

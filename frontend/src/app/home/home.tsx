@@ -1,4 +1,8 @@
-import { agentRecommendations, agentSuggestions } from "@/mock/agent-data";
+import { useCallback, useMemo } from "react";
+import { useNavigate } from "react-router";
+import { useGetAgentList } from "@/api/agent";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { agentSuggestions } from "@/mock/agent-data";
 import { sparklineStockData } from "@/mock/stock-data";
 import {
   AgentRecommendList,
@@ -7,9 +11,28 @@ import {
 } from "./components";
 
 function Home() {
-  const handleAgentClick = (agentId: string, title: string) => {
-    console.log(`Agent clicked: ${title} (${agentId})`);
-  };
+  const { data: agentList } = useGetAgentList();
+  const navigate = useNavigate();
+
+  const handleAgentClick = useCallback(
+    (agentId: string) => {
+      navigate(`/agent/${agentId}`);
+    },
+    [navigate],
+  );
+
+  const recommendations = useMemo(() => {
+    return agentList?.map((agent) => ({
+      id: agent.agent_name,
+      title: agent.agent_name,
+      icon: (
+        <Avatar>
+          <AvatarImage src={agent.icon_url} />
+          <AvatarFallback>{agent.agent_name.slice(0, 2)}</AvatarFallback>
+        </Avatar>
+      ),
+    }));
+  }, [agentList]);
 
   return (
     <div className="flex flex-col gap-6 p-8">
@@ -21,17 +44,13 @@ function Home() {
         title="What can I help you？"
         suggestions={agentSuggestions.map((suggestion) => ({
           ...suggestion,
-          onClick: () => handleAgentClick(suggestion.id, suggestion.title),
+          onClick: () => handleAgentClick(suggestion.id),
         }))}
       />
 
       <AgentRecommendList
         title="Recommended Agents"
-        recommendations={agentRecommendations.map((recommendation) => ({
-          ...recommendation,
-          onClick: () =>
-            handleAgentClick(recommendation.id, recommendation.title),
-        }))}
+        recommendations={recommendations || []}
       />
     </div>
   );

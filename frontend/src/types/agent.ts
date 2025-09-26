@@ -1,5 +1,10 @@
 // Agent communication types for SSE events and business logic
 
+import type {
+  AGENT_COMPONENT_TYPE,
+  AGENT_SECTION_COMPONENT_TYPE,
+} from "@/constants/agent";
+
 // Base event data structures
 interface BaseEventData {
   role: "user" | "agent" | "system";
@@ -25,29 +30,34 @@ export type AgentTaskFailedMessage = AgentChunkMessage;
 export type AgentSystemFailedMessage = AgentChunkMessage;
 
 export type AgentComponentMessage = MessageWithPayload<{
-  component_type: string;
+  component_type: AgentComponentType;
   content: string;
 }>;
 
 export type AgentToolCallStartedMessage = MessageWithPayload<{
+  /**
+   * @deprecated the tool call id is similar to the item_id
+   */
   tool_call_id: string;
   tool_name: string;
 }>;
 
 export type AgentToolCallCompletedMessage = MessageWithPayload<{
+  /**
+   * @deprecated the tool call id is similar to the item_id
+   */
   tool_call_id: string;
   tool_name: string;
   tool_call_result: string;
 }>;
 
-type ChatMessage =
-  | AgentChunkMessage
-  | AgentComponentMessage
-  | AgentToolCallStartedMessage
-  | AgentToolCallCompletedMessage;
+type ChatMessage = AgentChunkMessage | AgentComponentMessage;
+// TODO: tool call is not supported yet
+// | AgentToolCallStartedMessage
+// | AgentToolCallCompletedMessage;
 
 export type ChatItem = ChatMessage & {
-  component_type: string;
+  component_type: AgentComponentType;
 };
 
 export interface AgentEventMap {
@@ -90,8 +100,17 @@ export interface ThreadView {
   tasks: Record<string, TaskView>;
 }
 
+export type SectionComponentType =
+  (typeof AGENT_SECTION_COMPONENT_TYPE)[number];
+export type AgentComponentType = (typeof AGENT_COMPONENT_TYPE)[number];
+
 export interface ConversationView {
   threads: Record<string, ThreadView>;
+  /**
+   * By component_type grouped sections
+   * @description this is rendered outside of the threads (main section)
+   */
+  sections?: Record<SectionComponentType, ChatItem[]>;
 }
 
 export type AgentConversationsStore = Record<string, ConversationView>;

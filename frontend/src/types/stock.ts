@@ -17,4 +17,7 @@ export interface StockPrice {
   source: string;
 }
 
-
+export interface StockHistory {
+  ticker: string;
+  interval: "1d" | "3m" | "2Y";
+}

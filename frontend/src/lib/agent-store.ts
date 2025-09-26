@@ -1,8 +1,10 @@
 import { create } from "mutative";
+import { AGENT_SECTION_COMPONENT_TYPE } from "@/constants/agent";
 import type {
   AgentConversationsStore,
   ChatItem,
   ConversationView,
+  SectionComponentType,
   SSEData,
   TaskView,
   ThreadView,
@@ -73,7 +75,31 @@ function addOrUpdateItem(task: TaskView, newItem: ChatItem): void {
 
 // Generic handler for events that create chat items
 function handleChatItemEvent(draft: AgentConversationsStore, data: ChatItem) {
-  const { task } = ensurePath(draft, data);
+  const { conversation, task } = ensurePath(draft, data);
+
+  // Auto-maintain sections - only non-markdown types create independent sections
+  const componentType = data.component_type;
+  if (
+    componentType &&
+    // TODO: componentType as type assertion is not safe, find a better way to do this
+    AGENT_SECTION_COMPONENT_TYPE.includes(componentType as SectionComponentType)
+  ) {
+    // Ensure sections object exists
+    if (!conversation.sections) {
+      conversation.sections = {} as Record<SectionComponentType, ChatItem[]>;
+    }
+
+    // Ensure section exists for this component type
+    if (!conversation.sections[componentType as SectionComponentType]) {
+      conversation.sections[componentType as SectionComponentType] = [];
+    }
+
+    // Add item to corresponding section (components are complete, no merging)
+    conversation.sections[componentType as SectionComponentType].push(data);
+
+    return;
+  }
+
   addOrUpdateItem(task, data);
 }
 
@@ -86,19 +112,31 @@ export function updateAgentConversationsStore(
   // Use mutative to create new state with type-safe event handling
   return create(store, (draft) => {
     switch (event) {
+      case "component_generator":
+        // component_generator preserves original component_type
+        handleChatItemEvent(draft, {
+          ...data,
+          component_type: data.payload.component_type,
+        });
+        break;
+
       case "thread_started":
       case "message_chunk":
       case "message":
       case "reasoning":
-      case "tool_call_started":
-      case "tool_call_completed":
-      case "component_generator":
       case "task_failed":
       case "plan_failed":
       case "system_failed":
       case "plan_require_user_input":
+        // Other events are set as markdown type
         handleChatItemEvent(draft, { component_type: "markdown", ...data });
         break;
+
+      // TODO: tool call is not supported yet
+      // case "tool_call_started":
+      // case "tool_call_completed":
+      //   handleChatItemEvent(draft, { component_type: "tool_call", ...data });
+      //   break;
 
       case "reasoning_started":
       case "reasoning_completed":

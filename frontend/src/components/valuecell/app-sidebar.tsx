@@ -6,9 +6,12 @@ import {
   useMemo,
 } from "react";
 import { NavLink, useLocation } from "react-router";
+import { useGetAgentList } from "@/api/agent";
 import { BookOpen, ChartBarVertical, Logo, Setting, User } from "@/assets/svg";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import ScrollContainer from "./scroll/scroll-container";
 import SvgIcon from "./svg-icon";
 
 interface SidebarItemProps extends HTMLAttributes<HTMLButtonElement> {
@@ -89,9 +92,9 @@ const SidebarMenuItem: FC<SidebarItemProps> = ({
       onClick={onClick}
       className={cn(
         "box-border flex size-12 items-center justify-center rounded-full",
-        "cursor-pointer p-3 transition-all",
+        "cursor-pointer transition-all",
         type === "button" && [
-          "bg-neutral-200",
+          "bg-neutral-200 p-3",
           "hover:data-[active=false]:bg-neutral-300",
           "data-[active=true]:bg-black data-[active=true]:text-white",
         ],
@@ -142,6 +145,16 @@ const AppSidebar: FC = () => {
     };
   }, []);
 
+  const { data: agentList } = useGetAgentList({ enabled_only: true });
+  const agentItems = useMemo(() => {
+    return agentList?.map((agent) => ({
+      id: agent.agent_name,
+      icon: agent.icon_url,
+      label: agent.agent_name,
+      to: `/agent/${agent.agent_name}`,
+    }));
+  }, [agentList]);
+
   // verify the button is active
   const verifyActive = (to: string) => `/${prefixPath}` === to;
 
@@ -161,25 +174,30 @@ const AppSidebar: FC = () => {
 
       <Separator />
 
-      <SidebarContent>
-        <SidebarMenu>
-          {navItems.config.map((item) => {
-            return (
-              <NavLink key={item.id} to={item.to}>
-                <SidebarMenuItem
-                  type="agent"
-                  aria-label={item.label}
-                  data-active={verifyActive(item.to)}
-                >
-                  <SvgIcon name={item.icon} />
-                </SidebarMenuItem>
-              </NavLink>
-            );
-          })}
-        </SidebarMenu>
+      <SidebarContent className="max-h-[calc(100vh-23rem)]">
+        <ScrollContainer>
+          <SidebarMenu>
+            {agentItems?.map((item) => {
+              return (
+                <NavLink key={item.id} to={item.to}>
+                  <SidebarMenuItem
+                    type="agent"
+                    aria-label={item.label}
+                    data-active={verifyActive(item.to)}
+                  >
+                    <Avatar className="size-full">
+                      <AvatarImage src={item.icon} />
+                      <AvatarFallback>{item.label.slice(0, 2)}</AvatarFallback>
+                    </Avatar>
+                  </SidebarMenuItem>
+                </NavLink>
+              );
+            })}
+          </SidebarMenu>
+        </ScrollContainer>
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="mt-auto">
         <SidebarMenu>
           {navItems.config.map((item) => {
             return (

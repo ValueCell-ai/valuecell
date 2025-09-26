@@ -1,6 +1,6 @@
-import { MessageCircle, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 import { useCallback, useMemo, useReducer, useRef } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { useGetAgentInfo } from "@/api/agent";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import type {
   SSEData,
 } from "@/types/agent";
 import type { Route } from "./+types/chat";
-import ChatConversationView from "./components/chat-conversation-view";
+import ChatConversationArea from "./components/chat-conversation/chat-conversation-area";
 
 // Optimized reducer for agent store management
 function agentStoreReducer(
@@ -31,6 +31,7 @@ export default function AgentChat() {
 
   // Use optimized reducer for state management
   const [agentStore, dispatchAgentStore] = useReducer(agentStoreReducer, {});
+  // TODO: temporary conversation id (after will remove hardcoded)
   const curConversationId = useRef<string>(`${agentName}_conv_default_user`);
   const curThreadId = useRef<string>("");
 
@@ -141,26 +142,29 @@ export default function AgentChat() {
 
         {/* Action buttons */}
         <div className="flex items-center gap-2.5">
-          <Button
+          {/* TODO: add new conversation button */}
+          {/* <Button
             variant="secondary"
             className="size-8 cursor-pointer rounded-lg"
             size="icon"
           >
             <MessageCircle size={16} className="text-gray-700" />
-          </Button>
-          <Button
-            variant="secondary"
-            className="size-8 cursor-pointer rounded-lg"
-            size="icon"
-          >
-            <Settings size={16} className="text-gray-700" />
-          </Button>
+          </Button> */}
+          <Link to="./config">
+            <Button
+              variant="secondary"
+              className="size-8 cursor-pointer rounded-lg"
+              size="icon"
+            >
+              <Settings size={16} className="text-gray-700" />
+            </Button>
+          </Link>
         </div>
       </header>
 
       {/* Main content area */}
       <main className="relative flex flex-1 flex-col overflow-hidden">
-        <ChatConversationView
+        <ChatConversationArea
           currentConversation={currentConversation}
           isStreaming={isStreaming}
           sendMessage={sendMessage}

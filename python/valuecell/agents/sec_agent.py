@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+import json
 import logging
 import os
 from datetime import datetime
@@ -18,6 +19,7 @@ from valuecell.core.types import BaseAgent, StreamResponse
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+SEC_FILLINGS_COMPONENT_TYPE = "sec_feed"
 
 
 class QueryType(str, Enum):
@@ -202,7 +204,7 @@ class SecAgent(BaseAgent):
     async def _generate_filing_summary(
         self, ticker: str, changed_filings: Dict[str, bool]
     ) -> str:
-        """Generate AI summary of filing changes"""
+        """Generate AI summary of filing changes in JSON format"""
         try:
             changed_types = [
                 filing_type
@@ -211,7 +213,7 @@ class SecAgent(BaseAgent):
             ]
 
             if not changed_types:
-                return f"No new filings detected for {ticker}."
+                return ""
 
             summary_prompt = f"""
             New SEC filings have been detected for {ticker}. The following filing types have been updated:
@@ -229,11 +231,26 @@ class SecAgent(BaseAgent):
             """
 
             response = await self.analysis_agent.arun(summary_prompt)
-            return response.content
+
+            # Create JSON structure
+            summary_data = {
+                "ticker": ticker,
+                "source": "SEC",
+                "data": response.content,
+                "create_time": datetime.now().isoformat(),
+            }
+
+            return json.dumps(summary_data)
 
         except Exception as e:
             logger.error(f"Failed to generate filing summary: {e}")
-            return f"New filings detected for {ticker}: {', '.join(changed_types)}, but summary generation failed."
+            error_summary_data = {
+                "ticker": ticker,
+                "source": "SEC",
+                "data": f"New filings detected for {ticker}: {', '.join(changed_types) if 'changed_types' in locals() else 'unknown'}, but summary generation failed.",
+                "create_time": datetime.now().isoformat(),
+            }
+            return ""
 
     async def _classify_query(self, query: str) -> QueryType:
         """
@@ -570,7 +587,10 @@ class SecAgent(BaseAgent):
                                 ticker, changes
                             )
 
-                            yield notification.component_generator(summary, "sec_feed")
+                            if summary:
+                                yield notification.component_generator(
+                                    summary, SEC_FILLINGS_COMPONENT_TYPE
+                                )
 
                     # Wait before next check
                     await asyncio.sleep(check_interval)

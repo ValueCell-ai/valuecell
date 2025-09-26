@@ -2,7 +2,6 @@
     "name": "SecAgent",
     "display_name": "SEC Agent",
     "url": "http://localhost:10003/",
-    "icon_url": "https://valuecell-test.oss-cn-hangzhou.aliyuncs.com/images/sec_agent.png",
     "description": "SecAgent can analyze SEC filings like 10-Q, 10-K, 13-F and analyze stock holdings of institutional investment managers. It can chat about stock performance, financial metrics, and market trends or track specific stocks and provide updates.",
     "skills": [
         {
