@@ -12,6 +12,9 @@ from typing import Any, Dict, List, Optional
 
 from .akshare_adapter import AKShareAdapter
 from .base import BaseDataAdapter
+from .coinmarketcap_adapter import CoinMarketCapAdapter
+from .finnhub_adapter import FinnhubAdapter
+from .tushare_adapter import TuShareAdapter
 from .types import (
     Asset,
     AssetPrice,

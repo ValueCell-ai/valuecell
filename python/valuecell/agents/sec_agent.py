@@ -68,7 +68,7 @@ class Sec13FundAgentConfig:
         self.sec_email = os.getenv("SEC_EMAIL", "your.name@example.com")
         self.parser_model_id = os.getenv("SEC_PARSER_MODEL_ID", "openai/gpt-4o-mini")
         self.analysis_model_id = os.getenv(
-            "SEC_ANALYSIS_MODEL_ID", "deepseek/deepseek-chat-v3-0324"
+            "SEC_ANALYSIS_MODEL_ID", "google/gemini-2.5-pro"
         )
         self.max_filings = int(os.getenv("SEC_MAX_FILINGS", "5"))
         self.request_timeout = int(os.getenv("SEC_REQUEST_TIMEOUT", "30"))
@@ -125,11 +125,11 @@ class SecAgent(BaseAgent):
             Query: {query}
             """
 
-            response = self.analysis_agent.run(extraction_prompt)
+            response = await self.analysis_agent.arun(extraction_prompt)
             ticker = response.content.strip().upper()
 
             # Basic validation
-            if ticker == "UNKNOWN" or len(ticker) > 10 or not ticker.isalpha():
+            if ticker == "UNKNOWN" or len(ticker) > 10:
                 raise ValueError(f"Invalid ticker extracted: {ticker}")
 
             logger.info(f"Extracted ticker: {ticker} from query: {query}")
@@ -151,9 +151,8 @@ class SecAgent(BaseAgent):
             for filing_type in filing_types:
                 try:
                     # Get the most recent filing of this type
-                    filings = company.get_filings(form=filing_type).latest(1)
-                    if filings:
-                        filing = filings[0]
+                    filing = company.get_filings(form=filing_type).latest()
+                    if filing:
                         # Create a hash of the filing content/metadata
                         filing_content = f"{filing.accession_number}_{filing.filing_date}_{filing.form}"
                         filing_hash = hashlib.md5(filing_content.encode()).hexdigest()
@@ -229,7 +228,7 @@ class SecAgent(BaseAgent):
             Keep the summary concise but informative (2-3 paragraphs maximum).
             """
 
-            response = self.analysis_agent.run(summary_prompt)
+            response = await self.analysis_agent.arun(summary_prompt)
             return response.content
 
         except Exception as e:
@@ -257,7 +256,7 @@ class SecAgent(BaseAgent):
         """
 
         try:
-            response = self.classifier_agent.run(classification_prompt)
+            response = await self.classifier_agent.arun(classification_prompt)
             return response.content.query_type
         except Exception as e:
             logger.warning(
@@ -266,9 +265,7 @@ class SecAgent(BaseAgent):
             # If classification fails, default to 13F analysis (maintains backward compatibility)
             return QueryType.FUND_HOLDINGS
 
-    async def _process_financial_data_query(
-        self, ticker: str, session_id: str, task_id: str
-    ):
+    async def _process_financial_data_query(self, ticker: str):
         """
         Process financial data queries (10-K, 8-K, 10-Q)
         """
@@ -366,9 +363,7 @@ class SecAgent(BaseAgent):
         except Exception as e:
             yield streaming.failed(f"Financial data query failed: {e}")
 
-    async def _process_fund_holdings_query(
-        self, ticker: str, session_id: str, task_id: str
-    ):
+    async def _process_fund_holdings_query(self, ticker: str):
         """
         Process 13F fund holdings queries (original logic)
         """
@@ -424,7 +419,6 @@ class SecAgent(BaseAgent):
             - Specific changes in top 10 holdings
             - Calculate increase/decrease percentages for major positions
             - Analyze possible reasons for significant position adjustments
-
             ### 4. Investment Strategy Insights
             - Investment style adjustments reflected in holdings changes
             - Market trend judgments and responses
@@ -512,14 +506,10 @@ class SecAgent(BaseAgent):
 
             # 3. Route to appropriate processing method based on query type
             if query_type == QueryType.FINANCIAL_DATA:
-                async for result in self._process_financial_data_query(
-                    ticker, session_id, task_id
-                ):
+                async for result in self._process_financial_data_query(ticker):
                     yield result
             else:  # QueryType.FUND_HOLDINGS
-                async for result in self._process_fund_holdings_query(
-                    ticker, session_id, task_id
-                ):
+                async for result in self._process_fund_holdings_query(ticker):
                     yield result
 
         except Exception as e:
@@ -580,7 +570,7 @@ class SecAgent(BaseAgent):
                                 ticker, changes
                             )
 
-                            yield notification.message(summary)
+                            yield notification.component_generator(summary, "sec_feed")
 
                     # Wait before next check
                     await asyncio.sleep(check_interval)

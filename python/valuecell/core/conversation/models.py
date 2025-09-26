@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 
 class ConversationStatus(str, Enum):
-    """Conversation status enumeration"""
+    """Conversation status enumeration for tracking lifecycle state."""
 
     ACTIVE = "active"
     INACTIVE = "inactive"
@@ -14,7 +14,11 @@ class ConversationStatus(str, Enum):
 
 
 class Conversation(BaseModel):
-    """Conversation data model - lightweight metadata only, items stored separately"""
+    """Conversation data model - lightweight metadata only, items stored separately.
+
+    Conversation objects hold metadata about a conversation; message items
+    are stored in a separate ItemStore implementation.
+    """
 
     conversation_id: str = Field(..., description="Unique conversation identifier")
     user_id: str = Field(..., description="User ID")

@@ -37,6 +37,7 @@ class AgentStreamService:
 
             user_id = "default_user"
             desired_agent_name = agent_name
+
             conversation_id = agent_name + "_conv_" + user_id
 
             user_input_meta = UserInputMetadata(

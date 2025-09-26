@@ -18,17 +18,39 @@ logger = logging.getLogger(__name__)
 
 
 class SideEffectKind(Enum):
+    """Kinds of side-effects that routing logic can request.
+
+    Side effects are actions that the orchestrator should take in response to
+    routed events (for example, failing a task when the agent reports an
+    unrecoverable error).
+    """
+
     FAIL_TASK = "fail_task"
 
 
 @dataclass
 class SideEffect:
+    """Represents a side-effect produced by event routing.
+
+    Attributes:
+        kind: The kind of side effect to apply (see SideEffectKind).
+        reason: Optional human-readable reason for the side-effect.
+    """
+
     kind: SideEffectKind
     reason: Optional[str] = None
 
 
 @dataclass
 class RouteResult:
+    """Result of routing a single incoming event.
+
+    Contains zero or more `BaseResponse` objects to emit to the orchestrator,
+    a `done` flag that signals task-level completion (stop processing), and an
+    optional list of `SideEffect` objects describing actions the orchestrator
+    should apply (for example, failing a task).
+    """
+
     responses: List[BaseResponse]
     done: bool = False
     side_effects: List[SideEffect] = None
@@ -48,10 +70,12 @@ async def handle_status_update(
     state = event.status.state
     logger.info(f"Task {task.task_id} status update: {state}")
 
+    # No messaging for submitted/completed states by default
     if state in {TaskState.submitted, TaskState.completed}:
         return RouteResult(responses)
 
     if state == TaskState.failed:
+        # Produce a task_failed response and request the task be marked failed
         err_msg = get_message_text(event.status.message)
         responses.append(
             response_factory.task_failed(

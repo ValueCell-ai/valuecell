@@ -19,7 +19,7 @@ from valuecell.core.coordinate.response_router import (
 )
 from valuecell.core.task import Task, TaskManager
 from valuecell.core.task.models import TaskPattern
-from valuecell.core.types import BaseResponse, UserInput
+from valuecell.core.types import BaseResponse, ConversationItemEvent, UserInput
 from valuecell.utils import resolve_db_path
 from valuecell.utils.uuid import generate_thread_id
 
@@ -34,7 +34,13 @@ ASYNC_SLEEP_INTERVAL = 0.1  # 100ms
 
 
 class ExecutionContext:
-    """Manages the state of an interrupted execution for resumption"""
+    """Manage the state of an interrupted execution for later resumption.
+
+    ExecutionContext stores lightweight metadata about an in-flight plan or
+    task execution that has been paused waiting for user input. The context
+    records the stage (e.g. "planning"), the conversation/thread identifiers,
+    the original requesting user, and a timestamp used for expiration.
+    """
 
     def __init__(self, stage: str, conversation_id: str, thread_id: str, user_id: str):
         self.stage = stage
@@ -47,7 +53,7 @@ class ExecutionContext:
     def is_expired(
         self, max_age_seconds: int = DEFAULT_CONTEXT_TIMEOUT_SECONDS
     ) -> bool:
-        """Check if this context has expired"""
+        """Return True when the context is older than the configured TTL."""
         current_time = asyncio.get_event_loop().time()
         return current_time - self.created_at > max_age_seconds
 
@@ -56,7 +62,7 @@ class ExecutionContext:
         return self.user_id == user_id
 
     def add_metadata(self, **kwargs):
-        """Add metadata to the context"""
+        """Attach arbitrary key/value metadata to this execution context."""
         self.metadata.update(kwargs)
 
     def get_metadata(self, key: str, default=None):
@@ -65,13 +71,18 @@ class ExecutionContext:
 
 
 class UserInputManager:
-    """Manages pending user input requests and their lifecycle"""
+    """Manage pending Human-in-the-Loop user input requests.
+
+    This simple manager stores `UserInputRequest` objects keyed by
+    `conversation_id`. Callers can add requests, query for prompts and provide
+    responses which will wake any awaiting tasks.
+    """
 
     def __init__(self):
         self._pending_requests: Dict[str, UserInputRequest] = {}
 
     def add_request(self, conversation_id: str, request: UserInputRequest):
-        """Add a pending user input request"""
+        """Register a pending user input request for a conversation."""
         self._pending_requests[conversation_id] = request
 
     def has_pending_request(self, conversation_id: str) -> bool:
@@ -79,12 +90,16 @@ class UserInputManager:
         return conversation_id in self._pending_requests
 
     def get_request_prompt(self, conversation_id: str) -> Optional[str]:
-        """Get the prompt for a pending request"""
+        """Return the prompt text for a pending request, or None if none found."""
         request = self._pending_requests.get(conversation_id)
         return request.prompt if request else None
 
     def provide_response(self, conversation_id: str, response: str) -> bool:
-        """Provide a response to a pending request"""
+        """Supply the user's response to a pending request and complete it.
+
+        Returns True when the response was accepted and the pending request
+        removed; False when no pending request existed for the conversation.
+        """
         if conversation_id not in self._pending_requests:
             return False
 
@@ -135,18 +150,22 @@ class AgentOrchestrator:
         self, user_input: UserInput
     ) -> AsyncGenerator[BaseResponse, None]:
         """
-        Main entry point for processing user requests with Human-in-the-Loop support.
+        Main entry point for processing user input with optional
+        Human-in-the-Loop interactions.
 
-        Handles three types of scenarios:
-        1. New user requests - starts planning and execution
-        2. Continuation of interrupted conversations - resumes from saved state
-        3. User input responses - provides input to waiting requests
+        The orchestrator yields streaming `BaseResponse` objects that callers
+        (for example, an HTTP SSE endpoint or WebSocket) can forward to the
+        client. This method handles:
+        - Starting new plans when no execution context exists
+        - Resuming paused executions when conversation state requires input
+        - Directly providing responses to existing pending prompts
 
         Args:
-            user_input: The user's input containing query and metadata
+            user_input: The user's input, including conversation metadata.
 
         Yields:
-            MessageChunk: Streaming response chunks from agents
+            BaseResponse instances representing streaming chunks, status,
+            or terminal messages for the request.
         """
         conversation_id = user_input.meta.conversation_id
         user_id = user_input.meta.user_id
@@ -189,12 +208,16 @@ class AgentOrchestrator:
             yield self._response_factory.done(conversation_id)
 
     async def provide_user_input(self, conversation_id: str, response: str):
-        """
-        Provide user input response for a specific conversation.
+        """Submit a user's response to a pending input request.
+
+        When a planner has requested clarification (Human-in-the-Loop), the
+        orchestrator stores a `UserInputRequest`. Calling this method provides
+        the response, updates the conversation state to active, and wakes any
+        awaiting planner logic.
 
         Args:
-            conversation_id: The conversation ID waiting for input
-            response: The user's response to the input request
+            conversation_id: Conversation where a pending input request exists.
+            response: The textual response supplied by the user.
         """
         if self.user_input_manager.provide_response(conversation_id, response):
             # Update conversation status to active
@@ -206,15 +229,24 @@ class AgentOrchestrator:
                 await self.conversation_manager.update_conversation(conversation)
 
     def has_pending_user_input(self, conversation_id: str) -> bool:
-        """Check if a conversation has pending user input request"""
+        """Return True if the conversation currently awaits user input."""
         return self.user_input_manager.has_pending_request(conversation_id)
 
     def get_user_input_prompt(self, conversation_id: str) -> Optional[str]:
-        """Get the user input prompt for a specific conversation"""
+        """Return the prompt text for a pending user-input request, or None.
+
+        This is useful for displaying the outstanding prompt to the user or
+        embedding it into UI flows.
+        """
         return self.user_input_manager.get_request_prompt(conversation_id)
 
     async def close_conversation(self, conversation_id: str):
-        """Close an existing conversation and clean up resources"""
+        """Close a conversation and clean up resources.
+
+        This cancels any running tasks for the conversation, clears execution
+        contexts and pending user-input requests, and resets conversation
+        status to active when appropriate.
+        """
         # Cancel any running tasks for this conversation
         await self.task_manager.cancel_conversation_tasks(conversation_id)
 
@@ -222,21 +254,46 @@ class AgentOrchestrator:
         await self._cancel_execution(conversation_id)
 
     async def get_conversation_history(
-        self, conversation_id: str
+        self,
+        conversation_id: str,
+        event: Optional[ConversationItemEvent] = None,
+        component_type: Optional[str] = None,
     ) -> list[BaseResponse]:
-        """Get conversation message history"""
-        items = await self.conversation_manager.get_conversation_items(conversation_id)
+        """Return the persisted conversation history as a list of responses.
+
+        Args:
+            conversation_id: The conversation to retrieve history for.
+            event: Optional filter to include only items with this event type.
+            component_type: Optional filter to include only items with this component type.
+
+        Returns:
+            A list of `BaseResponse` instances reconstructed from persisted
+            ConversationItems.
+        """
+        items = await self.conversation_manager.get_conversation_items(
+            conversation_id, event=event, component_type=component_type
+        )
         return [self._response_factory.from_conversation_item(it) for it in items]
 
     async def cleanup(self):
-        """Cleanup resources and expired contexts"""
+        """Perform graceful cleanup of orchestrator-managed resources.
+
+        This will remove expired execution contexts and stop all remote agent
+        connections/listeners managed by the orchestrator.
+        """
         await self._cleanup_expired_contexts()
         await self.agent_connections.stop_all()
 
     # ==================== Private Helper Methods ====================
 
     async def _handle_user_input_request(self, request: UserInputRequest):
-        """Handle user input request from planner"""
+        """Register an incoming `UserInputRequest` produced by the planner.
+
+        The planner may emit UserInputRequest objects when it requires
+        clarification. This helper extracts the `conversation_id` from the
+        request and registers it with the `UserInputManager` so callers can
+        later provide the response.
+        """
         # Extract conversation_id from request context
         conversation_id = getattr(request, "conversation_id", None)
         if conversation_id:
@@ -245,7 +302,15 @@ class AgentOrchestrator:
     async def _handle_conversation_continuation(
         self, user_input: UserInput
     ) -> AsyncGenerator[BaseResponse, None]:
-        """Handle continuation of an interrupted conversation"""
+        """Resume an interrupted execution after the user provided requested input.
+
+        This method validates the existing `ExecutionContext`, records the new
+        thread id for this resumed interaction, and either continues planning
+        or indicates that resuming execution is not supported for other stages.
+
+        It yields the generated streaming responses (thread start and subsequent
+        planner/execution messages) back to the caller.
+        """
         conversation_id = user_input.meta.conversation_id
         user_id = user_input.meta.user_id
 
@@ -299,7 +364,11 @@ class AgentOrchestrator:
     async def _handle_new_request(
         self, user_input: UserInput
     ) -> AsyncGenerator[BaseResponse, None]:
-        """Handle a new user request"""
+        """Start planning and execution for a new user request.
+
+        This creates a planner task (executed asynchronously) and yields
+        streaming responses produced during planning and subsequent execution.
+        """
         conversation_id = user_input.meta.conversation_id
         thread_id = generate_thread_id()
         response = self._response_factory.thread_started(
@@ -324,7 +393,13 @@ class AgentOrchestrator:
             yield response
 
     def _create_context_aware_callback(self, conversation_id: str):
-        """Create a callback that adds conversation context to user input requests"""
+        """Return an async callback that tags UserInputRequest objects with the
+        conversation_id and forwards them to the orchestrator's handler.
+
+        The planner receives this callback and can call it whenever it needs
+        to request additional information from the end-user; the callback
+        ensures the request is associated with the correct conversation.
+        """
 
         async def context_aware_handle(request):
             request.conversation_id = conversation_id
@@ -339,7 +414,14 @@ class AgentOrchestrator:
         user_input: UserInput,
         callback,
     ) -> AsyncGenerator[BaseResponse, None]:
-        """Monitor planning task and handle user input interruptions"""
+        """Monitor an in-progress planning task and handle interruptions.
+
+        While the planner is running this loop watches for pending user input
+        requests. If the planner pauses for clarification, the method records
+        the planning context and yields a `plan_require_user_input` response
+        to the caller. When planning completes, the produced `ExecutionPlan`
+        is executed.
+        """
         conversation_id = user_input.meta.conversation_id
         user_id = user_input.meta.user_id
 
@@ -385,7 +467,11 @@ class AgentOrchestrator:
     def _validate_execution_context(
         self, context: ExecutionContext, user_id: str
     ) -> bool:
-        """Validate execution context integrity"""
+        """Return True if the execution context appears intact and valid.
+
+        Checks include presence of a stage, matching user id and TTL-based
+        expiration.
+        """
         if not hasattr(context, "stage") or not context.stage:
             return False
 
@@ -400,7 +486,13 @@ class AgentOrchestrator:
     async def _continue_planning(
         self, conversation_id: str, thread_id: str, context: ExecutionContext
     ) -> AsyncGenerator[BaseResponse, None]:
-        """Resume planning stage execution"""
+        """Resume a previously-paused planning task and continue execution.
+
+        If required pieces of the planning context are missing this method
+        fails the plan and cancels the execution. Otherwise it waits for the
+        planner to finish, handling repeated user-input prompts if needed,
+        and then proceeds to execute the resulting plan.
+        """
         planning_task = context.get_metadata("planning_task")
         original_user_input = context.get_metadata("original_user_input")
 
@@ -437,7 +529,13 @@ class AgentOrchestrator:
             yield response
 
     async def _cancel_execution(self, conversation_id: str):
-        """Cancel execution and clean up all related resources"""
+        """Cancel and clean up any execution resources associated with a
+        conversation.
+
+        This cancels the planner task (if present), removes the execution
+        context and clears any pending user input. It also resets the
+        conversation's status back to active.
+        """
         # Clean up execution context
         if conversation_id in self._execution_contexts:
             context = self._execution_contexts[conversation_id]
@@ -461,7 +559,11 @@ class AgentOrchestrator:
     async def _cleanup_expired_contexts(
         self, max_age_seconds: int = DEFAULT_CONTEXT_TIMEOUT_SECONDS
     ):
-        """Clean up execution contexts that have been idle for too long"""
+        """Sweep and remove execution contexts older than `max_age_seconds`.
+
+        For each expired context the method cancels execution and logs a
+        warning so the operator can investigate frequent expirations.
+        """
         expired_conversations = [
             conversation_id
             for conversation_id, context in self._execution_contexts.items()
@@ -486,8 +588,11 @@ class AgentOrchestrator:
         during task execution.
 
         Args:
-            plan: The execution plan containing tasks to execute
-            metadata: Execution metadata containing conversation and user info
+            plan: The execution plan containing tasks to execute.
+            metadata: Optional execution metadata containing conversation and user info.
+
+        Yields:
+            Streaming `BaseResponse` objects produced by each task execution.
         """
         conversation_id = plan.conversation_id
 
@@ -628,6 +733,7 @@ class AgentOrchestrator:
         await self._persist_items(items)
 
     async def _persist_items(self, items: list[SaveItem]):
+        """Persist a list of SaveItems to the conversation manager."""
         for it in items:
             await self.conversation_manager.add_item(
                 role=it.role,

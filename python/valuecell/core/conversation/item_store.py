@@ -7,10 +7,16 @@ from typing import Dict, List, Optional
 
 import aiosqlite
 
-from valuecell.core.types import ConversationItem, Role
+from valuecell.core.types import ConversationItem, ConversationItemEvent, Role
 
 
 class ItemStore(ABC):
+    """Abstract storage interface for conversation items.
+
+    Implementations must provide async methods for saving and querying
+    ConversationItem instances.
+    """
+
     @abstractmethod
     async def save_item(self, item: ConversationItem) -> None: ...
 
@@ -21,6 +27,7 @@ class ItemStore(ABC):
         limit: Optional[int] = None,
         offset: int = 0,
         role: Optional[Role] = None,
+        **kwargs,
     ) -> List[ConversationItem]: ...
 
     @abstractmethod
@@ -39,6 +46,11 @@ class ItemStore(ABC):
 
 
 class InMemoryItemStore(ItemStore):
+    """In-memory store for conversation items.
+
+    Useful for tests and lightweight usage where persistence is not required.
+    """
+
     def __init__(self):
         # conversation_id -> list[ConversationItem]
         self._items: Dict[str, List[ConversationItem]] = {}
@@ -53,6 +65,7 @@ class InMemoryItemStore(ItemStore):
         limit: Optional[int] = None,
         offset: int = 0,
         role: Optional[Role] = None,
+        **kwargs,
     ) -> List[ConversationItem]:
         items = list(self._items.get(conversation_id, []))
         if role is not None:
@@ -82,7 +95,12 @@ class InMemoryItemStore(ItemStore):
 
 
 class SQLiteItemStore(ItemStore):
-    """SQLite-backed item store using aiosqlite for true async I/O."""
+    """SQLite-backed item store using aiosqlite for true async I/O.
+
+    Lazily initializes the database schema on first use. Uses aiosqlite to
+    perform non-blocking DB operations and converts rows to ConversationItem
+    instances.
+    """
 
     def __init__(self, db_path: str):
         self.db_path = db_path
@@ -162,6 +180,9 @@ class SQLiteItemStore(ItemStore):
         limit: Optional[int] = None,
         offset: int = 0,
         role: Optional[Role] = None,
+        event: Optional[ConversationItemEvent] = None,
+        component_type: Optional[str] = None,
+        **kwargs,
     ) -> List[ConversationItem]:
         await self._ensure_initialized()
         params = [conversation_id]
@@ -169,6 +190,14 @@ class SQLiteItemStore(ItemStore):
         if role is not None:
             where += " AND role = ?"
             params.append(getattr(role, "value", str(role)))
+        # Add additional optional filters before building the final SQL string
+        if event is not None:
+            where += " AND event = ?"
+            params.append(getattr(event, "value", str(event)))
+        if component_type is not None:
+            where += " AND json_extract(payload, '$.component_type') = ?"
+            params.append(component_type)
+
         sql = f"SELECT * FROM conversation_items {where} ORDER BY datetime(created_at) ASC"
         if limit is not None:
             sql += " LIMIT ?"

@@ -364,7 +364,9 @@ class TestConversationManager:
         result = await manager.get_conversation_items("conv-123")
 
         assert result == items
-        manager.item_store.get_items.assert_called_once_with("conv-123")
+        manager.item_store.get_items.assert_called_once_with(
+            "conv-123", event=None, component_type=None
+        )
 
     @pytest.mark.asyncio
     async def test_get_latest_item(self):
