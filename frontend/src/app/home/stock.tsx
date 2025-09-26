@@ -3,8 +3,11 @@ import Sparkline from "@valuecell/charts/sparkline";
 import { StockIcon } from "@valuecell/menus/stock-menus";
 import { memo, useMemo } from "react";
 import { useParams } from "react-router";
-import { useGetStockHistory, useGetStockPrice } from "@/api/stock";
-import { StockDetailsList } from "@/app/home/components";
+import {
+  useGetStockDetail,
+  useGetStockHistory,
+  useGetStockPrice,
+} from "@/api/stock";
 import { Button } from "@/components/ui/button";
 import { STOCK_BADGE_COLORS } from "@/constants/stock";
 import { TimeUtils } from "@/lib/time";
@@ -24,6 +27,15 @@ const Stock = memo(function Stock() {
     isLoading: isPriceLoading,
     error: priceError,
   } = useGetStockPrice({
+    ticker,
+  });
+
+  // Fetch stock detail data
+  const {
+    data: stockDetailData,
+    isLoading: isDetailLoading,
+    error: detailError,
+  } = useGetStockDetail({
     ticker,
   });
 
@@ -74,17 +86,21 @@ const Stock = memo(function Stock() {
       stockPriceData.change_percent_formatted.replace(/[^0-9.-]/g, ""),
     );
 
+    // Use display name from detail data if available, otherwise use ticker
+    const companyName = stockDetailData?.display_name || ticker;
+    const currency = stockDetailData?.market_info?.currency || "USD";
+
     return {
       symbol: ticker,
-      companyName: ticker, // Use ticker as company name since we don't have company name in API
+      companyName,
       price: stockPriceData.price_formatted,
       changePercent: stockPriceData.change_percent_formatted,
-      currency: "$", // Default to USD
+      currency: currency === "USD" ? "$" : currency,
       changeAmount: stockPriceData.change,
       changePercentNumeric: changePercent,
       priceNumeric: currentPrice,
     };
-  }, [stockPriceData, ticker]);
+  }, [stockPriceData, stockDetailData, ticker]);
 
   // Create details data from API response
   const detailsData = useMemo(() => {
@@ -92,7 +108,6 @@ const Stock = memo(function Stock() {
 
     // Calculate previous close, day range from historical data
     const prices = stockHistoryData.prices;
-    const todayPrices = prices.slice(-1)[0]; // Last day's data
     const yesterdayPrices = prices.slice(-2, -1)[0]; // Previous day's data
 
     // Get min/max from recent prices for day range
@@ -104,18 +119,42 @@ const Stock = memo(function Stock() {
     const yearLow = Math.min(...prices.map((p) => p.low_price));
     const yearHigh = Math.max(...prices.map((p) => p.high_price));
 
+    // Format market cap from detail data
+    const formatMarketCap = (value: number) => {
+      if (value >= 1e12) {
+        return `$${(value / 1e12).toFixed(2)}T`;
+      }
+      if (value >= 1e9) {
+        return `$${(value / 1e9).toFixed(2)}B`;
+      }
+      if (value >= 1e6) {
+        return `$${(value / 1e6).toFixed(2)}M`;
+      }
+      return `$${value.toLocaleString()}`;
+    };
+
     return {
       previousClose: yesterdayPrices?.close_price?.toFixed(2) || "N/A",
       dayRange: `${dayLow.toFixed(2)} - ${dayHigh.toFixed(2)}`,
       yearRange: `${yearLow.toFixed(2)} - ${yearHigh.toFixed(2)}`,
-      marketCap: stockPriceData.market_cap_formatted || "N/A",
-      volume: todayPrices?.volume?.toLocaleString() || "N/A",
-      dividendYield: "N/A", // Not available in current API
+      marketCap: stockDetailData?.properties?.market_cap
+        ? formatMarketCap(stockDetailData.properties.market_cap)
+        : "N/A",
+      volume: stockPriceData.market_cap_formatted || "N/A",
+      dividendYield: stockDetailData?.properties?.dividend_yield.toFixed(2)
+        ? `${stockDetailData.properties.dividend_yield.toFixed(2)}%`
+        : "N/A",
+      peRatio: stockDetailData?.properties?.pe_ratio.toFixed(2)
+        ? stockDetailData.properties.pe_ratio.toFixed(2)
+        : "N/A",
+      beta: stockDetailData?.properties?.beta.toFixed(2)
+        ? stockDetailData.properties.beta.toFixed(2)
+        : "N/A",
     };
-  }, [stockPriceData, stockHistoryData]);
+  }, [stockPriceData, stockHistoryData, stockDetailData]);
 
   // Handle loading states
-  if (isPriceLoading || isHistoryLoading) {
+  if (isPriceLoading || isHistoryLoading || isDetailLoading) {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="text-gray-500 text-lg">Loading stock data...</div>
@@ -124,12 +163,12 @@ const Stock = memo(function Stock() {
   }
 
   // Handle error states
-  if (priceError || historyError) {
+  if (priceError || historyError || detailError) {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="text-lg text-red-500">
           Error loading stock data:{" "}
-          {priceError?.message || historyError?.message}
+          {priceError?.message || historyError?.message || detailError?.message}
         </div>
       </div>
     );
@@ -188,21 +227,48 @@ const Stock = memo(function Stock() {
         <Sparkline data={chartData} changeType={changeType} />
       </div>
 
-      <div className="flex flex-col gap-4">
+      {/* <div className="flex flex-col gap-4">
         <h2 className="font-bold text-lg">Details</h2>
 
         <StockDetailsList data={detailsData} />
-      </div>
+      </div> */}
 
       <div className="flex flex-col gap-4">
         <h2 className="font-bold text-lg">About</h2>
 
         <p className="text-neutral-500 text-sm leading-6">
-          {ticker} stock information and trading data. Real-time price updates
-          and historical performance data are provided through our financial
-          data API. Please consult with a financial advisor before making
-          investment decisions.
+          {stockDetailData?.properties?.business_summary}
         </p>
+
+        {stockDetailData?.properties && (
+          <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-muted-foreground">Sector:</span>
+              <span className="ml-2 font-medium">
+                {stockDetailData.properties.sector}
+              </span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Industry:</span>
+              <span className="ml-2 font-medium">
+                {stockDetailData.properties.industry}
+              </span>
+            </div>
+            {stockDetailData.properties.website && (
+              <div className="col-span-2">
+                <span className="text-muted-foreground">Website:</span>
+                <a
+                  href={stockDetailData.properties.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-2 text-blue-600 hover:underline"
+                >
+                  {stockDetailData.properties.website}
+                </a>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

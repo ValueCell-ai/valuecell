@@ -1,7 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { API_QUERY_KEYS, USER_LANGUAGE } from "@/constants/api";
 import { type ApiResponse, apiClient } from "@/lib/api-client";
-import type { Stock, StockHistory, StockPrice, Watchlist } from "@/types/stock";
+import type {
+  Stock,
+  StockDetail,
+  StockHistory,
+  StockPrice,
+  Watchlist,
+} from "@/types/stock";
 
 export const useGetWatchlist = () =>
   useQuery({
@@ -59,6 +65,17 @@ export const useGetStockHistory = (params: {
     queryFn: () =>
       apiClient.get<ApiResponse<StockHistory>>(
         `watchlist/asset/${params.ticker}/price/historical?interval=${params.interval}&start_date=${params.start_date}&end_date=${params.end_date}`,
+      ),
+    select: (data) => data.data,
+    enabled: !!params.ticker,
+  });
+
+export const useGetStockDetail = (params: { ticker: string }) =>
+  useQuery({
+    queryKey: API_QUERY_KEYS.STOCK.stockDetail(Object.values(params)),
+    queryFn: () =>
+      apiClient.get<ApiResponse<StockDetail>>(
+        `watchlist/asset/${params.ticker}`,
       ),
     select: (data) => data.data,
     enabled: !!params.ticker,
