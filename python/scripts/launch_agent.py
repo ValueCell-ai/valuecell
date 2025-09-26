@@ -45,13 +45,13 @@ MAP_NAME_COMMAND[SEC_AGENT_NAME] = "uv run -m valuecell.agents.sec_agent"
 MAP_NAME_COMMAND[TRADING_AGENTS_NAME] = (
     f"cd {PYTHON_DIR}/third_party/TradingAgents && uv run -m adapter"
 )
+ENV_PATH = PROJECT_DIR / ".env"
 
 
 def check_envfile_is_set():
-    env_path = PROJECT_DIR / ".env"
-    if not env_path.exists():
+    if not ENV_PATH.exists():
         print(
-            f".env file not found at {env_path}. Please create it with necessary environment variables. "
+            f".env file not found at {ENV_PATH}. Please create it with necessary environment variables. "
             "check python/.env.example for reference."
         )
         exit(1)
