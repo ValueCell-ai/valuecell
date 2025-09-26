@@ -4785,7 +4785,6 @@ dependencies = [
     { name = "pytz" },
     { name = "requests" },
     { name = "sqlalchemy" },
-    { name = "tushare" },
     { name = "uvicorn" },
     { name = "yfinance" },
 ]
@@ -4808,7 +4807,6 @@ requires-dist = [
     { name = "requests", specifier = ">=2.32.5" },
     { name = "ruff", marker = "extra == 'dev'" },
     { name = "sqlalchemy", specifier = ">=2.0.43" },
-    { name = "tushare", specifier = ">=1.4.24" },
     { name = "uvicorn", specifier = ">=0.24.0" },
     { name = "yfinance", specifier = ">=0.2.65" },
 ]
