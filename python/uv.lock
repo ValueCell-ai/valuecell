@@ -2100,17 +2100,12 @@ dev = [
 dev = [
     { name = "diff-cover" },
     { name = "isort" },
-    { name = "isort" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "ruff" },
 ]
 lint = [
-    { name = "ruff" },
-]
-style = [
-    { name = "isort" },
     { name = "ruff" },
 ]
 style = [
@@ -2151,17 +2146,12 @@ provides-extras = ["dev"]
 dev = [
     { name = "diff-cover", specifier = ">=9.0.0" },
     { name = "isort" },
-    { name = "isort" },
     { name = "pytest", specifier = ">=7.4.0" },
     { name = "pytest-asyncio", specifier = ">=1.0.0" },
     { name = "pytest-cov", specifier = ">=4.1.0" },
     { name = "ruff" },
 ]
 lint = [{ name = "ruff" }]
-style = [
-    { name = "isort" },
-    { name = "ruff" },
-]
 style = [
     { name = "isort" },
     { name = "ruff" },
