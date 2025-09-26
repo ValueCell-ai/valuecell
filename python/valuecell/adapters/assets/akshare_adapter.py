@@ -5,16 +5,11 @@ Global financial market data including stocks, funds, bonds, and economic indica
 """
 
 import decimal
-import decimal
 import logging
-import threading
-import time
 import threading
 import time
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Any, List, Optional
-
 from typing import Any, List, Optional
 
 import pandas as pd
@@ -30,12 +25,10 @@ from .types import (
     AssetPrice,
     AssetSearchQuery,
     AssetSearchResult,
-    AssetSearchResult,
     AssetType,
     DataSource,
     Interval,
     LocalizedName,
-    MarketInfo,
     MarketInfo,
     MarketStatus,
 )
