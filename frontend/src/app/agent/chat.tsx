@@ -1,6 +1,6 @@
-import { MessageCircle, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 import { useCallback, useMemo, useReducer, useRef } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { useGetAgentInfo } from "@/api/agent";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -142,20 +142,23 @@ export default function AgentChat() {
 
         {/* Action buttons */}
         <div className="flex items-center gap-2.5">
-          <Button
+          {/* TODO: add new conversation button */}
+          {/* <Button
             variant="secondary"
             className="size-8 cursor-pointer rounded-lg"
             size="icon"
           >
             <MessageCircle size={16} className="text-gray-700" />
-          </Button>
-          <Button
-            variant="secondary"
-            className="size-8 cursor-pointer rounded-lg"
-            size="icon"
-          >
-            <Settings size={16} className="text-gray-700" />
-          </Button>
+          </Button> */}
+          <Link to="./config">
+            <Button
+              variant="secondary"
+              className="size-8 cursor-pointer rounded-lg"
+              size="icon"
+            >
+              <Settings size={16} className="text-gray-700" />
+            </Button>
+          </Link>
         </div>
       </header>
 
