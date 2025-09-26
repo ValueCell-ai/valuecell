@@ -66,19 +66,19 @@ class TickerConverter:
                 index_mapping = {
                     # US Indices
                     "NASDAQ:IXIC": "^IXIC",  # NASDAQ Composite
-                    "NYSE:DJI": "^DJI",      # Dow Jones Industrial Average
-                    "NYSE:GSPC": "^GSPC",    # S&P 500
-                    "NASDAQ:NDX": "^NDX",    # NASDAQ 100
-                    # Hong Kong Indices  
-                    "HKEX:HSI": "^HSI",      # Hang Seng Index
+                    "NYSE:DJI": "^DJI",  # Dow Jones Industrial Average
+                    "NYSE:GSPC": "^GSPC",  # S&P 500
+                    "NASDAQ:NDX": "^NDX",  # NASDAQ 100
+                    # Hong Kong Indices
+                    "HKEX:HSI": "^HSI",  # Hang Seng Index
                     "HKEX:HSCEI": "^HSCEI",  # Hang Seng China Enterprises Index
                     # Chinese Indices (already work with .SS/.SZ suffixes)
                     # European Indices
-                    "LSE:FTSE": "^FTSE",     # FTSE 100
-                    "EURONEXT:FCHI": "^FCHI", # CAC 40
-                    "XETRA:GDAXI": "^GDAXI", # DAX
+                    "LSE:FTSE": "^FTSE",  # FTSE 100
+                    "EURONEXT:FCHI": "^FCHI",  # CAC 40
+                    "XETRA:GDAXI": "^GDAXI",  # DAX
                 }
-                
+
                 if internal_ticker in index_mapping:
                     return index_mapping[internal_ticker]
 
@@ -145,18 +145,18 @@ class TickerConverter:
                 index_reverse_mapping = {
                     # US Indices
                     "^IXIC": "NASDAQ:IXIC",  # NASDAQ Composite
-                    "^DJI": "NYSE:DJI",      # Dow Jones Industrial Average
-                    "^GSPC": "NYSE:GSPC",    # S&P 500
-                    "^NDX": "NASDAQ:NDX",    # NASDAQ 100
+                    "^DJI": "NYSE:DJI",  # Dow Jones Industrial Average
+                    "^GSPC": "NYSE:GSPC",  # S&P 500
+                    "^NDX": "NASDAQ:NDX",  # NASDAQ 100
                     # Hong Kong Indices
-                    "^HSI": "HKEX:HSI",      # Hang Seng Index
+                    "^HSI": "HKEX:HSI",  # Hang Seng Index
                     "^HSCEI": "HKEX:HSCEI",  # Hang Seng China Enterprises Index
                     # European Indices
-                    "^FTSE": "LSE:FTSE",     # FTSE 100
-                    "^FCHI": "EURONEXT:FCHI", # CAC 40
-                    "^GDAXI": "XETRA:GDAXI", # DAX
+                    "^FTSE": "LSE:FTSE",  # FTSE 100
+                    "^FCHI": "EURONEXT:FCHI",  # CAC 40
+                    "^GDAXI": "XETRA:GDAXI",  # DAX
                 }
-                
+
                 if source_ticker in index_reverse_mapping:
                     return index_reverse_mapping[source_ticker]
 
