@@ -49,7 +49,7 @@ jobs:
         run: uv sync --locked --only-group style
       
       - name: Run style checks
-        run: uv run --no-project --no-default-groups isort --check-only ./valuecell
+        run: uv run --no-project isort --check-only ./valuecell
 
   unit_test:
     runs-on: ubuntu-latest
