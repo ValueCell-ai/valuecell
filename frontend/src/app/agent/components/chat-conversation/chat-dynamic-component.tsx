@@ -11,7 +11,7 @@ const SecFeedComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
   return (
     <>
       <h4 className="mb-3 px-4 font-medium text-sm">
-        {TimeUtils.now().format(TIME_FORMATS.DATETIME_SHORT)}
+        {TimeUtils.nowUTC().format(TIME_FORMATS.DATETIME_SHORT)}
       </h4>
 
       {/* render items */}

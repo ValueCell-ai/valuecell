@@ -32,11 +32,12 @@ function Home() {
 
   // Calculate date range for historical data
   const dateRange = useMemo(() => {
-    const endDate = TimeUtils.nowUTC().format("YYYY-MM-DD");
-    const startDate = TimeUtils.subtract(TimeUtils.nowUTC(), 30, "day").format(
-      "YYYY-MM-DD",
-    );
-    return { startDate, endDate };
+    const now = TimeUtils.nowUTC();
+    const thirtyDaysAgo = now.subtract(30, "day");
+    return {
+      startDate: thirtyDaysAgo.toISOString(),
+      endDate: now.toISOString(),
+    };
   }, []);
 
   // Fetch stock price data for each ticker

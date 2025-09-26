@@ -57,11 +57,12 @@ const Stock = memo(function Stock() {
 
   // Calculate date range for 60-day historical data
   const dateRange = useMemo(() => {
-    const endDate = TimeUtils.nowUTC().format("YYYY-MM-DD");
-    const startDate = TimeUtils.subtract(TimeUtils.nowUTC(), 60, "day").format(
-      "YYYY-MM-DD",
-    );
-    return { startDate, endDate };
+    const now = TimeUtils.nowUTC();
+    const sixtyDaysAgo = now.subtract(60, "day");
+    return {
+      startDate: sixtyDaysAgo.toISOString(),
+      endDate: now.toISOString(),
+    };
   }, []);
 
   // Fetch historical data for chart
