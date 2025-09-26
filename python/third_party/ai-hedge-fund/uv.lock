@@ -3115,6 +3115,7 @@ requires-dist = [
     { name = "agno", extras = ["openai"], specifier = ">=1.8.2,<2.0" },
     { name = "aiosqlite", specifier = ">=0.19.0" },
     { name = "akshare", specifier = ">=1.17.44" },
+    { name = "diff-cover", marker = "extra == 'dev'", specifier = ">=9.0.0" },
     { name = "edgartools", specifier = ">=4.12.2" },
     { name = "fastapi", specifier = ">=0.104.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -3134,13 +3135,20 @@ provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "diff-cover", specifier = ">=9.0.0" },
+    { name = "isort" },
     { name = "pytest", specifier = ">=7.4.0" },
     { name = "pytest-asyncio", specifier = ">=1.0.0" },
     { name = "pytest-cov", specifier = ">=4.1.0" },
     { name = "ruff" },
 ]
 lint = [{ name = "ruff" }]
+style = [
+    { name = "isort" },
+    { name = "ruff" },
+]
 test = [
+    { name = "diff-cover", specifier = ">=9.0.0" },
     { name = "pytest", specifier = ">=7.4.0" },
     { name = "pytest-asyncio", specifier = ">=1.0.0" },
     { name = "pytest-cov", specifier = ">=4.1.0" },

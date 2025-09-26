@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -Eeuo pipefail
 
 # Simple project launcher with auto-install for bun and uv
@@ -76,11 +76,11 @@ ensure_tool() {
   fi
 }
 
-install_dependencies() {
+compile() {
   # Backend deps
   if [[ -d "$PY_DIR" ]]; then
     info "Sync Python dependencies (uv sync)..."
-    (cd "$PY_DIR" && uv sync)
+    (cd "$PY_DIR" && bash scripts/prepare_envs.sh && uv run valuecell/server/db/init_db.py)
     success "Python dependencies synced"
   else
     warn "Backend directory not found: $PY_DIR. Skipping"
@@ -91,7 +91,7 @@ install_dependencies() {
     info "Install frontend dependencies (bun install)..."
     (cd "$FRONTEND_DIR" && bun install)
     success "Frontend dependencies installed"
-  } else {
+  else
     warn "Frontend directory not found: $FRONTEND_DIR. Skipping"
   fi
 }
@@ -101,11 +101,8 @@ start_backend() {
     warn "Backend directory not found; skipping backend start"
     return 0
   fi
-  info "Starting backend (uv run python -m valuecell.server.main)..."
-  (
-    cd "$PY_DIR" && uv run python -m valuecell.server.main
-  ) & BACKEND_PID=$!
-  info "Backend PID: $BACKEND_PID"
+  info "Starting backend (uv run scripts/launch.py)..."
+  cd "$PY_DIR" && uv run --with questionary scripts/launch.py
 }
 
 start_frontend() {
@@ -166,16 +163,17 @@ main() {
   ensure_tool bun oven-sh/bun/bun
   ensure_tool uv uv
 
-  install_dependencies
+  compile
+
+  if (( start_frontend_flag )); then
+    start_frontend
+  fi
+  sleep 5  # Give frontend a moment to start
 
   if (( start_backend_flag )); then
     start_backend
   fi
-  if (( start_frontend_flag )); then
-    start_frontend
-  fi
 
-  info "Services started. Press Ctrl+C to stop."
   # Wait for background jobs
   wait
 }

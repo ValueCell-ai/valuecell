@@ -60,7 +60,13 @@ class AgentClient:
 
         client_factory = ClientFactory(config)
         card_resolver = A2ACardResolver(self._httpx_client, self.agent_url)
-        self.agent_card = await card_resolver.get_agent_card()
+        try:
+            self.agent_card = await card_resolver.get_agent_card()
+        except Exception as e:
+            raise RuntimeError(
+                "Failed to resolve agent card. Maybe the agent URL is incorrect or the agent is unreachable."
+                " Agents could be launched via `scripts/launch_agent.py`."
+            ) from e
         self._client = client_factory.create(self.agent_card)
 
     async def send_message(
