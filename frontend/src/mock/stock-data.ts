@@ -1,6 +1,6 @@
 import type { SparklineStock } from "@/app/home/components/sparkline-stock-list";
 import type { StockGroup } from "@/components/valuecell/menus/stock-menus";
-import { nowUTC, subtract } from "@/lib/time";
+import { TimeUtils } from "@/lib/time";
 import type { SparklineData } from "@/types/chart";
 
 export const stockData: StockGroup[] = [
@@ -179,14 +179,18 @@ function generateSparklineData(): SparklineData {
   const data: SparklineData = [];
   const startValue = 100 + Math.random() * 50; // start value between 100-150
   let value = startValue;
-  const currentTime = nowUTC();
+  const currentTime = TimeUtils.nowUTC();
 
   // Add some overall trend bias (slightly bearish to bullish)
   const trendBias = (Math.random() - 0.5) * 0.002; // -0.1% to +0.1% per step
 
   for (let i = 0; i < 30; i++) {
     // Generate time points going backwards from current time (each point is 30 minutes apart)
-    const timePoint = subtract(currentTime, (29 - i) * 30, "minute").valueOf();
+    const timePoint = TimeUtils.subtract(
+      currentTime,
+      (29 - i) * 30,
+      "minute",
+    ).valueOf();
 
     // Random walk with trend bias
     const randomChange = (Math.random() - 0.5) * 0.06; // -3% to +3% random
