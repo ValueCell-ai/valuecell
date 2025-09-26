@@ -1,6 +1,26 @@
 # ValueCell Python Package
 
-ValueCell is a community-driven, multi-agent platform for financial applications.
+> A community-driven, multi-agent platform for financial applications — typed, async-first, and built for orchestration.
+
+## Highlights
+
+- Async, re-entrant orchestrator: streaming `process_user_input` can pause for human-in-the-loop (HITL) and resume safely.
+- Planner with HITL: pauses on missing info/risky steps via async `UserInputRequest`, resumes after user feedback to produce an adequate plan.
+- Streaming pipeline: `Response` → `ResponseBuffer` (buffered vs immediate with stable item_id) → `ResponseRouter` to UI and Store.
+- Agent2Agent (A2A) integration: first-class support via a2a-sdk for agent-to-agent protocols, message schemas, and optional HTTP server interop.
+- Conversation memory: in-memory/SQLite stores enable reproducible history, fast "resume from last", and auditability.
+- Robustness & extensibility: typed events/errors, router side-effects (e.g., fail task), and clear seams to add agents, stores, transports, and planner logic.
+
+See detailed flow diagrams and design notes in `../docs/CORE_ARCHITECTURE.md`.
+
+## Quickstart
+
+Set up the environment and verify your install:
+
+```bash
+uv sync --group dev
+uv run python -c "import valuecell as vc; print(vc.__version__)"
+```
 
 ## Installation
 
@@ -17,60 +37,6 @@ uv sync --group dev
 ```bash
 uv sync
 ```
-
-## Project Structure
-
-- `valuecell/` - Main package
-  - `adapters/` - External system adapters
-  - `agents/` - Agent implementations
-  - `config/` - Configuration and settings
-  - `contrib/` - Community-contributed modules
-  - `core/` - Core types, orchestration, and utilities
-  - `server/` - API server components
-  - `utils/` - Shared utility helpers
-  - `tests/` - Test suite (module-level tests)
-  
-Top-level folders:
-
-- `examples/` - End-to-end examples and notebooks
-- `configs/` - Agent cards, locales, etc.
-- `third_party/` - Third-party integrations (isolated)
-
-### valuecell/core structure
-
-Core contains the orchestration engine, types, and building blocks used by agents and the server.
-
-- `valuecell/core/`
-  - `agent/`
-    - `card.py` - Agent capability/config card definitions
-    - `client.py` - Client helpers for invoking agents
-    - `connect.py` - Wiring utilities to connect agents and handlers
-    - `decorator.py` - Decorators/executors for wrapping agent functions
-    - `listener.py` - Event/listener primitives for agent events
-    - `responses.py` - Response primitives and helpers
-    - `tests/` - Unit tests for the agent module
-  - `conversation/`
-    - `conversation_store.py` - Conversation-level lifecycle and storage
-    - `item_store.py` - Pluggable item storage backends (in-memory/SQLite)
-    - `manager.py` - High-level conversation manager
-    - `models.py` - Pydantic models for conversation data
-    - `tests/` - Unit tests for conversation components
-  - `coordinate/`
-    - `models.py` - Types for coordination/planning
-    - `orchestrator.py` - Orchestrates planning, tool calls, and streaming
-    - `planner.py` - Planner implementation for step generation
-    - `planner_prompts.py` - Prompt templates for planning
-    - `response.py` - Unified response model for streaming and final results
-    - `response_buffer.py` - Buffers and aggregates streaming responses
-    - `response_router.py` - Routes responses to sinks/handlers
-    - `tests/` - Unit and e2e tests for coordination
-  - `task/`
-    - `manager.py` - Manages task creation, lifecycle, and querying
-    - `models.py` - Pydantic models for tasks
-    - `tests/` - Unit tests for tasks
-  - `types.py` - Shared core types and enums
-  - `constants.py` - Core constants
-  - `exceptions.py` - Core exception types
 
 ## Third Party Agents Integration
 
