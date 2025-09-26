@@ -12,9 +12,6 @@ from typing import Any, Dict, List, Optional
 
 from .akshare_adapter import AKShareAdapter
 from .base import BaseDataAdapter
-from .coinmarketcap_adapter import CoinMarketCapAdapter
-from .finnhub_adapter import FinnhubAdapter
-from .tushare_adapter import TuShareAdapter
 from .types import (
     Asset,
     AssetPrice,
@@ -48,22 +45,17 @@ class AdapterManager:
         self.adapter_priorities = {
             AssetType.STOCK: [
                 DataSource.YFINANCE,
-                DataSource.FINNHUB,
-                DataSource.TUSHARE,
                 DataSource.AKSHARE,
             ],
             AssetType.ETF: [
                 DataSource.YFINANCE,
-                DataSource.FINNHUB,
                 DataSource.AKSHARE,
             ],
             AssetType.CRYPTO: [
-                DataSource.COINMARKETCAP,
                 DataSource.YFINANCE,
             ],
             AssetType.INDEX: [
                 DataSource.YFINANCE,
-                DataSource.TUSHARE,
                 DataSource.AKSHARE,
             ],
         }
@@ -97,32 +89,6 @@ class AdapterManager:
         except Exception as e:
             logger.error(f"Failed to configure Yahoo Finance adapter: {e}")
 
-    def configure_tushare(self, api_key: str, **kwargs) -> None:
-        """Configure and register TuShare adapter.
-
-        Args:
-            api_key: TuShare API key
-            **kwargs: Additional configuration
-        """
-        try:
-            adapter = TuShareAdapter(api_key=api_key, **kwargs)
-            self.register_adapter(adapter)
-        except Exception as e:
-            logger.error(f"Failed to configure TuShare adapter: {e}")
-
-    def configure_coinmarketcap(self, api_key: str, **kwargs) -> None:
-        """Configure and register CoinMarketCap adapter.
-
-        Args:
-            api_key: CoinMarketCap API key
-            **kwargs: Additional configuration
-        """
-        try:
-            adapter = CoinMarketCapAdapter(api_key=api_key, **kwargs)
-            self.register_adapter(adapter)
-        except Exception as e:
-            logger.error(f"Failed to configure CoinMarketCap adapter: {e}")
-
     def configure_akshare(self, **kwargs) -> None:
         """Configure and register AKShare adapter.
 
@@ -134,19 +100,6 @@ class AdapterManager:
             self.register_adapter(adapter)
         except Exception as e:
             logger.error(f"Failed to configure AKShare adapter: {e}")
-
-    def configure_finnhub(self, api_key: str, **kwargs) -> None:
-        """Configure and register Finnhub adapter.
-
-        Args:
-            api_key: Finnhub API key
-            **kwargs: Additional configuration
-        """
-        try:
-            adapter = FinnhubAdapter(api_key=api_key, **kwargs)
-            self.register_adapter(adapter)
-        except Exception as e:
-            logger.error(f"Failed to configure Finnhub adapter: {e}")
 
     def get_available_adapters(self) -> List[DataSource]:
         """Get list of available data adapters."""

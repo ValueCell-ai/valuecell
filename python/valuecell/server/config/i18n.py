@@ -6,7 +6,7 @@ from typing import Optional
 
 import pytz
 
-from ...core.constants import (
+from ...config.constants import (
     CURRENCY_SYMBOLS,
     DATE_FORMATS,
     DATETIME_FORMATS,

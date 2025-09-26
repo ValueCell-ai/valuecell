@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, validator
 
-from ....core.constants import SUPPORTED_LANGUAGE_CODES
+from ....config.constants import SUPPORTED_LANGUAGE_CODES
 
 
 # I18n related data models

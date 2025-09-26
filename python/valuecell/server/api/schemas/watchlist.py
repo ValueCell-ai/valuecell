@@ -10,10 +10,14 @@ class WatchlistItemData(BaseModel):
     """Watchlist item data schema."""
 
     id: int = Field(..., description="Item ID")
-    ticker: str = Field(..., description="Stock ticker in format 'EXCHANGE:SYMBOL'")
-    notes: Optional[str] = Field(None, description="User notes about the stock")
+    ticker: str = Field(..., description="Asset ticker in format 'EXCHANGE:SYMBOL'")
+    display_name: Optional[str] = Field(
+        None,
+        description="Display name from search results, falls back to symbol if not available",
+    )
+    notes: Optional[str] = Field(None, description="User notes about the asset")
     order_index: int = Field(..., description="Display order in the watchlist")
-    added_at: datetime = Field(..., description="When the stock was added")
+    added_at: datetime = Field(..., description="When the asset was added")
     updated_at: datetime = Field(..., description="When the item was last updated")
 
     # Derived properties
@@ -49,25 +53,28 @@ class CreateWatchlistRequest(BaseModel):
     is_public: bool = Field(False, description="Whether this watchlist is public")
 
 
-class AddStockRequest(BaseModel):
-    """Request schema for adding a stock to watchlist."""
+class AddAssetRequest(BaseModel):
+    """Request schema for adding a asset to watchlist."""
 
     ticker: str = Field(
         ...,
-        description="Stock ticker in format 'EXCHANGE:SYMBOL'",
+        description="Asset ticker in format 'EXCHANGE:SYMBOL'",
         min_length=1,
         max_length=50,
+    )
+    display_name: Optional[str] = Field(
+        None, description="Display name from search results", max_length=200
     )
     watchlist_name: Optional[str] = Field(
         None, description="Watchlist name (uses default if not provided)"
     )
     notes: Optional[str] = Field(
-        "", description="User notes about the stock", max_length=1000
+        "", description="User notes about the asset", max_length=1000
     )
 
 
-class UpdateStockNotesRequest(BaseModel):
-    """Request schema for updating stock notes."""
+class UpdateAssetNotesRequest(BaseModel):
+    """Request schema for updating asset notes."""
 
     notes: str = Field(..., description="Updated notes", max_length=1000)
 

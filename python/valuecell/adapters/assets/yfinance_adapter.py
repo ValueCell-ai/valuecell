@@ -22,6 +22,7 @@ from .types import (
     AssetSearchResult,
     AssetType,
     DataSource,
+    Interval,
     LocalizedName,
     MarketInfo,
     MarketStatus,
@@ -428,19 +429,19 @@ class YFinanceAdapter(BaseDataAdapter):
 
             # Map interval to Yahoo Finance format
             interval_mapping = {
-                "1m": "1m",
-                "2m": "2m",
-                "5m": "5m",
-                "15m": "15m",
-                "30m": "30m",
-                "60m": "60m",
-                "90m": "90m",
-                "1h": "1h",
-                "1d": "1d",
-                "5d": "5d",
-                "1w": "1wk",
-                "1mo": "1mo",
-                "3mo": "3mo",
+                f"1{Interval.MINUTE}": "1m",
+                f"2{Interval.MINUTE}": "2m",
+                f"5{Interval.MINUTE}": "5m",
+                f"15{Interval.MINUTE}": "15m",
+                f"30{Interval.MINUTE}": "30m",
+                f"60{Interval.MINUTE}": "60m",
+                f"90{Interval.MINUTE}": "90m",
+                f"1{Interval.HOUR}": "1h",
+                f"1{Interval.DAY}": "1d",
+                f"5{Interval.DAY}": "5d",
+                f"1{Interval.WEEK}": "1wk",
+                f"1{Interval.MONTH}": "1mo",
+                f"3{Interval.MONTH}": "3mo",
             }
             yf_interval = interval_mapping.get(interval, "1d")
 

@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 import pytz
 
-from ..core.constants import (
+from ..config.constants import (
     DEFAULT_LANGUAGE,
     DEFAULT_TIMEZONE,
     LANGUAGE_TIMEZONE_MAPPING,

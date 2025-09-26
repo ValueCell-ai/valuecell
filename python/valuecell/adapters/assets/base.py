@@ -36,26 +36,10 @@ class TickerConverter:
                 "HKEX": ".HK",  # Hong Kong Exchange
                 "TSE": ".T",  # Tokyo Stock Exchange
             },
-            DataSource.TUSHARE: {
-                "SSE": ".SH",  # Shanghai Stock Exchange in TuShare
-                "SZSE": ".SZ",  # Shenzhen Stock Exchange in TuShare
-            },
             DataSource.AKSHARE: {
                 "SSE": "",  # AKShare uses plain symbols for Chinese stocks
                 "SZSE": "",  # AKShare uses plain symbols for Chinese stocks
                 "BSE": "",  # Beijing Stock Exchange
-            },
-            DataSource.FINNHUB: {
-                "NASDAQ": "",  # Finnhub uses plain symbols for US stocks
-                "NYSE": "",  # Finnhub uses plain symbols for US stocks
-                "AMEX": "",  # American Stock Exchange
-                "HKEX": ".HK",  # Hong Kong stocks need .HK suffix
-                "TSE": ".T",  # Tokyo Stock Exchange
-                "LSE": ".L",  # London Stock Exchange
-                "XETRA": ".DE",  # German Exchange
-            },
-            DataSource.COINMARKETCAP: {
-                "CRYPTO": "",  # Crypto symbols are used as-is
             },
         }
 
@@ -76,6 +60,27 @@ class TickerConverter:
         """
         try:
             exchange, symbol = internal_ticker.split(":", 1)
+
+            # Special handling for indices in yfinance (use ^ prefix)
+            if source == DataSource.YFINANCE:
+                index_mapping = {
+                    # US Indices
+                    "NASDAQ:IXIC": "^IXIC",  # NASDAQ Composite
+                    "NYSE:DJI": "^DJI",  # Dow Jones Industrial Average
+                    "NYSE:GSPC": "^GSPC",  # S&P 500
+                    "NASDAQ:NDX": "^NDX",  # NASDAQ 100
+                    # Hong Kong Indices
+                    "HKEX:HSI": "^HSI",  # Hang Seng Index
+                    "HKEX:HSCEI": "^HSCEI",  # Hang Seng China Enterprises Index
+                    # Chinese Indices (already work with .SS/.SZ suffixes)
+                    # European Indices
+                    "LSE:FTSE": "^FTSE",  # FTSE 100
+                    "EURONEXT:FCHI": "^FCHI",  # CAC 40
+                    "XETRA:GDAXI": "^GDAXI",  # DAX
+                }
+
+                if internal_ticker in index_mapping:
+                    return index_mapping[internal_ticker]
 
             # Special handling for crypto tickers in yfinance
             if exchange == "CRYPTO" and source == DataSource.YFINANCE:
@@ -135,6 +140,26 @@ class TickerConverter:
             Ticker in internal format (e.g., "SZSE:000001")
         """
         try:
+            # Special handling for indices from yfinance (reverse ^ prefix mapping)
+            if source == DataSource.YFINANCE and source_ticker.startswith("^"):
+                index_reverse_mapping = {
+                    # US Indices
+                    "^IXIC": "NASDAQ:IXIC",  # NASDAQ Composite
+                    "^DJI": "NYSE:DJI",  # Dow Jones Industrial Average
+                    "^GSPC": "NYSE:GSPC",  # S&P 500
+                    "^NDX": "NASDAQ:NDX",  # NASDAQ 100
+                    # Hong Kong Indices
+                    "^HSI": "HKEX:HSI",  # Hang Seng Index
+                    "^HSCEI": "HKEX:HSCEI",  # Hang Seng China Enterprises Index
+                    # European Indices
+                    "^FTSE": "LSE:FTSE",  # FTSE 100
+                    "^FCHI": "EURONEXT:FCHI",  # CAC 40
+                    "^GDAXI": "XETRA:GDAXI",  # DAX
+                }
+
+                if source_ticker in index_reverse_mapping:
+                    return index_reverse_mapping[source_ticker]
+
             # Special handling for Hong Kong stocks from yfinance
             if source == DataSource.YFINANCE and source_ticker.endswith(".HK"):
                 symbol = source_ticker[:-3]  # Remove .HK suffix
@@ -161,10 +186,7 @@ class TickerConverter:
             if default_exchange:
                 return f"{default_exchange}:{source_ticker}"
 
-            # For crypto and other assets without clear exchange mapping
-            if source == DataSource.COINMARKETCAP:
-                return f"CRYPTO:{source_ticker}"
-
+            # For other assets without clear exchange mapping
             # Fallback to using the source as exchange
             return f"{source.value.upper()}:{source_ticker}"
 
@@ -250,8 +272,8 @@ class BaseDataAdapter(ABC):
 
         Args:
             ticker: Asset ticker in internal format
-            start_date: Start date for historical data
-            end_date: End date for historical data
+            start_date: Start date for historical data, format: YYYY-MM-DD, timezone: UTC
+            end_date: End date for historical data, format: YYYY-MM-DD, timezone: UTC
             interval: Data interval (e.g., "1d", "1h", "5m")
 
         Returns:

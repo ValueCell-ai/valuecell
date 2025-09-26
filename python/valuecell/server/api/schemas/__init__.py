@@ -31,7 +31,7 @@ from .i18n import (
     UserI18nSettingsRequest,
 )
 from .watchlist import (
-    AddStockRequest,
+    AddAssetRequest,
     AssetDetailData,
     AssetHistoricalPriceData,
     AssetHistoricalPricesData,
@@ -40,7 +40,7 @@ from .watchlist import (
     AssetSearchQuery,
     AssetSearchResultData,
     CreateWatchlistRequest,
-    UpdateStockNotesRequest,
+    UpdateAssetNotesRequest,
     WatchlistData,
     WatchlistItemData,
     WatchlistWithPricesData,
@@ -79,8 +79,8 @@ __all__ = [
     "WatchlistItemData",
     "WatchlistData",
     "CreateWatchlistRequest",
-    "AddStockRequest",
-    "UpdateStockNotesRequest",
+    "AddAssetRequest",
+    "UpdateAssetNotesRequest",
     "AssetSearchQuery",
     "AssetInfoData",
     "AssetSearchResultData",

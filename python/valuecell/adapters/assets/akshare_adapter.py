@@ -27,6 +27,7 @@ from .types import (
     AssetSearchResult,
     AssetType,
     DataSource,
+    Interval,
     LocalizedName,
     MarketInfo,
     MarketStatus,
@@ -1297,20 +1298,87 @@ class AKShareAdapter(BaseDataAdapter):
         end_date: datetime,
         interval: str,
     ) -> List[AssetPrice]:
-        """Get A-share historical price data using direct query."""
+        """Get A-share historical price data using direct query.
+
+        Args:
+            ticker: Asset ticker in internal format
+            start_date: Start date for historical data, format: YYYY-MM-DD, timezone: UTC
+            end_date: End date for historical data, format: YYYY-MM-DD, timezone: UTC
+            interval: Data interval (e.g., "1d", "1h", "5m")
+
+        Returns:
+            List of historical price data
+        """
+        try:
+            # Map interval to AKShare format and determine if intraday data is needed
+            akshare_params = self._map_interval_to_akshare_params(interval)
+            if not akshare_params:
+                logger.warning(f"Unsupported interval: {interval}")
+                return []
+
+            is_intraday = akshare_params["is_intraday"]
+            period_or_minutes = akshare_params["period"]
+
+            if is_intraday:
+                return self._get_a_share_intraday_historical(
+                    ticker, exchange, symbol, start_date, end_date, period_or_minutes
+                )
+            else:
+                return self._get_a_share_daily_historical(
+                    ticker, exchange, symbol, start_date, end_date, period_or_minutes
+                )
+
+        except Exception as e:
+            logger.error(f"Error fetching A-share historical data for {symbol}: {e}")
+            return []
+
+    def _map_interval_to_akshare_params(self, interval: str) -> Optional[dict]:
+        """Map interval to AKShare parameters, similar to yfinance mapping.
+
+        Returns dict with 'is_intraday' and 'period' keys, or None if unsupported.
+        """
+        # Create interval mapping similar to yfinance adapter
+        interval_mapping = {
+            # Minute intervals (intraday data)
+            f"1{Interval.MINUTE}": {"is_intraday": True, "period": "1"},
+            f"5{Interval.MINUTE}": {"is_intraday": True, "period": "5"},
+            f"15{Interval.MINUTE}": {"is_intraday": True, "period": "15"},
+            f"30{Interval.MINUTE}": {"is_intraday": True, "period": "30"},
+            f"60{Interval.MINUTE}": {"is_intraday": True, "period": "60"},
+            # Daily and higher intervals
+            f"1{Interval.DAY}": {"is_intraday": False, "period": "daily"},
+            f"1{Interval.WEEK}": {"is_intraday": False, "period": "weekly"},
+            f"1{Interval.MONTH}": {"is_intraday": False, "period": "monthly"},
+            # Common aliases
+            "1d": {"is_intraday": False, "period": "daily"},
+            "daily": {"is_intraday": False, "period": "daily"},
+            "1w": {"is_intraday": False, "period": "weekly"},
+            "weekly": {"is_intraday": False, "period": "weekly"},
+            "1mo": {"is_intraday": False, "period": "monthly"},
+            "monthly": {"is_intraday": False, "period": "monthly"},
+            "1m": {"is_intraday": True, "period": "1"},
+            "5m": {"is_intraday": True, "period": "5"},
+            "15m": {"is_intraday": True, "period": "15"},
+            "30m": {"is_intraday": True, "period": "30"},
+            "60m": {"is_intraday": True, "period": "60"},
+        }
+
+        return interval_mapping.get(interval)
+
+    def _get_a_share_daily_historical(
+        self,
+        ticker: str,
+        exchange: str,
+        symbol: str,
+        start_date: datetime,
+        end_date: datetime,
+        period: str,
+    ) -> List[AssetPrice]:
+        """Get A-share daily historical price data."""
         try:
             # Format dates for AKShare
             start_date_str = start_date.strftime("%Y%m%d")
             end_date_str = end_date.strftime("%Y%m%d")
-
-            # Map interval to AKShare format
-            if interval in ["1d", "daily"]:
-                period = "daily"
-            else:
-                logger.warning(
-                    f"AKShare primarily supports daily data. Requested interval: {interval}"
-                )
-                period = "daily"
 
             # Use cached data for historical prices
             cache_key = (
@@ -1324,66 +1392,187 @@ class AKShareAdapter(BaseDataAdapter):
                 period=period,
                 start_date=start_date_str,
                 end_date=end_date_str,
-                adjust="",  # No adjustment
+                adjust="qfq",  # Use forward adjustment
             )
 
             if df_hist is None or df_hist.empty:
-                logger.warning(f"No historical data available for {symbol}")
+                logger.warning(f"No daily historical data available for {symbol}")
                 return []
 
-            prices = []
-            for _, row in df_hist.iterrows():
-                try:
-                    # Parse date safely
-                    trade_date = pd.to_datetime(row["日期"]).to_pydatetime()
-
-                    # Extract price data safely
-                    open_price = self._safe_decimal_convert(row.get("开盘"))
-                    high_price = self._safe_decimal_convert(row.get("最高"))
-                    low_price = self._safe_decimal_convert(row.get("最低"))
-                    close_price = self._safe_decimal_convert(row.get("收盘"))
-                    volume = self._safe_decimal_convert(row.get("成交量"))
-
-                    if not close_price:  # Skip if no closing price
-                        continue
-
-                    # Calculate change from previous day
-                    change = None
-                    change_percent = None
-                    if len(prices) > 0:
-                        prev_close = prices[-1].close_price
-                        if prev_close and prev_close != 0:
-                            change = close_price - prev_close
-                            change_percent = (change / prev_close) * 100
-
-                    price = AssetPrice(
-                        ticker=ticker,
-                        price=close_price,
-                        currency="CNY",
-                        timestamp=trade_date,
-                        volume=volume,
-                        open_price=open_price,
-                        high_price=high_price,
-                        low_price=low_price,
-                        close_price=close_price,
-                        change=change,
-                        change_percent=change_percent,
-                        source=self.source,
-                    )
-                    prices.append(price)
-
-                except Exception as row_error:
-                    logger.warning(
-                        f"Error processing historical data row for {symbol}: {row_error}"
-                    )
-                    continue
-
-            logger.info(f"Retrieved {len(prices)} historical price points for {symbol}")
-            return prices
+            return self._process_a_share_daily_data(ticker, df_hist)
 
         except Exception as e:
-            logger.error(f"Error fetching A-share historical data for {symbol}: {e}")
+            logger.error(
+                f"Error fetching A-share daily historical data for {symbol}: {e}"
+            )
             return []
+
+    def _get_a_share_intraday_historical(
+        self,
+        ticker: str,
+        exchange: str,
+        symbol: str,
+        start_date: datetime,
+        end_date: datetime,
+        period: str,
+    ) -> List[AssetPrice]:
+        """Get A-share intraday historical price data using minute data."""
+        try:
+            # Format dates for AKShare intraday query
+            start_date_str = start_date.strftime("%Y-%m-%d %H:%M:%S")
+            end_date_str = end_date.strftime("%Y-%m-%d %H:%M:%S")
+
+            # Use cached data for intraday historical prices
+            cache_key = f"a_share_hist_min_{symbol}_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}_{period}"
+
+            # Note: AKShare minute data has limitations - only recent 5 trading days for 1-minute
+            # and 1-minute data doesn't support forward adjustment
+            adjust_param = (
+                "" if period == "1" else "qfq"
+            )  # 1-minute data doesn't support adjustment
+
+            df_hist = self._get_cached_data(
+                cache_key,
+                self._safe_akshare_call,
+                ak.stock_zh_a_hist_min_em,
+                symbol=symbol,
+                start_date=start_date_str,
+                end_date=end_date_str,
+                period=period,
+                adjust=adjust_param,
+            )
+
+            if df_hist is None or df_hist.empty:
+                logger.warning(f"No intraday historical data available for {symbol}")
+                return []
+
+            return self._process_a_share_intraday_data(ticker, df_hist, period)
+
+        except Exception as e:
+            logger.error(
+                f"Error fetching A-share intraday historical data for {symbol}: {e}"
+            )
+            return []
+
+    def _process_a_share_daily_data(
+        self, ticker: str, df_hist: pd.DataFrame
+    ) -> List[AssetPrice]:
+        """Process A-share daily historical data."""
+        prices = []
+        for _, row in df_hist.iterrows():
+            try:
+                # Parse date safely
+                trade_date = pd.to_datetime(row["日期"]).to_pydatetime()
+
+                # Extract price data safely
+                open_price = self._safe_decimal_convert(row.get("开盘"))
+                high_price = self._safe_decimal_convert(row.get("最高"))
+                low_price = self._safe_decimal_convert(row.get("最低"))
+                close_price = self._safe_decimal_convert(row.get("收盘"))
+                volume = self._safe_decimal_convert(row.get("成交量"))
+
+                if not close_price:  # Skip if no closing price
+                    continue
+
+                # Extract change data if available (AKShare provides this directly)
+                change = self._safe_decimal_convert(row.get("涨跌额"))
+                change_percent = self._safe_decimal_convert(row.get("涨跌幅"))
+
+                # If change data not available, calculate from previous day
+                if change is None and len(prices) > 0:
+                    prev_close = prices[-1].close_price
+                    if prev_close and prev_close != 0:
+                        change = close_price - prev_close
+                        change_percent = (change / prev_close) * 100
+
+                price = AssetPrice(
+                    ticker=ticker,
+                    price=close_price,
+                    currency="CNY",
+                    timestamp=trade_date,
+                    volume=volume,
+                    open_price=open_price,
+                    high_price=high_price,
+                    low_price=low_price,
+                    close_price=close_price,
+                    change=change,
+                    change_percent=change_percent,
+                    source=self.source,
+                )
+                prices.append(price)
+
+            except Exception as row_error:
+                logger.warning(f"Error processing daily data row: {row_error}")
+                continue
+
+        logger.info(f"Retrieved {len(prices)} daily price points")
+        return prices
+
+    def _process_a_share_intraday_data(
+        self, ticker: str, df_hist: pd.DataFrame, period: str
+    ) -> List[AssetPrice]:
+        """Process A-share intraday historical data."""
+        prices = []
+        for _, row in df_hist.iterrows():
+            try:
+                # Parse timestamp safely
+                trade_time = pd.to_datetime(row["时间"]).to_pydatetime()
+
+                # Extract price data safely
+                open_price = self._safe_decimal_convert(row.get("开盘"))
+                high_price = self._safe_decimal_convert(row.get("最高"))
+                low_price = self._safe_decimal_convert(row.get("最低"))
+                close_price = self._safe_decimal_convert(row.get("收盘"))
+
+                # Volume is in 手 (lots), convert to shares (1 lot = 100 shares)
+                volume_lots = self._safe_decimal_convert(row.get("成交量"))
+                volume = volume_lots * 100 if volume_lots else None
+
+                if not close_price:  # Skip if no closing price
+                    continue
+
+                # For intraday data, calculate change from previous period
+                change = None
+                change_percent = None
+                if len(prices) > 0:
+                    prev_close = prices[-1].close_price
+                    if prev_close and prev_close != 0:
+                        change = close_price - prev_close
+                        change_percent = (change / prev_close) * 100
+
+                # For periods > 1 minute, AKShare provides change data directly
+                if period != "1":
+                    akshare_change = self._safe_decimal_convert(row.get("涨跌额"))
+                    akshare_change_percent = self._safe_decimal_convert(
+                        row.get("涨跌幅")
+                    )
+                    if akshare_change is not None:
+                        change = akshare_change
+                    if akshare_change_percent is not None:
+                        change_percent = akshare_change_percent
+
+                price = AssetPrice(
+                    ticker=ticker,
+                    price=close_price,
+                    currency="CNY",
+                    timestamp=trade_time,
+                    volume=volume,
+                    open_price=open_price,
+                    high_price=high_price,
+                    low_price=low_price,
+                    close_price=close_price,
+                    change=change,
+                    change_percent=change_percent,
+                    source=self.source,
+                )
+                prices.append(price)
+
+            except Exception as row_error:
+                logger.warning(f"Error processing intraday data row: {row_error}")
+                continue
+
+        logger.info(f"Retrieved {len(prices)} intraday ({period}m) price points")
+        return prices
 
     def _get_hk_stock_historical(
         self,
@@ -1396,29 +1585,148 @@ class AKShareAdapter(BaseDataAdapter):
     ) -> List[AssetPrice]:
         """Get Hong Kong stock historical price data."""
         try:
-            # Use AKShare HK stock historical data
-            df_hist = ak.stock_hk_daily(symbol=symbol, adjust="qfq")
-
-            if df_hist is None or df_hist.empty:
+            # Map interval to AKShare format
+            akshare_params = self._map_interval_to_akshare_params(interval)
+            if not akshare_params:
+                logger.warning(f"Unsupported interval for HK stocks: {interval}")
                 return []
 
-            # Filter by date range
-            df_hist["date"] = pd.to_datetime(df_hist["date"])
-            mask = (df_hist["date"] >= start_date) & (df_hist["date"] <= end_date)
-            df_hist = df_hist[mask]
+            is_intraday = akshare_params["is_intraday"]
+            period_or_minutes = akshare_params["period"]
 
-            prices = []
-            for _, row in df_hist.iterrows():
-                trade_date = row["date"].to_pydatetime()
-
-                # Extract price data (adjust field names based on actual data structure)
-                open_price = Decimal(str(row.get("open", 0)))
-                high_price = Decimal(str(row.get("high", 0)))
-                low_price = Decimal(str(row.get("low", 0)))
-                close_price = Decimal(str(row.get("close", 0)))
-                volume = (
-                    Decimal(str(row.get("volume", 0))) if row.get("volume") else None
+            if is_intraday:
+                return self._get_hk_stock_intraday_historical(
+                    ticker, exchange, symbol, start_date, end_date, period_or_minutes
                 )
+            else:
+                return self._get_hk_stock_daily_historical(
+                    ticker, exchange, symbol, start_date, end_date, period_or_minutes
+                )
+
+        except Exception as e:
+            logger.error(f"Error fetching HK stock historical data for {symbol}: {e}")
+            return []
+
+    def _get_hk_stock_daily_historical(
+        self,
+        ticker: str,
+        exchange: str,
+        symbol: str,
+        start_date: datetime,
+        end_date: datetime,
+        period: str,
+    ) -> List[AssetPrice]:
+        """Get Hong Kong stock daily historical price data."""
+        try:
+            # Format dates for AKShare
+            start_date_str = start_date.strftime("%Y%m%d")
+            end_date_str = end_date.strftime("%Y%m%d")
+
+            # Use cached data for historical prices
+            cache_key = (
+                f"hk_stock_hist_{symbol}_{start_date_str}_{end_date_str}_{period}"
+            )
+            df_hist = self._get_cached_data(
+                cache_key,
+                self._safe_akshare_call,
+                ak.stock_hk_hist,
+                symbol=symbol,
+                period=period,
+                start_date=start_date_str,
+                end_date=end_date_str,
+                adjust="qfq",  # Use forward adjustment (前复权)
+            )
+
+            if df_hist is None or df_hist.empty:
+                logger.warning(
+                    f"No HK stock daily historical data available for {symbol}"
+                )
+                return []
+
+            return self._process_hk_stock_daily_data(ticker, df_hist)
+
+        except Exception as e:
+            logger.error(
+                f"Error fetching HK stock daily historical data for {symbol}: {e}"
+            )
+            return []
+
+    def _get_hk_stock_intraday_historical(
+        self,
+        ticker: str,
+        exchange: str,
+        symbol: str,
+        start_date: datetime,
+        end_date: datetime,
+        period: str,
+    ) -> List[AssetPrice]:
+        """Get Hong Kong stock intraday historical price data."""
+        try:
+            # Format dates for AKShare intraday query
+            start_date_str = start_date.strftime("%Y-%m-%d %H:%M:%S")
+            end_date_str = end_date.strftime("%Y-%m-%d %H:%M:%S")
+
+            # Use cached data for intraday historical prices
+            cache_key = f"hk_stock_hist_min_{symbol}_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}_{period}"
+
+            # Note: HK stock minute data has limitations - only recent 5 trading days for 1-minute
+            adjust_param = "" if period == "1" else "qfq"
+
+            df_hist = self._get_cached_data(
+                cache_key,
+                self._safe_akshare_call,
+                ak.stock_hk_hist_min_em,
+                symbol=symbol,
+                start_date=start_date_str,
+                end_date=end_date_str,
+                period=period,
+                adjust=adjust_param,
+            )
+
+            if df_hist is None or df_hist.empty:
+                logger.warning(
+                    f"No HK stock intraday historical data available for {symbol}"
+                )
+                return []
+
+            return self._process_hk_stock_intraday_data(ticker, df_hist, period)
+
+        except Exception as e:
+            logger.error(
+                f"Error fetching HK stock intraday historical data for {symbol}: {e}"
+            )
+            return []
+
+    def _process_hk_stock_daily_data(
+        self, ticker: str, df_hist: pd.DataFrame
+    ) -> List[AssetPrice]:
+        """Process Hong Kong stock daily historical data."""
+        prices = []
+        for _, row in df_hist.iterrows():
+            try:
+                # Parse date safely
+                trade_date = pd.to_datetime(row["日期"]).to_pydatetime()
+
+                # Extract price data safely
+                open_price = self._safe_decimal_convert(row.get("开盘"))
+                high_price = self._safe_decimal_convert(row.get("最高"))
+                low_price = self._safe_decimal_convert(row.get("最低"))
+                close_price = self._safe_decimal_convert(row.get("收盘"))
+                volume = self._safe_decimal_convert(row.get("成交量"))
+
+                if not close_price:  # Skip if no closing price
+                    continue
+
+                # Extract change data if available (AKShare provides this directly)
+                change = self._safe_decimal_convert(row.get("涨跌额"))
+                change_percent = self._safe_decimal_convert(row.get("涨跌幅"))
+
+                # If change data not available, calculate from previous day
+                if change is None and len(prices) > 0:
+                    prev_close = prices[-1].close_price
+                    if prev_close and prev_close != 0:
+                        change = close_price - prev_close
+                        change_percent = (change / prev_close) * 100
 
                 price = AssetPrice(
                     ticker=ticker,
@@ -1430,17 +1738,74 @@ class AKShareAdapter(BaseDataAdapter):
                     high_price=high_price,
                     low_price=low_price,
                     close_price=close_price,
-                    change=None,
-                    change_percent=None,
+                    change=change,
+                    change_percent=change_percent,
                     source=self.source,
                 )
                 prices.append(price)
 
-            return prices
+            except Exception as row_error:
+                logger.warning(f"Error processing HK stock daily data row: {row_error}")
+                continue
 
-        except Exception as e:
-            logger.error(f"Error fetching HK stock historical data for {symbol}: {e}")
-            return []
+        logger.info(f"Retrieved {len(prices)} HK stock daily price points")
+        return prices
+
+    def _process_hk_stock_intraday_data(
+        self, ticker: str, df_hist: pd.DataFrame, period: str
+    ) -> List[AssetPrice]:
+        """Process Hong Kong stock intraday historical data."""
+        prices = []
+        for _, row in df_hist.iterrows():
+            try:
+                # Parse timestamp safely
+                trade_time = pd.to_datetime(row["时间"]).to_pydatetime()
+
+                # Extract price data safely
+                open_price = self._safe_decimal_convert(row.get("开盘"))
+                high_price = self._safe_decimal_convert(row.get("最高"))
+                low_price = self._safe_decimal_convert(row.get("最低"))
+                close_price = self._safe_decimal_convert(row.get("收盘"))
+                volume = self._safe_decimal_convert(row.get("成交量"))
+
+                if not close_price:  # Skip if no closing price
+                    continue
+
+                # For intraday data, calculate change from previous period
+                change = None
+                change_percent = None
+                if len(prices) > 0:
+                    prev_close = prices[-1].close_price
+                    if prev_close and prev_close != 0:
+                        change = close_price - prev_close
+                        change_percent = (change / prev_close) * 100
+
+                price = AssetPrice(
+                    ticker=ticker,
+                    price=close_price,
+                    currency="HKD",
+                    timestamp=trade_time,
+                    volume=volume,
+                    open_price=open_price,
+                    high_price=high_price,
+                    low_price=low_price,
+                    close_price=close_price,
+                    change=change,
+                    change_percent=change_percent,
+                    source=self.source,
+                )
+                prices.append(price)
+
+            except Exception as row_error:
+                logger.warning(
+                    f"Error processing HK stock intraday data row: {row_error}"
+                )
+                continue
+
+        logger.info(
+            f"Retrieved {len(prices)} HK stock intraday ({period}m) price points"
+        )
+        return prices
 
     def _get_us_stock_historical(
         self,
@@ -1453,29 +1818,144 @@ class AKShareAdapter(BaseDataAdapter):
     ) -> List[AssetPrice]:
         """Get US stock historical price data."""
         try:
-            # Use AKShare US stock historical data
-            df_hist = ak.stock_us_daily(symbol=symbol, adjust="qfq")
-
-            if df_hist is None or df_hist.empty:
+            # Map interval to AKShare format
+            akshare_params = self._map_interval_to_akshare_params(interval)
+            if not akshare_params:
+                logger.warning(f"Unsupported interval for US stocks: {interval}")
                 return []
 
-            # Filter by date range
-            df_hist["date"] = pd.to_datetime(df_hist["date"])
-            mask = (df_hist["date"] >= start_date) & (df_hist["date"] <= end_date)
-            df_hist = df_hist[mask]
+            is_intraday = akshare_params["is_intraday"]
+            period_or_minutes = akshare_params["period"]
 
-            prices = []
-            for _, row in df_hist.iterrows():
-                trade_date = row["date"].to_pydatetime()
-
-                # Extract price data
-                open_price = Decimal(str(row.get("open", 0)))
-                high_price = Decimal(str(row.get("high", 0)))
-                low_price = Decimal(str(row.get("low", 0)))
-                close_price = Decimal(str(row.get("close", 0)))
-                volume = (
-                    Decimal(str(row.get("volume", 0))) if row.get("volume") else None
+            if is_intraday:
+                return self._get_us_stock_intraday_historical(
+                    ticker, exchange, symbol, start_date, end_date, period_or_minutes
                 )
+            else:
+                return self._get_us_stock_daily_historical(
+                    ticker, exchange, symbol, start_date, end_date, period_or_minutes
+                )
+
+        except Exception as e:
+            logger.error(f"Error fetching US stock historical data for {symbol}: {e}")
+            return []
+
+    def _get_us_stock_daily_historical(
+        self,
+        ticker: str,
+        exchange: str,
+        symbol: str,
+        start_date: datetime,
+        end_date: datetime,
+        period: str,
+    ) -> List[AssetPrice]:
+        """Get US stock daily historical price data."""
+        try:
+            # Format dates for AKShare
+            start_date_str = start_date.strftime("%Y%m%d")
+            end_date_str = end_date.strftime("%Y%m%d")
+
+            # Use cached data for historical prices
+            cache_key = (
+                f"us_stock_hist_{symbol}_{start_date_str}_{end_date_str}_{period}"
+            )
+            df_hist = self._get_cached_data(
+                cache_key,
+                self._safe_akshare_call,
+                ak.stock_us_hist,
+                symbol=symbol,
+                period=period,
+                start_date=start_date_str,
+                end_date=end_date_str,
+                adjust="qfq",  # Use forward adjustment
+            )
+
+            if df_hist is None or df_hist.empty:
+                logger.warning(
+                    f"No US stock daily historical data available for {symbol}"
+                )
+                return []
+
+            return self._process_us_stock_daily_data(ticker, df_hist)
+
+        except Exception as e:
+            logger.error(
+                f"Error fetching US stock daily historical data for {symbol}: {e}"
+            )
+            return []
+
+    def _get_us_stock_intraday_historical(
+        self,
+        ticker: str,
+        exchange: str,
+        symbol: str,
+        start_date: datetime,
+        end_date: datetime,
+        period: str,
+    ) -> List[AssetPrice]:
+        """Get US stock intraday historical price data."""
+        try:
+            # Format dates for AKShare intraday query
+            start_date_str = start_date.strftime("%Y-%m-%d %H:%M:%S")
+            end_date_str = end_date.strftime("%Y-%m-%d %H:%M:%S")
+
+            # Use cached data for intraday historical prices
+            cache_key = f"us_stock_hist_min_{symbol}_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}_{period}"
+
+            # Note: US stock minute data has limitations - only recent 5 trading days
+            df_hist = self._get_cached_data(
+                cache_key,
+                self._safe_akshare_call,
+                ak.stock_us_hist_min_em,
+                symbol=symbol,
+                start_date=start_date_str,
+                end_date=end_date_str,
+            )
+
+            if df_hist is None or df_hist.empty:
+                logger.warning(
+                    f"No US stock intraday historical data available for {symbol}"
+                )
+                return []
+
+            return self._process_us_stock_intraday_data(ticker, df_hist, period)
+
+        except Exception as e:
+            logger.error(
+                f"Error fetching US stock intraday historical data for {symbol}: {e}"
+            )
+            return []
+
+    def _process_us_stock_daily_data(
+        self, ticker: str, df_hist: pd.DataFrame
+    ) -> List[AssetPrice]:
+        """Process US stock daily historical data."""
+        prices = []
+        for _, row in df_hist.iterrows():
+            try:
+                # Parse date safely
+                trade_date = pd.to_datetime(row["日期"]).to_pydatetime()
+
+                # Extract price data safely
+                open_price = self._safe_decimal_convert(row.get("开盘"))
+                high_price = self._safe_decimal_convert(row.get("最高"))
+                low_price = self._safe_decimal_convert(row.get("最低"))
+                close_price = self._safe_decimal_convert(row.get("收盘"))
+                volume = self._safe_decimal_convert(row.get("成交量"))
+
+                if not close_price:  # Skip if no closing price
+                    continue
+
+                # Extract change data if available (AKShare provides this directly)
+                change = self._safe_decimal_convert(row.get("涨跌额"))
+                change_percent = self._safe_decimal_convert(row.get("涨跌幅"))
+
+                # If change data not available, calculate from previous day
+                if change is None and len(prices) > 0:
+                    prev_close = prices[-1].close_price
+                    if prev_close and prev_close != 0:
+                        change = close_price - prev_close
+                        change_percent = (change / prev_close) * 100
 
                 price = AssetPrice(
                     ticker=ticker,
@@ -1487,17 +1967,74 @@ class AKShareAdapter(BaseDataAdapter):
                     high_price=high_price,
                     low_price=low_price,
                     close_price=close_price,
-                    change=None,
-                    change_percent=None,
+                    change=change,
+                    change_percent=change_percent,
                     source=self.source,
                 )
                 prices.append(price)
 
-            return prices
+            except Exception as row_error:
+                logger.warning(f"Error processing US stock daily data row: {row_error}")
+                continue
 
-        except Exception as e:
-            logger.error(f"Error fetching US stock historical data for {symbol}: {e}")
-            return []
+        logger.info(f"Retrieved {len(prices)} US stock daily price points")
+        return prices
+
+    def _process_us_stock_intraday_data(
+        self, ticker: str, df_hist: pd.DataFrame, period: str
+    ) -> List[AssetPrice]:
+        """Process US stock intraday historical data."""
+        prices = []
+        for _, row in df_hist.iterrows():
+            try:
+                # Parse timestamp safely
+                trade_time = pd.to_datetime(row["时间"]).to_pydatetime()
+
+                # Extract price data safely
+                open_price = self._safe_decimal_convert(row.get("开盘"))
+                high_price = self._safe_decimal_convert(row.get("最高"))
+                low_price = self._safe_decimal_convert(row.get("最低"))
+                close_price = self._safe_decimal_convert(row.get("收盘"))
+                volume = self._safe_decimal_convert(row.get("成交量"))
+
+                if not close_price:  # Skip if no closing price
+                    continue
+
+                # For intraday data, calculate change from previous period
+                change = None
+                change_percent = None
+                if len(prices) > 0:
+                    prev_close = prices[-1].close_price
+                    if prev_close and prev_close != 0:
+                        change = close_price - prev_close
+                        change_percent = (change / prev_close) * 100
+
+                price = AssetPrice(
+                    ticker=ticker,
+                    price=close_price,
+                    currency="USD",
+                    timestamp=trade_time,
+                    volume=volume,
+                    open_price=open_price,
+                    high_price=high_price,
+                    low_price=low_price,
+                    close_price=close_price,
+                    change=change,
+                    change_percent=change_percent,
+                    source=self.source,
+                )
+                prices.append(price)
+
+            except Exception as row_error:
+                logger.warning(
+                    f"Error processing US stock intraday data row: {row_error}"
+                )
+                continue
+
+        logger.info(
+            f"Retrieved {len(prices)} US stock intraday ({period}m) price points"
+        )
+        return prices
 
     def get_supported_asset_types(self) -> List[AssetType]:
         """Get asset types supported by AKShare."""

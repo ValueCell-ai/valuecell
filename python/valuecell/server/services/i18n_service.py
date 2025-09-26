@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from ...core.constants import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGE_CODES
+from ...config.constants import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGE_CODES
 from ..config.i18n import get_i18n_config
 from ..config.settings import get_settings
 
@@ -229,7 +229,7 @@ class I18nService:
         Returns:
             List of (code, name) tuples
         """
-        from ...core.constants import SUPPORTED_LANGUAGES
+        from ...config.constants import SUPPORTED_LANGUAGES
 
         return SUPPORTED_LANGUAGES
 
@@ -242,7 +242,7 @@ class I18nService:
         Returns:
             Display name or code if not found
         """
-        from ...core.constants import SUPPORTED_LANGUAGES
+        from ...config.constants import SUPPORTED_LANGUAGES
 
         for code, name in SUPPORTED_LANGUAGES:
             if code == language_code:
