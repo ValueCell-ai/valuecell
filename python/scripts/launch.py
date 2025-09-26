@@ -79,7 +79,7 @@ def main():
 
     if not selected_agents:
         print("No agents selected.")
-        exit(0)
+        exit(1)
 
     os.makedirs(log_dir, exist_ok=True)
     print(f"Logs will be saved to {log_dir}/")
