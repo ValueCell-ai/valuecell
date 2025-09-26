@@ -30,7 +30,7 @@ export type AgentTaskFailedMessage = AgentChunkMessage;
 export type AgentSystemFailedMessage = AgentChunkMessage;
 
 export type AgentComponentMessage = MessageWithPayload<{
-  component_type: (typeof AGENT_COMPONENT_TYPE)[number];
+  component_type: AgentComponentType;
   content: string;
 }>;
 
@@ -52,7 +52,7 @@ type ChatMessage =
   | AgentToolCallCompletedMessage;
 
 export type ChatItem = ChatMessage & {
-  component_type: (typeof AGENT_COMPONENT_TYPE)[number];
+  component_type: AgentComponentType;
 };
 
 export interface AgentEventMap {
@@ -97,6 +97,7 @@ export interface ThreadView {
 
 export type SectionComponentType =
   (typeof AGENT_SECTION_COMPONENT_TYPE)[number];
+export type AgentComponentType = (typeof AGENT_COMPONENT_TYPE)[number];
 
 export interface ConversationView {
   threads: Record<string, ThreadView>;

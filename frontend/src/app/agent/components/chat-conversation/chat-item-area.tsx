@@ -1,4 +1,4 @@
-import { Bot, CheckCircle, Clock, FileText, User } from "lucide-react";
+import { CheckCircle, Clock, FileText } from "lucide-react";
 import { type FC, memo } from "react";
 import { cn } from "@/lib/utils";
 import type { ChatItem } from "@/types/agent";
@@ -21,14 +21,6 @@ const ChatItemArea: FC<ChatItemAreaProps> = ({ items }) => {
             item.role === "user" ? "justify-end" : "justify-start",
           )}
         >
-          {item.role !== "user" && (
-            <div className="size-8 flex-shrink-0">
-              <div className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600">
-                <Bot size={16} className="text-white" />
-              </div>
-            </div>
-          )}
-
           <div
             className={cn(
               "max-w-[80%] rounded-2xl px-4 py-3",
@@ -108,14 +100,6 @@ const ChatItemArea: FC<ChatItemAreaProps> = ({ items }) => {
               return null;
             })()}
           </div>
-
-          {item.role === "user" && (
-            <div className="size-8 flex-shrink-0">
-              <div className="flex size-8 items-center justify-center rounded-full bg-gray-600">
-                <User size={16} className="text-white" />
-              </div>
-            </div>
-          )}
         </div>
       ))}
     </div>
