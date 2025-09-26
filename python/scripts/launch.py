@@ -32,6 +32,8 @@ MAP_NAME_ANALYST: Dict[str, str] = {
 }
 SEC_AGENT_NAME = "SecAgent"
 TRADING_AGENTS_NAME = "TradingAgentsAdapter"
+AGENTS = list(MAP_NAME_ANALYST.keys()) + [SEC_AGENT_NAME, TRADING_AGENTS_NAME]
+
 PROJECT_DIR = Path(__file__).resolve().parent.parent.parent
 PYTHON_DIR = PROJECT_DIR / "python"
 ENV_PATH = PROJECT_DIR / ".env"
@@ -67,12 +69,11 @@ def main():
     check_envfile_is_set()
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     log_dir = f"{PROJECT_DIR}/logs/{timestamp}"
-    agents = list(MAP_NAME_COMMAND.keys())
 
     # Use questionary multi-select to allow choosing multiple agents
     selected_agents = questionary.checkbox(
         "Choose agents to launch (use space to select, enter to confirm):",
-        choices=agents,
+        choices=AGENTS,
     ).ask()
 
     if not selected_agents:
@@ -86,7 +87,7 @@ def main():
     logfiles = []
     for selected_agent in selected_agents:
         logfile_path = f"{log_dir}/{selected_agent}.log"
-        print(f"Starting agent: {selected_agent} - output to {logfile_path} - regarding env: {ENV_PATH_STR}")
+        print(f"Starting agent: {selected_agent} - output to {logfile_path}")
 
         # Open logfile for writing
         logfile = open(logfile_path, "w")
@@ -98,6 +99,11 @@ def main():
         )
         processes.append(process)
     print("All agents launched. Waiting for tasks...")
+
+    for selected_agent in selected_agents:
+        print(
+            f"You can monitor {selected_agent} logs at {log_dir}/{selected_agent}.log or chat using: $frontend_url/agent/{selected_agent}"
+        )
 
     # Launch backend
     logfile_path = f"{log_dir}/backend.log"
