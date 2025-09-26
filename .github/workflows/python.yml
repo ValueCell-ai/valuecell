@@ -58,4 +58,4 @@ jobs:
       - name: Check coverage
         run: |
           git fetch origin main
-          uv run diff-cover coverage.xml --compare-branch origin/main --fail-under=90
+          uv run diff-cover coverage.xml --compare-branch main --fail-under=90
