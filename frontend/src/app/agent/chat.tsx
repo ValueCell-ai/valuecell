@@ -25,7 +25,7 @@ function agentStoreReducer(
 
 export default function AgentChat() {
   const { agentName } = useParams<Route.LoaderArgs["params"]>();
-  const { data: agent } = useGetAgentInfo({
+  const { data: agent, isLoading: isLoadingAgent } = useGetAgentInfo({
     agentName: agentName ?? "",
   });
 
@@ -111,7 +111,7 @@ export default function AgentChat() {
     [agentName],
   );
 
-  if (!agent) return <Navigate to="/" replace />;
+  if (!agent && !isLoadingAgent) return <Navigate to="/" replace />;
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
