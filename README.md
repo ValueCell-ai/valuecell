@@ -47,6 +47,11 @@ It provides a team of TOP investment Agents to help manage your portfolio.
 
 # Key Features
 
+<p align="center">
+  <img src="assets/architecture.png" style="width: 100%; height: auto;">
+</p>
+
+
 ## Multi-Agent System
 - **Trading Agents**: Agents work for market analysis, sentiment analysis, news analysis, and fundamentals analysis 
 - **AI-Hedge-Fund**: Agents collaborate to provide comprehensive financial insights
