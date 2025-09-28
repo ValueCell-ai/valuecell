@@ -67,5 +67,5 @@ export const AGENT_AVATAR_MAP: Record<string, string> = {
 
   // System Agents
   TradingAgentsAdapter: PortfolioManagerPng,
-  SecAgent: SecAgentPng,
+  SECAgent: SecAgentPng,
 };

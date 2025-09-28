@@ -2,6 +2,7 @@ import { type FC, memo } from "react";
 import ChatInputArea from "./chat-input-area";
 
 interface ChatWelcomeScreenProps {
+  title: string;
   inputValue: string;
   onInputChange: (value: string) => void;
   onSendMessage: () => Promise<void>;
@@ -9,6 +10,7 @@ interface ChatWelcomeScreenProps {
 }
 
 const ChatWelcomeScreen: FC<ChatWelcomeScreenProps> = ({
+  title,
   inputValue,
   onInputChange,
   onSendMessage,
@@ -22,7 +24,7 @@ const ChatWelcomeScreen: FC<ChatWelcomeScreenProps> = ({
       {/* Welcome content */}
       <div className="flex flex-1 flex-col items-center justify-center gap-4">
         <h1 className="text-center font-semibold text-2xl text-gray-950 leading-12">
-          Welcome to AI hedge fund agent！
+          {title}
         </h1>
 
         {/* Input card */}
@@ -30,7 +32,6 @@ const ChatWelcomeScreen: FC<ChatWelcomeScreenProps> = ({
           value={inputValue}
           onChange={onInputChange}
           onSend={onSendMessage}
-          placeholder="You can inquire and analyze the trend of NVIDIA in the next three months"
           disabled={disabled}
           variant="welcome"
         />

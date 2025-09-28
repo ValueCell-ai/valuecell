@@ -139,7 +139,7 @@ function Home() {
   const recommendations = useMemo(() => {
     return agentList?.map((agent) => ({
       id: agent.agent_name,
-      title: agent.agent_name,
+      title: agent.display_name,
       icon: <AgentAvatar agentName={agent.agent_name} className="size-8" />,
     }));
   }, [agentList]);

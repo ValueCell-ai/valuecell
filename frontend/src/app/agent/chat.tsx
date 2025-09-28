@@ -123,7 +123,9 @@ export default function AgentChat() {
 
           {/* Agent Info */}
           <div className="flex flex-col gap-1.5">
-            <h1 className="font-semibold text-gray-950 text-lg">{agentName}</h1>
+            <h1 className="font-semibold text-gray-950 text-lg">
+              {agent?.display_name}
+            </h1>
             <div className="flex items-center gap-1">
               {agent?.agent_metadata.tags.map((tag) => (
                 <span
@@ -162,6 +164,7 @@ export default function AgentChat() {
       {/* Main content area */}
       <main className="relative flex flex-1 flex-col overflow-hidden">
         <ChatConversationArea
+          displayName={agent?.display_name ?? ""}
           currentConversation={currentConversation}
           isStreaming={isStreaming}
           sendMessage={sendMessage}

@@ -25,7 +25,7 @@ export default function AgentConfig() {
           <div className="flex items-center gap-4">
             <AgentAvatar agentName={agentName ?? ""} className="size-16" />
             <h1 className="font-semibold text-4xl leading-9">
-              {agent?.agent_name}
+              {agent?.display_name}
             </h1>
           </div>
           <div className="flex gap-2">

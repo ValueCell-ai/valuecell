@@ -6,12 +6,14 @@ import ChatThreadArea from "./chat-thread-area";
 import ChatWelcomeScreen from "./chat-welcome-screen";
 
 interface ChatConversationAreaProps {
+  displayName: string;
   currentConversation: ConversationView | null;
   isStreaming: boolean;
   sendMessage: (message: string) => Promise<void>;
 }
 
 const ChatConversationArea: FC<ChatConversationAreaProps> = ({
+  displayName,
   currentConversation,
   isStreaming,
   sendMessage,
@@ -41,6 +43,7 @@ const ChatConversationArea: FC<ChatConversationAreaProps> = ({
   if (!hasMessages) {
     return (
       <ChatWelcomeScreen
+        title={`Welcome to ${displayName}!`}
         inputValue={inputValue}
         onInputChange={handleInputChange}
         onSendMessage={handleSendMessage}
