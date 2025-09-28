@@ -2,7 +2,7 @@
   <img src="assets/valuecell.png" style="width: 100%; height: auto;">
 </p>
 
-<div align="center" style="line-height: 1;">
+<div align="center" style="line-height: 2;">
     <a href="https://www.python.org/downloads" target="_blank">
         <img src="https://img.shields.io/badge/python-3.12+-blue.svg"
             alt="Python version"></a>
@@ -33,165 +33,166 @@
 # ValueCell
 ValueCell is a community-driven, multi-agent platform for financial applications.
 
+It will give you a TOP financial Agents team to help you manage your profoile.
 
-
-
-## TradingAgents Framework
-
-TradingAgents is a multi-agent trading framework that mirrors the dynamics of real-world trading firms. By deploying specialized LLM-powered agents: from fundamental analysts, sentiment experts, and technical analysts, to trader, risk management team, the platform collaboratively evaluates market conditions and informs trading decisions. Moreover, these agents engage in dynamic discussions to pinpoint the optimal strategy.
+# Screenshot
 
 <p align="center">
-  <img src="assets/schema.png" style="width: 100%; height: auto;">
+  <img src="assets/product/homepage.png" style="width: 100%; height: auto;">
 </p>
-
-> TradingAgents framework is designed for research purposes. Trading performance may vary based on many factors, including the chosen backbone language models, model temperature, trading periods, the quality of data, and other non-deterministic factors. [It is not intended as financial, investment, or trading advice.](https://tauric.ai/disclaimer/)
-
-Our framework decomposes complex trading tasks into specialized roles. This ensures the system achieves a robust, scalable approach to market analysis and decision-making.
-
-### Analyst Team
-- Fundamentals Analyst: Evaluates company financials and performance metrics, identifying intrinsic values and potential red flags.
-- Sentiment Analyst: Analyzes social media and public sentiment using sentiment scoring algorithms to gauge short-term market mood.
-- News Analyst: Monitors global news and macroeconomic indicators, interpreting the impact of events on market conditions.
-- Technical Analyst: Utilizes technical indicators (like MACD and RSI) to detect trading patterns and forecast price movements.
 
 <p align="center">
-  <img src="assets/analyst.png" width="100%" style="display: inline-block; margin: 0 2%;">
+  <img src="assets/product/agent_welcome.png" style="width: 100%; height: auto;">
 </p>
 
-### Researcher Team
-- Comprises both bullish and bearish researchers who critically assess the insights provided by the Analyst Team. Through structured debates, they balance potential gains against inherent risks.
+# Key Features
 
-<p align="center">
-  <img src="assets/researcher.png" width="70%" style="display: inline-block; margin: 0 2%;">
-</p>
+## Multi-Agent System
+- **Specialized Trading Agents**: Market analysis, sentiment analysis, news analysis, and fundamentals analysis agents working together
+- **AI-Hedge-Fund**: Agents collaborate to provide comprehensive financial insights
+- **OpenSource Invest Agents**: Help you to get real-time updates from SEC 
 
-### Trader Agent
-- Composes reports from the analysts and researchers to make informed trading decisions. It determines the timing and magnitude of trades based on comprehensive market insights.
+## Flexible Integrations
+- **Multiple LLM Providers**: Support for OpenAI, Anthropic, Google, Ollama, and OpenRouter
+- **Popular Asset Coverage**: US market, Crypto market, Hong Kong market, China market and more
+- **Multi-Agent Framework Compatible**: Support Langchain, Agno by A2A Protocol
+- **RESTful API**: Easy integration with external systems
 
-<p align="center">
-  <img src="assets/trader.png" width="70%" style="display: inline-block; margin: 0 2%;">
-</p>
+# Quick Start
 
-### Risk Management and Portfolio Manager
-- Continuously evaluates portfolio risk by assessing market volatility, liquidity, and other risk factors. The risk management team evaluates and adjusts trading strategies, providing assessment reports to the Portfolio Manager for final decision.
-- The Portfolio Manager approves/rejects the transaction proposal. If approved, the order will be sent to the simulated exchange and executed.
+ValueCell is a Python-based application featuring a comprehensive web interface. Follow this guide to set up and run the application efficiently.
 
-<p align="center">
-  <img src="assets/risk.png" width="70%" style="display: inline-block; margin: 0 2%;">
-</p>
+## Prerequisites
 
-## Installation and CLI
+For optimal performance and streamlined development, we recommend installing the following tools:
 
-### Installation
+**[uv](https://docs.astral.sh/uv/getting-started/installation/)** - Ultra-fast Python package and project manager built in Rust  
+**[bun](https://github.com/oven-sh/bun#install)** - High-performance JavaScript/TypeScript toolkit with runtime, bundler, test runner, and package manager
 
-Clone TradingAgents:
+## Installation
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/ValueCell-ai/valuecell.git
+   cd valuecell
+   ```
+
+2. **Configure environment variables**
+
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Edit the `.env` file with your API keys and preferences. This configuration file is shared across all agents.
+
+## Configuration
+
+### Model Providers
+Configure your preferred model providers by editing the ⁠`.env` file:
+
+- **Primary Support**: [OpenRouter](https://openrouter.ai) - Currently the main supported provider for most agents
+- **TradingAgents** requires the use of Memory. If you are using OpenRouter as your API key, you will also need to configure the Embedding model parameters (since OpenRouter does not support Embedding models). You can refer to the TradingAgents/.env.example file and copy its configuration into the .env file located in the root directory.
+  
+
+Choose your preferred models and providers based on your requirements and usage patterns.
+
+## Running the Application
+
+Launch the complete application stack (frontend, backend, and agents):
+
 ```bash
-git clone https://github.com/TauricResearch/TradingAgents.git
-cd TradingAgents
+bash start.sh
 ```
 
-Create a virtual environment in any of your favorite environment managers:
-```bash
-conda create -n tradingagents python=3.13
-conda activate tradingagents
-```
+## Accessing the Interface
 
-Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+- **Web UI**: Navigate to [http://localhost:1420](http://localhost:1420) in your browser
+- **Logs**: Monitor application logs at `logs/{timestamp}/*.log` for detailed runtime information of backend services and individual agents
 
-### Required APIs
+## Next Steps
 
-You will also need the FinnHub API for financial data. All of our code is implemented with the free tier.
-```bash
-export FINNHUB_API_KEY=$YOUR_FINNHUB_API_KEY
-```
+Once the application is running, you can explore the web interface to interact with ValueCell's features and capabilities.
 
-You will need the OpenAI API for all the agents.
-```bash
-export OPENAI_API_KEY=$YOUR_OPENAI_API_KEY
-```
+---
 
-### CLI Usage
+**Note**: Ensure all prerequisites are installed and environment variables are properly configured before running the application.
 
-You can also try out the CLI directly by running:
-```bash
-python -m cli.main
-```
-You will see a screen where you can select your desired tickers, date, LLMs, research depth, etc.
 
-<p align="center">
-  <img src="assets/cli/cli_init.png" width="100%" style="display: inline-block; margin: 0 2%;">
-</p>
+# Roadmap
 
-An interface will appear showing results as they load, letting you track the agent's progress as it runs.
+## 🤖 Enhanced Agent Capabilities
+### Market Expansion
+- **European Markets**: Add support for FTSE, DAX, CAC 40, and other European exchanges
+- **Asian Markets**: Expand coverage to Nikkei, Hang Seng, Shanghai Composite, and emerging Asian markets
+- **Commodity Markets**: Oil, Gold, Silver, Agricultural products analysis
+- **Forex Markets**: Major currency pairs and cross-currency analysis
 
-<p align="center">
-  <img src="assets/cli/cli_news.png" width="100%" style="display: inline-block; margin: 0 2%;">
-</p>
+### Asset Class Diversification
+- **Fixed Income**: Government bonds, corporate bonds, and yield analysis agents
+- **Derivatives**: Options, futures, and complex financial instruments
+- **Alternative Investments**: Private equity, hedge funds, and venture capital analysis
 
-<p align="center">
-  <img src="assets/cli/cli_transaction.png" width="100%" style="display: inline-block; margin: 0 2%;">
-</p>
+### Advanced Notification & Push Types
+- **Real-time Alerts**: Price movements, volume spikes, and technical breakouts
+- **Scheduled Reports**: Daily/weekly/monthly portfolio summaries
+- **Event-driven Notifications**: Earnings releases, dividend announcements, regulatory changes
+- **Custom Triggers**: User-defined conditions and thresholds
+- **Multi-channel Delivery**: Email, SMS, Slack, Discord, and webhook integrations
 
-## TradingAgents Package
+## ⚙️ Product Configuration & Personalization
+### Internationalization (i18n)
+- **Multi-language Support**: English, Chinese (Simplified/Traditional), Japanese, Korean, Spanish, French
+- **Localized Market Data**: Region-specific financial terminology and formats
+- **Cultural Adaptation**: Time zones, date formats, and currency preferences
+- **Agent Personality Localization**: Culturally appropriate communication styles
 
-### Implementation Details
+### Token & Authentication Management
+- **API Key Management**: Secure storage and rotation of third-party API keys
+- **OAuth Integration**: Support for major financial data providers
+- **Rate Limiting**: Intelligent request throttling and quota management
+- **Multi-tenant Architecture**: Enterprise-grade user isolation and security
 
-We built TradingAgents with LangGraph to ensure flexibility and modularity. We utilize `o1-preview` and `gpt-4o` as our deep thinking and fast thinking LLMs for our experiments. However, for testing purposes, we recommend you use `o4-mini` and `gpt-4.1-mini` to save on costs as our framework makes **lots of** API calls.
+### User Preferences & Customization
+- **Investment Profile**: Risk tolerance, investment horizon, and strategy preferences
+- **UI/UX Customization**: Dark/light mode, dashboard layouts, and widget preferences
+- **Agent Behavior**: Communication frequency, analysis depth, and reporting style
+- **Portfolio Management**: Custom benchmarks, performance metrics, and allocation targets
 
-### Python Usage
+### Memory & Learning Systems
+- **Conversation History**: Persistent chat history across sessions
+- **User Learning**: Adaptive recommendations based on user behavior
+- **Market Memory**: Historical context and pattern recognition
+- **Preference Evolution**: Dynamic adjustment of recommendations over time
 
-To use TradingAgents inside your code, you can import the `tradingagents` module and initialize a `TradingAgentsGraph()` object. The `.propagate()` function will return a decision. You can run `main.py`, here's also a quick example:
+## 🔧 ValueCell SDK Development
+### Core SDK Features
+- **Python SDK**: Comprehensive library for agent integration and customization
+- **JavaScript/TypeScript SDK**: Frontend and Node.js integration support
+- **REST API Wrapper**: Simplified HTTP client with automatic authentication
+- **WebSocket Support**: Real-time data streaming and bidirectional communication
 
-```python
-from tradingagents.graph.trading_graph import TradingAgentsGraph
-from tradingagents.default_config import DEFAULT_CONFIG
+### Agent Integration Framework
+- **Plugin Architecture**: Easy integration of third-party agents and tools
+- **Agent Registry**: Marketplace for community-contributed agents
+- **Custom Agent Builder**: Low-code/no-code agent creation tools
+- **Agent Orchestration**: Workflow management and agent coordination
 
-ta = TradingAgentsGraph(debug=True, config=DEFAULT_CONFIG.copy())
+### Developer Tools & Documentation
+- **Interactive API Explorer**: Swagger/OpenAPI documentation with live testing
+- **Code Examples**: Sample implementations in multiple programming languages
+- **Testing Framework**: Unit tests, integration tests, and mock data providers
+- **Performance Monitoring**: SDK usage analytics and performance metrics
 
-# forward propagate
-_, decision = ta.propagate("NVDA", "2024-05-10")
-print(decision)
-```
 
-You can also adjust the default configuration to set your own choice of LLMs, debate rounds, etc.
-
-```python
-from tradingagents.graph.trading_graph import TradingAgentsGraph
-from tradingagents.default_config import DEFAULT_CONFIG
-
-# Create a custom config
-config = DEFAULT_CONFIG.copy()
-config["deep_think_llm"] = "gpt-4.1-nano"  # Use a different model
-config["quick_think_llm"] = "gpt-4.1-nano"  # Use a different model
-config["max_debate_rounds"] = 1  # Increase debate rounds
-config["online_tools"] = True # Use online tools or cached data
-
-# Initialize with custom config
-ta = TradingAgentsGraph(debug=True, config=config)
-
-# forward propagate
-_, decision = ta.propagate("NVDA", "2024-05-10")
-print(decision)
-```
-
-> For `online_tools`, we recommend enabling them for experimentation, as they provide access to real-time data. The agents' offline tools rely on cached data from our **Tauric TradingDB**, a curated dataset we use for backtesting. We're currently in the process of refining this dataset, and we plan to release it soon alongside our upcoming projects. Stay tuned!
-
-You can view the full list of configurations in `tradingagents/default_config.py`.
-
-## Contributing
-
-We welcome contributions from the community! Whether it's fixing a bug, improving documentation, or suggesting a new feature, your input helps make this project better. If you are interested in this line of research, please consider joining our open-source financial AI research community [Tauric Research](https://tauric.ai/).
-
+# Star History
 
 <div align="center">
-<a href="https://www.star-history.com/#TauricResearch/TradingAgents&Date">
+<a href="https://www.star-history.com/#ValueCell-ai/valuecell&Date">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=TauricResearch/TradingAgents&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=TauricResearch/TradingAgents&type=Date" />
-   <img alt="TradingAgents Star History" src="https://api.star-history.com/svg?repos=TauricResearch/TradingAgents&type=Date" style="width: 80%; height: auto;" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=ValueCell-ai/valuecell&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=ValueCell-ai/valuecell&type=Date" />
+   <img alt="TradingAgents Star History" src="https://api.star-history.com/svg?repos=ValueCell-ai/valuecell&type=Date" style="width: 80%; height: auto;" />
  </picture>
 </a>
 </div>
