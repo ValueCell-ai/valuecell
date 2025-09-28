@@ -1,4 +1,5 @@
 import MiniSparkline from "@valuecell/charts/mini-sparkline";
+import { SparklineStockListSkeleton } from "@/components/valuecell/skeleton";
 import { STOCK_COLORS } from "@/constants/stock";
 import { cn, formatChange, formatPrice, getChangeType } from "@/lib/utils";
 import type { SparklineData } from "@/types/chart";
@@ -86,6 +87,13 @@ function SparklineStockList({
   stocks,
   ...props
 }: SparklineStockListProps) {
+  // Show skeleton when loading or when stocks is undefined/empty
+  if (stocks.length === 0) {
+    return (
+      <SparklineStockListSkeleton className={className} count={3} {...props} />
+    );
+  }
+
   return (
     <div
       className={cn(

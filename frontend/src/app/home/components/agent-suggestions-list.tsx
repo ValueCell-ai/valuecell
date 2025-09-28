@@ -80,7 +80,7 @@ function AgentSuggestionItem({
       {...props}
     >
       {/* Left content area */}
-      <div className="flex h-full flex-col justify-between">
+      <div className="relative z-10 flex h-full flex-col justify-between">
         <AgentMenuContent className="flex-col items-start gap-2">
           {/* Icon and title row */}
           <div className="flex items-center gap-2">
