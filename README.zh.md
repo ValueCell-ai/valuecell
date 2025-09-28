@@ -33,7 +33,7 @@
 # ValueCell
 ValueCell 是一个社区驱动的多智能体金融应用平台。
 
-它将为您提供顶级的金融智能体团队，帮助您管理投资组合。
+它将为您提供顶级的投资智能体团队，帮助您管理投资组合。
 
 # 产品截图
 
@@ -48,19 +48,19 @@ ValueCell 是一个社区驱动的多智能体金融应用平台。
 # 核心特性
 
 ## 多智能体系统
-- **专业交易智能体**：市场分析、情绪分析、新闻分析和基本面分析智能体协同工作
-- **AI对冲基金**：智能体协作提供全面的金融洞察
-- **开源投资智能体**：帮助您获取SEC的实时更新
+- **Trading Agents**：专门负责市场分析、情绪分析、新闻分析和基本面分析的智能体协同工作
+- **AI-Hedge-Fund**：智能体协作提供全面的金融洞察
+- **SEC Agent**：提供来自SEC的实时的推送更新
+- **其他智能体**：更多智能体正在规划中...
 
 ## 灵活集成
-- **多种大语言模型提供商**：支持OpenAI、Anthropic、Google、Ollama和OpenRouter
-- **热门资产覆盖**：美国市场、加密货币市场、香港市场、中国市场等
-- **多智能体框架兼容**：支持Langchain、A2A协议的Agno
-- **RESTful API**：轻松与外部系统集成
+- **多种大语言模型提供商**：支持 OpenRouter、OpenAI、Anthropic、Google 和 Ollama
+- **热门市场数据**：覆盖美国市场、加密货币市场、香港市场、中国市场等
+- **多智能体框架兼容**：通过 A2A 协议，支持 Langchain、Agno 等主流Agent框架
 
 # 快速开始
 
-ValueCell 是一个基于Python的应用程序，具有全面的Web界面。按照此指南高效地设置和运行应用程序。
+ValueCell 是一个基于Python的应用程序，且有完备的前端操作页面。可以参考下面配置快速运行。
 
 ## 前提条件
 
@@ -92,7 +92,7 @@ ValueCell 是一个基于Python的应用程序，具有全面的Web界面。按�
 通过编辑`.env`文件配置您首选的模型提供商：
 
 - **主要支持**：[OpenRouter](https://openrouter.ai) - 目前大多数智能体的主要支持提供商
-- **TradingAgents** 需要使用内存功能。如果您使用OpenRouter作为API密钥，还需要配置嵌入模型参数（因为OpenRouter不支持嵌入模型）。您可以参考TradingAgents/.env.example文件，并将其配置复制到根目录的.env文件中。
+- **TradingAgents** 集成了Memory功能。如果您使用OpenRouter作为API密钥，需要配置嵌入模型参数（因为OpenRouter不支持嵌入模型）。请参考TradingAgents/.env.example文件，并将其配置复制到根目录的.env文件中。
   
 
 根据您的需求和使用模式选择首选的模型和提供商。
@@ -110,16 +110,16 @@ bash start.sh
 - **Web UI**：在浏览器中导航到 [http://localhost:1420](http://localhost:1420)
 - **日志**：在 `logs/{timestamp}/*.log` 监控应用程序日志，获取后端服务和各个智能体的详细运行时信息
 
-## 下一步
+## 最后
 
-一旦应用程序运行，您可以探索Web界面与ValueCell的功能和能力进行交互。
+应用程序运行后，您可以通过Web界面使用ValueCell中集成的Agents。
 
 ---
 
 **注意**：运行应用程序前，请确保所有前提条件已安装且环境变量已正确配置。
 
 
-# 发展路线图
+# Roadmap
 
 ## 🤖 增强智能体能力
 ### 市场扩展
@@ -167,8 +167,7 @@ bash start.sh
 
 ## 🔧 ValueCell SDK开发
 ### 核心SDK功能
-- **Python SDK**：用于智能体集成和自定义的综合库
-- **JavaScript/TypeScript SDK**：前端和Node.js集成支持
+- **Python SDK**：用于智能体集成和自定义的核心代码，衔接前后端
 - **REST API包装器**：具有自动身份验证的简化HTTP客户端
 - **WebSocket支持**：实时数据流和双向通信
 
@@ -182,10 +181,9 @@ bash start.sh
 - **交互式API浏览器**：带有实时测试的Swagger/OpenAPI文档
 - **代码示例**：多种编程语言的示例实现
 - **测试框架**：单元测试、集成测试和模拟数据提供商
-- **性能监控**：SDK使用分析和性能指标
 
 
-# Star历史
+# Star
 
 <div align="center">
 <a href="https://www.star-history.com/#ValueCell-ai/valuecell&Date">

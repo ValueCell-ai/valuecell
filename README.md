@@ -33,7 +33,7 @@
 # ValueCell
 ValueCell is a community-driven, multi-agent platform for financial applications.
 
-It will give you a TOP financial Agents team to help you manage your profoile.
+It provides a team of TOP investment Agents to help manage your portfolio.
 
 # Screenshot
 
@@ -48,15 +48,15 @@ It will give you a TOP financial Agents team to help you manage your profoile.
 # Key Features
 
 ## Multi-Agent System
-- **Specialized Trading Agents**: Market analysis, sentiment analysis, news analysis, and fundamentals analysis agents working together
+- **Trading Agents**: Agents work for market analysis, sentiment analysis, news analysis, and fundamentals analysis 
 - **AI-Hedge-Fund**: Agents collaborate to provide comprehensive financial insights
-- **OpenSource Invest Agents**: Help you to get real-time updates from SEC 
+- **SEC Agent**: Provides real-time updates from SEC 
+- **Others**: More agents are in planning...
 
 ## Flexible Integrations
-- **Multiple LLM Providers**: Support for OpenAI, Anthropic, Google, Ollama, and OpenRouter
-- **Popular Asset Coverage**: US market, Crypto market, Hong Kong market, China market and more
+- **Multiple LLM Providers**: Support OpenRouter, OpenAI, Anthropic, Google and Ollama 
+- **Popular Market Data**: Cover US market, Crypto market, Hong Kong market, China market and more
 - **Multi-Agent Framework Compatible**: Support Langchain, Agno by A2A Protocol
-- **RESTful API**: Easy integration with external systems
 
 # Quick Start
 
@@ -92,10 +92,10 @@ For optimal performance and streamlined development, we recommend installing the
 Configure your preferred model providers by editing the ⁠`.env` file:
 
 - **Primary Support**: [OpenRouter](https://openrouter.ai) - Currently the main supported provider for most agents
-- **TradingAgents** requires the use of Memory. If you are using OpenRouter as your API key, you will also need to configure the Embedding model parameters (since OpenRouter does not support Embedding models). You can refer to the TradingAgents/.env.example file and copy its configuration into the .env file located in the root directory.
+- **TradingAgents** requires the use of Memory. If you use OpenRouter as API key, configuring the Embedding model parameters will be needed (since OpenRouter does not support Embedding models). Please refer to the TradingAgents/.env.example file and copy its configuration into the .env file located in the root directory.
   
 
-Choose your preferred models and providers based on your requirements and usage patterns.
+Choose your preferred models and providers based on your requirements and preferences.
 
 ## Running the Application
 
@@ -128,7 +128,7 @@ Once the application is running, you can explore the web interface to interact w
 - **Commodity Markets**: Oil, Gold, Silver, Agricultural products analysis
 - **Forex Markets**: Major currency pairs and cross-currency analysis
 
-### Asset Class Diversification
+### Asset Diversification
 - **Fixed Income**: Government bonds, corporate bonds, and yield analysis agents
 - **Derivatives**: Options, futures, and complex financial instruments
 - **Alternative Investments**: Private equity, hedge funds, and venture capital analysis
@@ -168,7 +168,6 @@ Once the application is running, you can explore the web interface to interact w
 ## 🔧 ValueCell SDK Development
 ### Core SDK Features
 - **Python SDK**: Comprehensive library for agent integration and customization
-- **JavaScript/TypeScript SDK**: Frontend and Node.js integration support
 - **REST API Wrapper**: Simplified HTTP client with automatic authentication
 - **WebSocket Support**: Real-time data streaming and bidirectional communication
 
@@ -182,7 +181,6 @@ Once the application is running, you can explore the web interface to interact w
 - **Interactive API Explorer**: Swagger/OpenAPI documentation with live testing
 - **Code Examples**: Sample implementations in multiple programming languages
 - **Testing Framework**: Unit tests, integration tests, and mock data providers
-- **Performance Monitoring**: SDK usage analytics and performance metrics
 
 
 # Star History
