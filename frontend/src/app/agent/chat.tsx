@@ -2,8 +2,8 @@ import { Settings } from "lucide-react";
 import { useCallback, useMemo, useReducer, useRef } from "react";
 import { Link, Navigate, useParams } from "react-router";
 import { useGetAgentInfo } from "@/api/agent";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import AgentAvatar from "@/components/valuecell/agent-avatar";
 import { useSSE } from "@/hooks/use-sse";
 import { updateAgentConversationsStore } from "@/lib/agent-store";
 import { getServerUrl } from "@/lib/api-client";
@@ -119,10 +119,7 @@ export default function AgentChat() {
       <header className="flex items-center justify-between border-gray-100 border-b p-6">
         <div className="flex items-center gap-4">
           {/* Agent Avatar */}
-          <Avatar className="size-14">
-            <AvatarImage src={agent?.icon_url} />
-            <AvatarFallback>{agentName?.slice(0, 2)}</AvatarFallback>
-          </Avatar>
+          <AgentAvatar agentName={agentName ?? ""} className="size-14" />
 
           {/* Agent Info */}
           <div className="flex flex-col gap-1.5">

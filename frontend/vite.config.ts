@@ -14,7 +14,7 @@ export default defineConfig(async () => ({
     tsconfigPaths(),
     createSvgSpritePlugin({
       exportType: "vanilla",
-      include: "**/assets/svg/*.svg",
+      include: "**/assets/svg/**/*.svg",
       svgo: {
         plugins: [
           {

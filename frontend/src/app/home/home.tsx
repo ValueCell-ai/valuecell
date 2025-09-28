@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { useGetAgentList } from "@/api/agent";
 import { useGetStockHistory, useGetStockPrice } from "@/api/stock";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import AgentAvatar from "@/components/valuecell/agent-avatar";
 import { HOME_STOCK_SHOW } from "@/constants/stock";
 import { TimeUtils } from "@/lib/time";
 import { agentSuggestions } from "@/mock/agent-data";
@@ -140,12 +140,7 @@ function Home() {
     return agentList?.map((agent) => ({
       id: agent.agent_name,
       title: agent.agent_name,
-      icon: (
-        <Avatar>
-          <AvatarImage src={agent.icon_url} />
-          <AvatarFallback>{agent.agent_name.slice(0, 2)}</AvatarFallback>
-        </Avatar>
-      ),
+      icon: <AgentAvatar agentName={agent.agent_name} className="size-8" />,
     }));
   }, [agentList]);
 

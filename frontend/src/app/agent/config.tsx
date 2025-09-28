@@ -1,7 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import { Link, Navigate, useParams } from "react-router";
 import { useGetAgentInfo } from "@/api/agent";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import AgentAvatar from "@/components/valuecell/agent-avatar";
 import BackButton from "@/components/valuecell/button/back-button";
 import { MarkdownRenderer } from "@/components/valuecell/renderer";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
@@ -23,10 +23,7 @@ export default function AgentConfig() {
       <div className="mx-4 mb-6 flex items-center justify-between rounded-lg bg-gray-50 px-4 py-8">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
-            <Avatar className="size-16">
-              <AvatarImage src={agent?.icon_url} />
-              <AvatarFallback>{agent?.agent_name.slice(0, 2)}</AvatarFallback>
-            </Avatar>
+            <AgentAvatar agentName={agentName ?? ""} className="size-16" />
             <h1 className="font-semibold text-4xl leading-9">
               {agent?.agent_name}
             </h1>

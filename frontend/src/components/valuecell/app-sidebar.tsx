@@ -10,7 +10,7 @@ import { useGetAgentList } from "@/api/agent";
 import { BookOpen, ChartBarVertical, Logo, Setting, User } from "@/assets/svg";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import AgentAvatar from "./agent-avatar";
 import ScrollContainer from "./scroll/scroll-container";
 import SvgIcon from "./svg-icon";
 
@@ -185,10 +185,7 @@ const AppSidebar: FC = () => {
                     aria-label={item.label}
                     data-active={verifyActive(item.to)}
                   >
-                    <Avatar className="size-full">
-                      <AvatarImage src={item.icon} />
-                      <AvatarFallback>{item.label.slice(0, 2)}</AvatarFallback>
-                    </Avatar>
+                    <AgentAvatar agentName={item.id} />
                   </SidebarMenuItem>
                 </NavLink>
               );
