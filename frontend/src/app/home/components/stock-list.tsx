@@ -42,7 +42,6 @@ function StockList() {
 
     return (
       <StockMenuListItem
-        className="min-w-52"
         stock={transformedStock}
         to={`/stock/${stock.ticker}`}
         isActive={stockTicker === stock.ticker}
@@ -52,7 +51,7 @@ function StockList() {
   };
 
   return (
-    <StockMenu className="min-w-52">
+    <StockMenu>
       <StockMenuHeader>My Stocks</StockMenuHeader>
       <ScrollContainer>
         {stockData?.map((group) => (
