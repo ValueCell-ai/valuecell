@@ -97,7 +97,7 @@ The Asset model represents financial assets in the ValueCell system, including s
 3. **Create table structure**: Create agents and assets tables based on model definitions
 4. **Initialize default data**:
    - **Agent data**: Insert default Agent records directly from code
-     - Create three default agents: AIHedgeFundAgent, Sec13FundAgent, and TradingAgentsAdapter
+     - Create three default agents: AIHedgeFundAgent, Sec13FundAgent, and TradingAgents
      - Support updating existing Agent configuration information
    - **Asset data**: Insert default Asset records for common financial instruments
      - Create default assets: AAPL, GOOGL, MSFT, SPY, BTC-USD
@@ -114,7 +114,7 @@ The initialization script automatically creates default records directly in the 
 
 1. **AIHedgeFundAgent**: AI-powered hedge fund analysis and trading agent
 2. **Sec13FundAgent**: SEC 13F fund analysis and tracking agent  
-3. **TradingAgentsAdapter**: Multi-agent trading analysis system with market, sentiment, news and fundamentals analysis
+3. **TradingAgents**: Multi-agent trading analysis system with market, sentiment, news and fundamentals analysis
 
 #### Default Assets
 
@@ -129,7 +129,7 @@ The initialization script automatically creates default records directly in the 
 **Agent data structure example**:
 ```python
 {
-    "name": "TradingAgentsAdapter",
+    "name": "TradingAgents",
     "display_name": "Trading Agents Adapter",
     "description": "TradingAgents - Multi-agent trading analysis system",
     "version": "1.0.0",
@@ -196,7 +196,7 @@ try:
     agents = session.query(Agent).filter(Agent.enabled == True).all()
     
     # Get specific agent
-    trading_agent = session.query(Agent).filter(Agent.name == "TradingAgentsAdapter").first()
+    trading_agent = session.query(Agent).filter(Agent.name == "TradingAgents").first()
     
     # Update agent status
     if trading_agent:

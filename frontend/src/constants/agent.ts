@@ -66,6 +66,6 @@ export const AGENT_AVATAR_MAP: Record<string, string> = {
   SentimentAnalystAgent: EmotionalAgencyPng,
 
   // System Agents
-  TradingAgentsAdapter: PortfolioManagerPng,
+  TradingAgents: PortfolioManagerPng,
   SECAgent: SecAgentPng,
 };

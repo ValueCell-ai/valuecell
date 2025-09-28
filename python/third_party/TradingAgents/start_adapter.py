@@ -20,7 +20,7 @@ valuecell_root = project_root.parent.parent / "valuecell"
 sys.path.insert(0, str(valuecell_root))
 
 from valuecell.core.agent.decorator import create_wrapped_agent
-from adapter.__main__ import TradingAgentsAdapter
+from adapter.__main__ import TradingAgents
 
 # Set logging
 logging.basicConfig(
@@ -47,10 +47,10 @@ async def main():
     try:
         setup_environment()
         
-        logger.info("🚀 Starting TradingAgents Adapter...")
+        logger.info("🚀 Starting TradingAgents ...")
         
         # Create and start agent
-        agent = create_wrapped_agent(TradingAgentsAdapter)
+        agent = create_wrapped_agent(TradingAgents)
         await agent.serve()
         
     except KeyboardInterrupt:

@@ -33,7 +33,7 @@ class TradingAgentsInteractiveClient:
     
     def __init__(self):
         self.connections = RemoteConnections()
-        self.agent_name = "TradingAgentsAdapter"
+        self.agent_name = "TradingAgents"
         self.client: Optional[object] = None
         
         # Configuration options
