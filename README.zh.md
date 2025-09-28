@@ -47,6 +47,11 @@ ValueCell 是一个社区驱动的多智能体金融应用平台。
 
 # 核心特性
 
+<p align="center">
+  <img src="assets/architecture.png" style="width: 100%; height: auto;">
+</p>
+
+
 ## 多智能体系统
 - **Trading Agents**：专门负责市场分析、情绪分析、新闻分析和基本面分析的智能体协同工作
 - **AI-Hedge-Fund**：智能体协作提供全面的金融洞察
