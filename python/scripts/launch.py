@@ -30,7 +30,7 @@ MAP_NAME_ANALYST: Dict[str, str] = {
     "ValuationAnalystAgent": "valuation_analyst",
     "WarrenBuffettAgent": "warren_buffett",
 }
-SEC_AGENT_NAME = "SecAgent"
+SEC_AGENT_NAME = "SECAgent"
 TRADING_AGENTS_NAME = "TradingAgentsAdapter"
 AGENTS = list(MAP_NAME_ANALYST.keys()) + [SEC_AGENT_NAME, TRADING_AGENTS_NAME]
 
