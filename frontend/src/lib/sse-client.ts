@@ -24,6 +24,8 @@ export interface SSEEventHandlers {
   onError?: (error: Error) => void;
   /** Called when connection is closed */
   onClose?: () => void;
+  /** Called when connection state changes */
+  onStateChange?: (state: SSEReadyState) => void;
 }
 
 export enum SSEReadyState {
@@ -36,9 +38,18 @@ export class SSEClient {
   private options: Required<SSEOptions>;
   private currentBody?: BodyInit;
   private handlers: SSEEventHandlers = {};
-  private isManualClose = false;
   private readyState: SSEReadyState = SSEReadyState.CLOSED;
   private abortController: AbortController | null = null;
+
+  /**
+   * Update ready state and notify handlers
+   */
+  private setReadyState(newState: SSEReadyState): void {
+    if (this.readyState !== newState) {
+      this.readyState = newState;
+      this.handlers.onStateChange?.(newState);
+    }
+  }
 
   constructor(options: SSEOptions, handlers?: SSEEventHandlers) {
     this.options = this.resolveOptions(options);
@@ -59,13 +70,14 @@ export class SSEClient {
    */
   async connect(body?: BodyInit): Promise<void> {
     // Prevent duplicate connections
-    if (this.readyState === SSEReadyState.CONNECTING) return;
-
-    if (this.readyState === SSEReadyState.OPEN) this.close();
+    if (
+      this.readyState === SSEReadyState.CONNECTING ||
+      this.readyState === SSEReadyState.OPEN
+    )
+      return;
 
     this.currentBody = body;
-    this.isManualClose = false;
-    this.readyState = SSEReadyState.CONNECTING;
+    this.setReadyState(SSEReadyState.CONNECTING);
     this.abortController = new AbortController();
 
     // Start connection in the background; errors are handled via event handlers
@@ -108,21 +120,16 @@ export class SSEClient {
       }
 
       // Connection established
-      this.readyState = SSEReadyState.OPEN;
+      this.setReadyState(SSEReadyState.OPEN);
       this.handlers.onOpen?.();
 
       // Start reading the stream
       await this.readStream(response.body);
     } catch (error) {
       clearTimeout(timeoutId);
-      this.readyState = SSEReadyState.CLOSED;
+      this.setReadyState(SSEReadyState.CLOSED);
 
       if (error instanceof Error && error.name === "AbortError") {
-        // Manual close: do not emit error or reconnect
-        if (this.isManualClose) {
-          return;
-        }
-
         // Handshake timeout: emit error
         if (didTimeout) {
           const timeoutError = new Error("Handshake timeout");
@@ -154,7 +161,7 @@ export class SSEClient {
         const { done, value } = await reader.read();
 
         if (done) {
-          this.readyState = SSEReadyState.CLOSED;
+          this.setReadyState(SSEReadyState.CLOSED);
           this.handlers.onClose?.();
           break;
         }
@@ -175,10 +182,8 @@ export class SSEClient {
         }
       }
     } catch (error) {
-      this.readyState = SSEReadyState.CLOSED;
-      if (!this.isManualClose) {
-        this.handlers.onError?.(error as Error);
-      }
+      this.setReadyState(SSEReadyState.CLOSED);
+      this.handlers.onError?.(error as Error);
     } finally {
       reader.releaseLock();
     }
@@ -223,35 +228,18 @@ export class SSEClient {
     return this.readyState;
   }
 
-  updateOptions(options: SSEOptions): void {
-    this.options = this.resolveOptions(options);
-  }
-
-  updateHandlers(handlers?: SSEEventHandlers): void {
-    this.handlers = handlers ?? {};
-  }
-
   /**
    * Close the SSE connection
    */
   close(): void {
-    // Only call onClose if we had an active connection
-    const wasConnected =
-      this.readyState === SSEReadyState.OPEN ||
-      this.readyState === SSEReadyState.CONNECTING;
-
-    this.isManualClose = true;
-    this.readyState = SSEReadyState.CLOSED;
+    this.setReadyState(SSEReadyState.CLOSED);
 
     if (this.abortController) {
       this.abortController.abort();
       this.abortController = null;
     }
 
-    // Only trigger onClose callback if there was an actual connection
-    if (wasConnected) {
-      this.handlers.onClose?.();
-    }
+    this.handlers.onClose?.();
   }
 
   /**

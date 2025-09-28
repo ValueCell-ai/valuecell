@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from datetime import datetime, date
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, AsyncGenerator
 import re
 
 from langchain_core.messages import HumanMessage
@@ -10,6 +10,7 @@ from langgraph.graph import StateGraph, MessagesState, START, END
 from pydantic import BaseModel, Field, field_validator
 from valuecell.core.agent.decorator import create_wrapped_agent
 from valuecell.core.types import BaseAgent
+from valuecell.core import StreamResponse, streaming
 
 from tradingagents.graph.trading_graph import TradingAgentsGraph
 from tradingagents.default_config import DEFAULT_CONFIG
@@ -29,6 +30,48 @@ COMMON_TICKERS = {
     "AMZN": "Amazon.com Inc.",
     "META": "Meta Platforms Inc.",
     "NFLX": "Netflix Inc.",
+    "BABA": "Alibaba Group Holding Limited",
+    "BIDU": "Baidu Inc.",
+    "JD": "JD.com Inc.",
+    "PDD": "Pinduoduo Inc.",
+    "WB": "Weibo Corporation",
+    "TME": "Tencent Music Entertainment Group",
+    "NTES": "NetEase Inc.",
+    "BILI": "Bilibili Inc.",
+    "YFIN": "Yahoo Finance",
+    "TCEHY": "Tencent Holdings Limited",
+    "TCOM": "TCOM Inc.",
+    "ALIB": "Alibaba Group Holding Limited",
+    "WUBA": "58.com Inc.",
+    "XOM": "Exxon Mobil Corporation",
+    "CVX": "Chevron Corporation",
+    "GE": "General Electric Company",
+    "BA": "Boeing Company",
+    "CAT": "Caterpillar Inc.",
+    "CSCO": "Cisco Systems Inc.",
+    "DD": "DuPont de Nemours Inc.",
+    "HON": "Honeywell International Inc.",
+    "IBM": "International Business Machines Corporation",
+    "JNJ": "Johnson & Johnson",
+    "JPM": "JPMorgan Chase & Co.",
+    "KO": "Coca-Cola Company",
+    "MCD": "McDonald's Corporation",
+    "MMM": "3M Company",
+    "NKE": "Nike Inc.",
+    "PFE": "Pfizer Inc.",
+    "PG": "Procter & Gamble Company",
+    "RTX": "Raytheon Technologies Corporation",
+    "SBUX": "Starbucks Corporation",
+    "UNH": "UnitedHealth Group Inc.",
+    "VZ": "Verizon Communications Inc.",
+    "WMT": "Walmart Inc.",
+    "WBA": "Walgreens Boots Alliance Inc.",
+    "XOM": "Exxon Mobil Corporation",
+    "AMZN": "Amazon.com Inc.",
+    "BAC": "Bank of America Corporation",
+    "HOOD": "Robinhood Markets Inc.",
+    "META": "Meta Platforms Inc.",
+    "DJI": "Dow Jones Industrial Average",
     "SPY": "SPDR S&P 500 ETF"
 }
 
@@ -144,7 +187,7 @@ class TradingAgentsAdapter(BaseAgent):
     def __init__(self):
         super().__init__()
         # Initialize LLM for query parsing
-        self.parsing_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        self.parsing_llm = ChatOpenAI(model="gpt-4o", temperature=0)
         
         # Keep track of current trading graph instance
         self._current_graph: Optional[TradingAgentsGraph] = None
@@ -234,7 +277,9 @@ class TradingAgentsAdapter(BaseAgent):
         
         return graph.compile()
 
-    async def stream(self, query: str, session_id: str, task_id: str):
+    async def stream(
+        self, query: str, session_id: str, task_id: str
+    ) -> AsyncGenerator[StreamResponse, None]:
         """Process trading analysis request and stream results"""
         logger.info(f"Processing trading query: {query}. Task ID: {task_id}, Session ID: {session_id}")
         
@@ -254,21 +299,18 @@ class TradingAgentsAdapter(BaseAgent):
             # Handle different outcomes
             if final_state.get("is_help_request"):
                 help_content = self._generate_help_content()
-                yield {
-                    "content": help_content,
-                    "is_task_complete": True,
-                }
+                yield streaming.message_chunk(help_content)
+                yield streaming.done()
                 return
             
             if final_state.get("current_step") == "error" or not final_state.get("parsed_request"):
-                yield {
-                    "content": f"❌ Unable to parse query: {query}\n\nPlease try similar format:\n"
-                              f"- 'Analyze AAPL stock'\n"
-                              f"- 'Use all analysts to analyze NVDA'\n"
-                              f"- 'Use GPT-4 to analyze TSLA, date 2024-01-15'\n"
-                              f"- 'What are the available stock codes?'\n",
-                    "is_task_complete": True,
-                }
+                error_content = (f"❌ Unable to parse query: {query}\n\nPlease try similar format:\n"
+                               f"- 'Analyze AAPL stock'\n"
+                               f"- 'Use all analysts to analyze NVDA'\n"
+                               f"- 'Use GPT-4 to analyze TSLA, date 2024-01-15'\n"
+                               f"- 'What are the available stock codes?'\n")
+                yield streaming.message_chunk(error_content)
+                yield streaming.done()
                 return
             
             trading_request = final_state["parsed_request"]
@@ -281,23 +323,18 @@ class TradingAgentsAdapter(BaseAgent):
             config = self._create_config(trading_request)
             
             # Yield configuration info
-            yield {
-                "content": f"🔧 **Configuration information**\n"
-                          f"- Stock code: {trading_request.ticker}\n"
-                          f"- Analysis date: {trading_request.trade_date}\n"
-                          f"- Selected analysts: {', '.join(trading_request.selected_analysts)}\n"
-                          f"- LLM provider: {config['llm_provider']}\n"
-                          f"- Deep thinking model: {config['deep_think_llm']}\n"
-                          f"- Quick thinking model: {config['quick_think_llm']}\n"
-                          f"- Debug mode: {'Yes' if trading_request.debug else 'No'}\n\n",
-                "is_task_complete": False,
-            }
+            config_content = (f"🔧 **Configuration information**\n"
+                            f"- Stock code: {trading_request.ticker}\n"
+                            f"- Analysis date: {trading_request.trade_date}\n"
+                            f"- Selected analysts: {', '.join(trading_request.selected_analysts)}\n"
+                            f"- LLM provider: {config['llm_provider']}\n"
+                            f"- Deep thinking model: {config['deep_think_llm']}\n"
+                            f"- Quick thinking model: {config['quick_think_llm']}\n"
+                            f"- Debug mode: {'Yes' if trading_request.debug else 'No'}\n\n")
+            yield streaming.message_chunk(config_content)
 
             # Create TradingAgentsGraph instance
-            yield {
-                "content": "🚀 **Starting to initialize trading analysis system...**\n",
-                "is_task_complete": False,
-            }
+            yield streaming.message_chunk("🚀 **Starting to initialize trading analysis system...**\n")
 
             self._current_graph = TradingAgentsGraph(
                 selected_analysts=trading_request.selected_analysts,
@@ -305,10 +342,7 @@ class TradingAgentsAdapter(BaseAgent):
                 config=config
             )
 
-            yield {
-                "content": "✅ **System initialized, starting analysis...**\n\n",
-                "is_task_complete": False,
-            }
+            yield streaming.message_chunk("✅ **System initialized, starting analysis...**\n\n")
 
             # Run the analysis
             final_state, processed_decision = self._current_graph.propagate(
@@ -324,11 +358,10 @@ class TradingAgentsAdapter(BaseAgent):
 
         except Exception as e:
             logger.error(f"Error in trading analysis: {e}", exc_info=True)
-            yield {
-                "content": f"❌ **Error in analysis process**: {str(e)}\n\n"
-                          f"Please check parameters and try again. If you need help, please enter 'help' or 'help'.",
-                "is_task_complete": True,
-            }
+            error_content = (f"❌ **Error in analysis process**: {str(e)}\n\n"
+                           f"Please check parameters and try again. If you need help, please enter 'help' or 'help'.")
+            yield streaming.message_chunk(error_content)
+            yield streaming.done()
 
     def _rule_based_parse(self, query: str) -> dict:
         """Rule-based query parsing to extract trading parameters"""
@@ -357,7 +390,7 @@ class TradingAgentsAdapter(BaseAgent):
         
         # Extract analysts
         selected_analysts = []
-        if "所有分析师" in query or "全部分析师" in query:
+        if "All Analysts" in query or "全部分析师" in query:
             selected_analysts = AVAILABLE_ANALYSTS
         else:
             for analyst in AVAILABLE_ANALYSTS:
@@ -459,82 +492,51 @@ If you have any other questions, please feel free to ask!
         
         # Market Analysis
         if final_state.get("market_report"):
-            yield {
-                "content": f"📈 **Market analysis report**\n{final_state['market_report']}\n\n",
-                "is_task_complete": False,
-            }
+            yield streaming.message_chunk(f"📈 **Market analysis report**\n{final_state['market_report']}\n\n")
 
         # Sentiment Analysis  
         if final_state.get("sentiment_report"):
-            yield {
-                "content": f"😊 **Sentiment analysis report**\n{final_state['sentiment_report']}\n\n",
-                "is_task_complete": False,
-            }
+            yield streaming.message_chunk(f"😊 **Sentiment analysis report**\n{final_state['sentiment_report']}\n\n")
 
         # News Analysis
         if final_state.get("news_report"):
-            yield {
-                "content": f"📰 **News analysis report**\n{final_state['news_report']}\n\n",
-                "is_task_complete": False,
-            }
+            yield streaming.message_chunk(f"📰 **News analysis report**\n{final_state['news_report']}\n\n")
 
         # Fundamentals Analysis
         if final_state.get("fundamentals_report"):
-            yield {
-                "content": f"📊 **Fundamentals analysis report**\n{final_state['fundamentals_report']}\n\n",
-                "is_task_complete": False,
-            }
+            yield streaming.message_chunk(f"📊 **Fundamentals analysis report**\n{final_state['fundamentals_report']}\n\n")
 
         # Investment Debate Results
         if final_state.get("investment_debate_state", {}).get("judge_decision"):
-            yield {
-                "content": f"⚖️ **Investment debate results**\n{final_state['investment_debate_state']['judge_decision']}\n\n",
-                "is_task_complete": False,
-            }
+            yield streaming.message_chunk(f"⚖️ **Investment debate results**\n{final_state['investment_debate_state']['judge_decision']}\n\n")
 
         # Trader Decision
         if final_state.get("trader_investment_plan"):
-            yield {
-                "content": f"💼 **Trader investment plan**\n{final_state['trader_investment_plan']}\n\n",
-                "is_task_complete": False,
-            }
+            yield streaming.message_chunk(f"💼 **Trader investment plan**\n{final_state['trader_investment_plan']}\n\n")
 
         # Risk Management
         if final_state.get("risk_debate_state", {}).get("judge_decision"):
-            yield {
-                "content": f"⚠️ **Risk management assessment**\n{final_state['risk_debate_state']['judge_decision']}\n\n",
-                "is_task_complete": False,
-            }
+            yield streaming.message_chunk(f"⚠️ **Risk management assessment**\n{final_state['risk_debate_state']['judge_decision']}\n\n")
 
         # Final Investment Plan
         if final_state.get("investment_plan"):
-            yield {
-                "content": f"📋 **Final investment plan**\n{final_state['investment_plan']}\n\n",
-                "is_task_complete": False,
-            }
+            yield streaming.message_chunk(f"📋 **Final investment plan**\n{final_state['investment_plan']}\n\n")
 
         # Final Decision
         if final_state.get("final_trade_decision"):
-            yield {
-                "content": f"🎯 **Final trade decision**\n{final_state['final_trade_decision']}\n\n",
-                "is_task_complete": False,
-            }
+            yield streaming.message_chunk(f"🎯 **Final trade decision**\n{final_state['final_trade_decision']}\n\n")
 
         # Processed Signal
         if processed_decision:
-            yield {
-                "content": f"🚦 **Processed trade signal**\n{processed_decision}\n\n",
-                "is_task_complete": False,
-            }
+            yield streaming.message_chunk(f"🚦 **Processed trade signal**\n{processed_decision}\n\n")
 
         # Summary
-        yield {
-            "content": f"✅ **Analysis completed**\n\n"
-                      f"Stock {request.ticker} on {request.trade_date} analysis completed.\n"
-                      f"Used analysts: {', '.join(request.selected_analysts)}\n\n"
-                      f"If you need to re-analyze or analyze other stocks, please send a new query.",
-            "is_task_complete": True,
-        }
+        summary_content = (f"✅ **Analysis completed**\n\n"
+                          f"Stock {request.ticker} on {request.trade_date} analysis completed.\n"
+                          f"Used analysts: {', '.join(request.selected_analysts)}\n\n"
+                          f"If you need to re-analyze or analyze other stocks, please send a new query.")
+        yield streaming.message_chunk(summary_content)
+        yield streaming.done()
 
 
 if __name__ == "__main__":

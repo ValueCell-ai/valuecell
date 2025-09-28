@@ -1,15 +1,11 @@
-"""Task module initialization"""
+"""Task module public API"""
 
-from .manager import TaskManager, get_default_task_manager
-from .models import Task, TaskStatus, TaskPattern
-from .store import InMemoryTaskStore, TaskStore
+from .manager import TaskManager
+from .models import Task, TaskPattern, TaskStatus
 
 __all__ = [
     "Task",
     "TaskStatus",
     "TaskPattern",
     "TaskManager",
-    "TaskStore",
-    "InMemoryTaskStore",
-    "get_default_task_manager",
 ]

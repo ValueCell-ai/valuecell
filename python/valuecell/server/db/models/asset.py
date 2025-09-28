@@ -4,8 +4,9 @@ ValueCell Server - Asset Models
 This module defines the database models for assets in the ValueCell system.
 """
 
-from typing import Dict, Any
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, JSON, Numeric
+from typing import Any, Dict
+
+from sqlalchemy import JSON, Boolean, Column, DateTime, Integer, Numeric, String, Text
 from sqlalchemy.sql import func
 
 from .base import Base

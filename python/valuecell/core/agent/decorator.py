@@ -16,20 +16,31 @@ from a2a.server.tasks import (
 from a2a.types import AgentCard, TaskState, UnsupportedOperationError
 from a2a.utils import new_agent_text_message, new_task
 from a2a.utils.errors import ServerError
+
 from valuecell.core.agent.card import find_local_agent_card_by_agent_name
 from valuecell.core.types import (
     BaseAgent,
+    CommonResponseEvent,
     NotifyResponse,
     StreamResponse,
-    CommonResponseEvent,
 )
 from valuecell.utils import parse_host_port
+
 from .responses import EventPredicates
 
 logger = logging.getLogger(__name__)
 
 
 def _serve(agent_card: AgentCard):
+    """Create a decorator that wraps an agent class with server capabilities.
+
+    Args:
+        agent_card: The agent card containing configuration
+
+    Returns:
+        A decorator function that adds serve() method to agent classes
+    """
+
     def decorator(cls: Type) -> Type:
         # Determine the agent name consistently
         agent_name = cls.__name__
@@ -99,14 +110,34 @@ def _serve(agent_card: AgentCard):
 
 
 class GenericAgentExecutor(AgentExecutor):
+    """Generic executor for BaseAgent implementations.
+
+    Handles the execution lifecycle including task creation, streaming responses,
+    and error handling for agents that implement the BaseAgent interface.
+    """
+
     def __init__(self, agent: BaseAgent):
+        """Initialize the executor with an agent instance.
+
+        Args:
+            agent: The agent instance to execute
+        """
         self.agent = agent
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
+        """Execute the agent with the given context and event queue.
+
+        Handles task creation if needed, streams responses from the agent,
+        and updates task status throughout execution.
+
+        Args:
+            context: The request context containing user input and metadata
+            event_queue: Queue for sending events back to the client
+        """
         # Prepare query and ensure a task exists in the system
         query = context.get_user_input()
         task = context.current_task
-        task_meta = context.metadata
+        task_meta = context.message.metadata
         agent_name = self.agent.__class__.__name__
         if not task:
             message = context.message
@@ -116,21 +147,23 @@ class GenericAgentExecutor(AgentExecutor):
 
         # Helper state
         task_id = task.id
-        session_id = task.context_id
-        updater = TaskUpdater(event_queue, task_id, session_id)
+        context_id = task.context_id
+        updater = TaskUpdater(event_queue, task_id, context_id)
 
         # Stream from the user agent and update task incrementally
         await updater.update_status(
             TaskState.working,
             message=new_agent_text_message(
-                f"Task received by {agent_name}", session_id, task_id
+                f"Task received by {agent_name}", context_id, task_id
             ),
         )
         try:
             query_handler = (
-                self.agent.notify if task_meta.get("notify") else self.agent.stream
+                self.agent.notify
+                if task_meta and task_meta.get("notify")
+                else self.agent.stream
             )
-            async for response in query_handler(query, session_id, task_id):
+            async for response in query_handler(query, context_id, task_id):
                 if not isinstance(response, (StreamResponse, NotifyResponse)):
                     raise ValueError(
                         f"Agent {agent_name} yielded invalid response type: {type(response)}"
@@ -176,21 +209,52 @@ class GenericAgentExecutor(AgentExecutor):
             logger.error(message)
             await updater.update_status(
                 TaskState.failed,
-                message=new_agent_text_message(message, session_id, task_id),
+                message=new_agent_text_message(message, context_id, task_id),
             )
         finally:
             await updater.complete()
 
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
+        """Cancel the current agent execution.
+
+        Args:
+            context: The request context
+            event_queue: Queue for sending events
+
+        Raises:
+            ServerError: Always raises as cancel is not supported
+        """
         # Default cancel operation
         raise ServerError(error=UnsupportedOperationError())
 
 
 def _create_agent_executor(agent_instance):
+    """Create a GenericAgentExecutor for the given agent instance.
+
+    Args:
+        agent_instance: The agent instance to wrap
+
+    Returns:
+        GenericAgentExecutor instance
+    """
     return GenericAgentExecutor(agent_instance)
 
 
 def create_wrapped_agent(agent_class: Type[BaseAgent]):
+    """Create a wrapped agent instance with server capabilities.
+
+    Loads the agent card from local configuration and wraps the agent class
+    with server functionality.
+
+    Args:
+        agent_class: The agent class to wrap
+
+    Returns:
+        Wrapped agent instance ready to serve
+
+    Raises:
+        ValueError: If no agent configuration is found
+    """
     # Get agent configuration from agent cards
     agent_card = find_local_agent_card_by_agent_name(agent_class.__name__)
     if not agent_card:

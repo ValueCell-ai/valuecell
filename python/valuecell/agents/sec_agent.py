@@ -1,23 +1,25 @@
 import asyncio
 import hashlib
+import json
 import logging
 import os
 from datetime import datetime
 from enum import Enum
-from typing import Dict, Iterator, AsyncGenerator
+from typing import AsyncGenerator, Dict, Iterator
 
-from agno.agent import Agent, RunResponse, RunResponseEvent  # noqa
+from agno.agent import Agent, RunResponseEvent
 from agno.models.openrouter import OpenRouter
 from edgar import Company, set_identity
 from pydantic import BaseModel, Field, field_validator
 
-from valuecell.core.agent.responses import streaming, notification
-from valuecell.core.types import BaseAgent, StreamResponse
 from valuecell.core.agent.decorator import create_wrapped_agent
+from valuecell.core.agent.responses import notification, streaming
+from valuecell.core.types import BaseAgent, StreamResponse
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+SEC_FILLINGS_COMPONENT_TYPE = "sec_feed"
 
 
 class QueryType(str, Enum):
@@ -68,7 +70,7 @@ class Sec13FundAgentConfig:
         self.sec_email = os.getenv("SEC_EMAIL", "your.name@example.com")
         self.parser_model_id = os.getenv("SEC_PARSER_MODEL_ID", "openai/gpt-4o-mini")
         self.analysis_model_id = os.getenv(
-            "SEC_ANALYSIS_MODEL_ID", "deepseek/deepseek-chat-v3-0324"
+            "SEC_ANALYSIS_MODEL_ID", "google/gemini-2.5-pro"
         )
         self.max_filings = int(os.getenv("SEC_MAX_FILINGS", "5"))
         self.request_timeout = int(os.getenv("SEC_REQUEST_TIMEOUT", "30"))
@@ -102,7 +104,7 @@ class SecAgent(BaseAgent):
             )
             # Analysis agent
             self.analysis_agent = Agent(
-                model=OpenRouter(id=self.config.analysis_model_id),
+                model=OpenRouter(id=self.config.analysis_model_id, max_tokens=None),
                 markdown=True,
             )
             logger.info("SEC intelligent analysis agent initialized successfully")
@@ -125,11 +127,11 @@ class SecAgent(BaseAgent):
             Query: {query}
             """
 
-            response = self.analysis_agent.run(extraction_prompt)
+            response = await self.analysis_agent.arun(extraction_prompt)
             ticker = response.content.strip().upper()
 
             # Basic validation
-            if ticker == "UNKNOWN" or len(ticker) > 10 or not ticker.isalpha():
+            if ticker == "UNKNOWN" or len(ticker) > 10:
                 raise ValueError(f"Invalid ticker extracted: {ticker}")
 
             logger.info(f"Extracted ticker: {ticker} from query: {query}")
@@ -151,9 +153,8 @@ class SecAgent(BaseAgent):
             for filing_type in filing_types:
                 try:
                     # Get the most recent filing of this type
-                    filings = company.get_filings(form=filing_type).latest(1)
-                    if filings:
-                        filing = filings[0]
+                    filing = company.get_filings(form=filing_type).latest()
+                    if filing:
                         # Create a hash of the filing content/metadata
                         filing_content = f"{filing.accession_number}_{filing.filing_date}_{filing.form}"
                         filing_hash = hashlib.md5(filing_content.encode()).hexdigest()
@@ -203,7 +204,7 @@ class SecAgent(BaseAgent):
     async def _generate_filing_summary(
         self, ticker: str, changed_filings: Dict[str, bool]
     ) -> str:
-        """Generate AI summary of filing changes"""
+        """Generate AI summary of filing changes in JSON format"""
         try:
             changed_types = [
                 filing_type
@@ -212,7 +213,7 @@ class SecAgent(BaseAgent):
             ]
 
             if not changed_types:
-                return f"No new filings detected for {ticker}."
+                return ""
 
             summary_prompt = f"""
             New SEC filings have been detected for {ticker}. The following filing types have been updated:
@@ -229,12 +230,27 @@ class SecAgent(BaseAgent):
             Keep the summary concise but informative (2-3 paragraphs maximum).
             """
 
-            response = self.analysis_agent.run(summary_prompt)
-            return response.content
+            response = await self.analysis_agent.arun(summary_prompt)
+
+            # Create JSON structure
+            summary_data = {
+                "ticker": ticker,
+                "source": "SEC",
+                "data": response.content,
+                "create_time": datetime.now().isoformat(),
+            }
+
+            return json.dumps(summary_data)
 
         except Exception as e:
             logger.error(f"Failed to generate filing summary: {e}")
-            return f"New filings detected for {ticker}: {', '.join(changed_types)}, but summary generation failed."
+            error_summary_data = {
+                "ticker": ticker,
+                "source": "SEC",
+                "data": f"New filings detected for {ticker}: {', '.join(changed_types) if 'changed_types' in locals() else 'unknown'}, but summary generation failed.",
+                "create_time": datetime.now().isoformat(),
+            }
+            return ""
 
     async def _classify_query(self, query: str) -> QueryType:
         """
@@ -257,7 +273,7 @@ class SecAgent(BaseAgent):
         """
 
         try:
-            response = self.classifier_agent.run(classification_prompt)
+            response = await self.classifier_agent.arun(classification_prompt)
             return response.content.query_type
         except Exception as e:
             logger.warning(
@@ -266,9 +282,7 @@ class SecAgent(BaseAgent):
             # If classification fails, default to 13F analysis (maintains backward compatibility)
             return QueryType.FUND_HOLDINGS
 
-    async def _process_financial_data_query(
-        self, ticker: str, session_id: str, task_id: str
-    ):
+    async def _process_financial_data_query(self, ticker: str):
         """
         Process financial data queries (10-K, 8-K, 10-Q)
         """
@@ -344,10 +358,12 @@ class SecAgent(BaseAgent):
             Please ensure the analysis is objective and professional, based on actual data, avoiding excessive speculation.
             """
 
-            response_stream: Iterator[RunResponseEvent] = self.analysis_agent.run(
+            response_stream: Iterator[
+                RunResponseEvent
+            ] = await self.analysis_agent.arun(
                 analysis_prompt, stream=True, stream_intermediate_steps=True
             )
-            for event in response_stream:
+            async for event in response_stream:
                 if event.event == "RunResponseContent":
                     yield streaming.message_chunk(event.content)
                 elif event.event == "ToolCallStarted":
@@ -358,17 +374,13 @@ class SecAgent(BaseAgent):
                     yield streaming.tool_call_completed(
                         event.tool.result, event.tool.tool_call_id, event.tool.tool_name
                     )
-                elif event.event == "ReasoningStep":
-                    yield streaming.reasoning(event.reasoning_content)
             logger.info("Financial data analysis completed")
 
             yield streaming.done()
         except Exception as e:
             yield streaming.failed(f"Financial data query failed: {e}")
 
-    async def _process_fund_holdings_query(
-        self, ticker: str, session_id: str, task_id: str
-    ):
+    async def _process_fund_holdings_query(self, ticker: str):
         """
         Process 13F fund holdings queries (original logic)
         """
@@ -424,7 +436,6 @@ class SecAgent(BaseAgent):
             - Specific changes in top 10 holdings
             - Calculate increase/decrease percentages for major positions
             - Analyze possible reasons for significant position adjustments
-
             ### 4. Investment Strategy Insights
             - Investment style adjustments reflected in holdings changes
             - Market trend judgments and responses
@@ -440,10 +451,12 @@ class SecAgent(BaseAgent):
             Please ensure the analysis is objective and professional, based on actual data, avoiding excessive speculation.
             """
 
-            response_stream: Iterator[RunResponseEvent] = self.analysis_agent.run(
+            response_stream: Iterator[
+                RunResponseEvent
+            ] = await self.analysis_agent.arun(
                 analysis_prompt, stream=True, stream_intermediate_steps=True
             )
-            for event in response_stream:
+            async for event in response_stream:
                 if event.event == "RunResponseContent":
                     yield streaming.message_chunk(event.content)
                 elif event.event == "ToolCallStarted":
@@ -454,8 +467,6 @@ class SecAgent(BaseAgent):
                     yield streaming.tool_call_completed(
                         event.tool.result, event.tool.tool_call_id, event.tool.tool_name
                     )
-                elif event.event == "ReasoningStep":
-                    yield streaming.reasoning(event.reasoning_content)
             logger.info("Financial data analysis completed")
 
             streaming.done()
@@ -512,14 +523,10 @@ class SecAgent(BaseAgent):
 
             # 3. Route to appropriate processing method based on query type
             if query_type == QueryType.FINANCIAL_DATA:
-                async for result in self._process_financial_data_query(
-                    ticker, session_id, task_id
-                ):
+                async for result in self._process_financial_data_query(ticker):
                     yield result
             else:  # QueryType.FUND_HOLDINGS
-                async for result in self._process_fund_holdings_query(
-                    ticker, session_id, task_id
-                ):
+                async for result in self._process_fund_holdings_query(ticker):
                     yield result
 
         except Exception as e:
@@ -580,7 +587,10 @@ class SecAgent(BaseAgent):
                                 ticker, changes
                             )
 
-                            yield notification.message(summary)
+                            if summary:
+                                yield notification.component_generator(
+                                    summary, SEC_FILLINGS_COMPONENT_TYPE
+                                )
 
                     # Wait before next check
                     await asyncio.sleep(check_interval)

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from a2a.types import AgentCard
+
 from valuecell.core.agent.card import parse_local_agent_card_dict
 from valuecell.core.agent.client import AgentClient
 from valuecell.core.agent.listener import NotificationListener
@@ -17,7 +18,10 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class AgentContext:
-    """Unified context for remote agents."""
+    """Unified context for remote agents.
+
+    Stores connection state, URLs, and configuration for a remote agent.
+    """
 
     name: str
     # Connection/runtime state
@@ -132,8 +136,8 @@ class RemoteConnections:
                 ctx.desired_listener_port = listener_port
                 ctx.notification_callback = notification_callback
 
-            # If already connected, return card (may be None if only URL known)
-            if ctx.client:
+            # If already connected, return card
+            if ctx.client and ctx.client.agent_card:
                 return ctx.client.agent_card
 
             # Ensure client connection (uses URL from context)
@@ -169,24 +173,51 @@ class RemoteConnections:
 
     async def _ensure_client(self, ctx: AgentContext) -> None:
         """Ensure AgentClient is created and connected."""
-        if ctx.client:
+        # Only treat as connected if a client exists AND has a resolved agent_card
+        if ctx.client and getattr(ctx.client, "agent_card", None):
             return
         url = ctx.url or (ctx.local_agent_card.url if ctx.local_agent_card else None)
         if not url:
             raise ValueError(f"Unable to determine URL for agent '{ctx.name}'")
-        ctx.client = AgentClient(url, push_notification_url=ctx.listener_url)
-        await ctx.client.ensure_initialized()
-        logger.info(f"Connected to agent '{ctx.name}' at {url}")
-        if ctx.listener_url:
-            logger.info(f"  └─ with listener at {ctx.listener_url}")
+        # Initialize a temporary client; only assign to context on success
+        tmp_client = AgentClient(url, push_notification_url=ctx.listener_url)
+        try:
+            await tmp_client.ensure_initialized()
+            # Ensure agent card was resolved by the resolver
+            if not getattr(tmp_client, "agent_card", None):
+                raise RuntimeError("Agent card resolution returned None")
+            # Success: assign to context
+            ctx.client = tmp_client
+            logger.info(f"Connected to agent '{ctx.name}' at {url}")
+            if ctx.listener_url:
+                logger.info(f"  └─ with listener at {ctx.listener_url}")
+        except Exception as e:
+            # Defensive: close any underlying resources of the temporary client
+            try:
+                await tmp_client.close()
+            except Exception:
+                pass
+            logger.error(f"Failed to initialize client for '{ctx.name}' at {url}: {e}")
+            raise
 
     async def _start_listener(
         self,
         host: str = "localhost",
         port: Optional[int] = None,
-        notification_callback: callable = None,
+        notification_callback: NotificationCallbackType = None,
     ) -> tuple[asyncio.Task, str]:
-        """Start a NotificationListener and return (task, url)."""
+        """Start a NotificationListener and return (task, url).
+
+        Args:
+            host: Host to bind the listener to.
+            port: Optional port to bind; if None a free port will be selected.
+            notification_callback: Callback invoked when notifications arrive;
+                should conform to `NotificationCallbackType`.
+
+        Returns:
+            Tuple of (asyncio.Task, listener_url) where listener_url is the
+            http URL where notifications should be posted.
+        """
         if port is None:
             port = get_next_available_port(5000)
         listener = NotificationListener(
@@ -253,7 +284,12 @@ class RemoteConnections:
 
     def list_running_agents(self) -> List[str]:
         """List running agents"""
-        return [name for name, ctx in self._contexts.items() if ctx.client]
+        # An agent is considered running only if the client exists and has a resolved card
+        return [
+            name
+            for name, ctx in self._contexts.items()
+            if ctx.client and getattr(ctx.client, "agent_card", None)
+        ]
 
     def list_available_agents(self) -> List[str]:
         """List all available agents from local config cards"""
@@ -277,13 +313,3 @@ class RemoteConnections:
         if ctx.local_agent_card:
             return ctx.local_agent_card
         return None
-
-
-# Global default instance for backward compatibility and ease of use
-_default_remote_connections = RemoteConnections()
-
-
-# Convenience functions that delegate to the default instance
-def get_default_remote_connections() -> RemoteConnections:
-    """Get the default RemoteConnections instance"""
-    return _default_remote_connections

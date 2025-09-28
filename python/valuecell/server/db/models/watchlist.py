@@ -4,19 +4,20 @@ ValueCell Server - Watchlist Models
 This module defines the database models for user watchlists in the ValueCell system.
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from sqlalchemy import (
+    Boolean,
     Column,
+    DateTime,
+    ForeignKey,
     Integer,
     String,
     Text,
-    Boolean,
-    DateTime,
-    ForeignKey,
     UniqueConstraint,
 )
-from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 
 from .base import Base
 
@@ -130,6 +131,13 @@ class WatchlistItem(Base):
         comment="Stock ticker in format 'EXCHANGE:SYMBOL' (e.g., NASDAQ:AAPL)",
     )
 
+    # Display name from search results, falls back to symbol if not available
+    display_name = Column(
+        String(200),
+        nullable=True,
+        comment="Display name from search results, falls back to symbol if not available",
+    )
+
     # User notes about this stock
     notes = Column(Text, nullable=True, comment="User notes about this stock")
 
@@ -169,6 +177,7 @@ class WatchlistItem(Base):
             "id": self.id,
             "watchlist_id": self.watchlist_id,
             "ticker": self.ticker,
+            "display_name": self.display_name,
             "notes": self.notes,
             "order_index": self.order_index,
             "added_at": self.added_at.isoformat() if self.added_at else None,

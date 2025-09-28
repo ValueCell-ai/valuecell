@@ -218,3 +218,6 @@ __marimo__/
 *csv
 *xlsx
 *xls
+
+# MACOS
+.DS_Store

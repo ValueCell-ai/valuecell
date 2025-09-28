@@ -4,6 +4,7 @@ import {
   AgentMenuIcon,
   AgentMenuTitle,
 } from "@valuecell/menus/agent-menus";
+import { Link } from "react-router";
 import { Marquee } from "@/components/magicui/marquee";
 import { cn } from "@/lib/utils";
 
@@ -82,23 +83,25 @@ function AgentRecommendItem({
   ...props
 }: AgentRecommendItemProps) {
   return (
-    <AgentMenu
-      className={cn(
-        "w-auto min-w-fit shrink-0 gap-2 rounded-[10px] border-0 bg-[#eef0f3] px-4 py-3",
-        className,
-      )}
-      onClick={recommendation.onClick}
-      {...props}
-    >
-      <AgentMenuContent className="gap-2">
-        <AgentMenuIcon className="size-8 bg-transparent p-0">
-          {recommendation.icon}
-        </AgentMenuIcon>
-        <AgentMenuTitle className="whitespace-nowrap text-sm leading-6">
-          {recommendation.title}
-        </AgentMenuTitle>
-      </AgentMenuContent>
-    </AgentMenu>
+    <Link to={`/agent/${recommendation.id}`}>
+      <AgentMenu
+        className={cn(
+          "w-auto min-w-fit shrink-0 gap-2 rounded-[10px] border-0 bg-[#eef0f3] px-4 py-3",
+          className,
+        )}
+        onClick={recommendation.onClick}
+        {...props}
+      >
+        <AgentMenuContent className="gap-2">
+          <AgentMenuIcon className="size-8 bg-transparent p-0">
+            {recommendation.icon}
+          </AgentMenuIcon>
+          <AgentMenuTitle className="whitespace-nowrap text-sm leading-6">
+            {recommendation.title}
+          </AgentMenuTitle>
+        </AgentMenuContent>
+      </AgentMenu>
+    </Link>
   );
 }
 

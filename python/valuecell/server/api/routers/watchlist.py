@@ -1,25 +1,26 @@
 """Watchlist related API routes."""
 
-from typing import Optional, List
-from datetime import datetime, timedelta
-from fastapi import APIRouter, HTTPException, Query, Path
+from typing import List, Optional
 
+from fastapi import APIRouter, HTTPException, Path, Query
+
+from ....utils.i18n_utils import parse_and_validate_utc_dates
+from ...db.repositories.watchlist_repository import get_watchlist_repository
+from ...services.assets.asset_service import get_asset_service
 from ..schemas import (
+    AddAssetRequest,
+    AssetDetailData,
+    AssetHistoricalPriceData,
+    AssetHistoricalPricesData,
+    AssetInfoData,
+    AssetPriceData,
+    AssetSearchResultData,
+    CreateWatchlistRequest,
     SuccessResponse,
+    UpdateAssetNotesRequest,
     WatchlistData,
     WatchlistItemData,
-    CreateWatchlistRequest,
-    AddStockRequest,
-    UpdateStockNotesRequest,
-    AssetSearchResultData,
-    AssetInfoData,
-    AssetDetailData,
-    AssetPriceData,
-    AssetHistoricalPricesData,
-    AssetHistoricalPriceData,
 )
-from ...services.assets.asset_service import get_asset_service
-from ...db.repositories.watchlist_repository import get_watchlist_repository
 
 # Global default user ID for open source API
 DEFAULT_USER_ID = "default_user"
@@ -189,6 +190,9 @@ def create_watchlist_router() -> APIRouter:
                     item_dict = item.to_dict()
                     item_dict["exchange"] = item.exchange
                     item_dict["symbol"] = item.symbol
+                    # Use display_name if available, otherwise fallback to symbol
+                    if not item_dict.get("display_name"):
+                        item_dict["display_name"] = item.symbol
                     items_data.append(WatchlistItemData(**item_dict))
 
                 # Convert watchlist to data format
@@ -245,9 +249,16 @@ def create_watchlist_router() -> APIRouter:
             # Convert assets to WatchlistItemData format
             items_data = []
             for asset in watchlist_info.get("assets", []):
+                symbol = (
+                    asset["ticker"].split(":")[1]
+                    if ":" in asset["ticker"]
+                    else asset["ticker"]
+                )
                 item_data = {
                     "id": 0,  # This would be set from database
                     "ticker": asset["ticker"],
+                    "display_name": asset.get("display_name")
+                    or symbol,  # Use display_name or fallback to symbol
                     "notes": asset.get("notes", ""),
                     "order_index": asset.get("order", 0),
                     "added_at": asset["added_at"],
@@ -255,9 +266,7 @@ def create_watchlist_router() -> APIRouter:
                     "exchange": asset["ticker"].split(":")[0]
                     if ":" in asset["ticker"]
                     else "",
-                    "symbol": asset["ticker"].split(":")[1]
-                    if ":" in asset["ticker"]
-                    else asset["ticker"],
+                    "symbol": symbol,
                 }
                 items_data.append(WatchlistItemData(**item_data))
 
@@ -292,7 +301,7 @@ def create_watchlist_router() -> APIRouter:
         description="Create a new watchlist",
     )
     async def create_watchlist(
-        request: CreateWatchlistRequest = None,
+        request: CreateWatchlistRequest,
     ):
         """Create a new watchlist."""
         try:
@@ -327,25 +336,26 @@ def create_watchlist_router() -> APIRouter:
             )
 
     @router.post(
-        "/stocks",
+        "/asset",
         response_model=SuccessResponse[dict],
-        summary="Add stock to watchlist",
-        description="Add a stock to a watchlist",
+        summary="Add asset to watchlist",
+        description="Add a asset to a watchlist",
     )
-    async def add_stock_to_watchlist(request: AddStockRequest = None):
-        """Add a stock to a watchlist."""
+    async def add_asset_to_watchlist(request: AddAssetRequest):
+        """Add a asset to a watchlist."""
         try:
-            success = watchlist_repo.add_stock_to_watchlist(
+            success = watchlist_repo.add_asset_to_watchlist(
                 user_id=DEFAULT_USER_ID,
                 ticker=request.ticker,
                 watchlist_name=request.watchlist_name,
+                display_name=request.display_name,
                 notes=request.notes or "",
             )
 
             if not success:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Failed to add stock '{request.ticker}' to watchlist. Stock may already exist or watchlist not found.",
+                    detail=f"Failed to add asset '{request.ticker}' to watchlist. Asset may already exist or watchlist not found.",
                 )
 
             return SuccessResponse.create(
@@ -354,38 +364,38 @@ def create_watchlist_router() -> APIRouter:
                     "watchlist_name": request.watchlist_name,
                     "notes": request.notes,
                 },
-                msg="Stock added to watchlist successfully",
+                msg="Asset added to watchlist successfully",
             )
 
         except HTTPException:
             raise
         except Exception as e:
             raise HTTPException(
-                status_code=500, detail=f"Failed to add stock: {str(e)}"
+                status_code=500, detail=f"Failed to add asset: {str(e)}"
             )
 
     @router.delete(
-        "/stocks/{ticker}",
+        "/asset/{ticker}",
         response_model=SuccessResponse[dict],
-        summary="Remove stock from watchlist",
-        description="Remove a stock from a watchlist",
+        summary="Remove asset from watchlist",
+        description="Remove a asset from a watchlist",
     )
-    async def remove_stock_from_watchlist(
-        ticker: str = Path(..., description="Stock ticker to remove"),
+    async def remove_asset_from_watchlist(
+        ticker: str = Path(..., description="Asset ticker to remove"),
         watchlist_name: Optional[str] = Query(
             None, description="Watchlist name (uses default if not provided)"
         ),
     ):
-        """Remove a stock from a watchlist."""
+        """Remove a asset from a watchlist."""
         try:
-            success = watchlist_repo.remove_stock_from_watchlist(
+            success = watchlist_repo.remove_asset_from_watchlist(
                 user_id=DEFAULT_USER_ID, ticker=ticker, watchlist_name=watchlist_name
             )
 
             if not success:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Stock '{ticker}' not found in watchlist or watchlist not found",
+                    detail=f"Asset '{ticker}' not found in watchlist or watchlist not found",
                 )
 
             return SuccessResponse.create(
@@ -393,14 +403,14 @@ def create_watchlist_router() -> APIRouter:
                     "ticker": ticker,
                     "watchlist_name": watchlist_name,
                 },
-                msg="Stock removed from watchlist successfully",
+                msg="Asset removed from watchlist successfully",
             )
 
         except HTTPException:
             raise
         except Exception as e:
             raise HTTPException(
-                status_code=500, detail=f"Failed to remove stock: {str(e)}"
+                status_code=500, detail=f"Failed to remove asset: {str(e)}"
             )
 
     @router.delete(
@@ -437,21 +447,21 @@ def create_watchlist_router() -> APIRouter:
             )
 
     @router.put(
-        "/stocks/{ticker}/notes",
+        "/asset/{ticker}/notes",
         response_model=SuccessResponse[dict],
-        summary="Update stock notes",
-        description="Update notes for a stock in a watchlist",
+        summary="Update asset notes",
+        description="Update notes for a asset in a watchlist",
     )
-    async def update_stock_notes(
-        ticker: str = Path(..., description="Stock ticker"),
-        request: UpdateStockNotesRequest = None,
+    async def update_asset_notes(
+        request: UpdateAssetNotesRequest,
+        ticker: str = Path(..., description="Asset ticker"),
         watchlist_name: Optional[str] = Query(
             None, description="Watchlist name (uses default if not provided)"
         ),
     ):
-        """Update notes for a stock in a watchlist."""
+        """Update notes for a asset in a watchlist."""
         try:
-            success = watchlist_repo.update_stock_notes(
+            success = watchlist_repo.update_asset_notes(
                 user_id=DEFAULT_USER_ID,
                 ticker=ticker,
                 notes=request.notes,
@@ -461,7 +471,7 @@ def create_watchlist_router() -> APIRouter:
             if not success:
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Stock '{ticker}' not found in watchlist or watchlist not found",
+                    detail=f"Asset '{ticker}' not found in watchlist or watchlist not found",
                 )
 
             return SuccessResponse.create(
@@ -470,7 +480,7 @@ def create_watchlist_router() -> APIRouter:
                     "notes": request.notes,
                     "watchlist_name": watchlist_name,
                 },
-                msg="Stock notes updated successfully",
+                msg="Asset notes updated successfully",
             )
 
         except HTTPException:
@@ -489,10 +499,12 @@ def create_watchlist_router() -> APIRouter:
     async def get_asset_historical_prices(
         ticker: str = Path(..., description="Asset ticker"),
         start_date: Optional[str] = Query(
-            None, description="Start date (YYYY-MM-DD), defaults to 30 days ago"
+            None,
+            description="Start date in UTC format (YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DDTHH:MM:SS.fffZ), defaults to 30 days ago",
         ),
         end_date: Optional[str] = Query(
-            None, description="End date (YYYY-MM-DD), defaults to today"
+            None,
+            description="End date in UTC format (YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DDTHH:MM:SS.fffZ), defaults to now",
         ),
         interval: str = Query("1d", description="Data interval (1d, 1h, 5m, etc.)"),
         language: Optional[str] = Query(
@@ -501,22 +513,8 @@ def create_watchlist_router() -> APIRouter:
     ):
         """Get historical prices for a asset."""
         try:
-            # Parse dates
-            if end_date:
-                end_dt = datetime.strptime(end_date, "%Y-%m-%d")
-            else:
-                end_dt = datetime.now()
-
-            if start_date:
-                start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-            else:
-                start_dt = end_dt - timedelta(days=30)
-
-            # Validate date range
-            if start_dt >= end_dt:
-                raise HTTPException(
-                    status_code=400, detail="Start date must be before end date"
-                )
+            # Parse and validate UTC dates using i18n_utils
+            start_dt, end_dt = parse_and_validate_utc_dates(start_date, end_date)
 
             # Get historical price data
             result = asset_service.get_historical_prices(
@@ -559,7 +557,7 @@ def create_watchlist_router() -> APIRouter:
             raise
         except ValueError as e:
             raise HTTPException(
-                status_code=400, detail=f"Invalid date format: {str(e)}"
+                status_code=400, detail=f"Invalid UTC datetime format: {str(e)}"
             )
         except Exception as e:
             raise HTTPException(

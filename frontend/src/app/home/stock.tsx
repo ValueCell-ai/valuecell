@@ -2,81 +2,154 @@ import BackButton from "@valuecell/button/back-button";
 import Sparkline from "@valuecell/charts/sparkline";
 import { StockIcon } from "@valuecell/menus/stock-menus";
 import { memo, useMemo } from "react";
-import { useParams } from "react-router";
-import { StockDetailsList } from "@/app/home/components";
+import { useNavigate, useParams } from "react-router";
+import {
+  useGetStockDetail,
+  useGetStockHistory,
+  useGetStockPrice,
+  useRemoveStockFromWatchlist,
+} from "@/api/stock";
 import { Button } from "@/components/ui/button";
 import { STOCK_BADGE_COLORS } from "@/constants/stock";
+import { TimeUtils } from "@/lib/time";
 import { formatChange, formatPrice, getChangeType } from "@/lib/utils";
-import { stockData } from "@/mock/stock-data";
 import type { SparklineData } from "@/types/chart";
 import type { Route } from "./+types/stock";
 
-// Generate historical price data in [timestamp, value] format
-function generateHistoricalData(
-  basePrice: number,
-  days: number = 30,
-): SparklineData {
-  const data: SparklineData = [];
-  const now = new Date();
-
-  for (let i = days; i >= 0; i--) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - i);
-
-    // Simulate price fluctuation (±5%)
-    const variation = (Math.random() - 0.5) * 0.1;
-    const price = basePrice * (1 + variation * (i / days)); // Add trend
-
-    // Use [timestamp, value] format to match SparklineData
-    data.push([
-      date.valueOf(), // Use timestamp number instead of ISO string
-      Math.max(0, Number(price.toFixed(2))),
-    ]);
-  }
-
-  return data;
-}
-
 const Stock = memo(function Stock() {
   const { stockId } = useParams<Route.LoaderArgs["params"]>();
+  const navigate = useNavigate();
+  // Use stockId as ticker to fetch real data from API
+  const ticker = stockId || "";
 
-  // Find stock information from mock data
-  const stockInfo = useMemo(() => {
-    for (const group of stockData) {
-      const stock = group.stocks.find((s) => s.symbol === stockId);
-      if (stock) return stock;
+  // Fetch current stock price data
+  const {
+    data: stockPriceData,
+    isLoading: isPriceLoading,
+    error: priceError,
+  } = useGetStockPrice({
+    ticker,
+  });
+
+  // Fetch stock detail data
+  const {
+    data: stockDetailData,
+    isLoading: isDetailLoading,
+    error: detailError,
+  } = useGetStockDetail({
+    ticker,
+  });
+
+  // Remove stock from watchlist mutation
+  const removeStockMutation = useRemoveStockFromWatchlist();
+
+  // Handle remove stock from watchlist
+  const handleRemoveStock = async () => {
+    try {
+      await removeStockMutation.mutateAsync(ticker);
+
+      navigate(-1);
+    } catch (error) {
+      console.error("Failed to remove stock from watchlist:", error);
+      // Handle error - could show error toast
     }
-    return null;
-  }, [stockId]);
+  };
 
-  // Generate 60-day historical data (fixed, as per design)
+  // Calculate date range for 60-day historical data
+  const dateRange = useMemo(() => {
+    const now = TimeUtils.nowUTC();
+    const sixtyDaysAgo = now.subtract(60, "day");
+    return {
+      startDate: sixtyDaysAgo.toISOString(),
+      endDate: now.toISOString(),
+    };
+  }, []);
+
+  // Fetch historical data for chart
+  const {
+    data: stockHistoryData,
+    isLoading: isHistoryLoading,
+    error: historyError,
+  } = useGetStockHistory({
+    ticker,
+    interval: "d",
+    start_date: dateRange.startDate,
+    end_date: dateRange.endDate,
+  });
+
+  // Transform historical data to chart format
   const chartData = useMemo(() => {
-    if (!stockInfo) return [];
-    return generateHistoricalData(stockInfo.price, 60);
-  }, [stockInfo]);
+    if (!stockHistoryData?.prices) return [];
 
-  // Generate simulated detailed data
-  const detailsData = useMemo(() => {
-    if (!stockInfo) return undefined;
+    // Convert UTC timestamp strings to UTC millisecond timestamps for chart
+    const sparklineData: SparklineData = stockHistoryData.prices.map(
+      (price) => [
+        TimeUtils.createUTC(price.timestamp).valueOf(),
+        price.close_price,
+      ],
+    );
 
-    const basePrice = stockInfo.price;
-    const previousClose = basePrice * (0.99 + Math.random() * 0.02);
-    const dayLow = basePrice * (0.95 + Math.random() * 0.05);
-    const dayHigh = basePrice * (1.01 + Math.random() * 0.04);
-    const yearLow = basePrice * (0.6 + Math.random() * 0.2);
-    const yearHigh = basePrice * (1.1 + Math.random() * 0.3);
+    return sparklineData;
+  }, [stockHistoryData]);
+
+  // Create stock info from API data
+  const stockInfo = useMemo(() => {
+    if (!stockPriceData) return null;
+
+    const currentPrice = parseFloat(
+      stockPriceData.price_formatted.replace(/[^0-9.-]/g, ""),
+    );
+    const changePercent = parseFloat(
+      stockPriceData.change_percent_formatted.replace(/[^0-9.-]/g, ""),
+    );
+
+    // Use display name from detail data if available, otherwise use ticker
+    const companyName = stockDetailData?.display_name || ticker;
+    const currency = stockDetailData?.market_info?.currency || "USD";
 
     return {
-      previousClose: previousClose.toFixed(2),
-      dayRange: `${dayLow.toFixed(2)} - ${dayHigh.toFixed(2)}`,
-      yearRange: `${yearLow.toFixed(2)} - ${yearHigh.toFixed(2)}`,
-      marketCap: `$${(Math.random() * 50 + 10).toFixed(1)} T USD`,
-      volume: `${(Math.random() * 5000000 + 1000000).toLocaleString()}`,
-      dividendYield: `${(Math.random() * 3 + 0.5).toFixed(2)}%`,
+      symbol: ticker,
+      companyName,
+      price: stockPriceData.price_formatted,
+      changePercent: stockPriceData.change_percent_formatted,
+      currency: currency === "USD" ? "$" : currency,
+      changeAmount: stockPriceData.change,
+      changePercentNumeric: changePercent,
+      priceNumeric: currentPrice,
     };
-  }, [stockInfo]);
+  }, [stockPriceData, stockDetailData, ticker]);
 
-  if (!stockInfo) {
+  // Handle loading states
+  if (isPriceLoading || isHistoryLoading || isDetailLoading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <div className="text-gray-500 text-lg">Loading stock data...</div>
+      </div>
+    );
+  }
+
+  // Handle error states
+  if (priceError || historyError || detailError) {
+    return (
+      <div className="flex h-96 flex-col items-center justify-center gap-4">
+        <div className="text-lg text-red-500">
+          Error loading stock data:{" "}
+          {priceError?.message || historyError?.message || detailError?.message}
+        </div>
+        <Button
+          variant="secondary"
+          className="text-neutral-400"
+          onClick={handleRemoveStock}
+          disabled={removeStockMutation.isPending}
+        >
+          {removeStockMutation.isPending ? "Removing..." : "Remove"}
+        </Button>
+      </div>
+    );
+  }
+
+  // Handle no data found
+  if (!stockInfo || !stockPriceData) {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="text-gray-500 text-lg">Stock {stockId} not found</div>
@@ -84,7 +157,7 @@ const Stock = memo(function Stock() {
     );
   }
 
-  const changeType = getChangeType(stockInfo.changePercent);
+  const changeType = getChangeType(stockInfo.changePercentNumeric);
 
   return (
     <div className="flex flex-col gap-8 px-8 py-6">
@@ -96,15 +169,20 @@ const Stock = memo(function Stock() {
           <StockIcon stock={stockInfo} />
           <span className="font-bold text-lg">{stockInfo.symbol}</span>
 
-          <Button variant="secondary" className="ml-auto text-neutral-400">
-            Remove
+          <Button
+            variant="secondary"
+            className="ml-auto text-neutral-400"
+            onClick={handleRemoveStock}
+            disabled={removeStockMutation.isPending}
+          >
+            {removeStockMutation.isPending ? "Removing..." : "Remove"}
           </Button>
         </div>
 
         <div>
           <div className="mb-3 flex items-center gap-3">
             <span className="font-bold text-2xl">
-              {formatPrice(stockInfo.price, stockInfo.currency)}
+              {formatPrice(stockInfo.priceNumeric, stockInfo.currency)}
             </span>
             <span
               className="rounded-lg p-2 font-bold text-xs"
@@ -113,37 +191,63 @@ const Stock = memo(function Stock() {
                 color: STOCK_BADGE_COLORS[changeType].text,
               }}
             >
-              {formatChange(stockInfo.changePercent, "%")}
+              {formatChange(stockInfo.changePercentNumeric, "%")}
             </span>
           </div>
           <p className="font-medium text-muted-foreground text-xs">
-            Oct 25, 5:26:38PM UTC-4 . INDEXSP . Disclaimer
+            {/* Convert UTC timestamp to local time for display */}
+            {TimeUtils.fromUTC(stockPriceData.timestamp).format(
+              "MMM DD, YYYY h:mm:ss A",
+            )}{" "}
+            . {stockPriceData.source} . Disclaimer
           </p>
         </div>
 
         <Sparkline data={chartData} changeType={changeType} />
       </div>
 
-      <div className="flex flex-col gap-4">
+      {/* <div className="flex flex-col gap-4">
         <h2 className="font-bold text-lg">Details</h2>
 
         <StockDetailsList data={detailsData} />
-      </div>
+      </div> */}
 
       <div className="flex flex-col gap-4">
         <h2 className="font-bold text-lg">About</h2>
 
         <p className="text-neutral-500 text-sm leading-6">
-          Apple Inc. is an American multinational technology company that
-          specializes in consumer electronics, computer software, and online
-          services. Apple is the world's largest technology company by revenue
-          (totalling $274.5 billion in 2020) and, since January 2021, the
-          world's most valuable company. As of 2021, Apple is the world's
-          fourth-largest PC vendor by unit sales, and fourth-largest smartphone
-          manufacturer. It is one of the Big Five American information
-          technology companies, along with Amazon, Google, Microsoft, and
-          Facebook.
+          {stockDetailData?.properties?.business_summary}
         </p>
+
+        {stockDetailData?.properties && (
+          <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-muted-foreground">Sector:</span>
+              <span className="ml-2 font-medium">
+                {stockDetailData.properties.sector}
+              </span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Industry:</span>
+              <span className="ml-2 font-medium">
+                {stockDetailData.properties.industry}
+              </span>
+            </div>
+            {stockDetailData.properties.website && (
+              <div className="col-span-2">
+                <span className="text-muted-foreground">Website:</span>
+                <a
+                  href={stockDetailData.properties.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-2 text-blue-600 hover:underline"
+                >
+                  {stockDetailData.properties.website}
+                </a>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

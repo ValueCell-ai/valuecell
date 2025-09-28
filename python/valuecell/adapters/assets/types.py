@@ -4,11 +4,12 @@ This module defines the core data structures for representing financial assets
 across different data sources and markets, with support for internationalization.
 """
 
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field, validator
 
 
@@ -44,13 +45,25 @@ class MarketStatus(str, Enum):
 class DataSource(str, Enum):
     """Supported data source providers."""
 
-    TUSHARE = "tushare"
-    AKSHARE = "akshare"
     YFINANCE = "yfinance"
-    FINNHUB = "finnhub"
-    COINMARKETCAP = "coinmarketcap"
-    BINANCE = "binance"
-    ALPHA_VANTAGE = "alpha_vantage"
+    AKSHARE = "akshare"
+    # TODO: Add other data sources later
+    # TUSHARE = "tushare"
+    # FINNHUB = "finnhub"
+    # COINMARKETCAP = "coinmarketcap"
+    # BINANCE = "binance"
+    # ALPHA_VANTAGE = "alpha_vantage"
+
+
+class Interval(str, Enum):
+    """Supported intervals for historical data."""
+
+    MINUTE = "m"
+    HOUR = "h"
+    DAY = "d"
+    WEEK = "w"
+    MONTH = "mo"
+    YEAR = "y"
 
 
 @dataclass

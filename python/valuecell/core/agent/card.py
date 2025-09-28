@@ -3,12 +3,21 @@ from pathlib import Path
 from typing import Optional
 
 from a2a.types import AgentCapabilities, AgentCard
+
 from valuecell.utils import get_agent_card_path
 
 FIELDS_UNDEFINED_IN_AGENT_CARD_MODEL = {"enabled", "metadata", "display_name"}
 
 
 def parse_local_agent_card_dict(agent_card_dict: dict) -> Optional[AgentCard]:
+    """Parse a dictionary into an AgentCard, filling in missing required fields.
+
+    Args:
+        agent_card_dict: Dictionary containing agent card data
+
+    Returns:
+        AgentCard instance if parsing succeeds, None if input is not a dict
+    """
     if not isinstance(agent_card_dict, dict):
         return None
     # Defined by us, remove fields that are not part of AgentCard
@@ -38,16 +47,19 @@ def parse_local_agent_card_dict(agent_card_dict: dict) -> Optional[AgentCard]:
 
 
 def find_local_agent_card_by_agent_name(
-    agent_name: str, ignore_disabled: bool = True, base_dir: Optional[str | Path] = None
+    agent_name: str, base_dir: Optional[str | Path] = None
 ) -> Optional[AgentCard]:
-    """
-    Reads JSON files from agent_cards directory and returns the first one where name matches.
+    """Find an agent card by name from local JSON configuration files.
+
+    Searches through JSON files in the agent_cards directory and returns the first
+    matching agent card where the name field matches the provided agent_name.
 
     Args:
-        name: The agent name to search for
+        agent_name: The name of the agent to search for
+        base_dir: Optional base directory to search in. If None, uses default path
 
     Returns:
-        Dict: The agent configuration dictionary if found, None otherwise
+        AgentCard instance if found and enabled, None otherwise
     """
     agent_cards_path = Path(base_dir) if base_dir else Path(get_agent_card_path())
 
@@ -66,7 +78,7 @@ def find_local_agent_card_by_agent_name(
                 continue
             if agent_card_dict.get("name") != agent_name:
                 continue
-            if agent_card_dict.get("enabled", True) is False and ignore_disabled:
+            if agent_card_dict.get("enabled", True) is False:
                 continue
             return parse_local_agent_card_dict(agent_card_dict)
 

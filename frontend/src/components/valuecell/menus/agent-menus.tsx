@@ -22,6 +22,17 @@ interface AgentMenuTitleProps
   children: React.ReactNode;
 }
 
+interface AgentMenuDescriptionProps
+  extends React.HTMLAttributes<HTMLParagraphElement> {
+  children: React.ReactNode;
+}
+
+interface AgentMenuCardProps extends React.HTMLAttributes<HTMLButtonElement> {
+  children: React.ReactNode;
+  onClick?: () => void;
+  bgColor?: string; // Tailwind CSS background color class
+}
+
 function AgentMenu({ className, children, onClick, ...props }: AgentMenuProps) {
   return (
     <button
@@ -99,10 +110,53 @@ function AgentMenuTitle({
   );
 }
 
+function AgentMenuDescription({
+  className,
+  children,
+  ...props
+}: AgentMenuDescriptionProps) {
+  return (
+    <p
+      className={cn(
+        "max-w-2/3 text-left text-gray-700 text-sm leading-4.5",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </p>
+  );
+}
+
+function AgentMenuCard({
+  className,
+  children,
+  onClick,
+  bgColor,
+  ...props
+}: AgentMenuCardProps) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        "relative flex-1 overflow-hidden rounded-xl p-4 transition-all hover:shadow-md",
+        bgColor || "bg-white",
+        className,
+      )}
+      onClick={onClick}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+
 export {
   AgentMenu,
   AgentMenuContent,
   AgentMenuSuffix,
   AgentMenuIcon,
   AgentMenuTitle,
+  AgentMenuDescription,
+  AgentMenuCard,
 };

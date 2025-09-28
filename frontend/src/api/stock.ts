@@ -1,12 +1,19 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { API_QUERY_KEYS, USER_LANGUAGE } from "@/constants/api";
 import { type ApiResponse, apiClient } from "@/lib/api-client";
-import type { Stock } from "@/types/stock";
+import type {
+  Stock,
+  StockDetail,
+  StockHistory,
+  StockPrice,
+  Watchlist,
+} from "@/types/stock";
 
 export const useGetWatchlist = () =>
   useQuery({
     queryKey: API_QUERY_KEYS.STOCK.watchlist,
-    queryFn: () => apiClient.get<Stock[]>("watchlist"),
+    queryFn: () => apiClient.get<ApiResponse<Watchlist[]>>("watchlist"),
+    select: (data) => data.data,
   });
 
 export const useGetStocksList = (params: { query: string }) =>
@@ -22,8 +29,69 @@ export const useGetStocksList = (params: { query: string }) =>
   });
 
 export const useAddStockToWatchlist = () => {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (ticker: Pick<Stock, "ticker">) =>
-      apiClient.post<ApiResponse<null>>("watchlist/stocks", ticker),
+      apiClient.post<ApiResponse<null>>("watchlist/asset", ticker),
+    onSuccess: () => {
+      // invalidate watchlist query cache to trigger re-fetch
+      queryClient.invalidateQueries({
+        queryKey: API_QUERY_KEYS.STOCK.watchlist,
+      });
+    },
   });
 };
+
+export const useRemoveStockFromWatchlist = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (ticker: string) =>
+      apiClient.delete<ApiResponse<null>>(`watchlist/asset/${ticker}`),
+    onSuccess: () => {
+      // invalidate watchlist query cache to trigger re-fetch
+      queryClient.invalidateQueries({
+        queryKey: API_QUERY_KEYS.STOCK.watchlist,
+      });
+    },
+  });
+};
+
+export const useGetStockPrice = (params: { ticker: string }) =>
+  useQuery({
+    queryKey: API_QUERY_KEYS.STOCK.stockPrice(Object.values(params)),
+    queryFn: () =>
+      apiClient.get<ApiResponse<StockPrice>>(
+        `watchlist/asset/${params.ticker}/price`,
+      ),
+    select: (data) => data.data,
+    enabled: !!params.ticker,
+  });
+
+export const useGetStockHistory = (params: {
+  ticker: string;
+  interval: "m" | "h" | "d" | "w" | "mo" | "y";
+  start_date: string;
+  end_date: string;
+}) =>
+  useQuery({
+    queryKey: API_QUERY_KEYS.STOCK.stockHistory(Object.values(params)),
+    queryFn: () =>
+      apiClient.get<ApiResponse<StockHistory>>(
+        `watchlist/asset/${params.ticker}/price/historical?interval=${params.interval}&start_date=${params.start_date}&end_date=${params.end_date}`,
+      ),
+    select: (data) => data.data,
+    enabled: !!params.ticker,
+  });
+
+export const useGetStockDetail = (params: { ticker: string }) =>
+  useQuery({
+    queryKey: API_QUERY_KEYS.STOCK.stockDetail(Object.values(params)),
+    queryFn: () =>
+      apiClient.get<ApiResponse<StockDetail>>(
+        `watchlist/asset/${params.ticker}`,
+      ),
+    select: (data) => data.data,
+    enabled: !!params.ticker,
+  });

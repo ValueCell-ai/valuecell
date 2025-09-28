@@ -1,17 +1,21 @@
 import {
-  AgentMenu,
+  AgentMenuCard,
   AgentMenuContent,
+  AgentMenuDescription,
   AgentMenuIcon,
   AgentMenuSuffix,
   AgentMenuTitle,
-} from "@valuecell/menus/agent-menus";
+} from "@/components/valuecell/menus/agent-menus";
 import { cn } from "@/lib/utils";
 
 export interface AgentSuggestion {
   id: string;
   title: string;
+  description: string;
   icon: React.ReactNode;
   avatars?: React.ReactNode[];
+  bgColor?: string; // Tailwind CSS background color class
+  decorativeGraphics?: React.ReactNode;
   onClick?: () => void;
 }
 
@@ -69,33 +73,51 @@ function AgentSuggestionItem({
   ...props
 }: AgentSuggestionItemProps) {
   return (
-    <AgentMenu
-      className={cn("flex-1", className)}
+    <AgentMenuCard
+      className={cn("h-[140px]", className)}
       onClick={suggestion.onClick}
+      bgColor={suggestion.bgColor}
       {...props}
     >
-      <AgentMenuContent className="flex-1 overflow-hidden">
-        <AgentMenuIcon>{suggestion.icon}</AgentMenuIcon>
-        <AgentMenuTitle className="overflow-hidden text-ellipsis">
-          {suggestion.title}
-        </AgentMenuTitle>
-      </AgentMenuContent>
-
-      {suggestion.avatars && suggestion.avatars.length > 0 && (
-        <AgentMenuSuffix>
-          <div className="flex items-center">
-            {suggestion.avatars.map((avatar, index) => (
-              <div
-                key={`${suggestion.id}-avatar-${index}`}
-                className="-mr-2 relative size-6 overflow-hidden rounded-full border border-white last:mr-0"
-              >
-                {avatar}
-              </div>
-            ))}
+      {/* Left content area */}
+      <div className="relative z-10 flex h-full flex-col justify-between">
+        <AgentMenuContent className="flex-col items-start gap-2">
+          {/* Icon and title row */}
+          <div className="flex items-center gap-2">
+            <AgentMenuIcon className="size-6 p-1.5">
+              {suggestion.icon}
+            </AgentMenuIcon>
+            <AgentMenuTitle className="font-medium text-base text-gray-950 leading-5.5">
+              {suggestion.title}
+            </AgentMenuTitle>
           </div>
-        </AgentMenuSuffix>
-      )}
-    </AgentMenu>
+
+          {/* Description text */}
+          <AgentMenuDescription>{suggestion.description}</AgentMenuDescription>
+        </AgentMenuContent>
+
+        {/* Bottom user avatars */}
+        {suggestion.avatars && suggestion.avatars.length > 0 && (
+          <AgentMenuSuffix>
+            <div className="flex items-center">
+              {suggestion.avatars.map((avatar, index) => (
+                <div
+                  key={`${suggestion.id}-avatar-${index}`}
+                  className="-mr-2 relative size-6 overflow-hidden rounded-full border-2 border-white last:mr-0"
+                >
+                  {avatar}
+                </div>
+              ))}
+            </div>
+          </AgentMenuSuffix>
+        )}
+      </div>
+
+      {/* Right decorative graphics area */}
+      <div className="absolute right-4 bottom-0 h-[110px] w-[140px]">
+        {suggestion.decorativeGraphics}
+      </div>
+    </AgentMenuCard>
   );
 }
 
@@ -117,13 +139,7 @@ function AgentSuggestionsList({
         />
       )}
 
-      <div
-        className={cn(
-          "grid gap-3 rounded-2xl p-6",
-          "bg-gradient-to-r from-[#CFE2FF]/50 to-[#FADDFF]/50",
-          "grid-cols-1 md:grid-cols-2 lg:grid-cols-3",
-        )}
-      >
+      <div className="flex w-full gap-4 pb-2">
         {suggestions.map((suggestion) => (
           <AgentSuggestionItem key={suggestion.id} suggestion={suggestion} />
         ))}

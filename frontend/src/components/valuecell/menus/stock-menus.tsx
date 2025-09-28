@@ -1,13 +1,12 @@
 import { Link, type LinkProps } from "react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn, formatChange, formatPrice, getChangeType } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface Stock {
   symbol: string;
   companyName: string;
-  price: number;
-  currency: string;
-  changePercent: number;
+  price: string;
+  changePercent: string;
   icon?: string;
   iconBgColor?: string;
 }
@@ -120,8 +119,6 @@ function StockMenuListItem({
   isActive,
   ...props
 }: StockMenuListItemProps) {
-  const changeType = getChangeType(stock.changePercent);
-
   return (
     <Link
       className={cn(
@@ -149,17 +146,15 @@ function StockMenuListItem({
 
       {/* price info */}
       <div className="flex flex-col items-end gap-1">
-        <p className="font-semibold text-sm">
-          {formatPrice(stock.price, stock.currency)}
-        </p>
+        <p className="font-semibold text-sm">{stock.price}</p>
         <p
           className={cn(
             "font-semibold text-xs leading-relaxed",
-            { "text-green-700": changeType === "positive" },
-            { "text-red-700": changeType === "negative" },
+            { "text-green-700": stock.changePercent.startsWith("+") },
+            { "text-red-700": stock.changePercent.startsWith("-") },
           )}
         >
-          {formatChange(stock.changePercent, "%")}
+          {stock.changePercent}
         </p>
       </div>
     </Link>

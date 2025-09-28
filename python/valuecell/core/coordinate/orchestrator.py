@@ -3,7 +3,13 @@ import logging
 from typing import AsyncGenerator, Dict, Optional
 
 from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
-from valuecell.core.agent.connect import get_default_remote_connections
+
+from valuecell.core.agent.connect import RemoteConnections
+from valuecell.core.conversation import (
+    ConversationManager,
+    ConversationStatus,
+    SQLiteItemStore,
+)
 from valuecell.core.coordinate.response import ResponseFactory
 from valuecell.core.coordinate.response_buffer import ResponseBuffer, SaveItem
 from valuecell.core.coordinate.response_router import (
@@ -11,10 +17,10 @@ from valuecell.core.coordinate.response_router import (
     SideEffectKind,
     handle_status_update,
 )
-from valuecell.core.session import SessionStatus, get_default_session_manager
-from valuecell.core.task import Task, get_default_task_manager
+from valuecell.core.task import Task, TaskManager
 from valuecell.core.task.models import TaskPattern
-from valuecell.core.types import BaseResponse, UserInput
+from valuecell.core.types import BaseResponse, ConversationItemEvent, UserInput
+from valuecell.utils import resolve_db_path
 from valuecell.utils.uuid import generate_thread_id
 
 from .models import ExecutionPlan
@@ -28,11 +34,17 @@ ASYNC_SLEEP_INTERVAL = 0.1  # 100ms
 
 
 class ExecutionContext:
-    """Manages the state of an interrupted execution for resumption"""
+    """Manage the state of an interrupted execution for later resumption.
 
-    def __init__(self, stage: str, session_id: str, thread_id: str, user_id: str):
+    ExecutionContext stores lightweight metadata about an in-flight plan or
+    task execution that has been paused waiting for user input. The context
+    records the stage (e.g. "planning"), the conversation/thread identifiers,
+    the original requesting user, and a timestamp used for expiration.
+    """
+
+    def __init__(self, stage: str, conversation_id: str, thread_id: str, user_id: str):
         self.stage = stage
-        self.session_id = session_id
+        self.conversation_id = conversation_id
         self.thread_id = thread_id
         self.user_id = user_id
         self.created_at = asyncio.get_event_loop().time()
@@ -41,7 +53,7 @@ class ExecutionContext:
     def is_expired(
         self, max_age_seconds: int = DEFAULT_CONTEXT_TIMEOUT_SECONDS
     ) -> bool:
-        """Check if this context has expired"""
+        """Return True when the context is older than the configured TTL."""
         current_time = asyncio.get_event_loop().time()
         return current_time - self.created_at > max_age_seconds
 
@@ -50,7 +62,7 @@ class ExecutionContext:
         return self.user_id == user_id
 
     def add_metadata(self, **kwargs):
-        """Add metadata to the context"""
+        """Attach arbitrary key/value metadata to this execution context."""
         self.metadata.update(kwargs)
 
     def get_metadata(self, key: str, default=None):
@@ -59,37 +71,46 @@ class ExecutionContext:
 
 
 class UserInputManager:
-    """Manages pending user input requests and their lifecycle"""
+    """Manage pending Human-in-the-Loop user input requests.
+
+    This simple manager stores `UserInputRequest` objects keyed by
+    `conversation_id`. Callers can add requests, query for prompts and provide
+    responses which will wake any awaiting tasks.
+    """
 
     def __init__(self):
         self._pending_requests: Dict[str, UserInputRequest] = {}
 
-    def add_request(self, session_id: str, request: UserInputRequest):
-        """Add a pending user input request"""
-        self._pending_requests[session_id] = request
+    def add_request(self, conversation_id: str, request: UserInputRequest):
+        """Register a pending user input request for a conversation."""
+        self._pending_requests[conversation_id] = request
 
-    def has_pending_request(self, session_id: str) -> bool:
-        """Check if there's a pending request for the session"""
-        return session_id in self._pending_requests
+    def has_pending_request(self, conversation_id: str) -> bool:
+        """Check if there's a pending request for the conversation"""
+        return conversation_id in self._pending_requests
 
-    def get_request_prompt(self, session_id: str) -> Optional[str]:
-        """Get the prompt for a pending request"""
-        request = self._pending_requests.get(session_id)
+    def get_request_prompt(self, conversation_id: str) -> Optional[str]:
+        """Return the prompt text for a pending request, or None if none found."""
+        request = self._pending_requests.get(conversation_id)
         return request.prompt if request else None
 
-    def provide_response(self, session_id: str, response: str) -> bool:
-        """Provide a response to a pending request"""
-        if session_id not in self._pending_requests:
+    def provide_response(self, conversation_id: str, response: str) -> bool:
+        """Supply the user's response to a pending request and complete it.
+
+        Returns True when the response was accepted and the pending request
+        removed; False when no pending request existed for the conversation.
+        """
+        if conversation_id not in self._pending_requests:
             return False
 
-        request = self._pending_requests[session_id]
+        request = self._pending_requests[conversation_id]
         request.provide_response(response)
-        del self._pending_requests[session_id]
+        del self._pending_requests[conversation_id]
         return True
 
-    def clear_request(self, session_id: str):
+    def clear_request(self, conversation_id: str):
         """Clear a pending request"""
-        self._pending_requests.pop(session_id, None)
+        self._pending_requests.pop(conversation_id, None)
 
 
 class AgentOrchestrator:
@@ -99,14 +120,16 @@ class AgentOrchestrator:
     This class manages the entire lifecycle of user requests including:
     - Planning phase with user input collection
     - Task execution with interruption support
-    - Session state management
+    - Conversation state management
     - Error handling and recovery
     """
 
     def __init__(self):
-        self.session_manager = get_default_session_manager()
-        self.task_manager = get_default_task_manager()
-        self.agent_connections = get_default_remote_connections()
+        self.conversation_manager = ConversationManager(
+            item_store=SQLiteItemStore(resolve_db_path())
+        )
+        self.task_manager = TaskManager()
+        self.agent_connections = RemoteConnections()
 
         # Initialize user input management
         self.user_input_manager = UserInputManager()
@@ -127,165 +150,237 @@ class AgentOrchestrator:
         self, user_input: UserInput
     ) -> AsyncGenerator[BaseResponse, None]:
         """
-        Main entry point for processing user requests with Human-in-the-Loop support.
+        Main entry point for processing user input with optional
+        Human-in-the-Loop interactions.
 
-        Handles three types of scenarios:
-        1. New user requests - starts planning and execution
-        2. Continuation of interrupted sessions - resumes from saved state
-        3. User input responses - provides input to waiting requests
+        The orchestrator yields streaming `BaseResponse` objects that callers
+        (for example, an HTTP SSE endpoint or WebSocket) can forward to the
+        client. This method handles:
+        - Starting new plans when no execution context exists
+        - Resuming paused executions when conversation state requires input
+        - Directly providing responses to existing pending prompts
 
         Args:
-            user_input: The user's input containing query and metadata
+            user_input: The user's input, including conversation metadata.
 
         Yields:
-            MessageChunk: Streaming response chunks from agents
+            BaseResponse instances representing streaming chunks, status,
+            or terminal messages for the request.
         """
-        session_id = user_input.meta.session_id
+        conversation_id = user_input.meta.conversation_id
         user_id = user_input.meta.user_id
 
         try:
-            # Ensure session exists
-            session = await self.session_manager.get_session(session_id)
-            if not session:
-                await self.session_manager.create_session(
-                    user_id, session_id=session_id
+            # Ensure conversation exists
+            conversation = await self.conversation_manager.get_conversation(
+                conversation_id
+            )
+            if not conversation:
+                await self.conversation_manager.create_conversation(
+                    user_id, conversation_id=conversation_id
                 )
-                session = await self.session_manager.get_session(session_id)
+                conversation = await self.conversation_manager.get_conversation(
+                    conversation_id
+                )
                 yield self._response_factory.conversation_started(
-                    conversation_id=session_id
+                    conversation_id=conversation_id
                 )
 
-            # Handle session continuation vs new request
-            if session.status == SessionStatus.REQUIRE_USER_INPUT:
-                async for response in self._handle_session_continuation(user_input):
+            # Handle conversation continuation vs new request
+            if conversation.status == ConversationStatus.REQUIRE_USER_INPUT:
+                async for response in self._handle_conversation_continuation(
+                    user_input
+                ):
                     yield response
             else:
                 async for response in self._handle_new_request(user_input):
                     yield response
 
         except Exception as e:
-            logger.exception(f"Error processing user input for session {session_id}")
+            logger.exception(
+                f"Error processing user input for conversation {conversation_id}"
+            )
             yield self._response_factory.system_failed(
-                session_id,
+                conversation_id,
                 f"(Error) Error processing request: {str(e)}",
             )
+        finally:
+            yield self._response_factory.done(conversation_id)
 
-    async def provide_user_input(self, session_id: str, response: str):
-        """
-        Provide user input response for a specific session.
+    async def provide_user_input(self, conversation_id: str, response: str):
+        """Submit a user's response to a pending input request.
+
+        When a planner has requested clarification (Human-in-the-Loop), the
+        orchestrator stores a `UserInputRequest`. Calling this method provides
+        the response, updates the conversation state to active, and wakes any
+        awaiting planner logic.
 
         Args:
-            session_id: The session ID waiting for input
-            response: The user's response to the input request
+            conversation_id: Conversation where a pending input request exists.
+            response: The textual response supplied by the user.
         """
-        if self.user_input_manager.provide_response(session_id, response):
-            # Update session status to active
-            session = await self.session_manager.get_session(session_id)
-            if session:
-                session.activate()
-                await self.session_manager.update_session(session)
+        if self.user_input_manager.provide_response(conversation_id, response):
+            # Update conversation status to active
+            conversation = await self.conversation_manager.get_conversation(
+                conversation_id
+            )
+            if conversation:
+                conversation.activate()
+                await self.conversation_manager.update_conversation(conversation)
 
-    def has_pending_user_input(self, session_id: str) -> bool:
-        """Check if a session has pending user input request"""
-        return self.user_input_manager.has_pending_request(session_id)
+    def has_pending_user_input(self, conversation_id: str) -> bool:
+        """Return True if the conversation currently awaits user input."""
+        return self.user_input_manager.has_pending_request(conversation_id)
 
-    def get_user_input_prompt(self, session_id: str) -> Optional[str]:
-        """Get the user input prompt for a specific session"""
-        return self.user_input_manager.get_request_prompt(session_id)
+    def get_user_input_prompt(self, conversation_id: str) -> Optional[str]:
+        """Return the prompt text for a pending user-input request, or None.
 
-    async def close_session(self, session_id: str):
-        """Close an existing session and clean up resources"""
-        # Cancel any running tasks for this session
-        await self.task_manager.cancel_session_tasks(session_id)
+        This is useful for displaying the outstanding prompt to the user or
+        embedding it into UI flows.
+        """
+        return self.user_input_manager.get_request_prompt(conversation_id)
+
+    async def close_conversation(self, conversation_id: str):
+        """Close a conversation and clean up resources.
+
+        This cancels any running tasks for the conversation, clears execution
+        contexts and pending user-input requests, and resets conversation
+        status to active when appropriate.
+        """
+        # Cancel any running tasks for this conversation
+        await self.task_manager.cancel_conversation_tasks(conversation_id)
 
         # Clean up execution context
-        await self._cancel_execution(session_id)
+        await self._cancel_execution(conversation_id)
 
-    async def get_session_history(self, session_id: str) -> list[BaseResponse]:
-        """Get session message history"""
-        items = await self.session_manager.get_session_messages(session_id)
+    async def get_conversation_history(
+        self,
+        conversation_id: str,
+        event: Optional[ConversationItemEvent] = None,
+        component_type: Optional[str] = None,
+    ) -> list[BaseResponse]:
+        """Return the persisted conversation history as a list of responses.
+
+        Args:
+            conversation_id: The conversation to retrieve history for.
+            event: Optional filter to include only items with this event type.
+            component_type: Optional filter to include only items with this component type.
+
+        Returns:
+            A list of `BaseResponse` instances reconstructed from persisted
+            ConversationItems.
+        """
+        items = await self.conversation_manager.get_conversation_items(
+            conversation_id, event=event, component_type=component_type
+        )
         return [self._response_factory.from_conversation_item(it) for it in items]
 
     async def cleanup(self):
-        """Cleanup resources and expired contexts"""
+        """Perform graceful cleanup of orchestrator-managed resources.
+
+        This will remove expired execution contexts and stop all remote agent
+        connections/listeners managed by the orchestrator.
+        """
         await self._cleanup_expired_contexts()
         await self.agent_connections.stop_all()
 
     # ==================== Private Helper Methods ====================
 
     async def _handle_user_input_request(self, request: UserInputRequest):
-        """Handle user input request from planner"""
-        # Extract session_id from request context
-        session_id = getattr(request, "session_id", None)
-        if session_id:
-            self.user_input_manager.add_request(session_id, request)
+        """Register an incoming `UserInputRequest` produced by the planner.
 
-    async def _handle_session_continuation(
+        The planner may emit UserInputRequest objects when it requires
+        clarification. This helper extracts the `conversation_id` from the
+        request and registers it with the `UserInputManager` so callers can
+        later provide the response.
+        """
+        # Extract conversation_id from request context
+        conversation_id = getattr(request, "conversation_id", None)
+        if conversation_id:
+            self.user_input_manager.add_request(conversation_id, request)
+
+    async def _handle_conversation_continuation(
         self, user_input: UserInput
     ) -> AsyncGenerator[BaseResponse, None]:
-        """Handle continuation of an interrupted session"""
-        session_id = user_input.meta.session_id
+        """Resume an interrupted execution after the user provided requested input.
+
+        This method validates the existing `ExecutionContext`, records the new
+        thread id for this resumed interaction, and either continues planning
+        or indicates that resuming execution is not supported for other stages.
+
+        It yields the generated streaming responses (thread start and subsequent
+        planner/execution messages) back to the caller.
+        """
+        conversation_id = user_input.meta.conversation_id
         user_id = user_input.meta.user_id
 
         # Validate execution context exists
-        if session_id not in self._execution_contexts:
+        if conversation_id not in self._execution_contexts:
             yield self._response_factory.system_failed(
-                session_id,
-                "No execution context found for this session. The session may have expired.",
+                conversation_id,
+                "No execution context found for this conversation. The conversation may have expired.",
             )
             return
 
-        context = self._execution_contexts[session_id]
+        context = self._execution_contexts[conversation_id]
 
         # Validate context integrity and user consistency
         if not self._validate_execution_context(context, user_id):
             yield self._response_factory.system_failed(
-                session_id,
+                conversation_id,
                 "Invalid execution context or user mismatch.",
             )
-            await self._cancel_execution(session_id)
+            await self._cancel_execution(conversation_id)
             return
+
+        thread_id = generate_thread_id()
+        response = self._response_factory.thread_started(
+            conversation_id=conversation_id,
+            thread_id=thread_id,
+            user_query=user_input.query,
+        )
+        await self._persist_from_buffer(response)
+        yield response
 
         # Provide user response and resume execution
         # If we are in an execution stage, store the pending response for resume
         context.add_metadata(pending_response=user_input.query)
-        await self.provide_user_input(session_id, user_input.query)
-
-        thread_id = generate_thread_id()
-        response = self._response_factory.thread_started(
-            conversation_id=session_id, thread_id=thread_id, user_query=user_input.query
-        )
-        await self._persist_from_buffer(response)
-        yield response
+        await self.provide_user_input(conversation_id, user_input.query)
         context.thread_id = thread_id
 
         # Resume based on execution stage
         if context.stage == "planning":
             async for response in self._continue_planning(
-                session_id, thread_id, context
+                conversation_id, thread_id, context
             ):
                 yield response
         # Resuming execution stage is not yet supported
         else:
             yield self._response_factory.system_failed(
-                session_id,
+                conversation_id,
                 "Resuming execution stage is not yet supported.",
             )
 
     async def _handle_new_request(
         self, user_input: UserInput
     ) -> AsyncGenerator[BaseResponse, None]:
-        """Handle a new user request"""
-        session_id = user_input.meta.session_id
+        """Start planning and execution for a new user request.
+
+        This creates a planner task (executed asynchronously) and yields
+        streaming responses produced during planning and subsequent execution.
+        """
+        conversation_id = user_input.meta.conversation_id
         thread_id = generate_thread_id()
         response = self._response_factory.thread_started(
-            conversation_id=session_id, thread_id=thread_id, user_query=user_input.query
+            conversation_id=conversation_id,
+            thread_id=thread_id,
+            user_query=user_input.query,
         )
         await self._persist_from_buffer(response)
         yield response
 
         # Create planning task with user input callback
-        context_aware_callback = self._create_context_aware_callback(session_id)
+        context_aware_callback = self._create_context_aware_callback(conversation_id)
 
         planning_task = asyncio.create_task(
             self.planner.create_plan(user_input, context_aware_callback)
@@ -297,11 +392,17 @@ class AgentOrchestrator:
         ):
             yield response
 
-    def _create_context_aware_callback(self, session_id: str):
-        """Create a callback that adds session context to user input requests"""
+    def _create_context_aware_callback(self, conversation_id: str):
+        """Return an async callback that tags UserInputRequest objects with the
+        conversation_id and forwards them to the orchestrator's handler.
+
+        The planner receives this callback and can call it whenever it needs
+        to request additional information from the end-user; the callback
+        ensures the request is associated with the correct conversation.
+        """
 
         async def context_aware_handle(request):
-            request.session_id = session_id
+            request.conversation_id = conversation_id
             await self._handle_user_input_request(request)
 
         return context_aware_handle
@@ -313,26 +414,37 @@ class AgentOrchestrator:
         user_input: UserInput,
         callback,
     ) -> AsyncGenerator[BaseResponse, None]:
-        """Monitor planning task and handle user input interruptions"""
-        session_id = user_input.meta.session_id
+        """Monitor an in-progress planning task and handle interruptions.
+
+        While the planner is running this loop watches for pending user input
+        requests. If the planner pauses for clarification, the method records
+        the planning context and yields a `plan_require_user_input` response
+        to the caller. When planning completes, the produced `ExecutionPlan`
+        is executed.
+        """
+        conversation_id = user_input.meta.conversation_id
         user_id = user_input.meta.user_id
 
         # Wait for planning completion or user input request
         while not planning_task.done():
-            if self.has_pending_user_input(session_id):
+            if self.has_pending_user_input(conversation_id):
                 # Save planning context
-                context = ExecutionContext("planning", session_id, thread_id, user_id)
+                context = ExecutionContext(
+                    "planning", conversation_id, thread_id, user_id
+                )
                 context.add_metadata(
                     original_user_input=user_input,
                     planning_task=planning_task,
                     planner_callback=callback,
                 )
-                self._execution_contexts[session_id] = context
+                self._execution_contexts[conversation_id] = context
 
-                # Update session status and send user input request
-                await self._request_user_input(session_id)
+                # Update conversation status and send user input request
+                await self._request_user_input(conversation_id)
                 response = self._response_factory.plan_require_user_input(
-                    session_id, thread_id, self.get_user_input_prompt(session_id)
+                    conversation_id,
+                    thread_id,
+                    self.get_user_input_prompt(conversation_id),
                 )
                 await self._persist_from_buffer(response)
                 yield response
@@ -345,17 +457,21 @@ class AgentOrchestrator:
         async for response in self._execute_plan_with_input_support(plan, thread_id):
             yield response
 
-    async def _request_user_input(self, session_id: str):
-        """Set session to require user input and send the request"""
-        session = await self.session_manager.get_session(session_id)
-        if session:
-            session.require_user_input()
-            await self.session_manager.update_session(session)
+    async def _request_user_input(self, conversation_id: str):
+        """Set conversation to require user input and send the request"""
+        conversation = await self.conversation_manager.get_conversation(conversation_id)
+        if conversation:
+            conversation.require_user_input()
+            await self.conversation_manager.update_conversation(conversation)
 
     def _validate_execution_context(
         self, context: ExecutionContext, user_id: str
     ) -> bool:
-        """Validate execution context integrity"""
+        """Return True if the execution context appears intact and valid.
+
+        Checks include presence of a stage, matching user id and TTL-based
+        expiration.
+        """
         if not hasattr(context, "stage") or not context.stage:
             return False
 
@@ -368,30 +484,36 @@ class AgentOrchestrator:
         return True
 
     async def _continue_planning(
-        self, session_id: str, thread_id: str, context: ExecutionContext
+        self, conversation_id: str, thread_id: str, context: ExecutionContext
     ) -> AsyncGenerator[BaseResponse, None]:
-        """Resume planning stage execution"""
+        """Resume a previously-paused planning task and continue execution.
+
+        If required pieces of the planning context are missing this method
+        fails the plan and cancels the execution. Otherwise it waits for the
+        planner to finish, handling repeated user-input prompts if needed,
+        and then proceeds to execute the resulting plan.
+        """
         planning_task = context.get_metadata("planning_task")
         original_user_input = context.get_metadata("original_user_input")
 
         if not all([planning_task, original_user_input]):
             yield self._response_factory.plan_failed(
-                session_id,
+                conversation_id,
                 thread_id,
                 "Invalid planning context - missing required data",
             )
-            await self._cancel_execution(session_id)
+            await self._cancel_execution(conversation_id)
             return
 
         # Continue monitoring planning task
         while not planning_task.done():
-            if self.has_pending_user_input(session_id):
+            if self.has_pending_user_input(conversation_id):
                 # Still need more user input, send request
-                prompt = self.get_user_input_prompt(session_id)
-                # Ensure session is set to require user input again for repeated prompts
-                await self._request_user_input(session_id)
+                prompt = self.get_user_input_prompt(conversation_id)
+                # Ensure conversation is set to require user input again for repeated prompts
+                await self._request_user_input(conversation_id)
                 response = self._response_factory.plan_require_user_input(
-                    session_id, thread_id, prompt
+                    conversation_id, thread_id, prompt
                 )
                 await self._persist_from_buffer(response)
                 yield response
@@ -401,47 +523,57 @@ class AgentOrchestrator:
 
         # Planning completed, execute plan and clean up context
         plan = await planning_task
-        del self._execution_contexts[session_id]
+        del self._execution_contexts[conversation_id]
 
         async for response in self._execute_plan_with_input_support(plan, thread_id):
             yield response
 
-    async def _cancel_execution(self, session_id: str):
-        """Cancel execution and clean up all related resources"""
+    async def _cancel_execution(self, conversation_id: str):
+        """Cancel and clean up any execution resources associated with a
+        conversation.
+
+        This cancels the planner task (if present), removes the execution
+        context and clears any pending user input. It also resets the
+        conversation's status back to active.
+        """
         # Clean up execution context
-        if session_id in self._execution_contexts:
-            context = self._execution_contexts[session_id]
+        if conversation_id in self._execution_contexts:
+            context = self._execution_contexts[conversation_id]
 
             # Cancel planning task if it exists and is not done
             planning_task = context.get_metadata("planning_task")
             if planning_task and not planning_task.done():
                 planning_task.cancel()
 
-            del self._execution_contexts[session_id]
+            del self._execution_contexts[conversation_id]
 
         # Clear pending user input
-        self.user_input_manager.clear_request(session_id)
+        self.user_input_manager.clear_request(conversation_id)
 
-        # Reset session status
-        session = await self.session_manager.get_session(session_id)
-        if session:
-            session.activate()
-            await self.session_manager.update_session(session)
+        # Reset conversation status
+        conversation = await self.conversation_manager.get_conversation(conversation_id)
+        if conversation:
+            conversation.activate()
+            await self.conversation_manager.update_conversation(conversation)
 
     async def _cleanup_expired_contexts(
         self, max_age_seconds: int = DEFAULT_CONTEXT_TIMEOUT_SECONDS
     ):
-        """Clean up execution contexts that have been idle for too long"""
-        expired_sessions = [
-            session_id
-            for session_id, context in self._execution_contexts.items()
+        """Sweep and remove execution contexts older than `max_age_seconds`.
+
+        For each expired context the method cancels execution and logs a
+        warning so the operator can investigate frequent expirations.
+        """
+        expired_conversations = [
+            conversation_id
+            for conversation_id, context in self._execution_contexts.items()
             if context.is_expired(max_age_seconds)
         ]
 
-        for session_id in expired_sessions:
-            await self._cancel_execution(session_id)
+        for conversation_id in expired_conversations:
+            await self._cancel_execution(conversation_id)
             logger.warning(
-                f"Cleaned up expired execution context for session {session_id}"
+                f"Cleaned up expired execution context for conversation {conversation_id}"
             )
 
     # ==================== Plan and Task Execution Methods ====================
@@ -456,21 +588,24 @@ class AgentOrchestrator:
         during task execution.
 
         Args:
-            plan: The execution plan containing tasks to execute
-            metadata: Execution metadata containing session and user info
+            plan: The execution plan containing tasks to execute.
+            metadata: Optional execution metadata containing conversation and user info.
+
+        Yields:
+            Streaming `BaseResponse` objects produced by each task execution.
         """
-        session_id = plan.session_id
+        conversation_id = plan.conversation_id
 
         if not plan.tasks:
             yield self._response_factory.plan_failed(
-                session_id, thread_id, "No tasks found for this request."
+                conversation_id, thread_id, "No tasks found for this request."
             )
             return
 
         for task in plan.tasks:
             try:
-                # Register the task with TaskManager
-                await self.task_manager.store.save_task(task)
+                # Register the task with TaskManager (persist in-memory)
+                await self.task_manager.update_task(task)
 
                 # Execute task with input support
                 async for response in self._execute_task_with_input_support(
@@ -488,13 +623,11 @@ class AgentOrchestrator:
                 error_msg = f"(Error) Error executing {task.task_id}: {str(e)}"
                 logger.exception(f"Task execution failed: {error_msg}")
                 yield self._response_factory.task_failed(
-                    session_id,
+                    conversation_id,
                     thread_id,
                     task.task_id,
                     error_msg,
                 )
-
-        yield self._response_factory.done(session_id, thread_id)
 
     async def _execute_task_with_input_support(
         self, task: Task, thread_id: str, metadata: Optional[dict] = None
@@ -509,7 +642,9 @@ class AgentOrchestrator:
         """
         try:
             # Start task execution
-            await self.task_manager.start_task(task.task_id)
+            task_id = task.task_id
+            conversation_id = task.conversation_id
+            await self.task_manager.start_task(task_id)
 
             # Get agent connection
             agent_name = task.agent_name
@@ -529,7 +664,7 @@ class AgentOrchestrator:
             # Send message to agent
             remote_response = await client.send_message(
                 task.query,
-                session_id=task.session_id,
+                conversation_id=conversation_id,
                 metadata=metadata,
                 streaming=agent_card.capabilities.streaming,
             )
@@ -538,6 +673,11 @@ class AgentOrchestrator:
             async for remote_task, event in remote_response:
                 if event is None and remote_task.status.state == TaskState.submitted:
                     task.remote_task_ids.append(remote_task.id)
+                    yield self._response_factory.task_started(
+                        conversation_id=conversation_id,
+                        thread_id=thread_id,
+                        task_id=task_id,
+                    )
                     continue
 
                 if isinstance(event, TaskStatusUpdateEvent):
@@ -550,43 +690,41 @@ class AgentOrchestrator:
                     # Apply side effects
                     for eff in result.side_effects:
                         if eff.kind == SideEffectKind.FAIL_TASK:
-                            await self.task_manager.fail_task(
-                                task.task_id, eff.reason or ""
-                            )
+                            await self.task_manager.fail_task(task_id, eff.reason or "")
                     if result.done:
                         return
                     continue
 
                 if isinstance(event, TaskArtifactUpdateEvent):
                     logger.info(
-                        f"Received unexpected artifact update for task {task.task_id}: {event}"
+                        f"Received unexpected artifact update for task {task_id}: {event}"
                     )
                     continue
 
             # Complete task successfully
-            await self.task_manager.complete_task(task.task_id)
+            await self.task_manager.complete_task(task_id)
             yield self._response_factory.task_completed(
-                conversation_id=task.session_id,
+                conversation_id=conversation_id,
                 thread_id=thread_id,
-                task_id=task.task_id,
+                task_id=task_id,
             )
             # Finalize buffered aggregates for this task (explicit flush at task end)
             items = self._response_buffer.flush_task(
-                conversation_id=task.session_id,
+                conversation_id=conversation_id,
                 thread_id=thread_id,
-                task_id=task.task_id,
+                task_id=task_id,
             )
             await self._persist_items(items)
 
         except Exception as e:
             # On failure, finalize any buffered aggregates for this task
             items = self._response_buffer.flush_task(
-                conversation_id=task.session_id,
+                conversation_id=conversation_id,
                 thread_id=thread_id,
-                task_id=task.task_id,
+                task_id=task_id,
             )
             await self._persist_items(items)
-            await self.task_manager.fail_task(task.task_id, str(e))
+            await self.task_manager.fail_task(task_id, str(e))
             raise e
 
     async def _persist_from_buffer(self, response: BaseResponse):
@@ -595,8 +733,9 @@ class AgentOrchestrator:
         await self._persist_items(items)
 
     async def _persist_items(self, items: list[SaveItem]):
+        """Persist a list of SaveItems to the conversation manager."""
         for it in items:
-            await self.session_manager.add_message(
+            await self.conversation_manager.add_item(
                 role=it.role,
                 event=it.event,
                 conversation_id=it.conversation_id,
@@ -605,13 +744,3 @@ class AgentOrchestrator:
                 payload=it.payload,
                 item_id=it.item_id,
             )
-
-
-# ==================== Module-level Factory Function ====================
-
-_orchestrator = AgentOrchestrator()
-
-
-def get_default_orchestrator() -> AgentOrchestrator:
-    """Get the default singleton instance of AgentOrchestrator"""
-    return _orchestrator

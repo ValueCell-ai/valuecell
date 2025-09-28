@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
+
 from valuecell.core.task import Task
 from valuecell.core.task.models import TaskPattern
 
@@ -14,8 +15,8 @@ class ExecutionPlan(BaseModel):
     """
 
     plan_id: str = Field(..., description="Unique plan identifier")
-    session_id: Optional[str] = Field(
-        ..., description="Session ID this plan belongs to"
+    conversation_id: Optional[str] = Field(
+        ..., description="Conversation ID this plan belongs to"
     )
     user_id: str = Field(..., description="User ID who requested this plan")
     orig_query: str = Field(
