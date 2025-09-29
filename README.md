@@ -6,7 +6,7 @@
     <a href="https://www.python.org/downloads" target="_blank">
         <img src="https://img.shields.io/badge/python-3.12+-blue.svg"
             alt="Python version"></a>
-    <a href=".LICENSE" target="_blank">
+    <a href="LICENSE" target="_blank">
         <img src="https://img.shields.io/badge/license-Apache2.0-red.svg"
             alt="License: Apache2.0"></a>  
     <br>
@@ -16,7 +16,7 @@
     <a href="https://twitter.com/intent/follow?screen_name=valuecell" target="_blank">
         <img src="https://img.shields.io/twitter/follow/valuecell?logo=X&color=%20%23f5f5f5"
             alt="follow on X(Twitter)"></a>
-    <a href="https://www.linkedin.com/company/langgenius/" target="_blank">
+    <a href="https://www.linkedin.com/company/valuecell/" target="_blank">
         <img src="https://custom-icon-badges.demolab.com/badge/LinkedIn-0A66C2?logo=linkedin-white&logoColor=fff"
             alt="follow on LinkedIn"></a>
     <a href="https://www.facebook.com/people/ValueCell/61581410516790/" target="_blank">
