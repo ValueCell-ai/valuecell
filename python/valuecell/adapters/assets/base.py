@@ -160,18 +160,34 @@ class TickerConverter:
                 if source_ticker in index_reverse_mapping:
                     return index_reverse_mapping[source_ticker]
 
+            # Special handling for crypto from yfinance - remove currency suffix
+            if source == DataSource.YFINANCE and (
+                "-USD" in source_ticker
+                or "-CAD" in source_ticker
+                or "-EUR" in source_ticker
+            ):
+                # Remove any currency suffix
+                crypto_symbol = source_ticker.split("-")[0].upper()
+                return f"CRYPTO:{crypto_symbol}"
+
             # Special handling for Hong Kong stocks from yfinance
-            if source == DataSource.YFINANCE and source_ticker.endswith(".HK"):
-                symbol = source_ticker[:-3]  # Remove .HK suffix
-                # Remove leading zeros for internal format (0700 -> 700)
+            if source == DataSource.YFINANCE and ".HK" in source_ticker:
+                symbol = source_ticker.replace(".HK", "")  # Remove .HK suffix
+                # Keep as digits only, no leading zero removal for internal format
                 if symbol.isdigit():
-                    symbol = str(int(symbol))  # This removes leading zeros
+                    # Pad to 5 digits for Hong Kong stocks
+                    symbol = symbol.zfill(5)
                 return f"HKEX:{symbol}"
 
-            # Special handling for crypto from yfinance
-            if source == DataSource.YFINANCE and "-USD" in source_ticker:
-                crypto_symbol = source_ticker.replace("-USD", "")
-                return f"CRYPTO:{crypto_symbol}"
+            # Special handling for Shanghai stocks from yfinance
+            if source == DataSource.YFINANCE and ".SS" in source_ticker:
+                symbol = source_ticker.replace(".SS", "")
+                return f"SSE:{symbol}"
+
+            # Special handling for Shenzhen stocks from yfinance
+            if source == DataSource.YFINANCE and ".SZ" in source_ticker:
+                symbol = source_ticker.replace(".SZ", "")
+                return f"SZSE:{symbol}"
 
             # Check for known suffixes
             if source in self.reverse_mappings:
@@ -184,6 +200,7 @@ class TickerConverter:
 
             # If no suffix found and default exchange provided
             if default_exchange:
+                # For US stocks from yfinance, symbol is already clean
                 return f"{default_exchange}:{source_ticker}"
 
             # For other assets without clear exchange mapping

@@ -147,8 +147,24 @@ class YFinanceAdapter(BaseDataAdapter):
             }
             mapped_exchange = exchange_mapping.get(exchange, exchange)
 
-            # Create internal ticker with correct exchange
-            internal_ticker = f"{mapped_exchange}:{symbol}"
+            # Filter: Only support specific exchanges
+            supported_exchanges = ["NASDAQ", "NYSE", "SSE", "SZSE", "HKEX", "CRYPTO"]
+            if mapped_exchange not in supported_exchanges:
+                logger.debug(
+                    f"Skipping unsupported exchange: {mapped_exchange} for symbol {symbol}"
+                )
+                return None
+
+            # Convert to internal ticker format and normalize
+            # Remove any suffixes that yfinance might include
+            internal_ticker = self.convert_to_internal_ticker(symbol, mapped_exchange)
+
+            # Validate the ticker format
+            if not self._is_valid_internal_ticker(internal_ticker):
+                logger.debug(
+                    f"Invalid ticker format after conversion: {internal_ticker}"
+                )
+                return None
 
             # Get asset type from quote type
             quote_type = quote.get("quoteType", "").upper()
@@ -160,10 +176,8 @@ class YFinanceAdapter(BaseDataAdapter):
                 country = "CN"
             elif mapped_exchange == "HKEX":
                 country = "HK"
-            elif mapped_exchange == "TSE":
-                country = "JP"
-            elif mapped_exchange in ["LSE", "EURONEXT", "XETRA"]:
-                country = "GB" if mapped_exchange == "LSE" else "DE"
+            elif mapped_exchange == "CRYPTO":
+                country = "US"
 
             # Get names in different languages
             long_name = quote.get("longname", quote.get("shortname", symbol))
@@ -645,28 +659,63 @@ class YFinanceAdapter(BaseDataAdapter):
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
-    def validate_ticker(self, ticker: str) -> bool:
-        """Validate if ticker is supported by Yahoo Finance."""
+    def _is_valid_internal_ticker(self, ticker: str) -> bool:
+        """Validate if internal ticker format is correct and supported.
+
+        Args:
+            ticker: Internal ticker format (e.g., "NASDAQ:AAPL", "HKEX:00700", "CRYPTO:BTC")
+
+        Returns:
+            True if ticker format is valid
+        """
         try:
+            if ":" not in ticker:
+                return False
+
             exchange, symbol = ticker.split(":", 1)
 
-            # Yahoo Finance supports most major exchanges
-            supported_exchanges = [
-                "NASDAQ",
-                "NYSE",
-                "AMEX",  # US
-                "SSE",
-                "SZSE",  # China
-                "HKEX",  # Hong Kong
-                "TSE",  # Tokyo
-                "LSE",  # London
-                "EURONEXT",  # Europe
-                "TSX",  # Toronto
-                "ASX",  # Australia
-                "CRYPTO",  # Crypto
-            ]
+            # Validate exchange
+            supported_exchanges = ["NASDAQ", "NYSE", "SSE", "SZSE", "HKEX", "CRYPTO"]
+            if exchange not in supported_exchanges:
+                return False
 
-            return exchange in supported_exchanges
+            # Validate symbol format based on exchange
+            if exchange in ["NASDAQ", "NYSE"]:
+                # US stocks: 1-5 uppercase letters, no special characters except hyphen
+                return (
+                    bool(symbol)
+                    and len(symbol) <= 5
+                    and symbol.replace("-", "").isalnum()
+                )
 
-        except ValueError:
+            elif exchange in ["SSE", "SZSE"]:
+                # A-shares: exactly 6 digits
+                return symbol.isdigit() and len(symbol) == 6
+
+            elif exchange == "HKEX":
+                # HK stocks: 1-5 digits (e.g., 00700)
+                # HK indices: uppercase letters (e.g., HSI, HSCEI)
+                # No .HK suffix allowed
+                if ".HK" in symbol:
+                    return False
+                return (symbol.isdigit() and 1 <= len(symbol) <= 5) or (
+                    symbol.isalpha() and symbol.isupper()
+                )
+
+            elif exchange == "CRYPTO":
+                # Crypto: uppercase letters, no currency suffix (e.g., BTC, not BTC-USD)
+                return (
+                    bool(symbol)
+                    and symbol.isalpha()
+                    and symbol.isupper()
+                    and "-" not in symbol
+                )
+
             return False
+
+        except (ValueError, AttributeError):
+            return False
+
+    def validate_ticker(self, ticker: str) -> bool:
+        """Validate if ticker is supported by Yahoo Finance."""
+        return self._is_valid_internal_ticker(ticker)
