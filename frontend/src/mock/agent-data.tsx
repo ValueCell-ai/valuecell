@@ -4,7 +4,7 @@ import { IconGroupPng, MessageGroupPng, TrendPng } from "@/assets/png";
 
 export const agentSuggestions: AgentSuggestion[] = [
   {
-    id: "TradingAgentsAdapter",
+    id: "TradingAgents",
     title: "Research Report",
     icon: <TrendingUp size={16} className="text-gray-500" />,
     description: "Diversified in-depth analysis reports",

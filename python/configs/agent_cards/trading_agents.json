@@ -1,5 +1,5 @@
 {
-    "name": "TradingAgentsAdapter",
+    "name": "TradingAgents",
     "display_name": "Trading Agents",
     "url": "http://localhost:10002",
     "description": "TradingAgents - Multi-agent trading analysis system with market, sentiment, news and fundamentals analysis",
@@ -7,24 +7,22 @@
         "streaming": true,
         "push_notifications": false
     },
-    "skills": [
-        {
-            "id": "trading_agents",
-            "name": "Trading Agents",
-            "description": "Trading Agents - Multi-agent trading analysis system with market, sentiment, news and fundamentals analysis",
-            "examples": [
-                "Analyze APPL using all analysts",
-                "Analyze NVDA using market and fundamentals analysts",
-                "Analyze TSLA using all analysts, date 2024-01-15, enable debug mode"
-            ],
-            "tags": [
-                "analysis",
-                "multi-agent",
-                "stocks",
-                "US market"
-            ]
-        }
-    ],
+    "skills": [{
+        "id": "trading_agents",
+        "name": "Trading Agents",
+        "description": "Trading Agents - Multi-agent trading analysis system with market, sentiment, news and fundamentals analysis",
+        "examples": [
+            "Analyze APPL using all analysts",
+            "Analyze NVDA using market and fundamentals analysts",
+            "Analyze TSLA using all analysts, date 2024-01-15, enable debug mode"
+        ],
+        "tags": [
+            "analysis",
+            "multi-agent",
+            "stocks",
+            "US market"
+        ]
+    }],
     "provider": {
         "organization": "Tauric",
         "url": "https://arxiv.org/abs/2412.20138"

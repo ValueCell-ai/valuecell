@@ -31,7 +31,7 @@ MAP_NAME_ANALYST: Dict[str, str] = {
     "WarrenBuffettAgent": "warren_buffett",
 }
 SEC_AGENT_NAME = "SECAgent"
-TRADING_AGENTS_NAME = "TradingAgentsAdapter"
+TRADING_AGENTS_NAME = "TradingAgents"
 AGENTS = list(MAP_NAME_ANALYST.keys()) + [SEC_AGENT_NAME, TRADING_AGENTS_NAME]
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent.parent
