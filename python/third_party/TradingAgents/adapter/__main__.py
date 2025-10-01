@@ -181,7 +181,7 @@ class DialogueState(MessagesState):
     current_step: str = "parsing"
 
 
-class TradingAgentsAdapter(BaseAgent):
+class TradingAgents(BaseAgent):
     """TradingAgents adapter for valuecell core agent system"""
     
     def __init__(self):
@@ -540,5 +540,5 @@ If you have any other questions, please feel free to ask!
 
 
 if __name__ == "__main__":
-    agent = create_wrapped_agent(TradingAgentsAdapter)
+    agent = create_wrapped_agent(TradingAgents)
     asyncio.run(agent.serve())
