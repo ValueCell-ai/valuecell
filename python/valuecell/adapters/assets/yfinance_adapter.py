@@ -150,16 +150,20 @@ class YFinanceAdapter(BaseDataAdapter):
             # Filter: Only support specific exchanges
             supported_exchanges = ["NASDAQ", "NYSE", "SSE", "SZSE", "HKEX", "CRYPTO"]
             if mapped_exchange not in supported_exchanges:
-                logger.debug(f"Skipping unsupported exchange: {mapped_exchange} for symbol {symbol}")
+                logger.debug(
+                    f"Skipping unsupported exchange: {mapped_exchange} for symbol {symbol}"
+                )
                 return None
 
             # Convert to internal ticker format and normalize
             # Remove any suffixes that yfinance might include
             internal_ticker = self.convert_to_internal_ticker(symbol, mapped_exchange)
-            
+
             # Validate the ticker format
             if not self._is_valid_internal_ticker(internal_ticker):
-                logger.debug(f"Invalid ticker format after conversion: {internal_ticker}")
+                logger.debug(
+                    f"Invalid ticker format after conversion: {internal_ticker}"
+                )
                 return None
 
             # Get asset type from quote type
@@ -657,47 +661,58 @@ class YFinanceAdapter(BaseDataAdapter):
 
     def _is_valid_internal_ticker(self, ticker: str) -> bool:
         """Validate if internal ticker format is correct and supported.
-        
+
         Args:
             ticker: Internal ticker format (e.g., "NASDAQ:AAPL", "HKEX:00700", "CRYPTO:BTC")
-            
+
         Returns:
             True if ticker format is valid
         """
         try:
             if ":" not in ticker:
                 return False
-                
+
             exchange, symbol = ticker.split(":", 1)
-            
+
             # Validate exchange
             supported_exchanges = ["NASDAQ", "NYSE", "SSE", "SZSE", "HKEX", "CRYPTO"]
             if exchange not in supported_exchanges:
                 return False
-            
+
             # Validate symbol format based on exchange
             if exchange in ["NASDAQ", "NYSE"]:
                 # US stocks: 1-5 uppercase letters, no special characters except hyphen
-                return bool(symbol) and len(symbol) <= 5 and symbol.replace("-", "").isalnum()
-                
+                return (
+                    bool(symbol)
+                    and len(symbol) <= 5
+                    and symbol.replace("-", "").isalnum()
+                )
+
             elif exchange in ["SSE", "SZSE"]:
                 # A-shares: exactly 6 digits
                 return symbol.isdigit() and len(symbol) == 6
-                
+
             elif exchange == "HKEX":
                 # HK stocks: 1-5 digits (e.g., 00700)
                 # HK indices: uppercase letters (e.g., HSI, HSCEI)
                 # No .HK suffix allowed
                 if ".HK" in symbol:
                     return False
-                return (symbol.isdigit() and 1 <= len(symbol) <= 5) or (symbol.isalpha() and symbol.isupper())
-                
+                return (symbol.isdigit() and 1 <= len(symbol) <= 5) or (
+                    symbol.isalpha() and symbol.isupper()
+                )
+
             elif exchange == "CRYPTO":
                 # Crypto: uppercase letters, no currency suffix (e.g., BTC, not BTC-USD)
-                return bool(symbol) and symbol.isalpha() and symbol.isupper() and "-" not in symbol
-            
+                return (
+                    bool(symbol)
+                    and symbol.isalpha()
+                    and symbol.isupper()
+                    and "-" not in symbol
+                )
+
             return False
-            
+
         except (ValueError, AttributeError):
             return False
 

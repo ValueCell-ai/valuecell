@@ -161,7 +161,11 @@ class TickerConverter:
                     return index_reverse_mapping[source_ticker]
 
             # Special handling for crypto from yfinance - remove currency suffix
-            if source == DataSource.YFINANCE and ("-USD" in source_ticker or "-CAD" in source_ticker or "-EUR" in source_ticker):
+            if source == DataSource.YFINANCE and (
+                "-USD" in source_ticker
+                or "-CAD" in source_ticker
+                or "-EUR" in source_ticker
+            ):
                 # Remove any currency suffix
                 crypto_symbol = source_ticker.split("-")[0].upper()
                 return f"CRYPTO:{crypto_symbol}"

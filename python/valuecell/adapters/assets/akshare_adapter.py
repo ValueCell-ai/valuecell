@@ -2174,9 +2174,12 @@ class AKShareAdapter(BaseDataAdapter):
             # Exchange validation rules - strict format checking
             validation_rules = {
                 "SSE": lambda s: s.isdigit() and len(s) == 6 and s.startswith("6"),
-                "SZSE": lambda s: s.isdigit() and len(s) == 6 and s.startswith(("0", "3")),
+                "SZSE": lambda s: s.isdigit()
+                and len(s) == 6
+                and s.startswith(("0", "3")),
                 "BSE": lambda s: s.isdigit() and len(s) == 6 and s.startswith("8"),
-                "HKEX": lambda s: s.isdigit() and len(s) == 5,  # Must be exactly 5 digits
+                "HKEX": lambda s: s.isdigit()
+                and len(s) == 5,  # Must be exactly 5 digits
                 "NASDAQ": lambda s: 1 <= len(s) <= 5 and s.isalnum() and s.isupper(),
                 "NYSE": lambda s: 1 <= len(s) <= 5 and s.isalnum() and s.isupper(),
             }
