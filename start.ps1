@@ -117,15 +117,14 @@ function Compile {
         Write-Info "Sync Python dependencies (uv sync)..."
         Push-Location $PY_DIR
         try {
-            # Run prepare script (if it's a bash script, we might need WSL or skip it on Windows)
-            if (Test-Path "scripts\prepare_envs.sh") {
-                if (Test-CommandExists "bash") {
-                    bash scripts/prepare_envs.sh
-                } else {
-                    Write-Warn "Bash not found, skipping prepare_envs.sh. Install Git Bash or WSL if needed."
-                }
+            # Run prepare environments script
+            if (Test-Path "scripts\prepare_envs.ps1") {
+                Write-Info "Running environment preparation script..."
+                & ".\scripts\prepare_envs.ps1"
+            } else {
+                Write-Warn "prepare_envs.ps1 not found, running uv sync directly..."
+                uv sync
             }
-            uv sync
             uv run valuecell/server/db/init_db.py
             Write-Success "Python dependencies synced"
         } catch {
