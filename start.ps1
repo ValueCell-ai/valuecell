@@ -57,7 +57,9 @@ function Ensure-Tool($toolName) {
         # Install bun on Windows using PowerShell script
         try {
             Write-Info "Installing bun via PowerShell script..."
-            Invoke-RestMethod -Uri "https://bun.sh/install.ps1" | Invoke-Expression
+            # Use a new PowerShell process to avoid variable conflicts
+            $installCmd = "irm https://bun.sh/install.ps1 | iex"
+            powershell.exe -NoProfile -ExecutionPolicy Bypass -Command $installCmd
             
             # Add to PATH for current session
             $bunPath = "$env:USERPROFILE\.bun\bin"
@@ -73,12 +75,21 @@ function Ensure-Tool($toolName) {
         # Install uv on Windows using PowerShell script
         try {
             Write-Info "Installing uv via PowerShell script..."
-            Invoke-RestMethod -Uri "https://astral.sh/uv/install.ps1" | Invoke-Expression
+            # Use a new PowerShell process to avoid variable conflicts
+            $installCmd = "irm https://astral.sh/uv/install.ps1 | iex"
+            powershell.exe -NoProfile -ExecutionPolicy Bypass -Command $installCmd
             
-            # Add to PATH for current session
-            $uvPath = "$env:USERPROFILE\.cargo\bin"
-            if (Test-Path $uvPath) {
-                $env:Path = "$uvPath;$env:Path"
+            # Add to PATH for current session - check multiple possible locations
+            $possiblePaths = @(
+                "$env:USERPROFILE\.cargo\bin",
+                "$env:USERPROFILE\.local\bin",
+                "$env:LOCALAPPDATA\Programs\uv"
+            )
+            foreach ($uvPath in $possiblePaths) {
+                if (Test-Path $uvPath) {
+                    $env:Path = "$uvPath;$env:Path"
+                    break
+                }
             }
         } catch {
             Write-Err "Failed to install uv: $_"
