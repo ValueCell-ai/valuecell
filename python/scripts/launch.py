@@ -37,22 +37,27 @@ AGENTS = list(MAP_NAME_ANALYST.keys()) + [SEC_AGENT_NAME, TRADING_AGENTS_NAME]
 PROJECT_DIR = Path(__file__).resolve().parent.parent.parent
 PYTHON_DIR = PROJECT_DIR / "python"
 ENV_PATH = PROJECT_DIR / ".env"
-ENV_PATH_STR = str(ENV_PATH.resolve())
+
+# Convert paths to POSIX format (forward slashes) for cross-platform compatibility
+# as_posix() works on both Windows and Unix systems
+PROJECT_DIR_STR = PROJECT_DIR.as_posix()
+PYTHON_DIR_STR = PYTHON_DIR.as_posix()
+ENV_PATH_STR = ENV_PATH.as_posix()
 
 # Mapping from agent name to launch command
 MAP_NAME_COMMAND: Dict[str, str] = {}
 for name, analyst in MAP_NAME_ANALYST.items():
     MAP_NAME_COMMAND[name] = (
-        f"cd {PYTHON_DIR}/third_party/ai-hedge-fund && uv run --env-file {ENV_PATH} -m adapter --analyst {analyst}"
+        f"cd {PYTHON_DIR_STR}/third_party/ai-hedge-fund && uv run --env-file {ENV_PATH_STR} -m adapter --analyst {analyst}"
     )
 MAP_NAME_COMMAND[SEC_AGENT_NAME] = (
-    f"uv run --env-file {ENV_PATH} -m valuecell.agents.sec_agent"
+    f"uv run --env-file {ENV_PATH_STR} -m valuecell.agents.sec_agent"
 )
 MAP_NAME_COMMAND[TRADING_AGENTS_NAME] = (
-    f"cd {PYTHON_DIR}/third_party/TradingAgents && uv run --env-file {ENV_PATH} -m adapter"
+    f"cd {PYTHON_DIR_STR}/third_party/TradingAgents && uv run --env-file {ENV_PATH_STR} -m adapter"
 )
 BACKEND_COMMAND = (
-    f"cd {PYTHON_DIR} && uv run --env-file {ENV_PATH} -m valuecell.server.main"
+    f"cd {PYTHON_DIR_STR} && uv run --env-file {ENV_PATH_STR} -m valuecell.server.main"
 )
 FRONTEND_URL = "http://localhost:1420"
 
@@ -69,7 +74,7 @@ def check_envfile_is_set():
 def main():
     check_envfile_is_set()
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    log_dir = f"{PROJECT_DIR}/logs/{timestamp}"
+    log_dir = f"{PROJECT_DIR_STR}/logs/{timestamp}"
 
     # Use questionary multi-select to allow choosing multiple agents
     selected_agents = questionary.checkbox(
