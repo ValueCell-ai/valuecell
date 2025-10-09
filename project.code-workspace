@@ -6,5 +6,8 @@
     {
       "path": "frontend",
     },
+    {
+      "path": "python",
+    }
   ]
 }
