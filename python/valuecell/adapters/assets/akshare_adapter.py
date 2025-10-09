@@ -6,6 +6,7 @@ Global financial market data including stocks, funds, bonds, and economic indica
 
 import decimal
 import logging
+import re
 import threading
 import time
 from datetime import datetime, timedelta
@@ -2166,26 +2167,28 @@ class AKShareAdapter(BaseDataAdapter):
 
         return variations
 
+    # Ticker validation patterns
+    TICKER_VALIDATION_PATTERNS = {
+        "SSE": re.compile(r"^6\d{5}$"),  # Shanghai: 6xxxxx
+        "SZSE": re.compile(r"^[03]\d{5}$"),  # Shenzhen: 0xxxxx or 3xxxxx
+        "BSE": re.compile(r"^8\d{5}$"),  # Beijing: 8xxxxx
+        "HKEX": re.compile(r"^\d{5}$"),  # Hong Kong: 5 digits
+        "NASDAQ": re.compile(
+            r"^[A-Z0-9]{1,5}$"
+        ),  # US markets: 1-5 alphanumeric uppercase
+        "NYSE": re.compile(
+            r"^[A-Z0-9]{1,5}$"
+        ),  # US markets: 1-5 alphanumeric uppercase
+        "CRYPTO": re.compile(r"^[A-Z0-9]{1,5}$"),  # Crypto: 1-5 alphanumeric uppercase
+    }
+
     def validate_ticker(self, ticker: str) -> bool:
         """Validate if ticker is supported by AKShare and matches standard format."""
         try:
             exchange, symbol = ticker.split(":", 1)
 
-            # Exchange validation rules - strict format checking
-            validation_rules = {
-                "SSE": lambda s: s.isdigit() and len(s) == 6 and s.startswith("6"),
-                "SZSE": lambda s: s.isdigit()
-                and len(s) == 6
-                and s.startswith(("0", "3")),
-                "BSE": lambda s: s.isdigit() and len(s) == 6 and s.startswith("8"),
-                "HKEX": lambda s: s.isdigit()
-                and len(s) == 5,  # Must be exactly 5 digits
-                "NASDAQ": lambda s: 1 <= len(s) <= 5 and s.isalnum() and s.isupper(),
-                "NYSE": lambda s: 1 <= len(s) <= 5 and s.isalnum() and s.isupper(),
-            }
-
-            validator = validation_rules.get(exchange)
-            return validator(symbol) if validator else False
+            pattern = self.TICKER_VALIDATION_PATTERNS.get(exchange)
+            return bool(pattern and pattern.match(symbol))
 
         except ValueError:
             return False
