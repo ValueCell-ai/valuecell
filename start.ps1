@@ -163,14 +163,12 @@ function Start-Backend {
     }
     
     Write-Info "Starting backend (uv run scripts/launch.py)..."
-    Push-Location $PY_DIR
-    try {
-        uv run --with questionary scripts/launch.py
-    } catch {
-        Write-Err "Backend failed: $_"
-    } finally {
-        Pop-Location
-    }
+    Write-Info "Launching in CMD for better interactive terminal support..."
+    
+    # Use cmd.exe for better interactive support with questionary
+    # CMD handles ANSI escape sequences and arrow keys better than PowerShell
+    $launchCmd = "cd /d `"$PY_DIR`" && uv run --with questionary --with colorama scripts/launch.py"
+    Start-Process "cmd.exe" -ArgumentList "/k", $launchCmd -Wait
 }
 
 function Start-Frontend {
