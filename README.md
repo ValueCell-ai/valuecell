@@ -106,8 +106,14 @@ Choose your preferred models and providers based on your requirements and prefer
 
 Launch the complete application stack (frontend, backend, and agents):
 
+### Linux / Macos
 ```bash
 bash start.sh
+```
+
+### Windows (PowerShell)
+```powershell
+.\start.ps1
 ```
 
 ## Accessing the Interface
