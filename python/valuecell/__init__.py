@@ -17,8 +17,5 @@ __all__ = [
     "__description__",
 ]
 
-# registers agents on import
-import valuecell.agents as _  # noqa: F401
-
 if os.name == "nt":
     os.environ["PYTHONIOENCODING"] = "utf-8"
