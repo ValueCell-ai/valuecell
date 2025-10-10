@@ -1,5 +1,3 @@
-import os
-
 """ValueCell - A community-driven, multi-agent platform for financial applications."""
 
 __version__ = "0.1.0"
@@ -16,6 +14,3 @@ __all__ = [
     "__author__",
     "__description__",
 ]
-
-if os.name == "nt":
-    os.environ["PYTHONIOENCODING"] = "utf-8"
