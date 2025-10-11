@@ -161,7 +161,7 @@ class ExecutionPlanner:
 
         # Execute planning with the agent
         run_response = agent.run(
-            message=PlannerInput(
+            PlannerInput(
                 desired_agent_name=user_input.desired_agent_name,
                 query=user_input.query,
             )
@@ -187,7 +187,8 @@ class ExecutionPlanner:
 
             # Continue agent execution with updated inputs
             run_response = agent.continue_run(
-                run_id=run_response.run_id, updated_tools=run_response.tools
+                # TODO: rollback to `run_id=run_response.run_id` when bug fixed by Agno
+                run_response=run_response, updated_tools=run_response.tools
             )
 
             if not run_response.is_paused:
