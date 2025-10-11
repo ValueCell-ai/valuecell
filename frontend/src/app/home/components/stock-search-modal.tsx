@@ -1,6 +1,10 @@
 import { Plus, Search, X } from "lucide-react";
 import { useState } from "react";
-import { useAddStockToWatchlist, useGetStocksList } from "@/api/stock";
+import {
+  useAddStockToWatchlist,
+  useGetStocksList,
+  useGetWatchlist,
+} from "@/api/stock";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { useDebounce } from "@/hooks/use-debounce";
-import type { Stock } from "@/types/stock";
+import type { Stock, Watchlist } from "@/types/stock";
 
 interface StockSearchModalProps {
   children: React.ReactNode;
@@ -24,6 +28,17 @@ const StockItem = ({ stock }: { stock: Stock }) => {
     mutateAsync: addStockToWatchlist,
     isPending: isPendingAddStockToWatchlist,
   } = useAddStockToWatchlist();
+
+  // Use the hook instead of getQueryData to create a reactive subscription
+  // This ensures the component re-renders when watchlist updates
+  const { data: watchlist } = useGetWatchlist();
+
+  // Check if the stock is already in the watchlist
+  const isStockInWatchlist = watchlist?.some((item: Watchlist) =>
+    item.items.some(
+      (watchlistItem: Stock) => watchlistItem.ticker === stock.ticker,
+    ),
+  );
 
   return (
     <div
@@ -36,19 +51,26 @@ const StockItem = ({ stock }: { stock: Stock }) => {
       </div>
 
       <Button
-        disabled={isPendingAddStockToWatchlist}
+        disabled={isPendingAddStockToWatchlist || isStockInWatchlist}
         size="sm"
         className="cursor-pointer font-normal text-sm text-white"
         onClick={async () =>
           await addStockToWatchlist({ ticker: stock.ticker })
         }
       >
-        {isPendingAddStockToWatchlist ? (
-          <Spinner />
-        ) : (
-          <Plus className="size-5" />
+        {isPendingAddStockToWatchlist && (
+          <>
+            <Spinner className="size-5" />
+            Watching...
+          </>
         )}
-        Watchlist
+        {!isStockInWatchlist && (
+          <>
+            <Plus className="size-5" />
+            Watchlist
+          </>
+        )}
+        {isStockInWatchlist && <>Watched</>}
       </Button>
     </div>
   );
