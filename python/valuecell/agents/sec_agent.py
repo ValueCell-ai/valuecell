@@ -76,7 +76,7 @@ class Sec13FundAgentConfig:
         self.request_timeout = int(os.getenv("SEC_REQUEST_TIMEOUT", "30"))
 
 
-class SecAgent(BaseAgent):
+class SECAgent(BaseAgent):
     """
     Intelligent SEC analysis agent supporting financial data queries and 13F fund holdings analysis
     """
@@ -622,5 +622,5 @@ class SecAgent(BaseAgent):
 
 
 if __name__ == "__main__":
-    agent = create_wrapped_agent(SecAgent)
+    agent = create_wrapped_agent(SECAgent)
     asyncio.run(agent.serve())
