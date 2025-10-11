@@ -32,42 +32,29 @@ function SparklineStockItem({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-4 rounded-md border border-[#eef0f3] p-3",
+        "flex items-center justify-between gap-4 rounded-xl border border-gray-100 px-4 py-3",
         className,
       )}
       {...props}
     >
-      <div className="flex flex-col items-start gap-1">
-        <div className="flex items-center gap-1">
-          <p className="font-semibold text-[#707070] text-[14px] leading-[20px]">
-            {stock.symbol}
-          </p>
-        </div>
+      <div className="flex flex-col items-start gap-1 font-semibold">
+        <p className="text-gray-400 text-sm">{stock.symbol}</p>
         <p
-          className={`font-semibold text-[20px] leading-[26px]`}
+          className="text-xl"
           style={{
             color: STOCK_COLORS[changeType],
           }}
         >
           {formatPrice(stock.price, stock.currency)}
         </p>
-        <div className="flex items-start gap-1">
-          <span
-            className={`font-normal text-[12px] leading-[16px]`}
-            style={{
-              color: STOCK_COLORS[changeType],
-            }}
-          >
-            {formatChange(stock.changeAmount)}
-          </span>
-          <span
-            className={`font-normal text-[12px] leading-[16px]`}
-            style={{
-              color: STOCK_COLORS[changeType],
-            }}
-          >
-            {formatChange(stock.changePercent, "%")}
-          </span>
+        <div
+          className="flex gap-1 font-normal text-xs"
+          style={{
+            color: STOCK_COLORS[changeType],
+          }}
+        >
+          <span>{formatChange(stock.changeAmount)}</span>
+          <span>{formatChange(stock.changePercent, "%")}</span>
         </div>
       </div>
 
