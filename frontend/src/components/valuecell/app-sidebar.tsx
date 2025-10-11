@@ -11,6 +11,7 @@ import { useGetAgentList } from "@/api/agent";
 import { BookOpen, ChartBarVertical, Logo, Setting, User } from "@/assets/svg";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import AgentAvatar from "./agent-avatar";
 import ScrollContainer from "./scroll/scroll-container";
 import SvgIcon from "./svg-icon";
@@ -154,7 +155,7 @@ const AppSidebar: FC = () => {
     return agentList?.map((agent) => ({
       id: agent.agent_name,
       icon: agent.icon_url,
-      label: agent.agent_name,
+      label: agent.display_name,
       to: `/agent/${agent.agent_name}`,
     }));
   }, [agentList]);
@@ -195,13 +196,18 @@ const AppSidebar: FC = () => {
                     setCurrentActive(item.to);
                   }}
                 >
-                  <SidebarMenuItem
-                    type="agent"
-                    aria-label={item.label}
-                    data-active={verifyActive(item.to)}
-                  >
-                    <AgentAvatar agentName={item.id} />
-                  </SidebarMenuItem>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SidebarMenuItem
+                        type="agent"
+                        aria-label={item.label}
+                        data-active={verifyActive(item.to)}
+                      >
+                        <AgentAvatar agentName={item.id} />
+                      </SidebarMenuItem>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">{item.label}</TooltipContent>
+                  </Tooltip>
                 </NavLink>
               );
             })}
