@@ -31,11 +31,12 @@ http-server = [
 
 [[package]]
 name = "agno"
-version = "1.8.2"
+version = "2.1.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "docstring-parser" },
     { name = "gitpython" },
+    { name = "h11" },
     { name = "httpx" },
     { name = "packaging" },
     { name = "pydantic" },
@@ -44,13 +45,12 @@ dependencies = [
     { name = "python-multipart" },
     { name = "pyyaml" },
     { name = "rich" },
-    { name = "tomli" },
     { name = "typer" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ac/44/b7aa76f7b2e8268bcd986be432ffad35e081c7b1d3c67e19b2ee2748c4b2/agno-1.8.2.tar.gz", hash = "sha256:f8dab74a91cb56d5329d449b236361f1e39d0f1573182cc20912e16db25b6012", size = 754571, upload-time = "2025-09-08T19:29:50.167Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6e/66/1179519394af5943a2066bbb299e2d104096b68fa43c43200272b7d922a5/agno-2.1.4.tar.gz", hash = "sha256:5f02f221f1e51867025f157575f8d769a1dff5ca49cb0bc2bf212e0d14bf65ab", size = 926685, upload-time = "2025-10-10T15:15:46.61Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c0/7d/756bc6cb78c5f98f06a1f2be2b354fa115dca9be64bf73b0bbada75d20d1/agno-1.8.2-py3-none-any.whl", hash = "sha256:2a55a80848bcfe448c09ba1eed41c299a84c2f882e7e3aed145d887cbba88de1", size = 997067, upload-time = "2025-09-08T19:29:48.043Z" },
+    { url = "https://files.pythonhosted.org/packages/df/4c/fe0e49ccd1da447493ed1985a7b812670128a7d4e5360c2a7effe2419617/agno-2.1.4-py3-none-any.whl", hash = "sha256:4deef2452576f2a2c4dde024e3467a65eea921518c7277b89af01eaf0761cea4", size = 1160516, upload-time = "2025-10-10T15:15:44.226Z" },
 ]
 
 [package.optional-dependencies]
@@ -4792,7 +4792,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "a2a-sdk", extras = ["http-server"], specifier = ">=0.3.4" },
-    { name = "agno", extras = ["openai"], specifier = ">=1.8.2,<2.0" },
+    { name = "agno", extras = ["openai"], specifier = ">=2.0,<3.0" },
     { name = "aiosqlite", specifier = ">=0.19.0" },
     { name = "akshare", specifier = ">=1.17.44" },
     { name = "diff-cover", marker = "extra == 'dev'", specifier = ">=9.0.0" },
