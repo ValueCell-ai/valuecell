@@ -13,7 +13,7 @@ const ChatItemArea: FC<ChatItemAreaProps> = ({ items }) => {
   if (!items || items.length === 0) return null;
 
   return (
-    <div className="main-chat-area mx-auto space-y-3">
+    <div className="space-y-3">
       {items.map((item) => (
         <div
           key={item.item_id}
