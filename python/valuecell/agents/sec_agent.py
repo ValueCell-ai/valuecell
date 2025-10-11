@@ -301,7 +301,7 @@ class SECAgent(BaseAgent):
                     filings = company.get_filings(form=filing_type).head(3)
                     if len(filings) > 0:
                         all_filings_data[filing_type] = []
-                        for i, filing in filings.iterrows():
+                        for filing in filings:
                             filing_info = {
                                 "date": filing.filing_date,
                                 "accession_number": filing.accession_number,
@@ -358,7 +358,7 @@ class SECAgent(BaseAgent):
             Please ensure the analysis is objective and professional, based on actual data, avoiding excessive speculation.
             """
 
-            response_stream: Iterator[RunOutputEvent] = await self.analysis_agent.arun(
+            response_stream: Iterator[RunOutputEvent] = self.analysis_agent.arun(
                 analysis_prompt, stream=True, stream_intermediate_steps=True
             )
             async for event in response_stream:
