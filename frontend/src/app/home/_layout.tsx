@@ -16,7 +16,10 @@ export default function HomeLayout() {
         <StockList />
 
         <StockSearchModal>
-          <Button variant="secondary" className="mx-5 mb-6 font-bold text-sm">
+          <Button
+            variant="secondary"
+            className="mx-5 mb-6 font-bold text-sm hover:bg-gray-200"
+          >
             <Plus size={16} />
             Add Stocks
           </Button>
