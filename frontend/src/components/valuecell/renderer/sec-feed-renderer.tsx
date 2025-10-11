@@ -21,7 +21,7 @@ const SecFeedRenderer: FC<SecFeedRendererProps> = ({ content, onClick }) => {
       </div>
 
       {/* content */}
-      <div className="relative z-10 w-full">
+      <div className="relative z-10 max-h-24 w-full overflow-hidden">
         <MarkdownRenderer content={data} />
       </div>
 

@@ -37,7 +37,7 @@ export const AGENT_COMPONENT_TYPE = [
 
 export const COMPONENT_RENDERER_MAP: Record<
   AgentComponentType,
-  FC<{ content: string }>
+  FC<{ content: string; onClick?: () => void }>
 > = {
   sec_feed: SecFeedRenderer,
   markdown: MarkdownRenderer,
