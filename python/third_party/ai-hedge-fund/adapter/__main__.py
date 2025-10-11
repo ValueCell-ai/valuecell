@@ -51,7 +51,7 @@ class AIHedgeFundAgent(BaseAgent):
             model=OpenRouter(
                 id=os.getenv("AI_HEDGE_FUND_PARSER_MODEL_ID") or "openai/gpt-4o-mini"
             ),
-            response_model=HedgeFundRequest,
+            output_schema=HedgeFundRequest,
             markdown=True,
         )
         self.analyst = analyst

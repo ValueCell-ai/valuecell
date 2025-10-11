@@ -93,13 +93,13 @@ class SecAgent(BaseAgent):
             # Query classification agent - for determining query type
             self.classifier_agent = Agent(
                 model=OpenRouter(id=self.config.parser_model_id),
-                response_model=SecRequest,
+                output_schema=SecRequest,
                 markdown=True,
             )
             # Traditional 13F parsing agent - maintains backward compatibility
             self.parser_agent = Agent(
                 model=OpenRouter(id=self.config.parser_model_id),
-                response_model=Sec13FundRequest,
+                output_schema=Sec13FundRequest,
                 markdown=True,
             )
             # Analysis agent
