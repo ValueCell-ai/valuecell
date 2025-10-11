@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import Enum
 from typing import AsyncGenerator, Dict, Iterator
 
-from agno.agent import Agent, RunResponseEvent
+from agno.agent import Agent, RunOutputEvent
 from agno.models.openrouter import OpenRouter
 from edgar import Company, set_identity
 from pydantic import BaseModel, Field, field_validator
@@ -358,13 +358,11 @@ class SECAgent(BaseAgent):
             Please ensure the analysis is objective and professional, based on actual data, avoiding excessive speculation.
             """
 
-            response_stream: Iterator[
-                RunResponseEvent
-            ] = await self.analysis_agent.arun(
+            response_stream: Iterator[RunOutputEvent] = await self.analysis_agent.arun(
                 analysis_prompt, stream=True, stream_intermediate_steps=True
             )
             async for event in response_stream:
-                if event.event == "RunResponseContent":
+                if event.event == "RunContent":
                     yield streaming.message_chunk(event.content)
                 elif event.event == "ToolCallStarted":
                     yield streaming.tool_call_started(
@@ -451,13 +449,11 @@ class SECAgent(BaseAgent):
             Please ensure the analysis is objective and professional, based on actual data, avoiding excessive speculation.
             """
 
-            response_stream: Iterator[
-                RunResponseEvent
-            ] = await self.analysis_agent.arun(
+            response_stream: Iterator[RunOutputEvent] = await self.analysis_agent.arun(
                 analysis_prompt, stream=True, stream_intermediate_steps=True
             )
             async for event in response_stream:
-                if event.event == "RunResponseContent":
+                if event.event == "RunContent":
                     yield streaming.message_chunk(event.content)
                 elif event.event == "ToolCallStarted":
                     yield streaming.tool_call_started(
