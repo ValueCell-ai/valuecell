@@ -116,7 +116,7 @@ export default function AgentChat() {
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       {/* Header with agent info and actions */}
-      <header className="flex items-center justify-between border-gray-100 border-b p-6">
+      <header className="flex items-center justify-between p-6">
         <div className="flex items-center gap-4">
           {/* Agent Avatar */}
           <AgentAvatar agentName={agentName ?? ""} className="size-14" />
@@ -152,7 +152,7 @@ export default function AgentChat() {
           <Link to="./config">
             <Button
               variant="secondary"
-              className="size-8 cursor-pointer rounded-lg"
+              className="size-8 cursor-pointer rounded-lg hover:bg-gray-200"
               size="icon"
             >
               <Settings size={16} className="text-gray-700" />

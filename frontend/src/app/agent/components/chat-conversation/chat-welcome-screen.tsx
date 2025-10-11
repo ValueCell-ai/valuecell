@@ -23,7 +23,7 @@ const ChatWelcomeScreen: FC<ChatWelcomeScreenProps> = ({
 
       {/* Welcome content */}
       <div className="flex flex-1 flex-col items-center justify-center gap-4">
-        <h1 className="text-center font-semibold text-2xl text-gray-950 leading-12">
+        <h1 className="text-center font-semibold text-3xl text-gray-950 leading-12">
           {title}
         </h1>
 
@@ -47,31 +47,31 @@ const ChatBackground = () => (
         left: "12%",
         top: "50%",
         size: "h-[40vh] w-[18vw]",
-        colors: "from-yellow-200 to-yellow-300",
+        colors: "from-yellow-100 to-yellow-200",
       },
       {
         left: "28%",
         top: "50%",
         size: "h-[38vh] w-[16vw]",
-        colors: "from-green-200 to-green-300",
+        colors: "from-green-100 to-green-200",
       },
       {
         left: "45%",
         top: "50%",
         size: "h-[42vh] w-[19vw]",
-        colors: "from-teal-200 to-teal-300",
+        colors: "from-teal-100 to-teal-200",
       },
       {
         left: "62%",
         top: "50%",
         size: "h-[40vh] w-[18vw]",
-        colors: "from-blue-200 to-blue-300",
+        colors: "from-blue-100 to-blue-200",
       },
       {
         left: "78%",
         top: "50%",
         size: "h-[35vh] w-[15vw]",
-        colors: "from-purple-200 to-purple-300",
+        colors: "from-purple-100 to-purple-200",
       },
     ].map((blur) => (
       <div
