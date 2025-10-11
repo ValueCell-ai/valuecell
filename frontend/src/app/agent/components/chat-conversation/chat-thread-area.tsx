@@ -1,4 +1,4 @@
-import { type FC, memo, useMemo } from "react";
+import { type FC, memo } from "react";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import type { ConversationView } from "@/types/agent";
 import ChatItemArea from "./chat-item-area";
@@ -10,25 +10,11 @@ interface ChatThreadAreaProps {
 }
 
 const ChatThreadArea: FC<ChatThreadAreaProps> = ({ threads, isStreaming }) => {
-  // Pre-calculate thread count to avoid recomputation
-  const threadCount = useMemo(() => Object.keys(threads).length, [threads]);
-
   return (
-    <ScrollContainer className="flex-1 space-y-6 p-6">
-      {Object.entries(threads).map(([threadId, thread], threadIndex) => {
-        const showThreadSeparator = threadIndex > 0 && threadCount > 1;
-
+    <ScrollContainer className="w-full flex-1 space-y-6 py-6">
+      {Object.entries(threads).map(([threadId, thread]) => {
         return (
           <div key={threadId} className="space-y-6">
-            {/* Thread separator - only show for subsequent threads when there are multiple threads */}
-            {showThreadSeparator && (
-              <div className="flex items-center gap-2 text-gray-400 text-xs uppercase tracking-wide">
-                <span className="h-px flex-1 bg-gray-200" />
-                <span>Thread {threadId}</span>
-                <span className="h-px flex-1 bg-gray-200" />
-              </div>
-            )}
-
             {/* Render all tasks within this thread */}
             {Object.entries(thread.tasks).map(([taskId, task]) => {
               if (task.items && task.items.length > 0) {

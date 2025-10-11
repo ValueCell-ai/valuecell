@@ -13,7 +13,7 @@ const ChatItemArea: FC<ChatItemAreaProps> = ({ items }) => {
   if (!items || items.length === 0) return null;
 
   return (
-    <div className="space-y-3">
+    <div className="main-chat-area mx-auto space-y-3">
       {items.map((item) => (
         <div
           key={item.item_id}
@@ -23,8 +23,8 @@ const ChatItemArea: FC<ChatItemAreaProps> = ({ items }) => {
           )}
         >
           <div
-            className={cn("max-w-[80%] rounded-2xl bg-gray-100 px-4 py-3", {
-              "ml-auto": item.role === "user",
+            className={cn("max-w-[80%] rounded-2xl px-4 py-2.5", {
+              "ml-auto bg-gray-50": item.role === "user",
             })}
           >
             {/* Render different message types based on payload structure */}

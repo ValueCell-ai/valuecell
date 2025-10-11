@@ -55,23 +55,22 @@ const ChatConversationArea: FC<ChatConversationAreaProps> = ({
   return (
     <div className="flex flex-1 gap-2 overflow-hidden">
       {/* main section */}
-      <section className="flex flex-1 flex-col">
+      <section className="flex flex-1 flex-col items-center">
         <ChatThreadArea
           threads={currentConversation.threads}
           isStreaming={isStreaming}
         />
 
         {/* Input area now only in main section */}
-        <div className="border-gray-200 border-t p-4">
-          <ChatInputArea
-            value={inputValue}
-            onChange={handleInputChange}
-            onSend={handleSendMessage}
-            placeholder="Type your message..."
-            disabled={isStreaming}
-            variant="chat"
-          />
-        </div>
+        <ChatInputArea
+          className="main-chat-area mb-8"
+          value={inputValue}
+          onChange={handleInputChange}
+          onSend={handleSendMessage}
+          placeholder="Type your message..."
+          disabled={isStreaming}
+          variant="chat"
+        />
       </section>
 
       {/* Dynamic sections: one section per special component_type */}
