@@ -149,7 +149,8 @@ class ExecutionPlanner:
                 max_tokens=None,
             ),
             tools=[
-                UserControlFlowTools(),
+                # TODO: enable UserControlFlowTools when stable
+                # UserControlFlowTools(),
                 self.tool_get_agent_description,
             ],
             markdown=False,
