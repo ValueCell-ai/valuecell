@@ -10,12 +10,49 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { useDebounce } from "@/hooks/use-debounce";
+import type { Stock } from "@/types/stock";
 
 interface StockSearchModalProps {
   children: React.ReactNode;
 }
+
+const StockItem = ({ stock }: { stock: Stock }) => {
+  const {
+    mutateAsync: addStockToWatchlist,
+    isPending: isPendingAddStockToWatchlist,
+  } = useAddStockToWatchlist();
+
+  return (
+    <div
+      key={stock.ticker}
+      className="flex items-center justify-between px-4 py-2 transition-colors hover:bg-gray-50"
+    >
+      <div className="flex flex-col gap-px">
+        <p className="text-neutral-900 text-sm">{stock.display_name}</p>
+        <p className="text-neutral-400 text-xs">{stock.ticker}</p>
+      </div>
+
+      <Button
+        disabled={isPendingAddStockToWatchlist}
+        size="sm"
+        className="cursor-pointer font-normal text-sm text-white"
+        onClick={async () =>
+          await addStockToWatchlist({ ticker: stock.ticker })
+        }
+      >
+        {isPendingAddStockToWatchlist ? (
+          <Spinner />
+        ) : (
+          <Plus className="size-5" />
+        )}
+        Watchlist
+      </Button>
+    </div>
+  );
+};
 
 export default function StockSearchModal({ children }: StockSearchModalProps) {
   const [query, setQuery] = useState("");
@@ -23,8 +60,6 @@ export default function StockSearchModal({ children }: StockSearchModalProps) {
   const { data: stockList, isLoading } = useGetStocksList({
     query: debouncedQuery,
   });
-
-  const { mutate: addStockToWatchlist } = useAddStockToWatchlist();
 
   return (
     <Dialog>
@@ -45,7 +80,7 @@ export default function StockSearchModal({ children }: StockSearchModalProps) {
         </header>
 
         {/* Search Input */}
-        <div className="flex items-center gap-4 rounded-lg bg-white p-4 focus-within:ring-1">
+        <div className="focus-within:!ring-neutral-600 flex items-center gap-4 rounded-lg bg-white px-4 py-2 hover:ring-1 hover:ring-neutral-200">
           <Search className="size-5 text-neutral-400" />
           <Input
             onChange={(e) => setQuery(e.target.value)}
@@ -63,28 +98,7 @@ export default function StockSearchModal({ children }: StockSearchModalProps) {
           ) : stockList && stockList.length > 0 ? (
             <div className="rounded-lg bg-white py-2">
               {stockList.map((stock) => (
-                <div
-                  key={stock.ticker}
-                  className="flex items-center justify-between px-4 py-2 transition-colors hover:bg-gray-50"
-                >
-                  <div className="flex flex-col gap-px">
-                    <p className="text-neutral-900 text-sm">
-                      {stock.display_name}
-                    </p>
-                    <p className="text-neutral-400 text-xs">{stock.ticker}</p>
-                  </div>
-
-                  <Button
-                    size="sm"
-                    className="cursor-pointer font-normal text-sm text-white"
-                    onClick={() =>
-                      addStockToWatchlist({ ticker: stock.ticker })
-                    }
-                  >
-                    <Plus className="size-5" />
-                    Watchlist
-                  </Button>
-                </div>
+                <StockItem key={stock.ticker} stock={stock} />
               ))}
             </div>
           ) : (

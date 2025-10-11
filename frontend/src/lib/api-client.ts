@@ -1,3 +1,5 @@
+import { toast } from "sonner";
+
 // API error type
 export class ApiError extends Error {
   public status: number;
@@ -39,21 +41,16 @@ class ApiClient {
     },
   };
 
-  // handle response
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
-      let errorMessage = `HTTP error ${response.status}`;
-      let errorDetails: unknown = null;
+      const errorData = await response.json().catch(() => ({}));
+      const message =
+        errorData.message ||
+        errorData.detail ||
+        response.statusText ||
+        `HTTP ${response.status}`;
 
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
-        errorDetails = errorData;
-      } catch {
-        errorMessage = response.statusText || errorMessage;
-      }
-
-      // 401 unauthorized handling
+      //TODO: Handle 401 unauthorized
       // if (response.status === 401) {
       //   localStorage.removeItem("authToken");
       //   if (typeof window !== "undefined") {
@@ -61,15 +58,17 @@ class ApiClient {
       //   }
       // }
 
-      throw new ApiError(errorMessage, response.status, errorDetails);
+      toast.error(message);
+
+      throw new ApiError(message, response.status, errorData);
     }
 
     const contentType = response.headers.get("content-type");
     if (contentType?.includes("application/json")) {
-      return await response.json();
+      return response.json();
     }
 
-    return (await response.text()) as unknown as T;
+    return response.text() as unknown as T;
   }
 
   private async request<T>(

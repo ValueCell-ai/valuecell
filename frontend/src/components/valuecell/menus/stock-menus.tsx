@@ -131,7 +131,7 @@ function StockMenuListItem({
     >
       <div className="flex flex-1 items-center gap-2.5">
         {/* icon */}
-        <StockIcon stock={stock} />
+        {/* <StockIcon stock={stock} /> */}
 
         {/* stock info */}
         <div className="flex flex-col items-start gap-1">

@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 import AppSidebar from "@/components/valuecell/app-sidebar";
+import { Toaster } from "./components/ui/sonner";
 
 import "overlayscrollbars/overlayscrollbars.css";
 import "./global.css";
@@ -46,6 +47,7 @@ export default function Root() {
         <AppSidebar />
 
         <Outlet />
+        <Toaster />
       </div>
     </QueryClientProvider>
   );
