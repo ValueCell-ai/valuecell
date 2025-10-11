@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.2.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.2.5/schema.json",
   "assist": {
     "actions": {
       "source": {
@@ -51,8 +51,12 @@
           "fix": "safe",
           "level": "error",
           "options": {
-            "attributes": ["className"],
-            "functions": ["cn"]
+            "attributes": [
+              "className"
+            ],
+            "functions": [
+              "cn"
+            ]
           }
         }
       },
