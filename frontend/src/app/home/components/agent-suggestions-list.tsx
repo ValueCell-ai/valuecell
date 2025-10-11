@@ -74,7 +74,7 @@ function AgentSuggestionItem({
 }: AgentSuggestionItemProps) {
   return (
     <AgentMenuCard
-      className={cn("h-[140px]", className)}
+      className={cn("h-[140px] cursor-pointer", className)}
       onClick={suggestion.onClick}
       bgColor={suggestion.bgColor}
       {...props}

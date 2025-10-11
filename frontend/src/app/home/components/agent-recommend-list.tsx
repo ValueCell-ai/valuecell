@@ -86,7 +86,7 @@ function AgentRecommendItem({
     <Link to={`/agent/${recommendation.id}`}>
       <AgentMenu
         className={cn(
-          "w-auto min-w-fit shrink-0 gap-2 rounded-[10px] border-0 bg-[#eef0f3] px-4 py-3",
+          "cursor-pointer gap-2 rounded-xl border-none bg-gray-100 px-4 py-3 transition-colors hover:bg-gray-50",
           className,
         )}
         onClick={recommendation.onClick}

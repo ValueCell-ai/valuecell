@@ -138,7 +138,7 @@ const Stock = memo(function Stock() {
         </div>
         <Button
           variant="secondary"
-          className="text-neutral-400"
+          className="cursor-pointer text-neutral-400"
           onClick={handleRemoveStock}
           disabled={removeStockMutation.isPending}
         >
