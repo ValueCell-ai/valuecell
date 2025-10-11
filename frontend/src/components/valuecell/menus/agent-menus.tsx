@@ -81,7 +81,7 @@ function AgentMenuIcon({ className, children, ...props }: AgentMenuIconProps) {
   return (
     <div
       className={cn(
-        "flex size-8 shrink-0 items-center justify-center rounded-md bg-[#eef0f3] p-2",
+        "flex size-8 shrink-0 items-center justify-center rounded-md bg-gray-100 p-2",
         className,
       )}
       {...props}
