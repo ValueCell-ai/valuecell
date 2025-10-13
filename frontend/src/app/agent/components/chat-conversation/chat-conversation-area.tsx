@@ -1,13 +1,18 @@
 import { type FC, memo, useCallback, useState } from "react";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
+import {
+  MultiSectionProvider,
+  useMultiSection,
+} from "@/provider/multi-section-provider";
 import type {
   AgentInfo,
   ConversationView,
   SectionComponentType,
 } from "@/types/agent";
 import ChatConversationHeader from "./chat-conversation-header";
-import ChatDynamicComponent from "./chat-dynamic-component";
 import ChatInputArea from "./chat-input-area";
+import ChatMultiSectionComponent from "./chat-multi-section-component";
+import ChatSectionComponent from "./chat-section-component";
 import ChatThreadArea from "./chat-thread-area";
 import ChatWelcomeScreen from "./chat-welcome-screen";
 
@@ -18,13 +23,14 @@ interface ChatConversationAreaProps {
   sendMessage: (message: string) => Promise<void>;
 }
 
-const ChatConversationArea: FC<ChatConversationAreaProps> = ({
+const ChatConversationAreaContent: FC<ChatConversationAreaProps> = ({
   agent,
   currentConversation,
   isStreaming,
   sendMessage,
 }) => {
   const [inputValue, setInputValue] = useState<string>("");
+  const { currentSection } = useMultiSection();
 
   const handleSendMessage = useCallback(async () => {
     if (!inputValue.trim()) return;
@@ -84,14 +90,14 @@ const ChatConversationArea: FC<ChatConversationAreaProps> = ({
         />
       </section>
 
-      {/* Dynamic sections: one section per special component_type */}
+      {/* Chat section components: one section per special component_type */}
       {currentConversation.sections &&
         Object.entries(currentConversation.sections).map(
           ([componentType, items]) => (
             <section key={componentType} className="flex flex-1 flex-col py-4">
               <ScrollContainer>
                 {/* Section content using dynamic component rendering */}
-                <ChatDynamicComponent
+                <ChatSectionComponent
                   // TODO: componentType as type assertion is not safe, find a better way to do this
                   componentType={componentType as SectionComponentType}
                   items={items}
@@ -100,7 +106,27 @@ const ChatConversationArea: FC<ChatConversationAreaProps> = ({
             </section>
           ),
         )}
+
+      {/* Multi-section detail view */}
+      {currentSection && (
+        <section className="flex flex-1 flex-col py-4">
+          <ScrollContainer>
+            <ChatMultiSectionComponent
+              componentType={currentSection.componentType}
+              data={currentSection.data}
+            />
+          </ScrollContainer>
+        </section>
+      )}
     </div>
+  );
+};
+
+const ChatConversationArea: FC<ChatConversationAreaProps> = (props) => {
+  return (
+    <MultiSectionProvider>
+      <ChatConversationAreaContent {...props} />
+    </MultiSectionProvider>
   );
 };
 

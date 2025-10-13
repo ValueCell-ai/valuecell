@@ -2,6 +2,7 @@
 
 import type {
   AGENT_COMPONENT_TYPE,
+  AGENT_MULTI_SECTION_COMPONENT_TYPE,
   AGENT_SECTION_COMPONENT_TYPE,
 } from "@/constants/agent";
 
@@ -102,6 +103,8 @@ export interface ThreadView {
 
 export type SectionComponentType =
   (typeof AGENT_SECTION_COMPONENT_TYPE)[number];
+export type MultiSectionComponentType =
+  (typeof AGENT_MULTI_SECTION_COMPONENT_TYPE)[number];
 export type AgentComponentType = (typeof AGENT_COMPONENT_TYPE)[number];
 
 export interface ConversationView {

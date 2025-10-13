@@ -3,15 +3,13 @@ import { ChevronRight, FileText } from "lucide-react";
 import { type FC, memo } from "react";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import { cn } from "@/lib/utils";
+import { useMultiSection } from "@/provider/multi-section-provider";
 import type { ReportRendererProps } from "@/types/renderer";
 import styles from "./index.module.css";
 
-const ReportRenderer: FC<ReportRendererProps> = ({
-  content,
-  onOpen,
-  isActive,
-}) => {
+const ReportRenderer: FC<ReportRendererProps> = ({ content, isActive }) => {
   const { title, create_time, data } = parse(content);
+  const { openSection } = useMultiSection();
 
   return (
     <div
@@ -21,7 +19,7 @@ const ReportRenderer: FC<ReportRendererProps> = ({
         "cursor-pointer transition-all duration-200",
         styles["border-gradient"],
       )}
-      onClick={() => onOpen?.(data)}
+      onClick={() => openSection("report", data)}
     >
       {/* Left side: Icon and text */}
       <div className="flex items-center gap-2">
