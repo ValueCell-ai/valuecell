@@ -11,7 +11,10 @@ interface ChatThreadAreaProps {
 
 const ChatThreadArea: FC<ChatThreadAreaProps> = ({ threads, isStreaming }) => {
   return (
-    <ScrollContainer className="w-full flex-1 space-y-6 py-6">
+    <ScrollContainer
+      className="w-full flex-1 space-y-6 py-6"
+      autoScrollToBottom
+    >
       <main className="main-chat-area mx-auto">
         {Object.entries(threads).map(([threadId, thread]) => {
           return (
