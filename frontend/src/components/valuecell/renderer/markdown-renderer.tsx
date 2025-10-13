@@ -1,9 +1,6 @@
 import { type FC, memo } from "react";
 import ReactMarkdown from "react-markdown";
-
-interface MarkdownRendererProps {
-  content: string;
-}
+import type { MarkdownRendererProps } from "@/types/renderer";
 
 const MarkdownRenderer: FC<MarkdownRendererProps> = ({ content }) => {
   return (

@@ -1,26 +1,22 @@
 import { parse } from "best-effort-json-parser";
 import { type FC, memo } from "react";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
+import { cn } from "@/lib/utils";
+import type { SecFeedRendererProps } from "@/types/renderer";
+import styles from "./index.module.css";
 import MarkdownRenderer from "./markdown-renderer";
 
-interface SecFeedRendererProps {
-  content: string;
-  onClick?: () => void;
-}
-
-const SecFeedRenderer: FC<SecFeedRendererProps> = ({ content, onClick }) => {
+const SecFeedRenderer: FC<SecFeedRendererProps> = ({ content, onOpen }) => {
   const { ticker, data, source, create_time } = parse(content);
 
   return (
     <div
-      className="group relative flex h-full cursor-pointer flex-col gap-3 rounded-2xl bg-gray-50 p-4 transition-all duration-200 hover:shadow-sm"
-      onClick={onClick}
+      className={cn(
+        "group relative flex h-full cursor-pointer flex-col gap-3 rounded-2xl bg-gray-50 p-4 transition-all",
+        styles["border-gradient"],
+      )}
+      onClick={() => onOpen?.(data)}
     >
-      {/* gradient border on hover */}
-      <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-br from-red-400 via-pink-300 to-pink-200 p-px opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-        <div className="h-full rounded-2xl bg-gray-50" />
-      </div>
-
       {/* content */}
       <div className="relative z-10 max-h-24 w-full overflow-hidden">
         <MarkdownRenderer content={data} />

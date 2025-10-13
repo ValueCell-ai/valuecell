@@ -1,4 +1,3 @@
-import { parse } from "best-effort-json-parser";
 import { type FC, memo, useState } from "react";
 import BackButton from "@/components/valuecell/button/back-button";
 import { MarkdownRenderer } from "@/components/valuecell/renderer";
@@ -33,9 +32,7 @@ const SecFeedComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
                   <Component
                     key={item.item_id}
                     content={item.payload.content}
-                    onClick={() =>
-                      setSelectedItemContent(parse(item.payload.content).data)
-                    }
+                    onOpen={(data) => setSelectedItemContent(data)}
                   />
                 ),
             )}

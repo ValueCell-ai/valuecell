@@ -28,6 +28,7 @@ export default function AgentChat() {
 
   // Use optimized reducer for state management
   const [agentStore, dispatchAgentStore] = useReducer(agentStoreReducer, {});
+  console.log("🚀 ~ AgentChat ~ agentStore:", agentStore);
   // TODO: temporary conversation id (after will remove hardcoded)
   const curConversationId = useRef<string>(`${agentName}_conv_default_user`);
   const curThreadId = useRef<string>("");

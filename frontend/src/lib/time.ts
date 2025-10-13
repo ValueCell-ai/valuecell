@@ -12,7 +12,7 @@ dayjs.extend(relativeTime);
  * Common time format constants
  */
 export const TIME_FORMATS = {
-  DATE: "YYYY-MM-DD",
+  DATE: "YYYY/MM/DD",
   TIME: "HH:mm:ss",
   DATETIME: "YYYY-MM-DD HH:mm:ss",
   DATETIME_SHORT: "YYYY-MM-DD HH:mm",

@@ -1,0 +1,33 @@
+import type { FC } from "react";
+import type { AgentComponentType } from "./agent";
+
+export type BaseRendererProps = {
+  content: string;
+  onOpen?: (data: string) => void;
+};
+
+export type ReportRendererProps = BaseRendererProps & {
+  isActive?: boolean;
+};
+export type SecFeedRendererProps = BaseRendererProps;
+export type MarkdownRendererProps = BaseRendererProps;
+
+/**
+ * Mapping from component type to its corresponding props type
+ * @description This enables type-safe renderer props based on component type
+ */
+export type RendererPropsMap = {
+  sec_feed: SecFeedRendererProps;
+  report: ReportRendererProps;
+  markdown: MarkdownRendererProps;
+  tool_call: MarkdownRendererProps;
+};
+
+/**
+ * Generic renderer component type
+ * @template T - The component type
+ * @description Type-safe renderer component that accepts correct props based on component type
+ */
+export type RendererComponent<T extends AgentComponentType> = FC<
+  RendererPropsMap[T]
+>;
