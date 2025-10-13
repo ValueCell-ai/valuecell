@@ -1,3 +1,4 @@
+import { parse } from "best-effort-json-parser";
 import { type FC, memo } from "react";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import MarkdownRenderer from "./markdown-renderer";
@@ -8,7 +9,7 @@ interface SecFeedRendererProps {
 }
 
 const SecFeedRenderer: FC<SecFeedRendererProps> = ({ content, onClick }) => {
-  const { ticker, data, source, create_time } = JSON.parse(content);
+  const { ticker, data, source, create_time } = parse(content);
 
   return (
     <div

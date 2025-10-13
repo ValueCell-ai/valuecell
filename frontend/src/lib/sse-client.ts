@@ -2,6 +2,8 @@
  * Fetch-based SSE client library
  * Implements SSE using fetch + ReadableStream with custom headers and type safety
  */
+
+import { parse } from "best-effort-json-parser";
 import type { SSEData } from "@/types/agent";
 
 export interface SSEOptions {
@@ -209,7 +211,7 @@ export class SSEClient {
     data = data.slice(0, -1);
 
     try {
-      const parsedData = JSON.parse(data);
+      const parsedData = parse(data);
 
       // Pass through parsed payload without interpreting event names
       if (this.handlers.onData) {
