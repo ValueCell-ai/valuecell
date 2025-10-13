@@ -142,6 +142,26 @@ class ComponentGeneratorResponseDataPayload(BaseResponseDataPayload):
     component_type: str = Field(..., description="The component type")
 
 
+class ComponentType(str, Enum):
+    """Component type enumeration."""
+
+    REPORT = "report"
+    PROFILE = "profile"
+
+
+class ReportComponentData(BaseModel):
+    """Report component data payload."""
+
+    title: str = Field(
+        ..., description="The report title, used by UI to display the report title"
+    )
+    data: str = Field(..., description="The report data")
+    url: Optional[str] = Field(None, description="The report URL")
+    create_time: str = Field(
+        ..., description="The report create time, UTC time, YYYY-MM-DD HH:MM:SS format"
+    )
+
+
 ResponsePayload = Union[
     BaseResponseDataPayload,
     ComponentGeneratorResponseDataPayload,

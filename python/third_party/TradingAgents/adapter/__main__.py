@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from typing import List, Dict, Any, Optional, AsyncGenerator
 import re
 
@@ -9,7 +9,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, MessagesState, START, END
 from pydantic import BaseModel, Field, field_validator
 from valuecell.core.agent.decorator import create_wrapped_agent
-from valuecell.core.types import BaseAgent
+from valuecell.core.types import BaseAgent, ComponentType, ReportComponentData
 from valuecell.core import StreamResponse, streaming
 
 from tradingagents.graph.trading_graph import TradingAgentsGraph
@@ -492,19 +492,47 @@ If you have any other questions, please feel free to ask!
         
         # Market Analysis
         if final_state.get("market_report"):
-            yield streaming.message_chunk(f"📈 **Market analysis report**\n{final_state['market_report']}\n\n")
+            yield streaming.message_chunk(f"📈 **Market analysis report**\n")
+            report_data = ReportComponentData(
+                title="Market Analysis Report",
+                data=final_state['market_report'],
+                url=None,
+                create_time=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            )
+            yield streaming.component_generator(report_data.model_dump_json(), ComponentType.REPORT)
 
         # Sentiment Analysis  
         if final_state.get("sentiment_report"):
-            yield streaming.message_chunk(f"😊 **Sentiment analysis report**\n{final_state['sentiment_report']}\n\n")
+            yield streaming.message_chunk(f"😊 **Sentiment analysis report**\n")
+            report_data = ReportComponentData(
+                title="Sentiment Analysis Report",
+                data=final_state['sentiment_report'],
+                url=None,
+                create_time=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            )
+            yield streaming.component_generator(report_data.model_dump_json(), ComponentType.REPORT)
 
         # News Analysis
         if final_state.get("news_report"):
-            yield streaming.message_chunk(f"📰 **News analysis report**\n{final_state['news_report']}\n\n")
+            yield streaming.message_chunk(f"📰 **News analysis report**\n")
+            report_data = ReportComponentData(
+                title="News Analysis Report",
+                data=final_state['news_report'],
+                url=None,
+                create_time=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            )
+            yield streaming.component_generator(report_data.model_dump_json(), ComponentType.REPORT)
 
         # Fundamentals Analysis
         if final_state.get("fundamentals_report"):
-            yield streaming.message_chunk(f"📊 **Fundamentals analysis report**\n{final_state['fundamentals_report']}\n\n")
+            yield streaming.message_chunk(f"📊 **Fundamentals analysis report**\n")
+            report_data = ReportComponentData(
+                title="Fundamentals Analysis Report",
+                data=final_state['fundamentals_report'],
+                url=None,
+                create_time=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            )
+            yield streaming.component_generator(report_data.model_dump_json(), ComponentType.REPORT)
 
         # Investment Debate Results
         if final_state.get("investment_debate_state", {}).get("judge_decision"):
