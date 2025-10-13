@@ -4,9 +4,8 @@ import {
   memo,
   type ReactNode,
   useMemo,
-  useState,
 } from "react";
-import { NavLink } from "react-router";
+import { NavLink, useLocation } from "react-router";
 import { useGetAgentList } from "@/api/agent";
 import { BookOpen, ChartBarVertical, Logo, Setting, User } from "@/assets/svg";
 import { Separator } from "@/components/ui/separator";
@@ -119,7 +118,8 @@ const SidebarMenuItem: FC<SidebarItemProps> = ({
 };
 
 const AppSidebar: FC = () => {
-  const [currentActive, setCurrentActive] = useState<string>("/");
+  const pathname = useLocation().pathname;
+  const prefix = pathname.split("/")[2] ?? "";
 
   const navItems = useMemo(() => {
     return {
@@ -161,17 +161,12 @@ const AppSidebar: FC = () => {
   }, [agentList]);
 
   // verify the button is active
-  const verifyActive = (to: string) => currentActive === to;
+  const verifyActive = (to: string) => `/${prefix}` === to;
 
   return (
     <Sidebar>
       <SidebarHeader>
-        <NavLink
-          to={navItems.home[0].to}
-          onClick={() => {
-            setCurrentActive(navItems.home[0].to);
-          }}
-        >
+        <NavLink to={navItems.home[0].to}>
           <SidebarMenuItem
             aria-label={navItems.home[0].label}
             data-active={verifyActive(navItems.home[0].to)}
@@ -189,19 +184,13 @@ const AppSidebar: FC = () => {
           <SidebarMenu>
             {agentItems?.map((item) => {
               return (
-                <NavLink
-                  key={item.id}
-                  to={item.to}
-                  onClick={() => {
-                    setCurrentActive(item.to);
-                  }}
-                >
+                <NavLink key={item.id} to={item.to}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <SidebarMenuItem
                         type="agent"
                         aria-label={item.label}
-                        data-active={verifyActive(item.to)}
+                        data-active={verifyActive(`/${item.id}`)}
                       >
                         <AgentAvatar agentName={item.id} />
                       </SidebarMenuItem>

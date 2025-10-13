@@ -23,7 +23,7 @@ function StockList() {
   }, [stockList]);
 
   // Extract stock symbol (e.g., AAPL) from path like /stock/AAPL
-  const stockTicker = pathname.split("/")[2];
+  const stockTicker = pathname.split("/")[3];
 
   // define a stock item component
   const StockItem = ({ stock }: { stock: Stock }) => {
@@ -43,7 +43,7 @@ function StockList() {
     return (
       <StockMenuListItem
         stock={transformedStock}
-        to={`/stock/${stock.ticker}`}
+        to={`/home/stock/${stock.ticker}`}
         isActive={stockTicker === stock.ticker}
         replace={!!stockTicker}
       />
