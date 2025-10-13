@@ -13,13 +13,13 @@ const SecFeedComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
 
   return selectedItemContent ? (
     <>
-      <BackButton onClick={() => setSelectedItemContent("")} />
+      <BackButton className="mb-3" onClick={() => setSelectedItemContent("")} />
       <MarkdownRenderer content={selectedItemContent} />
     </>
   ) : (
     <>
-      <h4 className="mb-3 px-4 font-medium text-sm">
-        {TimeUtils.nowUTC().format(TIME_FORMATS.DATETIME_SHORT)}
+      <h4 className="mb-3 px-4 font-medium text-lg">
+        {TimeUtils.nowUTC().format(TIME_FORMATS.DATE)}
       </h4>
 
       {/* render items */}
@@ -32,7 +32,11 @@ const SecFeedComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
                   <Component
                     key={item.item_id}
                     content={item.payload.content}
-                    onClick={() => setSelectedItemContent(item.payload.content)}
+                    onClick={() =>
+                      setSelectedItemContent(
+                        JSON.parse(item.payload.content).data,
+                      )
+                    }
                   />
                 ),
             )}

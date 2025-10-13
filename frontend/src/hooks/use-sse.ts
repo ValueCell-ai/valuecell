@@ -36,7 +36,6 @@ export function useSSE({
 
   // Handle state changes from SSE client
   const handleStateChange = useCallback((state: SSEReadyState) => {
-    console.log("🚀 ~ handleStateChange ~ state:", state);
     setIsStreaming(
       state === SSEReadyState.OPEN || state === SSEReadyState.CONNECTING,
     );

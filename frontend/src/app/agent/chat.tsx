@@ -1,9 +1,6 @@
-import { Settings } from "lucide-react";
 import { useCallback, useMemo, useReducer, useRef } from "react";
-import { Link, Navigate, useParams } from "react-router";
+import { Navigate, useParams } from "react-router";
 import { useGetAgentInfo } from "@/api/agent";
-import { Button } from "@/components/ui/button";
-import AgentAvatar from "@/components/valuecell/agent-avatar";
 import { useSSE } from "@/hooks/use-sse";
 import { updateAgentConversationsStore } from "@/lib/agent-store";
 import { getServerUrl } from "@/lib/api-client";
@@ -89,7 +86,6 @@ export default function AgentChat() {
       },
     },
   });
-  console.log("🚀 ~ AgentChat ~ isStreaming:", isStreaming);
 
   // Send message to agent
   // biome-ignore lint/correctness/useExhaustiveDependencies: connect is no need to be in dependencies
@@ -111,65 +107,17 @@ export default function AgentChat() {
     [agentName],
   );
 
-  if (!agent && !isLoadingAgent) return <Navigate to="/" replace />;
+  if (isLoadingAgent) return null;
+  if (!agent) return <Navigate to="/" replace />;
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-      {/* Header with agent info and actions */}
-      <header className="flex items-center justify-between p-6">
-        <div className="flex items-center gap-4">
-          {/* Agent Avatar */}
-          <AgentAvatar agentName={agentName ?? ""} className="size-14" />
-
-          {/* Agent Info */}
-          <div className="flex flex-col gap-1.5">
-            <h1 className="font-semibold text-gray-950 text-lg">
-              {agent?.display_name}
-            </h1>
-            <div className="flex items-center gap-1">
-              {agent?.agent_metadata.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="text-nowrap rounded-md bg-gray-100 px-3 py-1 font-normal text-gray-700 text-xs"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Action buttons */}
-        <div className="flex items-center gap-2.5">
-          {/* TODO: add new conversation button */}
-          {/* <Button
-            variant="secondary"
-            className="size-8 cursor-pointer rounded-lg"
-            size="icon"
-          >
-            <MessageCircle size={16} className="text-gray-700" />
-          </Button> */}
-          <Link to="./config">
-            <Button
-              variant="secondary"
-              className="size-8 cursor-pointer rounded-lg hover:bg-gray-200"
-              size="icon"
-            >
-              <Settings size={16} className="text-gray-700" />
-            </Button>
-          </Link>
-        </div>
-      </header>
-
-      {/* Main content area */}
-      <main className="relative flex flex-1 flex-col overflow-hidden">
-        <ChatConversationArea
-          displayName={agent?.display_name ?? ""}
-          currentConversation={currentConversation}
-          isStreaming={isStreaming}
-          sendMessage={sendMessage}
-        />
-      </main>
-    </div>
+    <main className="relative flex flex-1 flex-col overflow-hidden">
+      <ChatConversationArea
+        agent={agent}
+        currentConversation={currentConversation}
+        isStreaming={isStreaming}
+        sendMessage={sendMessage}
+      />
+    </main>
   );
 }

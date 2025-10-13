@@ -1,19 +1,25 @@
 import { type FC, memo, useCallback, useState } from "react";
-import type { ConversationView, SectionComponentType } from "@/types/agent";
+import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
+import type {
+  AgentInfo,
+  ConversationView,
+  SectionComponentType,
+} from "@/types/agent";
+import ChatConversationHeader from "./chat-conversation-header";
 import ChatDynamicComponent from "./chat-dynamic-component";
 import ChatInputArea from "./chat-input-area";
 import ChatThreadArea from "./chat-thread-area";
 import ChatWelcomeScreen from "./chat-welcome-screen";
 
 interface ChatConversationAreaProps {
-  displayName: string;
+  agent: AgentInfo;
   currentConversation: ConversationView | null;
   isStreaming: boolean;
   sendMessage: (message: string) => Promise<void>;
 }
 
 const ChatConversationArea: FC<ChatConversationAreaProps> = ({
-  displayName,
+  agent,
   currentConversation,
   isStreaming,
   sendMessage,
@@ -42,13 +48,16 @@ const ChatConversationArea: FC<ChatConversationAreaProps> = ({
 
   if (!hasMessages) {
     return (
-      <ChatWelcomeScreen
-        title={`Welcome to ${displayName}!`}
-        inputValue={inputValue}
-        onInputChange={handleInputChange}
-        onSendMessage={handleSendMessage}
-        disabled={isStreaming}
-      />
+      <>
+        <ChatConversationHeader agent={agent} />
+        <ChatWelcomeScreen
+          title={`Welcome to ${agent.display_name}!`}
+          inputValue={inputValue}
+          onInputChange={handleInputChange}
+          onSendMessage={handleSendMessage}
+          disabled={isStreaming}
+        />
+      </>
     );
   }
 
@@ -56,6 +65,8 @@ const ChatConversationArea: FC<ChatConversationAreaProps> = ({
     <div className="flex flex-1 gap-2 overflow-hidden">
       {/* main section */}
       <section className="flex flex-1 flex-col items-center">
+        <ChatConversationHeader agent={agent} />
+
         <ChatThreadArea
           threads={currentConversation.threads}
           isStreaming={isStreaming}
@@ -78,12 +89,14 @@ const ChatConversationArea: FC<ChatConversationAreaProps> = ({
         Object.entries(currentConversation.sections).map(
           ([componentType, items]) => (
             <section key={componentType} className="flex flex-1 flex-col py-4">
-              {/* Section content using dynamic component rendering */}
-              <ChatDynamicComponent
-                // TODO: componentType as type assertion is not safe, find a better way to do this
-                componentType={componentType as SectionComponentType}
-                items={items}
-              />
+              <ScrollContainer>
+                {/* Section content using dynamic component rendering */}
+                <ChatDynamicComponent
+                  // TODO: componentType as type assertion is not safe, find a better way to do this
+                  componentType={componentType as SectionComponentType}
+                  items={items}
+                />
+              </ScrollContainer>
             </section>
           ),
         )}
