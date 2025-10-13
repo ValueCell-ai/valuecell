@@ -1,4 +1,5 @@
 import { create } from "mutative";
+import { toast } from "sonner";
 import { AGENT_SECTION_COMPONENT_TYPE } from "@/constants/agent";
 import type {
   AgentConversationsStore,
@@ -126,10 +127,13 @@ export function updateAgentConversationsStore(
       case "reasoning":
       case "task_failed":
       case "plan_failed":
-      case "system_failed":
       case "plan_require_user_input":
         // Other events are set as markdown type
         handleChatItemEvent(draft, { component_type: "markdown", ...data });
+        break;
+
+      case "system_failed":
+        toast.error(data.payload.content);
         break;
 
       // TODO: tool call is not supported yet
