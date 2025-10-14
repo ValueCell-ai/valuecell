@@ -213,6 +213,7 @@ __marimo__/
 *.db-shm
 *.sqlite
 *.sqlite3
+./lancedb
 
 # Downloads
 *csv
@@ -221,3 +222,8 @@ __marimo__/
 
 # MACOS
 .DS_Store
+
+# Local files
+logs
+*.log
+.knowledge

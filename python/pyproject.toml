@@ -28,6 +28,7 @@ dependencies = [
     "markdown>=3.9",
     "loguru>=0.7.3",
     "tantivy>=0.25.0",
+    "aiofiles>=24.1.0",
 ]
 
 [project.optional-dependencies]

@@ -36,3 +36,15 @@ def get_agent_card_path() -> str:
     root_path = get_root_path()
     agent_card_path = Path(root_path) / "configs" / "agent_cards"
     return str(agent_card_path)
+
+
+def get_knowledge_path() -> str:
+    """
+    Returns the path to the knowledge directory located in the project root.
+
+    Returns:
+        str: Absolute path of the knowledge directory
+    """
+    root_path = get_root_path()
+    knowledge_path = Path(root_path) / ".knowledge"
+    return str(knowledge_path)
