@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
     async def main():
         agent = ResearchAgent()
-        query = "Provide a summary of Apple's 2024 all quarterly report."
+        query = "Provide a summary of Apple's 2024 all quarterly and annual reports."
         async for response in agent.stream(query, "test_session", "test_task"):
             print(response)
 

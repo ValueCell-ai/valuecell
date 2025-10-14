@@ -32,7 +32,7 @@ async def fetch_sec_filings(
         List[Tuple[str, Path, dict]]: A list of tuples containing the name, path, and metadata of each fetched filing.
     """
     company = Company(cik_or_ticker)
-    if year and quarter:
+    if year or quarter:
         filings = company.get_filings(form=form, year=year, quarter=quarter)
     else:
         filings = company.get_filings(form=form).latest()

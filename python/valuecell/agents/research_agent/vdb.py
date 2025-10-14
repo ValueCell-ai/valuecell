@@ -14,4 +14,5 @@ vector_db = LanceDb(
     embedder=embedder,
     reranker=reranker,
     search_type=SearchType.hybrid,
+    use_tantivy=False,
 )
