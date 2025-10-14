@@ -102,8 +102,8 @@ async def handle_status_update(
         tool_name = event.metadata.get("tool_name", "unknown_tool_name")
 
         tool_result = None
-        if "tool_result" in event.metadata:
-            tool_result = get_message_text(event.metadata.get("tool_result", ""))
+        if "tool_result" in event.metadata and event.metadata["tool_result"]:
+            tool_result = event.metadata.get("tool_result")
         responses.append(
             response_factory.tool_call(
                 conversation_id=task.conversation_id,

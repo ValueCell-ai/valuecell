@@ -179,7 +179,7 @@ class GenericAgentExecutor(AgentExecutor):
                 if EventPredicates.is_tool_call(response_event):
                     metadata["tool_call_id"] = response.metadata.get("tool_call_id")
                     metadata["tool_name"] = response.metadata.get("tool_name")
-                    metadata["tool_result"] = response.metadata.get("content")
+                    metadata["tool_result"] = response.metadata.get("tool_result")
                     await updater.update_status(
                         TaskState.working,
                         message=new_agent_text_message(response.content or ""),
