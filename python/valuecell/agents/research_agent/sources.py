@@ -44,25 +44,26 @@ async def fetch_sec_filings(
         filing_date: str = filing.filing_date.strftime("%Y-%m-%d")
         period_of_report: str = filing.period_of_report
         content: str = filing.document.markdown()
+        doc_type: str = filing.form
+        company_name: str = filing.company
 
-        name = f"{filing.company}-{filing_date}-{filing.form}"
-        path = Path(get_knowledge_path()) / f"{name}.md"
+        orig_doc = filing.document.document
+        md_doc = orig_doc.replace(filing.document.extension, ".md")
+        file_name = f"{doc_type}_{md_doc}"
+        path = Path(get_knowledge_path()) / file_name
         metadata = SECFilingMetadata(
-            doc_type=filing.form,
-            company=filing.company,
+            doc_type=doc_type,
+            company=company_name,
             period_of_report=period_of_report,
             filing_date=filing_date,
         )
         async with aiofiles.open(path, "w") as file:
             await file.write(content)
 
-        sec_filing_result = SECFilingResult(name, path, metadata)
+        sec_filing_result = SECFilingResult(file_name, path, metadata)
         res.append(sec_filing_result)
-        # asyncio.create_task(
-        #     insert_md_file_to_knowledge(name=name, path=path, metadata=metadata.__dict__)
-        # )
         await insert_md_file_to_knowledge(
-            name=name, path=path, metadata=metadata.__dict__
+            name=file_name, path=path, metadata=metadata.__dict__
         )
 
     return res
