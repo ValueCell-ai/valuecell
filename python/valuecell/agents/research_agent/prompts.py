@@ -45,4 +45,3 @@ Example 2 (user asks for interpretation):
 If you decide to call `fetch_sec_filings`, include the exact tool call you will make (parameters) in a short preamble before producing the answer.
 </examples>
 """
-

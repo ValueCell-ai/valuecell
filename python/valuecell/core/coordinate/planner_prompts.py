@@ -6,7 +6,6 @@ large `PLANNER_INSTRUCTIONS` constant contains the guidance used by the
 ExecutionPlanner when calling the LLM-based planning agent.
 """
 
-
 # noqa: E501
 PLANNER_INSTRUCTIONS = """
 You are an AI Agent execution planner that analyzes user requests and creates executable task plans using available agents.
