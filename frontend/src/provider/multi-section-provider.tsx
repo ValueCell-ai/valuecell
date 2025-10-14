@@ -5,16 +5,11 @@ import {
   useContext,
   useState,
 } from "react";
-import type { MultiSectionComponentType } from "@/types/agent";
-
-interface SectionData {
-  componentType: MultiSectionComponentType;
-  data: string;
-}
+import type { ChatItem } from "@/types/agent";
 
 interface MultiSectionContextType {
-  currentSection: SectionData | null;
-  openSection: (componentType: MultiSectionComponentType, data: string) => void;
+  currentSection: ChatItem | null;
+  openSection: (item: ChatItem) => void;
   closeSection: () => void;
 }
 
@@ -27,15 +22,10 @@ interface MultiSectionProviderProps {
 export const MultiSectionProvider: FC<MultiSectionProviderProps> = ({
   children,
 }) => {
-  const [currentSection, setCurrentSection] = useState<SectionData | null>(
-    null,
-  );
+  const [currentSection, setCurrentSection] = useState<ChatItem | null>(null);
 
-  const openSection = (
-    componentType: MultiSectionComponentType,
-    data: string,
-  ) => {
-    setCurrentSection({ componentType, data });
+  const openSection = (item: ChatItem) => {
+    setCurrentSection(item);
   };
 
   const closeSection = () => {

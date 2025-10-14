@@ -7,6 +7,7 @@ import {
 import type {
   AgentInfo,
   ConversationView,
+  MultiSectionComponentType,
   SectionComponentType,
 } from "@/types/agent";
 import ChatConversationHeader from "./chat-conversation-header";
@@ -112,8 +113,11 @@ const ChatConversationAreaContent: FC<ChatConversationAreaProps> = ({
         <section className="flex flex-1 flex-col py-4">
           <ScrollContainer>
             <ChatMultiSectionComponent
-              componentType={currentSection.componentType}
-              data={currentSection.data}
+              componentType={
+                // only the component_type is the same as the MultiSectionComponentType
+                currentSection.component_type as MultiSectionComponentType
+              }
+              content={currentSection.payload.content}
             />
           </ScrollContainer>
         </section>
