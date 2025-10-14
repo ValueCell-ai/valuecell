@@ -1,0 +1,57 @@
+{
+    "name": "ResearchAgent",
+    "display_name": "Research Agent",
+    "url": "http://localhost:10004/",
+    "description": "Research Agent analyzes SEC filings (10-K, 10-Q, 13F, 8-K) and internal knowledge to produce sourceable, actionable summaries and data extracts. It can extract financial line items, reconcile filings with knowledge search results, summarize holdings from 13F filings, and recommend follow-ups with exact tool calls.",
+    "skills": [
+        {
+            "id": "extract_financials",
+            "name": "Extract financial line items",
+            "description": "Retrieve and extract numeric financial line items (revenue, net income, EPS, cash flow) and cite the filing source.",
+            "examples": [
+                "What was Apple's revenue in Q4 2024? Provide the filing source.",
+                "Show net income and EPS for Tesla in the most recent 10-Q."
+            ],
+            "tags": ["10-K","10-Q","financials","filings"]
+        },
+        {
+            "id": "analyze_13f_filings",
+            "name": "Analyze 13F holdings",
+            "description": "Parse 13F filings to extract institutional holdings, position sizes, and changes over time.",
+            "examples": [
+                "What are the top holdings of Berkshire Hathaway in the latest 13F filing?",
+                "How has Vanguard's top 10 holdings changed over the last four quarters?"
+            ],
+            "tags": ["13F","holdings","institutional"]
+        },
+        {
+            "id": "synthesize_context",
+            "name": "Synthesize context and commentary",
+            "description": "Combine extracted filing data with knowledge-base search results to provide interpretation, analyst commentary, and historical context, always citing sources.",
+            "examples": [
+                "Summarize analyst commentary on Apple's guidance and cite sources.",
+                "Compare revenue trends for company X over the last three years with sources."
+            ],
+            "tags": ["analysis","context","knowledge-base"]
+        },
+        {
+            "id": "monitor_and_alert",
+            "name": "Monitor filings and notify",
+            "description": "Track company filings and notify users of new relevant SEC documents, with a short sourceable summary and suggested follow-ups.",
+            "examples": [
+                "Notify me when Tesla files its next 10-Q and provide a one-paragraph summary with sources.",
+                "Alert me to significant changes in Berkshire Hathaway's 13F holdings."
+            ],
+            "tags": ["monitor","alerts","tracking"]
+        }
+    ],
+    "enabled": true,
+    "metadata": {
+        "version": "1.0.0",
+        "author": "ValueCell Team",
+        "tags": [
+            "sec filings",
+            "fund-analysis"
+        ]
+    }
+}
