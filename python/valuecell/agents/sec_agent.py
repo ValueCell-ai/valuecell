@@ -67,7 +67,7 @@ class Sec13FundAgentConfig:
     """Configuration management class for SEC 13F Agent"""
 
     def __init__(self):
-        self.sec_email = os.getenv("SEC_EMAIL", "your.name@example.com")
+        self.sec_email = os.getenv("SEC_EMAIL")
         self.parser_model_id = os.getenv("SEC_PARSER_MODEL_ID", "openai/gpt-4o-mini")
         self.analysis_model_id = os.getenv(
             "SEC_ANALYSIS_MODEL_ID", "google/gemini-2.5-pro"

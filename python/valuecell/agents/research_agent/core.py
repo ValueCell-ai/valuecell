@@ -3,20 +3,15 @@ from typing import AsyncGenerator, Iterator
 
 from agno.agent import Agent, RunOutputEvent
 from agno.models.google import Gemini
-from agno.team import Team
 from edgar import set_identity
 from loguru import logger
 
+from valuecell.agents.research_agent.knowledge import knowledge
+from valuecell.agents.research_agent.prompts import KNOWLEDGE_AGENT_INSTRUCTION
+from valuecell.agents.research_agent.sources import fetch_sec_filings
 from valuecell.core.agent.responses import streaming
 from valuecell.core.types import BaseAgent, StreamResponse
 from valuecell.utils.env import agent_debug_mode_enabled
-
-from valuecell.agents.research_agent.knowledge import knowledge
-from valuecell.agents.research_agent.sources import fetch_sec_filings
-from valuecell.agents.research_agent.prompts import KNOWLEDGE_AGENT_INSTRUCTION
-
-
-set_identity(os.getenv("SEC_EMAIL"))
 
 
 class ResearchAgent(BaseAgent):
@@ -31,37 +26,7 @@ class ResearchAgent(BaseAgent):
             add_datetime_to_context=True,
             debug_mode=agent_debug_mode_enabled(),
         )
-        self.general_research_agent = Agent(
-            model=Gemini(id="gemini-2.5-flash", search=True),
-            debug_mode=agent_debug_mode_enabled(),
-        )
-        self.research_team = Team(
-            name="Stock Company Financial Research Team",
-            members=[self.knowledge_research_agent, self.general_research_agent],
-            model=Gemini(id="gemini-2.5-flash"),
-            instructions="Coordinate with team members to provide comprehensive information. Delegate tasks based on the user's request.",
-        )
-
-    # async def analyze_from_knowledge(
-    #     self, query: str
-    # ) -> AsyncGenerator[StreamResponse, None]:
-    #     response_stream: Iterator[RunOutputEvent] = self.knowledge_research_agent.arun(
-    #         query, stream=True, stream_intermediate_steps=True
-    #     )
-    #     async for event in response_stream:
-    #         if event.event == "RunContent":
-    #             yield streaming.message_chunk(event.content)
-    #         elif event.event == "ToolCallStarted":
-    #             yield streaming.tool_call_started(
-    #                 event.tool.tool_call_id, event.tool.tool_name
-    #             )
-    #         elif event.event == "ToolCallCompleted":
-    #             yield streaming.tool_call_completed(
-    #                 event.tool.result, event.tool.tool_call_id, event.tool.tool_name
-    #             )
-    #     logger.info("Financial data analysis completed")
-
-    #     yield streaming.done()
+        set_identity(os.getenv("SEC_EMAIL"))
 
     async def stream(
         self, query: str, session_id: str, task_id: str
@@ -90,7 +55,7 @@ if __name__ == "__main__":
 
     async def main():
         agent = ResearchAgent()
-        query = "Provide a summary of Apple's latest quarterly report."
+        query = "Provide a summary of Apple's 2024 all quarterly report."
         async for response in agent.stream(query, "test_session", "test_task"):
             print(response)
 
