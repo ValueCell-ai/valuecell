@@ -2,6 +2,7 @@ import os
 from typing import AsyncGenerator, Iterator
 
 from agno.agent import Agent, RunOutputEvent
+from agno.db.in_memory import InMemoryDb
 from agno.models.google import Gemini
 from edgar import set_identity
 from loguru import logger
@@ -19,20 +20,28 @@ class ResearchAgent(BaseAgent):
         super().__init__(**kwargs)
         self.knowledge_research_agent = Agent(
             model=Gemini(id="gemini-2.5-flash"),
+            instructions=[KNOWLEDGE_AGENT_INSTRUCTION],
             tools=[fetch_sec_filings],
             knowledge=knowledge,
+            db=InMemoryDb(),
+            # context
             search_knowledge=True,
-            instructions=[KNOWLEDGE_AGENT_INSTRUCTION],
             add_datetime_to_context=True,
+            add_history_to_context=True,
+            num_history_runs=3,
+            # configuration
             debug_mode=agent_debug_mode_enabled(),
         )
         set_identity(os.getenv("SEC_EMAIL"))
 
     async def stream(
-        self, query: str, session_id: str, task_id: str
+        self, query: str, conversation_id: str, task_id: str
     ) -> AsyncGenerator[StreamResponse, None]:
         response_stream: Iterator[RunOutputEvent] = self.knowledge_research_agent.arun(
-            query, stream=True, stream_intermediate_steps=True
+            query,
+            stream=True,
+            stream_intermediate_steps=True,
+            session_id=conversation_id,
         )
         async for event in response_stream:
             if event.event == "RunContent":
