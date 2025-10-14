@@ -213,7 +213,8 @@ __marimo__/
 *.db-shm
 *.sqlite
 *.sqlite3
-./lancedb
+lancedb
+.lancedb
 
 # Downloads
 *csv

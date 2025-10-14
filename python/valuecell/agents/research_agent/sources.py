@@ -3,19 +3,41 @@ from typing import List, Optional
 
 import aiofiles
 from edgar import Company
-from edgar.enums import FormType
+from edgar.entity.filings import EntityFilings
 
 from valuecell.utils.path import get_knowledge_path
+
+from .knowledge import insert_md_file_to_knowledge
+from .schemas import SECFilingMetadata, SECFilingResult
 
 
 async def fetch_sec_filings(
     cik_or_ticker: str,
-    form: FormType = FormType.QUARTERLY_REPORT,
+    form: List[str] | str = "10-Q",
     year: Optional[int | List[int]] = None,
     quarter: Optional[int | List[int]] = None,
 ):
+    """Fetch SEC filings for a given company.
+    If year and quarter are provided, filter filings accordingly. If not, fetch the latest filings.
+
+    Args:
+        cik_or_ticker (str): CIK or ticker symbol of the company. Never introduce backticks, quotes, or spaces.
+        form (List[str] | str, optional): Type of SEC filing form to fetch.
+            - Defaults to "10-Q". Can be a list of forms (e.g. ["10-K", "10-Q"]).
+            - Choices include "10-K", "10-Q".
+        year (Optional[int | List[int]], optional): Year or list of years to filter filings. Defaults to None.
+        quarter (Optional[int | List[int]], optional): Quarter or list of quarters to filter filings. Defaults to None.
+
+    Returns:
+        List[Tuple[str, Path, dict]]: A list of tuples containing the name, path, and metadata of each fetched filing.
+    """
     company = Company(cik_or_ticker)
-    filings = company.get_filings(form=form, year=year, quarter=quarter)
+    if year and quarter:
+        filings = company.get_filings(form=form, year=year, quarter=quarter)
+    else:
+        filings = company.get_filings(form=form).latest()
+        if not isinstance(filings, EntityFilings):
+            filings = [filings]
 
     res = []
     for filing in filings:
@@ -25,15 +47,22 @@ async def fetch_sec_filings(
 
         name = f"{filing.company}-{filing_date}-{filing.form}"
         path = Path(get_knowledge_path()) / f"{name}.md"
-        metadata = {
-            "doc_type": filing.form,
-            "company": filing.company,
-            "period_of_report": period_of_report,
-            "filing_date": filing_date,
-        }
+        metadata = SECFilingMetadata(
+            doc_type=filing.form,
+            company=filing.company,
+            period_of_report=period_of_report,
+            filing_date=filing_date,
+        )
         async with aiofiles.open(path, "w") as file:
             await file.write(content)
 
-        res.append((name, path, metadata))
+        sec_filing_result = SECFilingResult(name, path, metadata)
+        res.append(sec_filing_result)
+        # asyncio.create_task(
+        #     insert_md_file_to_knowledge(name=name, path=path, metadata=metadata.__dict__)
+        # )
+        await insert_md_file_to_knowledge(
+            name=name, path=path, metadata=metadata.__dict__
+        )
 
     return res

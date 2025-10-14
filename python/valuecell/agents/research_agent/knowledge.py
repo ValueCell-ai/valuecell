@@ -11,7 +11,7 @@ knowledge = Knowledge(
     vector_db=vector_db,
     max_results=10,
 )
-reader = MarkdownReader(chunking_strategy=MarkdownChunking())
+md_reader = MarkdownReader(chunking_strategy=MarkdownChunking())
 
 
 async def insert_md_file_to_knowledge(
@@ -21,5 +21,5 @@ async def insert_md_file_to_knowledge(
         name=name,
         path=path,
         metadata=metadata,
-        reader=reader,
+        reader=md_reader,
     )
