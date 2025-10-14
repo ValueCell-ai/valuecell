@@ -133,7 +133,10 @@ export function updateAgentConversationsStore(
         break;
 
       case "system_failed":
-        toast.error(data.payload.content);
+        toast.error(data.payload.content, {
+          closeButton: true,
+          duration: 30 * 1000,
+        });
         break;
 
       // TODO: tool call is not supported yet

@@ -15,10 +15,10 @@ const ChatThreadArea: FC<ChatThreadAreaProps> = ({ threads, isStreaming }) => {
       className="w-full flex-1 space-y-6 py-6"
       autoScrollToBottom
     >
-      <main className="main-chat-area mx-auto">
-        {Object.entries(threads).map(([threadId, thread]) => {
+      <main className="main-chat-area mx-auto space-y-6">
+        {Object.values(threads).map((thread) => {
           return (
-            <div key={threadId} className="space-y-6">
+            <>
               {/* Render all tasks within this thread */}
               {Object.entries(thread.tasks).map(([taskId, task]) => {
                 if (task.items && task.items.length > 0) {
@@ -26,7 +26,7 @@ const ChatThreadArea: FC<ChatThreadAreaProps> = ({ threads, isStreaming }) => {
                 }
                 return null;
               })}
-            </div>
+            </>
           );
         })}
 
