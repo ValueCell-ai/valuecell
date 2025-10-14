@@ -59,21 +59,6 @@ const ChatItemArea: FC<ChatItemAreaProps> = ({ items }) => {
                   );
               }
             })()}
-            {/* if ("component_type" in item) {
-                const RendererComponent =
-                  COMPONENT_RENDERER_MAP[item.component_type];
-
-                const payload = item.payload;
-                if (!payload) return null;
-
-                return RendererComponent ? (
-                  <RendererComponent content={payload.content} />
-                ) : (
-                  <UnknownRenderer item={item} content={payload.content} />
-                );
-              }
-              return null;
-            })()} */}
           </div>
         </div>
       ))}
