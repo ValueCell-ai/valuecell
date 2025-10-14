@@ -8,6 +8,12 @@
     "build": "react-router build",
     "start": "vite preview --outDir build/client",
     "typecheck": "react-router typegen && tsc",
+    "lint": "biome lint --diagnostic-level=error ./src",
+    "lint:fix": "biome lint --write ./src",
+    "format": "biome format --diagnostic-level=error ./src",
+    "format:fix": "biome format --write ./src",
+    "check": "biome check ./src",
+    "check:fix": "biome check --write ./src",
     "tauri": "tauri"
   },
   "dependencies": {

@@ -1,5 +1,12 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.2.5/schema.json",
+  "files": {
+    "includes": [
+      "src/**/*.{ts,tsx,js,jsx}",
+      "!src/components/magicui",
+      "!src/components/ui"
+    ]
+  },
   "assist": {
     "actions": {
       "source": {
