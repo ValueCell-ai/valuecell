@@ -54,6 +54,13 @@ wheels = [
 ]
 
 [package.optional-dependencies]
+google = [
+    { name = "google-genai" },
+]
+lancedb = [
+    { name = "lancedb" },
+    { name = "tantivy" },
+]
 openai = [
     { name = "openai" },
 ]
@@ -810,6 +817,25 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/9e/9b/e92ef23b84fa10a64ce4831390b7a4c2e53c0132568d99d4ae61d04c8855/google_auth-2.40.3.tar.gz", hash = "sha256:500c3a29adedeb36ea9cf24b8d10858e152f2412e3ca37829b3fa18e33d63b77", size = 281029, upload-time = "2025-06-04T18:04:57.577Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/17/63/b19553b658a1692443c62bd07e5868adaa0ad746a0751ba62c59568cd45b/google_auth-2.40.3-py2.py3-none-any.whl", hash = "sha256:1370d4593e86213563547f97a92752fc658456fe4514c809544f330fed45a7ca", size = 216137, upload-time = "2025-06-04T18:04:55.573Z" },
+]
+
+[[package]]
+name = "google-genai"
+version = "1.43.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "google-auth" },
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "requests" },
+    { name = "tenacity" },
+    { name = "typing-extensions" },
+    { name = "websockets" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c1/75/992ca4462682949750709678b8efbc865222c9a16cf34504b69c5459606c/google_genai-1.43.0.tar.gz", hash = "sha256:84eb219d320759c5882bc2cdb4e2ac84544d00f5d12c7892c79fb03d71bfc9a4", size = 236132, upload-time = "2025-10-10T23:16:40.131Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/61/85/e90dda488d5044e6e4cd1b49e7e7f0cc7f4a2a1c8004e88a5122d42ea024/google_genai-1.43.0-py3-none-any.whl", hash = "sha256:be1d4b1acab268125d536fd81b73c38694a70cb08266759089154718924434fd", size = 236733, upload-time = "2025-10-10T23:16:38.809Z" },
 ]
 
 [[package]]
@@ -3080,13 +3106,12 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "a2a-sdk", extra = ["http-server"] },
-    { name = "agno", extra = ["openai"] },
+    { name = "agno", extra = ["google", "lancedb", "openai"] },
     { name = "aiofiles" },
     { name = "aiosqlite" },
     { name = "akshare" },
     { name = "edgartools" },
     { name = "fastapi" },
-    { name = "lancedb" },
     { name = "loguru" },
     { name = "markdown" },
     { name = "pydantic" },
@@ -3095,7 +3120,6 @@ dependencies = [
     { name = "requests" },
     { name = "sentence-transformers" },
     { name = "sqlalchemy" },
-    { name = "tantivy" },
     { name = "unstructured" },
     { name = "uvicorn" },
     { name = "yfinance" },
@@ -3136,14 +3160,13 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "a2a-sdk", extras = ["http-server"], specifier = ">=0.3.4" },
-    { name = "agno", extras = ["openai"], specifier = ">=2.0,<3.0" },
+    { name = "agno", extras = ["openai", "google", "lancedb"], specifier = ">=2.0,<3.0" },
     { name = "aiofiles", specifier = ">=24.1.0" },
     { name = "aiosqlite", specifier = ">=0.19.0" },
     { name = "akshare", specifier = ">=1.17.44" },
     { name = "diff-cover", marker = "extra == 'dev'", specifier = ">=9.0.0" },
     { name = "edgartools", specifier = ">=4.12.2" },
     { name = "fastapi", specifier = ">=0.104.0" },
-    { name = "lancedb", specifier = ">=0.25.2" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "markdown", specifier = ">=3.9" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -3156,7 +3179,6 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'dev'" },
     { name = "sentence-transformers", specifier = ">=5.1.1" },
     { name = "sqlalchemy", specifier = ">=2.0.43" },
-    { name = "tantivy", specifier = ">=0.25.0" },
     { name = "unstructured", specifier = ">=0.18.15" },
     { name = "uvicorn", specifier = ">=0.24.0" },
     { name = "yfinance", specifier = ">=0.2.65" },

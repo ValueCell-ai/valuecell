@@ -28,6 +28,7 @@ from valuecell.core.coordinate.planner_prompts import (
 from valuecell.core.task import Task, TaskPattern, TaskStatus
 from valuecell.core.types import UserInput
 from valuecell.utils import generate_uuid
+from valuecell.utils.env import agent_debug_mode_enabled
 
 from .models import ExecutionPlan, PlannerInput, PlannerResponse
 
@@ -153,7 +154,7 @@ class ExecutionPlanner:
                 self.tool_get_agent_description,
             ],
             markdown=False,
-            debug_mode=os.getenv("AGENT_DEBUG_MODE", "false").lower() == "true",
+            debug_mode=agent_debug_mode_enabled(),
             instructions=[
                 create_prompt_with_datetime(PLANNER_INSTRUCTIONS),
             ],
