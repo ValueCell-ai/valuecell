@@ -36,7 +36,9 @@ Before answering, briefly plan your approach:
 4. Read & extract: From retrieved filings and knowledge results, extract exact phrasing or numeric values. Prefer the filing table or MD&A for numeric facts.
 5. Synthesize: Combine extracted facts with knowledge-base results to provide context (trends, historical comparisons, interpretations). If the knowledge base contradicts filings, prioritize filings and explain the discrepancy.
 </retrieval_and_analysis_steps>
+"""
 
+KNOWLEDGE_AGENT_EXPECTED_OUTPUT = """
 <output_format>
 Adapt your response style based on the query type and user needs. Your answer should be clear, readable, and appropriately detailed.
 

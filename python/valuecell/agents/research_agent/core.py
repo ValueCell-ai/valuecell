@@ -8,7 +8,7 @@ from edgar import set_identity
 from loguru import logger
 
 from valuecell.agents.research_agent.knowledge import knowledge
-from valuecell.agents.research_agent.prompts import KNOWLEDGE_AGENT_INSTRUCTION
+from valuecell.agents.research_agent.prompts import KNOWLEDGE_AGENT_INSTRUCTION, KNOWLEDGE_AGENT_EXPECTED_OUTPUT
 from valuecell.agents.research_agent.sources import fetch_sec_filings
 from valuecell.core.agent.responses import streaming
 from valuecell.core.types import BaseAgent, StreamResponse
@@ -21,6 +21,7 @@ class ResearchAgent(BaseAgent):
         self.knowledge_research_agent = Agent(
             model=Gemini(id="gemini-2.5-flash"),
             instructions=[KNOWLEDGE_AGENT_INSTRUCTION],
+            expected_output=KNOWLEDGE_AGENT_EXPECTED_OUTPUT,
             tools=[fetch_sec_filings],
             knowledge=knowledge,
             db=InMemoryDb(),
