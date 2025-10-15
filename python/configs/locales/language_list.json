@@ -1,0 +1,211 @@
+[{
+        "language": "中文（简体）",
+        "tag": "zh-Hans",
+        "region": "Generic Simplified Chinese"
+    },
+    {
+        "language": "中文（简体，中国大陆）",
+        "tag": "zh-Hans-CN",
+        "region": "Mainland China"
+    },
+    {
+        "language": "中文（简体，新加坡）",
+        "tag": "zh-Hans-SG",
+        "region": "Singapore"
+    },
+    {
+        "language": "中文（繁體）",
+        "tag": "zh-Hant",
+        "region": "Generic Traditional Chinese"
+    },
+    {
+        "language": "正體中文（台灣）",
+        "tag": "zh-Hant-TW",
+        "region": "Taiwan"
+    },
+    {
+        "language": "正體中文（香港）",
+        "tag": "zh-Hant-HK",
+        "region": "Hong Kong"
+    },
+    {
+        "language": "正體中文（澳門）",
+        "tag": "zh-Hant-MO",
+        "region": "Macau"
+    },
+    {
+        "language": "English (US)",
+        "tag": "en-US",
+        "region": "United States"
+    },
+    {
+        "language": "English (UK)",
+        "tag": "en-GB",
+        "region": "United Kingdom"
+    },
+    {
+        "language": "English (Canada)",
+        "tag": "en-CA",
+        "region": "Canada"
+    },
+    {
+        "language": "English (Australia)",
+        "tag": "en-AU",
+        "region": "Australia"
+    },
+    {
+        "language": "English (India)",
+        "tag": "en-IN",
+        "region": "India"
+    },
+    {
+        "language": "English (Singapore)",
+        "tag": "en-SG",
+        "region": "Singapore"
+    },
+    {
+        "language": "English (South Africa)",
+        "tag": "en-ZA",
+        "region": "South Africa"
+    },
+    {
+        "language": "Français (France)",
+        "tag": "fr-FR",
+        "region": "France"
+    },
+    {
+        "language": "Français (Canada)",
+        "tag": "fr-CA",
+        "region": "Canada"
+    },
+    {
+        "language": "Français (Belgique)",
+        "tag": "fr-BE",
+        "region": "Belgium"
+    },
+    {
+        "language": "Deutsch (Deutschland)",
+        "tag": "de-DE",
+        "region": "Germany"
+    },
+    {
+        "language": "Deutsch (Österreich)",
+        "tag": "de-AT",
+        "region": "Austria"
+    },
+    {
+        "language": "Deutsch (Schweiz)",
+        "tag": "de-CH",
+        "region": "Switzerland"
+    },
+    {
+        "language": "Español (España)",
+        "tag": "es-ES",
+        "region": "Spain"
+    },
+    {
+        "language": "Español (México)",
+        "tag": "es-MX",
+        "region": "Mexico"
+    },
+    {
+        "language": "Português (Portugal)",
+        "tag": "pt-PT",
+        "region": "Portugal"
+    },
+    {
+        "language": "Português (Brasil)",
+        "tag": "pt-BR",
+        "region": "Brazil"
+    },
+    {
+        "language": "Italiano (Italia)",
+        "tag": "it-IT",
+        "region": "Italy"
+    },
+    {
+        "language": "日本語",
+        "tag": "ja-JP",
+        "region": "Japan"
+    },
+    {
+        "language": "한국어",
+        "tag": "ko-KR",
+        "region": "South Korea"
+    },
+    {
+        "language": "Русский",
+        "tag": "ru-RU",
+        "region": "Russia"
+    },
+    {
+        "language": "العربية (السعودية)",
+        "tag": "ar-SA",
+        "region": "Saudi Arabia"
+    },
+    {
+        "language": "हिन्दी",
+        "tag": "hi-IN",
+        "region": "India"
+    },
+    {
+        "language": "ไทย",
+        "tag": "th-TH",
+        "region": "Thailand"
+    },
+    {
+        "language": "Tiếng Việt",
+        "tag": "vi-VN",
+        "region": "Vietnam"
+    },
+    {
+        "language": "Bahasa Indonesia",
+        "tag": "id-ID",
+        "region": "Indonesia"
+    },
+    {
+        "language": "Bahasa Melayu",
+        "tag": "ms-MY",
+        "region": "Malaysia"
+    },
+    {
+        "language": "Filipino",
+        "tag": "fil-PH",
+        "region": "Philippines"
+    },
+    {
+        "language": "Türkçe",
+        "tag": "tr-TR",
+        "region": "Turkey"
+    },
+    {
+        "language": "Polski",
+        "tag": "pl-PL",
+        "region": "Poland"
+    },
+    {
+        "language": "Ελληνικά",
+        "tag": "el-GR",
+        "region": "Greece"
+    },
+    {
+        "language": "Nederlands",
+        "tag": "nl-NL",
+        "region": "Netherlands"
+    },
+    {
+        "language": "Svenska",
+        "tag": "sv-SE",
+        "region": "Sweden"
+    },
+    {
+        "language": "Suomi",
+        "tag": "fi-FI",
+        "region": "Finland"
+    },
+    {
+        "language": "Norsk Bokmål",
+        "tag": "no-NO",
+        "region": "Norway"
+    }
+]
