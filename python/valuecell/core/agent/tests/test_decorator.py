@@ -45,6 +45,25 @@ class MockAgent(BaseAgent):
         )
 
 
+class MockToolCallAgent(BaseAgent):
+    """Mock agent that returns tool call responses."""
+
+    def __init__(self):
+        self.stream_called = False
+
+    async def stream(self, query, context_id, task_id):
+        self.stream_called = True
+        yield StreamResponse(
+            event=StreamResponseEvent.TOOL_CALL_STARTED,
+            content="Tool call started",
+            metadata={
+                "tool_call_id": "call-123",
+                "tool_name": "test_tool",
+                "tool_result": "Tool result data"
+            }
+        )
+
+
 class TestGenericAgentExecutor:
     """Test GenericAgentExecutor class."""
 
@@ -197,18 +216,57 @@ class TestGenericAgentExecutor:
             mock_updater.complete.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_cancel_raises_error(self):
-        """Test cancel method raises ServerError."""
-        agent = MockAgent()
+    async def test_execute_handles_tool_call_response(self):
+        """Test execute method handles tool call responses properly."""
+        agent = MockToolCallAgent()
         executor = GenericAgentExecutor(agent)
 
+        # Mock request context
         context = MagicMock()
-        event_queue = MagicMock()
+        context.get_user_input.return_value = "test query"
+        context.current_task = MagicMock()
+        context.current_task.id = "task-123"
+        context.current_task.context_id = "context-456"
+        context.metadata = {}
+        context.message = MagicMock()
+        context.message.metadata = {}
 
-        with pytest.raises(
-            Exception
-        ):  # Should raise ServerError/UnsupportedOperationError
-            await executor.cancel(context, event_queue)
+        # Mock event queue
+        event_queue = MagicMock(spec=EventQueue)
+        event_queue.enqueue_event = AsyncMock()
+
+        # Mock task updater
+        with patch("valuecell.core.agent.decorator.TaskUpdater") as mock_updater_class:
+            mock_updater = MagicMock()
+            mock_updater.update_status = AsyncMock()
+            mock_updater.complete = AsyncMock()
+            mock_updater_class.return_value = mock_updater
+
+            await executor.execute(context, event_queue)
+
+            # Verify agent.stream was called
+            assert agent.stream_called
+
+            # Verify task updater was used
+            mock_updater_class.assert_called_once_with(
+                event_queue, "task-123", "context-456"
+            )
+
+            # Verify tool call metadata was passed correctly
+            tool_call_calls = [
+                call for call in mock_updater.update_status.call_args_list
+                if len(call[1]) > 1 and call[1].get('metadata', {}).get('tool_call_id') == 'call-123'
+            ]
+            assert len(tool_call_calls) == 1
+
+            # Check that metadata contains tool_result (line 182 coverage)
+            metadata = tool_call_calls[0][1]['metadata']
+            assert 'tool_result' in metadata
+            assert metadata['tool_result'] == 'Tool result data'
+            assert metadata['tool_call_id'] == 'call-123'
+            assert metadata['tool_name'] == 'test_tool'
+
+            mock_updater.complete.assert_called_once()
 
 
 class TestCreateAgentExecutor:
