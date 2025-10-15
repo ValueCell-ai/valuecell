@@ -226,5 +226,4 @@ lancedb
 
 # Local files
 logs
-*.log
 .knowledge
