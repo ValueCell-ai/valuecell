@@ -252,19 +252,24 @@ class TestHandleStatusUpdate:
             agent_name="test-agent",
         )
         thread_id = "thread-123"
-        m = Message(
-            message_id="m1", role=Role.agent, parts=[TextPart(text="Tool result")]
-        )
+        message_text = "Tool result"
         event = TaskStatusUpdateEvent(
             context_id="ctx-123",
             task_id="task-123",
             final=False,
-            status=TaskStatus(state=TaskState.working, message=m),
+            status=TaskStatus(
+                state=TaskState.working,
+                message=Message(
+                    message_id="m1",
+                    role=Role.agent,
+                    parts=[TextPart(text=message_text)],
+                ),
+            ),
             metadata={
                 "response_event": "tool_call_started",
                 "tool_call_id": "call-123",
                 "tool_name": "test_tool",
-                "tool_result": m,
+                "tool_result": message_text,
             },
         )
 
