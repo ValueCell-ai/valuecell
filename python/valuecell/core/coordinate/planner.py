@@ -106,9 +106,10 @@ class ExecutionPlanner:
         Returns:
             ExecutionPlan: A structured plan with tasks for execution.
         """
+        conversation_id = (user_input.meta.conversation_id,)
         plan = ExecutionPlan(
             plan_id=generate_uuid("plan"),
-            conversation_id=user_input.meta.conversation_id,
+            conversation_id=conversation_id,
             user_id=user_input.meta.user_id,
             orig_query=user_input.query,  # Store the original query
             created_at=datetime.now().isoformat(),
@@ -116,14 +117,19 @@ class ExecutionPlanner:
 
         # Analyze input and create appropriate tasks
         tasks = await self._analyze_input_and_create_tasks(
-            user_input, user_input_callback
+            user_input,
+            conversation_id,
+            user_input_callback,
         )
         plan.tasks = tasks
 
         return plan
 
     async def _analyze_input_and_create_tasks(
-        self, user_input: UserInput, user_input_callback: Optional[Callable] = None
+        self,
+        user_input: UserInput,
+        conversation_id: str,
+        user_input_callback: Optional[Callable] = None,
     ) -> List[Task]:
         """
         Analyze user input and produce a list of `Task` objects.
@@ -135,6 +141,7 @@ class ExecutionPlanner:
 
         Args:
             user_input: The original user input to analyze.
+            conversation_id: Conversation this planning belongs to.
             user_input_callback: Optional async callback used for Human-in-the-Loop.
 
         Returns:
@@ -168,7 +175,8 @@ class ExecutionPlanner:
             PlannerInput(
                 desired_agent_name=user_input.desired_agent_name,
                 query=user_input.query,
-            )
+            ),
+            session_id=conversation_id,
         )
 
         # Handle user input requests through Human-in-the-Loop workflow
