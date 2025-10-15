@@ -59,8 +59,8 @@ class MockToolCallAgent(BaseAgent):
             metadata={
                 "tool_call_id": "call-123",
                 "tool_name": "test_tool",
-                "tool_result": "Tool result data"
-            }
+                "tool_result": "Tool result data",
+            },
         )
 
 
@@ -254,17 +254,19 @@ class TestGenericAgentExecutor:
 
             # Verify tool call metadata was passed correctly
             tool_call_calls = [
-                call for call in mock_updater.update_status.call_args_list
-                if len(call[1]) > 1 and call[1].get('metadata', {}).get('tool_call_id') == 'call-123'
+                call
+                for call in mock_updater.update_status.call_args_list
+                if len(call[1]) > 1
+                and call[1].get("metadata", {}).get("tool_call_id") == "call-123"
             ]
             assert len(tool_call_calls) == 1
 
             # Check that metadata contains tool_result (line 182 coverage)
-            metadata = tool_call_calls[0][1]['metadata']
-            assert 'tool_result' in metadata
-            assert metadata['tool_result'] == 'Tool result data'
-            assert metadata['tool_call_id'] == 'call-123'
-            assert metadata['tool_name'] == 'test_tool'
+            metadata = tool_call_calls[0][1]["metadata"]
+            assert "tool_result" in metadata
+            assert metadata["tool_result"] == "Tool result data"
+            assert metadata["tool_call_id"] == "call-123"
+            assert metadata["tool_name"] == "test_tool"
 
             mock_updater.complete.assert_called_once()
 
