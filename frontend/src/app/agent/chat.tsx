@@ -1,5 +1,13 @@
-import { useCallback, useMemo, useReducer, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { Navigate, useParams } from "react-router";
+import { toast } from "sonner";
 import { useGetAgentInfo } from "@/api/agent";
 import { useSSE } from "@/hooks/use-sse";
 import { updateAgentConversationsStore } from "@/lib/agent-store";
@@ -29,16 +37,27 @@ export default function AgentChat() {
   // Use optimized reducer for state management
   const [agentStore, dispatchAgentStore] = useReducer(agentStoreReducer, {});
   console.log("🚀 ~ AgentChat ~ agentStore:", agentStore);
+
   // TODO: temporary conversation id (after will remove hardcoded)
-  const curConversationId = useRef<string>(`${agentName}_conv_default_user`);
+  const [curConversationId, setCurConversationId] = useState<string>(
+    `${agentName}_conv_default_user`,
+  );
   const curThreadId = useRef<string>("");
+
+  // Only update conversation ID when agentName actually changes
+  useEffect(() => {
+    const newConversationId = `${agentName}_conv_default_user`;
+    if (curConversationId !== newConversationId) {
+      setCurConversationId(newConversationId);
+    }
+  }, [agentName, curConversationId]);
 
   // Get current conversation using original data structure
   const currentConversation = useMemo(() => {
-    return curConversationId.current in agentStore
-      ? agentStore[curConversationId.current]
+    return curConversationId in agentStore
+      ? agentStore[curConversationId]
       : null;
-  }, [agentStore]);
+  }, [agentStore, curConversationId]);
 
   // Handle SSE data events using agent store
   // biome-ignore lint/correctness/useExhaustiveDependencies: close is no need to be in dependencies
@@ -50,11 +69,19 @@ export default function AgentChat() {
     const { event, data } = sseData;
     switch (event) {
       case "conversation_started":
-        curConversationId.current = data.conversation_id;
+        setCurConversationId(data.conversation_id);
         break;
 
       case "thread_started":
         curThreadId.current = data.thread_id;
+        break;
+
+      case "system_failed":
+        // Handle system errors in UI layer
+        toast.error(data.payload.content, {
+          closeButton: true,
+          duration: 30 * 1000,
+        });
         break;
 
       case "done":
@@ -96,7 +123,7 @@ export default function AgentChat() {
         const request: AgentStreamRequest = {
           query: message,
           agent_name: agentName ?? "",
-          conversation_id: curConversationId.current,
+          conversation_id: curConversationId,
         };
 
         // Connect SSE client with request body to receive streaming response

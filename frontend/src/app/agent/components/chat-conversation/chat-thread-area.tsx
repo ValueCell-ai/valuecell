@@ -1,4 +1,4 @@
-import { type FC, memo } from "react";
+import { type FC, Fragment, memo } from "react";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import type { ConversationView } from "@/types/agent";
 import ChatItemArea from "./chat-item-area";
@@ -16,9 +16,9 @@ const ChatThreadArea: FC<ChatThreadAreaProps> = ({ threads, isStreaming }) => {
       autoScrollToBottom
     >
       <main className="main-chat-area mx-auto space-y-6">
-        {Object.values(threads).map((thread) => {
+        {Object.entries(threads).map(([threadId, thread]) => {
           return (
-            <>
+            <Fragment key={threadId}>
               {/* Render all tasks within this thread */}
               {Object.entries(thread.tasks).map(([taskId, task]) => {
                 if (task.items && task.items.length > 0) {
@@ -26,7 +26,7 @@ const ChatThreadArea: FC<ChatThreadAreaProps> = ({ threads, isStreaming }) => {
                 }
                 return null;
               })}
-            </>
+            </Fragment>
           );
         })}
 
