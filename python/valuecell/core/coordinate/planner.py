@@ -106,7 +106,7 @@ class ExecutionPlanner:
         Returns:
             ExecutionPlan: A structured plan with tasks for execution.
         """
-        conversation_id = (user_input.meta.conversation_id,)
+        conversation_id = user_input.meta.conversation_id
         plan = ExecutionPlan(
             plan_id=generate_uuid("plan"),
             conversation_id=conversation_id,
