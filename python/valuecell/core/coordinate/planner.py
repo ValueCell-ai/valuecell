@@ -18,6 +18,7 @@ from typing import Callable, List, Optional
 
 from a2a.types import AgentCard
 from agno.agent import Agent
+from agno.db.in_memory import InMemoryDb
 from agno.models.openrouter import OpenRouter
 
 from valuecell.core.agent.connect import RemoteConnections
@@ -153,7 +154,13 @@ class ExecutionPlanner:
             markdown=False,
             debug_mode=agent_debug_mode_enabled(),
             instructions=[PLANNER_INSTRUCTIONS],
+            # context
+            db=InMemoryDb(),
             add_datetime_to_context=True,
+            add_history_to_context=True,
+            num_history_runs=3,
+            read_chat_history=True,
+            enable_session_summaries=True,
         )
 
         # Execute planning with the agent
