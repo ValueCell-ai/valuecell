@@ -142,7 +142,7 @@ class ExecutionPlanner:
         # Create planning agent with appropriate tools and instructions
         agent = Agent(
             model=OpenRouter(
-                id=os.getenv("PLANNER_MODEL_ID", "google/gemini-2.5-pro"),
+                id=os.getenv("PLANNER_MODEL_ID", "google/gemini-2.5-flash"),
                 max_tokens=None,
             ),
             tools=[
