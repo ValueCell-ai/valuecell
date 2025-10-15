@@ -29,6 +29,8 @@ class ResearchAgent(BaseAgent):
             add_datetime_to_context=True,
             add_history_to_context=True,
             num_history_runs=3,
+            read_chat_history=True,
+            enable_session_summaries=True,
             # configuration
             debug_mode=agent_debug_mode_enabled(),
         )
