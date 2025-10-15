@@ -24,7 +24,10 @@ async def fetch_sec_filings(
         cik_or_ticker (str): CIK or ticker symbol of the company. Never introduce backticks, quotes, or spaces.
         form (List[str] | str, optional): Type of SEC filing form to fetch.
             - Defaults to "10-Q". Can be a list of forms (e.g. ["10-K", "10-Q"]).
-            - Choices include "10-K", "10-Q".
+            - Choices explained:
+                - "10-K": Annual report
+                - "10-Q": Quarterly report
+                - "8-K": Current report for unscheduled material events or corporate changes
         year (Optional[int | List[int]], optional): Year or list of years to filter filings. Defaults to None.
         quarter (Optional[int | List[int]], optional): Quarter or list of quarters to filter filings. Defaults to None.
 
