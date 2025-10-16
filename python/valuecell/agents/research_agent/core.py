@@ -1,7 +1,7 @@
 import os
-from typing import AsyncGenerator, Dict, Iterator, Optional
+from typing import AsyncGenerator, Dict, Optional
 
-from agno.agent import Agent, RunOutputEvent
+from agno.agent import Agent
 from agno.db.in_memory import InMemoryDb
 from agno.models.google import Gemini
 from agno.models.openrouter import OpenRouter
