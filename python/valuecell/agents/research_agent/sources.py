@@ -113,7 +113,9 @@ async def fetch_periodic_sec_filings(
     # If year is omitted, use latest(limit). Quarter without year is not supported.
     if year is None:
         if quarter is not None:
-            raise ValueError("quarter requires year to be specified for periodic filings")
+            raise ValueError(
+                "quarter requires year to be specified for periodic filings"
+            )
         filings = company.get_filings(form=list(req_forms)).latest(limit)
         if isinstance(filings, EntityFilings):
             items = list(filings)

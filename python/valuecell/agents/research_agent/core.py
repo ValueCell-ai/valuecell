@@ -21,13 +21,12 @@ from valuecell.core.agent.responses import streaming
 from valuecell.core.types import BaseAgent, StreamResponse
 from valuecell.utils.env import agent_debug_mode_enabled
 
+
 def _get_model_based_on_env() -> str:
     model_id = os.getenv("RESEARCH_AGENT_MODEL_ID")
     if os.getenv("GOOGLE_API_KEY"):
         return Gemini(id=model_id or "gemini-2.5-flash")
-    return OpenRouter(
-        id=model_id or "google/gemini-2.5-flash"
-    )
+    return OpenRouter(id=model_id or "google/gemini-2.5-flash")
 
 
 class ResearchAgent(BaseAgent):

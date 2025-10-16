@@ -339,45 +339,50 @@ async def test_continue_planning_metadata_retrieval(
     """Test that _continue_planning correctly retrieves metadata from context."""
     from valuecell.core.coordinate.orchestrator import ExecutionContext
     from valuecell.core.constants import PLANNING_TASK, ORIGINAL_USER_INPUT
-    
+
     # Create a real asyncio.Task-like object that can be awaited
     import asyncio
-    
+
     async def mock_plan_coroutine():
         return Mock()  # Mock ExecutionPlan
-    
+
     # Create actual task from coroutine, but mark it as done with a result
     mock_planning_task = asyncio.create_task(mock_plan_coroutine())
     # Wait a bit to let it complete
     await asyncio.sleep(0.01)
-    
+
     # Create execution context with required metadata
     context = ExecutionContext("planning", conversation_id, "thread-1", "user-1")
-    context.add_metadata(**{
-        PLANNING_TASK: mock_planning_task,
-        ORIGINAL_USER_INPUT: sample_user_input
-    })
-    
+    context.add_metadata(
+        **{PLANNING_TASK: mock_planning_task, ORIGINAL_USER_INPUT: sample_user_input}
+    )
+
     # Set up execution context in orchestrator
     orchestrator._execution_contexts[conversation_id] = context
-    
+
     # Mock dependencies
     orchestrator._response_factory.plan_failed = Mock()
-    
+
     async def mock_execute_plan(*args):
         yield Mock()
-    
+
     # Mock the async generator method directly
-    orchestrator._execute_plan_with_input_support = Mock(return_value=mock_execute_plan())
-    
+    orchestrator._execute_plan_with_input_support = Mock(
+        return_value=mock_execute_plan()
+    )
+
     # Call the method to trigger metadata retrieval (lines 507-508)
     results = []
-    async for response in orchestrator._continue_planning(conversation_id, "thread-1", context):
+    async for response in orchestrator._continue_planning(
+        conversation_id, "thread-1", context
+    ):
         results.append(response)
-    
+
     # Verify that the method executed successfully
     # The fact that we got here without errors means metadata was retrieved correctly
-    assert conversation_id not in orchestrator._execution_contexts  # Context should be cleaned up
+    assert (
+        conversation_id not in orchestrator._execution_contexts
+    )  # Context should be cleaned up
     assert mock_planning_task.done()  # Task should be completed
     assert len(results) >= 1  # Should have yielded at least one response
 
@@ -389,33 +394,35 @@ async def test_cancel_execution_with_planning_task(
     """Test that _cancel_execution correctly retrieves planning_task metadata."""
     from valuecell.core.coordinate.orchestrator import ExecutionContext
     from valuecell.core.constants import PLANNING_TASK
-    
+
     # Create mock planning task
     mock_planning_task = Mock()
     mock_planning_task.done.return_value = False
     mock_planning_task.cancel = Mock()
-    
+
     # Create execution context with planning task
     context = ExecutionContext("planning", conversation_id, "thread-1", "user-1")
     context.add_metadata(**{PLANNING_TASK: mock_planning_task})
-    
+
     # Set up execution context in orchestrator
     orchestrator._execution_contexts[conversation_id] = context
-    
+
     # Mock user input manager
     orchestrator.user_input_manager.clear_request = Mock()
-    
+
     # Mock conversation manager
     mock_conversation = _stub_conversation()
     orchestrator.conversation_manager.get_conversation.return_value = mock_conversation
     orchestrator.conversation_manager.update_conversation = AsyncMock()
-    
+
     # Call _cancel_execution to trigger
     await orchestrator._cancel_execution(conversation_id)
-    
+
     # Verify planning task was retrieved and cancelled
     mock_planning_task.cancel.assert_called_once()
-    
+
     # Verify context cleanup
     assert conversation_id not in orchestrator._execution_contexts
-    orchestrator.user_input_manager.clear_request.assert_called_once_with(conversation_id)
+    orchestrator.user_input_manager.clear_request.assert_called_once_with(
+        conversation_id
+    )
