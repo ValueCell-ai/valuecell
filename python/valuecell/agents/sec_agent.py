@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from valuecell.core.agent.decorator import create_wrapped_agent
 from valuecell.core.agent.responses import notification, streaming
+from valuecell.core.constants import LANGUAGE, TIMEZONE
 from valuecell.core.types import BaseAgent, StreamResponse
 
 # Configure logging
@@ -282,7 +283,9 @@ class SECAgent(BaseAgent):
             # If classification fails, default to 13F analysis (maintains backward compatibility)
             return QueryType.FUND_HOLDINGS
 
-    async def _process_financial_data_query(self, ticker: str):
+    async def _process_financial_data_query(
+        self, ticker: str, dependencies: Optional[Dict] = None
+    ):
         """
         Process financial data queries (10-K, 8-K, 10-Q)
         """
@@ -319,7 +322,19 @@ class SECAgent(BaseAgent):
                 )
                 return
 
-            # Generate financial data analysis report
+            # Generate financial data analysis report with user context
+            user_context = ""
+            if dependencies:
+                user_language = dependencies.get(LANGUAGE, "en-US")
+                user_timezone = dependencies.get(TIMEZONE, "America/New_York")
+
+                user_context = f"""
+## User Context:
+- User's preferred language: {user_language}
+- User's timezone: {user_timezone}
+
+Please adapt your response to the user's language preference naturally. If the user prefers a non-English language, provide your analysis in that language while maintaining professional standards."""
+
             analysis_prompt = f"""
             As a professional financial analyst, please analyze the following company's SEC financial filings:
 
@@ -355,7 +370,7 @@ class SECAgent(BaseAgent):
             -  **Investment Reference**: Reference value for investors
             -  **Risk Alerts**: Risk points that need attention
 
-            Please ensure the analysis is objective and professional, based on actual data, avoiding excessive speculation.
+            Please ensure the analysis is objective and professional, based on actual data, avoiding excessive speculation.{user_context}
             """
 
             response_stream: Iterator[RunOutputEvent] = self.analysis_agent.arun(
@@ -378,7 +393,9 @@ class SECAgent(BaseAgent):
         except Exception as e:
             yield streaming.failed(f"Financial data query failed: {e}")
 
-    async def _process_fund_holdings_query(self, ticker: str):
+    async def _process_fund_holdings_query(
+        self, ticker: str, dependencies: Optional[Dict] = None
+    ):
         """
         Process 13F fund holdings queries (original logic)
         """
@@ -407,7 +424,19 @@ class SECAgent(BaseAgent):
 
             logger.info("Successfully parsed current and historical holdings data")
 
-            # Generate 13F analysis report
+            # Generate 13F analysis report with user context
+            user_context = ""
+            if dependencies:
+                user_language = dependencies.get("language", "en-US")
+                user_timezone = dependencies.get("timezone", "UTC")
+
+                user_context = f"""
+## User Context:
+- User's preferred language: {user_language}
+- User's timezone: {user_timezone}
+
+Please adapt your response to the user's language preference naturally. If the user prefers a non-English language, provide your analysis in that language while maintaining professional standards."""
+
             analysis_prompt = f"""
             As a professional investment analyst, please conduct an in-depth analysis of the following 13F holdings data:
 
@@ -446,7 +475,7 @@ class SECAgent(BaseAgent):
             -  **Investment Insights**: Reference value for investors
             -  **Risk Alerts**: Risk points that need attention
 
-            Please ensure the analysis is objective and professional, based on actual data, avoiding excessive speculation.
+            Please ensure the analysis is objective and professional, based on actual data, avoiding excessive speculation.{user_context}
             """
 
             response_stream: Iterator[RunOutputEvent] = await self.analysis_agent.arun(
@@ -523,10 +552,14 @@ class SECAgent(BaseAgent):
 
             # 3. Route to appropriate processing method based on query type
             if query_type == QueryType.FINANCIAL_DATA:
-                async for result in self._process_financial_data_query(ticker):
+                async for result in self._process_financial_data_query(
+                    ticker, dependencies
+                ):
                     yield result
             else:  # QueryType.FUND_HOLDINGS
-                async for result in self._process_fund_holdings_query(ticker):
+                async for result in self._process_fund_holdings_query(
+                    ticker, dependencies
+                ):
                     yield result
 
         except Exception as e:
