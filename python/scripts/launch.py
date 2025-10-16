@@ -9,8 +9,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict
 
-import questionary
-
 # Mapping from agent name to analyst key (for ai-hedge-fund agents)
 MAP_NAME_ANALYST: Dict[str, str] = {
     "AswathDamodaranAgent": "aswath_damodaran",
@@ -77,10 +75,11 @@ def main():
     log_dir = f"{PROJECT_DIR_STR}/logs/{timestamp}"
 
     # Use questionary multi-select to allow choosing multiple agents
-    selected_agents = questionary.checkbox(
-        "Choose agents to launch (use space to select, enter to confirm):",
-        choices=AGENTS,
-    ).ask()
+    # selected_agents = questionary.checkbox(
+    #     "Choose agents to launch (use space to select, enter to confirm):",
+    #     choices=AGENTS,
+    # ).ask()
+    selected_agents = AGENTS
 
     if not selected_agents:
         print("No agents selected.")
