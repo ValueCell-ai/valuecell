@@ -12,7 +12,10 @@ from valuecell.agents.research_agent.prompts import (
     KNOWLEDGE_AGENT_EXPECTED_OUTPUT,
     KNOWLEDGE_AGENT_INSTRUCTION,
 )
-from valuecell.agents.research_agent.sources import fetch_sec_filings
+from valuecell.agents.research_agent.sources import (
+    fetch_event_sec_filings,
+    fetch_periodic_sec_filings,
+)
 from valuecell.core.agent.responses import streaming
 from valuecell.core.types import BaseAgent, StreamResponse
 from valuecell.utils.env import agent_debug_mode_enabled
@@ -25,7 +28,7 @@ class ResearchAgent(BaseAgent):
             model=Gemini(id="gemini-2.5-flash"),
             instructions=[KNOWLEDGE_AGENT_INSTRUCTION],
             expected_output=KNOWLEDGE_AGENT_EXPECTED_OUTPUT,
-            tools=[fetch_sec_filings],
+            tools=[fetch_periodic_sec_filings, fetch_event_sec_filings],
             knowledge=knowledge,
             db=InMemoryDb(),
             # context
