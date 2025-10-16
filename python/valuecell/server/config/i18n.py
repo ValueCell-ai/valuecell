@@ -1,5 +1,6 @@
 """Internationalization configuration for ValueCell application."""
 
+import logging
 import os
 from datetime import datetime
 from typing import Optional
@@ -18,6 +19,8 @@ from ...config.constants import (
     TIME_FORMATS,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class I18nConfig:
     """Configuration class for internationalization settings."""
@@ -31,6 +34,9 @@ class I18nConfig:
         """
         self._language = self._validate_language(language or self._get_env_language())
         self._timezone = self._validate_timezone(timezone or self._get_env_timezone())
+        logger.info(
+            f"Initialized i18n configuration: language={self._language}, timezone={self._timezone}"
+        )
 
     def _get_env_language(self) -> str:
         """Get language from environment variables."""

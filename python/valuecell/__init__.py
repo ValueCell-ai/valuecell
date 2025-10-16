@@ -10,9 +10,13 @@ __all__ = [
     "__description__",
 ]
 
+import logging
+
 # Load environment variables as early as possible
 import os
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 def load_env_file_early() -> None:
@@ -22,7 +26,8 @@ def load_env_file_early() -> None:
     Looks for .env file in project root (two levels up from this file).
 
     Note:
-        - Existing environment variables take precedence (override=False)
+        - .env file variables override existing environment variables (override=True)
+        - This ensures LANG and other config vars from .env take precedence
         - Debug logging can be enabled via VALUECELL_DEBUG=true
         - Falls back to manual parsing if python-dotenv is unavailable
     """
@@ -35,18 +40,19 @@ def load_env_file_early() -> None:
         env_file = project_root / ".env"
 
         if env_file.exists():
-            # Load with override=False to respect existing environment variables
-            load_dotenv(env_file, override=False)
+            # Load with override=True to allow .env file to override system variables
+            # This is especially important for LANG which is often set by the system
+            load_dotenv(env_file, override=True)
 
             # Optional: Log successful loading if DEBUG is enabled
             if os.getenv("VALUECELL_DEBUG", "false").lower() == "true":
-                print(f"✓ Environment variables loaded from {env_file}")
-                print(f"  LANG: {os.environ.get('LANG', 'not set')}")
-                print(f"  TIMEZONE: {os.environ.get('TIMEZONE', 'not set')}")
+                logger.info(f"✓ Environment variables loaded from {env_file}")
+                logger.info(f"  LANG: {os.environ.get('LANG', 'not set')}")
+                logger.info(f"  TIMEZONE: {os.environ.get('TIMEZONE', 'not set')}")
         else:
             # Only log if debug mode is enabled
             if os.getenv("VALUECELL_DEBUG", "false").lower() == "true":
-                print(f"ℹ️  No .env file found at {env_file}")
+                logger.info(f"ℹ️  No .env file found at {env_file}")
 
     except ImportError:
         # Fallback to manual parsing if python-dotenv is not available
@@ -55,19 +61,19 @@ def load_env_file_early() -> None:
     except Exception as e:
         # Only log errors if debug mode is enabled
         if os.getenv("VALUECELL_DEBUG", "false").lower() == "true":
-            print(f"⚠️  Error loading .env file: {e}")
+            logger.info(f"⚠️  Error loading .env file: {e}")
 
 
 def _load_env_file_manual() -> None:
     """Fallback manual .env file parsing.
 
     This function provides a simple .env parser when python-dotenv is not available.
-    It respects existing environment variables and handles basic quote removal.
+    It overrides existing environment variables and handles basic quote removal.
 
     Note:
         - Lines starting with # are treated as comments
         - Only KEY=VALUE format is supported
-        - Existing environment variables are not overwritten
+        - Environment variables are overwritten to match dotenv behavior
     """
     try:
         current_dir = Path(__file__).parent
@@ -87,9 +93,8 @@ def _load_env_file_manual() -> None:
                             value.startswith("'") and value.endswith("'")
                         ):
                             value = value[1:-1]
-                        # Only set if not already set (respect existing env vars)
-                        if key not in os.environ:
-                            os.environ[key] = value
+                        # Always set the value (override existing env vars to match dotenv behavior)
+                        os.environ[key] = value
     except Exception:
         # Fail silently to avoid breaking imports
         pass
