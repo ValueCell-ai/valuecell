@@ -11,7 +11,7 @@ from valuecell.utils.db import resolve_lancedb_uri
 # embedder = GeminiEmbedder(id="gemini-embedding-001", dimensions=1536)
 embedder = OpenAIEmbedder(
     dimensions=int(os.getenv("EMBEDDER_DIMENSION", 1536)),
-    id=os.getenv("EMBEDDER_MODEL"),
+    id=os.getenv("EMBEDDER_MODEL_ID"),
     base_url=os.getenv("EMBEDDER_BASE_URL"),
     api_key=os.getenv("EMBEDDER_API_KEY"),
 )
