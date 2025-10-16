@@ -20,6 +20,7 @@ from valuecell.agents.research_agent.sources import (
 from valuecell.core.agent.responses import streaming
 from valuecell.core.types import BaseAgent, StreamResponse
 from valuecell.utils.env import agent_debug_mode_enabled
+from valuecell.agents.utils.context import build_ctx_from_dep
 
 
 def _get_model_based_on_env() -> str:
@@ -63,6 +64,8 @@ class ResearchAgent(BaseAgent):
             stream=True,
             stream_intermediate_steps=True,
             session_id=conversation_id,
+            add_dependencies_to_context=True,
+            dependencies=build_ctx_from_dep(dependencies)
         )
         async for event in response_stream:
             if event.event == "RunContent":
