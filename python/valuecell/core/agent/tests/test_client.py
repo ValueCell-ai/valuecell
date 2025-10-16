@@ -282,7 +282,7 @@ class TestAgentClient:
 
             error_message = str(exc_info.value)
             assert "Failed to resolve agent card" in error_message
-            assert "scripts/launch_agent.py" in error_message
+            assert "Check the agent logs" in error_message
             assert "Connection timeout" in str(
                 exc_info.value.__cause__
             )  # Original exception should be chained
