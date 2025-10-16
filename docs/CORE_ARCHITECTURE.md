@@ -17,7 +17,8 @@ The orchestration loop ingests a user input, plans next steps, optionally reques
 
 ```mermaid
 flowchart TD
-  U[User Input] --> O[process_user_input (Orchestrator)]
+  U[User Input] --> O[Orchestrator
+   process_user_input] 
   O -->|analyze input + context| P[Planner]
   P -->|adequate plan| PL[Plan]
   P -->|needs clarification| HITL[HITL: clarification / approval]
