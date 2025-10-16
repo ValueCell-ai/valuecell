@@ -167,7 +167,9 @@ class GenericAgentExecutor(AgentExecutor):
                 if task_meta and task_meta.get("notify")
                 else self.agent.stream
             )
-            async for response in query_handler(query, context_id, task_id, dependencies):
+            async for response in query_handler(
+                query, context_id, task_id, dependencies
+            ):
                 if not isinstance(response, (StreamResponse, NotifyResponse)):
                     raise ValueError(
                         f"Agent {agent_name} yielded invalid response type: {type(response)}"

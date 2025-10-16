@@ -41,7 +41,11 @@ class ResearchAgent(BaseAgent):
         set_identity(os.getenv("SEC_EMAIL"))
 
     async def stream(
-        self, query: str, conversation_id: str, task_id: str, dependencies: Optional[Dict] = None
+        self,
+        query: str,
+        conversation_id: str,
+        task_id: str,
+        dependencies: Optional[Dict] = None,
     ) -> AsyncGenerator[StreamResponse, None]:
         response_stream: Iterator[RunOutputEvent] = self.knowledge_research_agent.arun(
             query,
