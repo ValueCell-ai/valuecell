@@ -23,7 +23,7 @@ from valuecell.core.types import BaseAgent, StreamResponse
 from valuecell.utils.env import agent_debug_mode_enabled
 
 
-def _get_model_based_on_env() -> str:
+def _get_model_based_on_env():
     model_id = os.getenv("RESEARCH_AGENT_MODEL_ID")
     if os.getenv("GOOGLE_API_KEY"):
         return Gemini(id=model_id or "gemini-2.5-flash")
@@ -59,7 +59,7 @@ class ResearchAgent(BaseAgent):
         task_id: str,
         dependencies: Optional[Dict] = None,
     ) -> AsyncGenerator[StreamResponse, None]:
-        response_stream: Iterator[RunOutputEvent] = self.knowledge_research_agent.arun(
+        response_stream = self.knowledge_research_agent.arun(
             query,
             stream=True,
             stream_intermediate_steps=True,
