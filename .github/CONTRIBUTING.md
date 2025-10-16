@@ -95,19 +95,6 @@ cd frontend
 bun install
 ```
 
-**Available commands:**
-
-```bash
-bun run dev          # Start development server
-bun run build        # Build for production
-bun run lint         # Check for linting errors
-bun run lint:fix     # Auto-fix linting issues
-bun run format       # Check code formatting
-bun run format:fix   # Auto-format code
-bun run check        # Run all checks
-bun run check:fix    # Fix all auto-fixable issues
-```
-
 ## Code Style
 
 ### Python
@@ -125,13 +112,6 @@ make format
 ```bash
 make lint
 ```
-
-**Key style rules:**
-
-- Line length: 88 characters
-- Quote style: Double quotes (`"`)
-- Indentation: 4 spaces
-- Target: Python 3.12+
 
 ### Frontend
 
