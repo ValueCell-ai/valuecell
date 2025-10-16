@@ -100,21 +100,14 @@ async def fetch_periodic_sec_filings(
     Args:
         cik_or_ticker: CIK or ticker symbol (no quotes or backticks).
         forms: "10-K", "10-Q" or a list of these. Defaults to "10-Q".
-    year: Single year or list of years to include (by filing_date). When omitted, the tool returns the latest filings using `limit`.
-    quarter: Single quarter (1-4) or list of quarters (by filing_date). Requires `year` to be provided.
-    limit: When `year` is omitted, number of latest filings to return (by filing_date). Defaults to 10.
+        year: Single year or list of years to include (by filing_date). When omitted, the tool returns the latest filings using `limit`.
+        quarter: Single quarter (1-4) or list of quarters (by filing_date). Requires `year` to be provided.
+        limit: When `year` is omitted, number of latest filings to return (by filing_date). Defaults to 10.
 
     Returns:
         List[SECFilingResult]
     """
-    allowed = {"10-K", "10-Q"}
     req_forms = set(_ensure_list(forms)) or {"10-Q"}
-    if not req_forms.issubset(allowed):
-        raise ValueError(
-            f"Only periodic forms {sorted(allowed)} are supported here. "
-            f"For 8-K/ownership, use fetch_event_sec_filings()."
-        )
-
     company = Company(cik_or_ticker)
 
     # If year is omitted, use latest(limit). Quarter without year is not supported.
@@ -153,19 +146,12 @@ async def fetch_event_sec_filings(
     Returns:
         List[SECFilingResult]
     """
-    allowed = {"8-K", "3", "4", "5"}
-    req_forms = set(_ensure_list(forms)) or {"8-K"}
-    if not req_forms.issubset(allowed):
-        raise ValueError(
-            f"Only event-driven forms {sorted(allowed)} are supported here. "
-            f"For 10-K/10-Q, use fetch_periodic_sec_filings()."
-        )
-
     sd = _parse_date(start_date)
     ed = _parse_date(end_date)
     if sd and ed and sd > ed:
         raise ValueError("start_date cannot be after end_date")
 
+    req_forms = set(_ensure_list(forms)) or {"8-K"}
     company = Company(cik_or_ticker)
 
     # If no date range specified, leverage edgar's latest(count) for efficiency
