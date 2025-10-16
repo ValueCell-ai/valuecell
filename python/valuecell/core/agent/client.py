@@ -65,7 +65,7 @@ class AgentClient:
         except Exception as e:
             raise RuntimeError(
                 "Failed to resolve agent card. Maybe the agent URL is incorrect or the agent is unreachable."
-                " Agents could be launched via `scripts/launch_agent.py`."
+                " Check the agent logs for more details."
             ) from e
         self._client = client_factory.create(self.agent_card)
 
