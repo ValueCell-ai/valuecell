@@ -1,5 +1,5 @@
 import os
-from typing import AsyncGenerator, Iterator
+from typing import AsyncGenerator, Dict, Iterator, Optional
 
 from agno.agent import Agent, RunOutputEvent
 from agno.db.in_memory import InMemoryDb
@@ -41,7 +41,7 @@ class ResearchAgent(BaseAgent):
         set_identity(os.getenv("SEC_EMAIL"))
 
     async def stream(
-        self, query: str, conversation_id: str, task_id: str
+        self, query: str, conversation_id: str, task_id: str, dependencies: Optional[Dict] = None
     ) -> AsyncGenerator[StreamResponse, None]:
         response_stream: Iterator[RunOutputEvent] = self.knowledge_research_agent.arun(
             query,

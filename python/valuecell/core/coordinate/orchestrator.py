@@ -5,6 +5,16 @@ from typing import AsyncGenerator, Dict, Optional
 from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
 
 from valuecell.core.agent.connect import RemoteConnections
+from valuecell.core.constants import (
+    CURRENT_CONTEXT,
+    DEPENDENCIES,
+    LANGUAGE,
+    METADATA,
+    ORIGINAL_USER_INPUT,
+    PLANNING_TASK,
+    TIMEZONE,
+    USER_PROFILE,
+)
 from valuecell.core.conversation import (
     ConversationManager,
     ConversationStatus,
@@ -21,6 +31,7 @@ from valuecell.core.task import Task, TaskManager
 from valuecell.core.task.models import TaskPattern
 from valuecell.core.types import BaseResponse, ConversationItemEvent, UserInput
 from valuecell.utils import resolve_db_path
+from valuecell.utils.i18n_utils import get_current_language, get_current_timezone
 from valuecell.utils.uuid import generate_thread_id
 
 from .models import ExecutionPlan
@@ -493,8 +504,8 @@ class AgentOrchestrator:
         planner to finish, handling repeated user-input prompts if needed,
         and then proceeds to execute the resulting plan.
         """
-        planning_task = context.get_metadata("planning_task")
-        original_user_input = context.get_metadata("original_user_input")
+        planning_task = context.get_metadata(PLANNING_TASK)
+        original_user_input = context.get_metadata(ORIGINAL_USER_INPUT)
 
         if not all([planning_task, original_user_input]):
             yield self._response_factory.plan_failed(
@@ -541,7 +552,7 @@ class AgentOrchestrator:
             context = self._execution_contexts[conversation_id]
 
             # Cancel planning task if it exists and is not done
-            planning_task = context.get_metadata("planning_task")
+            planning_task = context.get_metadata(PLANNING_TASK)
             if planning_task and not planning_task.done():
                 planning_task.cancel()
 
@@ -656,10 +667,21 @@ class AgentOrchestrator:
             if not client:
                 raise RuntimeError(f"Could not connect to agent {agent_name}")
 
-            # Configure metadata for notifications
+            # Configure A2A metadata
             metadata = metadata or {}
             if task.pattern != TaskPattern.ONCE:
                 metadata["notify"] = True
+
+            # Configure Agno metadata, reference: https://docs.agno.com/examples/concepts/agent/other/agent_run_metadata#agent-run-metadata
+            metadata[METADATA] = {}
+
+            # Configure Agno dependencies, reference: https://docs.agno.com/concepts/teams/dependencies#dependencies
+            metadata[DEPENDENCIES] = {
+                USER_PROFILE: {},
+                CURRENT_CONTEXT: {},
+                LANGUAGE: get_current_language(),
+                TIMEZONE: get_current_timezone(),
+            }
 
             # Send message to agent
             remote_response = await client.send_message(

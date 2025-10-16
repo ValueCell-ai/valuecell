@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import AsyncGenerator, Callable, Literal, Optional, Union
+from typing import AsyncGenerator, Callable, Dict, Literal, Optional, Union
 
 from a2a.types import Task, TaskArtifactUpdateEvent, TaskStatusUpdateEvent
 from pydantic import BaseModel, Field
@@ -372,7 +372,11 @@ class BaseAgent(ABC):
 
     @abstractmethod
     async def stream(
-        self, query: str, conversation_id: str, task_id: str
+        self,
+        query: str,
+        conversation_id: str,
+        task_id: str,
+        dependencies: Optional[Dict] = None,
     ) -> AsyncGenerator[StreamResponse, None]:
         """
         Process user queries and return streaming responses (user-initiated)
@@ -381,6 +385,7 @@ class BaseAgent(ABC):
             query: User query content
             conversation_id: Conversation ID
             task_id: Task ID
+            dependencies: Optional dependencies containing language, timezone, and other context
 
         Yields:
             StreamResponse: Stream response containing content and completion status
@@ -388,7 +393,11 @@ class BaseAgent(ABC):
         raise NotImplementedError
 
     async def notify(
-        self, query: str, conversation_id: str, task_id: str
+        self,
+        query: str,
+        conversation_id: str,
+        task_id: str,
+        dependencies: Optional[Dict] = None,
     ) -> AsyncGenerator[NotifyResponse, None]:
         """
         Send proactive notifications to subscribed users (agent-initiated)
@@ -397,6 +406,7 @@ class BaseAgent(ABC):
             query: User query content, can be empty for some agents
             conversation_id: Conversation ID for the notification
             user_id: Target user ID for the notification
+            dependencies: Optional dependencies containing language, timezone, and other context
 
         Yields:
             NotifyResponse: Notification content and status

@@ -57,7 +57,7 @@ class AIHedgeFundAgent(BaseAgent):
         self.analyst = analyst
 
     async def stream(
-        self, query, session_id, task_id
+        self, query, session_id, task_id, dependencies
     ) -> AsyncGenerator[StreamResponse, None]:
         logger.info(
             f"Parsing query: {query}. Task ID: {task_id}, Session ID: {session_id}"

@@ -32,13 +32,13 @@ class MockAgent(BaseAgent):
         self.stream_called = False
         self.notify_called = False
 
-    async def stream(self, query, context_id, task_id):
+    async def stream(self, query, context_id, task_id, dependencies):
         self.stream_called = True
         yield StreamResponse(
             event=StreamResponseEvent.MESSAGE_CHUNK, content="Hello world"
         )
 
-    async def notify(self, query, context_id, task_id):
+    async def notify(self, query, context_id, task_id, dependencies):
         self.notify_called = True
         yield NotifyResponse(
             event=NotifyResponseEvent.MESSAGE, content="Notification sent"
@@ -51,7 +51,7 @@ class MockToolCallAgent(BaseAgent):
     def __init__(self):
         self.stream_called = False
 
-    async def stream(self, query, context_id, task_id):
+    async def stream(self, query, context_id, task_id, dependencies):
         self.stream_called = True
         yield StreamResponse(
             event=StreamResponseEvent.TOOL_CALL_STARTED,
@@ -433,7 +433,7 @@ class TestCreateWrappedAgent:
         mock_find_card.return_value = mock_card
 
         class TestAgent(BaseAgent):
-            async def stream(self, query, context_id, task_id):
+            async def stream(self, query, context_id, task_id, dependencies):
                 # Mock implementation
                 pass
 
@@ -449,7 +449,7 @@ class TestCreateWrappedAgent:
         mock_find_card.return_value = None
 
         class TestAgent(BaseAgent):
-            async def stream(self, query, context_id, task_id):
+            async def stream(self, query, context_id, task_id, dependencies):
                 # Mock implementation
                 pass
 

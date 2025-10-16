@@ -18,6 +18,7 @@ from a2a.utils import new_agent_text_message, new_task
 from a2a.utils.errors import ServerError
 
 from valuecell.core.agent.card import find_local_agent_card_by_agent_name
+from valuecell.core.constants import DEPENDENCIES
 from valuecell.core.types import (
     BaseAgent,
     CommonResponseEvent,
@@ -158,12 +159,15 @@ class GenericAgentExecutor(AgentExecutor):
             ),
         )
         try:
+            # Extract dependencies from task metadata
+            dependencies = task_meta.get(DEPENDENCIES)
+
             query_handler = (
                 self.agent.notify
                 if task_meta and task_meta.get("notify")
                 else self.agent.stream
             )
-            async for response in query_handler(query, context_id, task_id):
+            async for response in query_handler(query, context_id, task_id, dependencies):
                 if not isinstance(response, (StreamResponse, NotifyResponse)):
                     raise ValueError(
                         f"Agent {agent_name} yielded invalid response type: {type(response)}"

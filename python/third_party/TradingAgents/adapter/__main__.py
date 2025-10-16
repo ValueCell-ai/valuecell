@@ -278,7 +278,7 @@ class TradingAgents(BaseAgent):
         return graph.compile()
 
     async def stream(
-        self, query: str, session_id: str, task_id: str
+        self, query: str, session_id: str, task_id: str, dependencies: Optional[Dict] = None
     ) -> AsyncGenerator[StreamResponse, None]:
         """Process trading analysis request and stream results"""
         logger.info(f"Processing trading query: {query}. Task ID: {task_id}, Session ID: {session_id}")

@@ -304,6 +304,16 @@ def format_file_size(size_bytes: int, language: Optional[str] = None) -> str:
         return f"{formatted_size} {unit_name}"
 
 
+def get_current_language() -> str:
+    """Get current language code."""
+    return get_i18n_service().get_current_language()
+
+
+def get_current_timezone() -> str:
+    """Get current timezone."""
+    return get_i18n_service().get_current_timezone()
+
+
 def format_duration(seconds: int, language: Optional[str] = None) -> str:
     """Format duration according to language settings.
 

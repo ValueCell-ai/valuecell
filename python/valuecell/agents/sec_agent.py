@@ -5,7 +5,7 @@ import logging
 import os
 from datetime import datetime
 from enum import Enum
-from typing import AsyncGenerator, Dict, Iterator
+from typing import AsyncGenerator, Dict, Iterator, Optional
 
 from agno.agent import Agent, RunOutputEvent
 from agno.models.openrouter import OpenRouter
@@ -471,14 +471,18 @@ class SECAgent(BaseAgent):
             yield streaming.failed(f"13F query failed: {e}")
 
     async def stream(
-        self, query: str, session_id: str, task_id: str
+        self,
+        query: str,
+        session_id: str,
+        task_id: str,
+        dependencies: Optional[Dict] = None,
     ) -> AsyncGenerator[StreamResponse, None]:
         """
         Main streaming method with intelligent routing support
         """
         try:
             logger.info(
-                f"Processing SEC query request - session: {session_id}, task: {task_id}"
+                f"Processing SEC query request - session: {session_id}, task: {task_id}, dependencies: {dependencies}"
             )
 
             # 1. Intelligent query classification
@@ -529,13 +533,19 @@ class SECAgent(BaseAgent):
             logger.error(f"Unexpected error in stream method: {e}")
             yield streaming.failed(f"Unexpected error: {e}")
 
-    async def notify(self, query: str, session_id: str, task_id: str):
+    async def notify(
+        self,
+        query: str,
+        session_id: str,
+        task_id: str,
+        dependencies: Optional[Dict] = None,
+    ):
         """
         Main notify method with continuous SEC filing monitoring
         """
         try:
             logger.info(
-                f"Starting SEC filing monitoring - session: {session_id}, task: {task_id}"
+                f"Starting SEC filing monitoring - session: {session_id}, task: {task_id}, dependencies: {dependencies}"
             )
 
             # 1. Extract ticker from query
