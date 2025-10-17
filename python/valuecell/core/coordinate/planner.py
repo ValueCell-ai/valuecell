@@ -22,7 +22,7 @@ from agno.db.in_memory import InMemoryDb
 from agno.models.openrouter import OpenRouter
 
 from valuecell.core.agent.connect import RemoteConnections
-from valuecell.core.coordinate.planner_prompts import PLANNER_INSTRUCTIONS
+from valuecell.core.coordinate.planner_prompts import PLANNER_INSTRUCTION, PLANNER_EXPECTED_OUTPUT
 from valuecell.core.task import Task, TaskPattern, TaskStatus
 from valuecell.core.types import UserInput
 from valuecell.utils import generate_uuid
@@ -160,7 +160,8 @@ class ExecutionPlanner:
             ],
             markdown=False,
             debug_mode=agent_debug_mode_enabled(),
-            instructions=[PLANNER_INSTRUCTIONS],
+            instructions=[PLANNER_INSTRUCTION],
+            expected_output=PLANNER_EXPECTED_OUTPUT,
             # context
             db=InMemoryDb(),
             add_datetime_to_context=True,
