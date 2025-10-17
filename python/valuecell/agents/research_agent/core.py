@@ -16,6 +16,7 @@ from valuecell.agents.research_agent.prompts import (
 from valuecell.agents.research_agent.sources import (
     fetch_event_sec_filings,
     fetch_periodic_sec_filings,
+    web_search,
 )
 from valuecell.agents.utils.context import build_ctx_from_dep
 from valuecell.core.agent.responses import streaming
@@ -33,11 +34,16 @@ def _get_model_based_on_env():
 class ResearchAgent(BaseAgent):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        tools = [
+            fetch_periodic_sec_filings,
+            fetch_event_sec_filings,
+            web_search,
+        ]
         self.knowledge_research_agent = Agent(
             model=_get_model_based_on_env(),
             instructions=[KNOWLEDGE_AGENT_INSTRUCTION],
             expected_output=KNOWLEDGE_AGENT_EXPECTED_OUTPUT,
-            tools=[fetch_periodic_sec_filings, fetch_event_sec_filings],
+            tools=tools,
             knowledge=knowledge,
             db=InMemoryDb(),
             # context
@@ -81,15 +87,3 @@ class ResearchAgent(BaseAgent):
         logger.info("Financial data analysis completed")
 
         yield streaming.done()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    async def main():
-        agent = ResearchAgent()
-        query = "Provide a summary of Apple's 2024 all quarterly and annual reports."
-        async for response in agent.stream(query, "test_session", "test_task"):
-            print(response)
-
-    asyncio.run(main())

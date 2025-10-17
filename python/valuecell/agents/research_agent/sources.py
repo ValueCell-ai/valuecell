@@ -1,8 +1,12 @@
 from datetime import date, datetime
+import os
 from pathlib import Path
 from typing import Iterable, List, Optional, Sequence
 
 import aiofiles
+from agno.agent import Agent
+from agno.models.google import Gemini
+from agno.models.openrouter import OpenRouter
 from edgar import Company
 from edgar.entity.filings import EntityFilings
 
@@ -187,3 +191,37 @@ async def fetch_event_sec_filings(
         filtered = filtered[:limit]
 
     return await _write_and_ingest(filtered, Path(get_knowledge_path()))
+
+
+async def web_search(query: str) -> str:
+    """Search web for the given query and return a summary of the top results.
+
+    Args:
+        query: The search query string.
+
+    Returns:
+        A summary of the top search results.
+    """
+
+    if os.getenv("WEB_SEARCH_PROVIDER", "google").lower() == "google" and os.getenv(
+        "GOOGLE_API_KEY"
+    ):
+        return _web_search_google(query)
+
+    model = OpenRouter(id="perplexity/sonar", max_tokens=None)
+    response = await Agent(model=model).arun(query)
+    return response.content
+
+
+async def _web_search_google(query: str) -> str:
+    """Search Google for the given query and return a summary of the top results.
+
+    Args:
+        query: The search query string.
+
+    Returns:
+        A summary of the top search results.
+    """
+    model = Gemini(id="gemini-2.5-flash", search=True)
+    response = await Agent(model=model).arun(query)
+    return response.content
