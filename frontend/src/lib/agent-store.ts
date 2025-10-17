@@ -106,7 +106,7 @@ function handleChatItemEvent(draft: AgentConversationsStore, data: ChatItem) {
 export function updateAgentConversationsStore(
   store: AgentConversationsStore,
   sseData: SSEData,
-): AgentConversationsStore {
+) {
   const { event, data } = sseData;
 
   // Use mutative to create new state with type-safe event handling
@@ -131,11 +131,17 @@ export function updateAgentConversationsStore(
         handleChatItemEvent(draft, { component_type: "markdown", ...data });
         break;
 
-      // TODO: tool call is not supported yet
-      // case "tool_call_started":
-      // case "tool_call_completed":
-      //   handleChatItemEvent(draft, { component_type: "tool_call", ...data });
-      //   break;
+      case "tool_call_started":
+      case "tool_call_completed": {
+        handleChatItemEvent(draft, {
+          component_type: "tool_call",
+          ...data,
+          payload: {
+            content: JSON.stringify(data.payload),
+          },
+        });
+        break;
+      }
 
       case "reasoning_started":
       case "reasoning_completed":

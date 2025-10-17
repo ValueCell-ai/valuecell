@@ -22,6 +22,7 @@ import {
   MarkdownRenderer,
   ReportRenderer,
   SecFeedRenderer,
+  ToolCallRenderer,
 } from "@/components/valuecell/renderer";
 import type { AgentComponentType } from "@/types/agent";
 import type { RendererComponent } from "@/types/renderer";
@@ -49,7 +50,7 @@ export const COMPONENT_RENDERER_MAP: {
   sec_feed: SecFeedRenderer,
   report: ReportRenderer,
   markdown: MarkdownRenderer,
-  tool_call: MarkdownRenderer,
+  tool_call: ToolCallRenderer,
 };
 
 export const AGENT_AVATAR_MAP: Record<string, string> = {

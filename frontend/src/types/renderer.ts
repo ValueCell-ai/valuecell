@@ -11,6 +11,7 @@ export type ReportRendererProps = BaseRendererProps & {
 };
 export type SecFeedRendererProps = BaseRendererProps;
 export type MarkdownRendererProps = BaseRendererProps;
+export type ToolCallRendererProps = BaseRendererProps;
 
 /**
  * Mapping from component type to its corresponding props type
@@ -20,7 +21,7 @@ export type RendererPropsMap = {
   sec_feed: SecFeedRendererProps;
   report: ReportRendererProps;
   markdown: MarkdownRendererProps;
-  tool_call: MarkdownRendererProps;
+  tool_call: ToolCallRendererProps;
 };
 
 /**

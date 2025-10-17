@@ -35,27 +35,16 @@ export type AgentComponentMessage = MessageWithPayload<{
   content: string;
 }>;
 
-export type AgentToolCallStartedMessage = MessageWithPayload<{
+export type AgentToolCallMessage = MessageWithPayload<{
   /**
    * @deprecated the tool call id is similar to the item_id
    */
   tool_call_id: string;
   tool_name: string;
-}>;
-
-export type AgentToolCallCompletedMessage = MessageWithPayload<{
-  /**
-   * @deprecated the tool call id is similar to the item_id
-   */
-  tool_call_id: string;
-  tool_name: string;
-  tool_call_result: string;
+  tool_call_result?: string;
 }>;
 
 type ChatMessage = AgentChunkMessage | AgentComponentMessage;
-// TODO: tool call is not supported yet
-// | AgentToolCallStartedMessage
-// | AgentToolCallCompletedMessage;
 
 export type ChatItem = ChatMessage & {
   component_type: AgentComponentType;
@@ -78,9 +67,8 @@ export interface AgentEventMap {
   plan_require_user_input: AgentPlanRequireUserInputMessage;
 
   // Tool Execution Lifecycle
-  tool_call_started: AgentToolCallStartedMessage;
-
-  tool_call_completed: AgentToolCallCompletedMessage;
+  tool_call_started: AgentToolCallMessage;
+  tool_call_completed: AgentToolCallMessage;
 
   // Reasoning Process
   reasoning: AgentReasoningMessage;

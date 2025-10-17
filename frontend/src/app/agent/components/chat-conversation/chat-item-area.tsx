@@ -1,5 +1,5 @@
 import { type FC, memo } from "react";
-import UnknownRenderer from "@/components/valuecell/renderer/unknown-renderer";
+import { UnknownRenderer } from "@/components/valuecell/renderer";
 import { COMPONENT_RENDERER_MAP } from "@/constants/agent";
 import { cn } from "@/lib/utils";
 import { useMultiSection } from "@/provider/multi-section-provider";
@@ -50,6 +50,7 @@ const ChatItemArea: FC<ChatItemAreaProps> = ({ items }) => {
                       isActive={currentSection?.item_id === item.item_id}
                     />
                   );
+
                 default:
                   return (
                     <UnknownRenderer
