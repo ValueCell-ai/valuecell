@@ -27,7 +27,7 @@ def _get_model_based_on_env():
     model_id = os.getenv("RESEARCH_AGENT_MODEL_ID")
     if os.getenv("GOOGLE_API_KEY"):
         return Gemini(id=model_id or "gemini-2.5-flash")
-    return OpenRouter(id=model_id or "google/gemini-2.5-flash")
+    return OpenRouter(id=model_id or "google/gemini-2.5-flash", max_tokens=None)
 
 
 class ResearchAgent(BaseAgent):
