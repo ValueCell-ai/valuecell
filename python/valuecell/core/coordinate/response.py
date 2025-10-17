@@ -380,6 +380,7 @@ class ResponseFactory:
                     tool_result=tool_result,
                 ),
                 role=Role.AGENT,
+                item_id=tool_call_id,
             ),
         )
 
