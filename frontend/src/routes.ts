@@ -14,6 +14,7 @@ export default [
       route("/stock/:stockId", "app/home/stock.tsx"),
     ]),
   ]),
+  route("/market", "app/market/agents.tsx"),
   ...prefix("/agent", [
     route("/:agentName", "app/agent/chat.tsx"),
     route("/:agentName/config", "app/agent/config.tsx"),

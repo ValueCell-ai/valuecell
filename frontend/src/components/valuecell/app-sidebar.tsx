@@ -78,7 +78,7 @@ const SidebarFooter: FC<SidebarFooterProps> = ({ children, className }) => {
 
 const SidebarMenu: FC<SidebarMenuProps> = ({ children, className }) => {
   return (
-    <div className={cn("flex flex-col items-center gap-3 pt-3", className)}>
+    <div className={cn("flex flex-col items-center gap-3", className)}>
       {children}
     </div>
   );
@@ -130,14 +130,14 @@ const AppSidebar: FC = () => {
           label: "Home",
           to: "/",
         },
+        {
+          id: "store",
+          icon: ChartBarVertical,
+          label: "Store",
+          to: "/store",
+        },
       ],
       config: [
-        {
-          id: "chart",
-          icon: ChartBarVertical,
-          label: "Chart",
-          to: "chart",
-        },
         { id: "book", icon: BookOpen, label: "Book", to: "book" },
         {
           id: "settings",
@@ -166,22 +166,28 @@ const AppSidebar: FC = () => {
   return (
     <Sidebar>
       <SidebarHeader>
-        <NavLink to={navItems.home[0].to}>
-          <SidebarMenuItem
-            aria-label={navItems.home[0].label}
-            data-active={verifyActive(navItems.home[0].to)}
-            className="p-2"
-          >
-            <SvgIcon name={Logo} />
-          </SidebarMenuItem>
-        </NavLink>
+        <SidebarMenu>
+          {navItems.home.map((item) => {
+            return (
+              <NavLink key={item.id} to={item.to}>
+                <SidebarMenuItem
+                  aria-label={item.label}
+                  data-active={verifyActive(item.to)}
+                  className="p-2"
+                >
+                  <SvgIcon name={item.icon} />
+                </SidebarMenuItem>
+              </NavLink>
+            );
+          })}
+        </SidebarMenu>
       </SidebarHeader>
 
       <Separator className="!w-10 bg-white" />
 
       <SidebarContent className="max-h-[calc(100vh-11rem)]">
         <ScrollContainer className="w-full">
-          <SidebarMenu>
+          <SidebarMenu className="pt-3">
             {agentItems?.map((item) => {
               return (
                 <NavLink key={item.id} to={item.to}>
