@@ -118,8 +118,17 @@ const SidebarMenuItem: FC<SidebarItemProps> = ({
 };
 
 const AppSidebar: FC = () => {
-  const pathname = useLocation().pathname;
-  const prefix = pathname.split("/")[2] ?? "";
+  const pathArray = useLocation().pathname.split("/");
+
+  const prefix = useMemo(() => {
+    const subPath = pathArray[1] ?? "";
+    switch (subPath) {
+      case "agent":
+        return `/${subPath}/${pathArray[2]}`;
+      default:
+        return `/${subPath}`;
+    }
+  }, [pathArray]);
 
   const navItems = useMemo(() => {
     return {
@@ -128,13 +137,13 @@ const AppSidebar: FC = () => {
           id: "home",
           icon: Logo,
           label: "Home",
-          to: "/",
+          to: "/home",
         },
         {
-          id: "store",
+          id: "market",
           icon: ChartBarVertical,
-          label: "Store",
-          to: "/store",
+          label: "Market",
+          to: "/market",
         },
       ],
       config: [
@@ -161,7 +170,7 @@ const AppSidebar: FC = () => {
   }, [agentList]);
 
   // verify the button is active
-  const verifyActive = (to: string) => `/${prefix}` === to;
+  const verifyActive = (to: string) => prefix === to;
 
   return (
     <Sidebar>
@@ -196,7 +205,7 @@ const AppSidebar: FC = () => {
                       <SidebarMenuItem
                         type="agent"
                         aria-label={item.label}
-                        data-active={verifyActive(`/${item.id}`)}
+                        data-active={verifyActive(item.to)}
                       >
                         <AgentAvatar agentName={item.id} />
                       </SidebarMenuItem>
