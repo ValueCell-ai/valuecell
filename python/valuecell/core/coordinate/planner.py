@@ -22,7 +22,10 @@ from agno.db.in_memory import InMemoryDb
 from agno.models.openrouter import OpenRouter
 
 from valuecell.core.agent.connect import RemoteConnections
-from valuecell.core.coordinate.planner_prompts import PLANNER_INSTRUCTION, PLANNER_EXPECTED_OUTPUT
+from valuecell.core.coordinate.planner_prompts import (
+    PLANNER_EXPECTED_OUTPUT,
+    PLANNER_INSTRUCTION,
+)
 from valuecell.core.task import Task, TaskPattern, TaskStatus
 from valuecell.core.types import UserInput
 from valuecell.utils import generate_uuid
