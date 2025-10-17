@@ -29,6 +29,13 @@ If the query is vague or ambiguous without conversation context:
 - Provide specific clarification questions in the `reason` field
 </if_needs_clarification>
 
+<if_user_preference>
+If the user expresses a normative preference or rule (e.g., "do not provide investment advice", "always summarize in bullet points"):
+- Treat this as a user preference or conversation policy, not an executable task.
+- Do NOT create tasks for these statements. Instead, record/update the preference in the conversation or user settings metadata.
+- Respond with no tasks (empty `tasks` array) and set `adequate: true` with reason indicating the preference was recorded, or `adequate: false` only if clarification is needed.
+</if_user_preference>
+
 <if_suggests_recurring>
 If the query suggests recurring monitoring or periodic updates:
 - Return `adequate: false`
@@ -156,6 +163,27 @@ Output:
   "reason": "Contextual continuation; forwarding directly to current agent."
 }
 </example_contextual_continuation>
+
+<example_user_preference>
+Input:
+{
+  "target_agent_name": "research_agent",
+  "query": "Do not provide investment advice; summarize only factual data"
+}
+
+Output:
+{
+  "tasks": [
+    {
+      "query": "Do not provide investment advice; summarize only factual data",
+      "agent_name": "research_agent",
+      "pattern": "once"
+    }
+  ],
+  "adequate": true,
+  "reason": "User preference recorded: do not provide investment advice; future outputs should be factual-only summaries."
+}
+</example_user_preference>
 
 <example_pronoun_reference>
 Input:
