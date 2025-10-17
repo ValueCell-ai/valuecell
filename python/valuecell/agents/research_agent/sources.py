@@ -206,7 +206,7 @@ async def web_search(query: str) -> str:
     if os.getenv("WEB_SEARCH_PROVIDER", "google").lower() == "google" and os.getenv(
         "GOOGLE_API_KEY"
     ):
-        return _web_search_google(query)
+        return await _web_search_google(query)
 
     model = OpenRouter(id="perplexity/sonar", max_tokens=None)
     response = await Agent(model=model).arun(query)

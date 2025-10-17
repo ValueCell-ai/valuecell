@@ -3,8 +3,6 @@ from typing import AsyncGenerator, Dict, Optional
 
 from agno.agent import Agent
 from agno.db.in_memory import InMemoryDb
-from agno.models.google import Gemini
-from agno.models.openrouter import OpenRouter
 from edgar import set_identity
 from loguru import logger
 
@@ -22,13 +20,7 @@ from valuecell.agents.utils.context import build_ctx_from_dep
 from valuecell.core.agent.responses import streaming
 from valuecell.core.types import BaseAgent, StreamResponse
 from valuecell.utils.env import agent_debug_mode_enabled
-
-
-def _get_model_based_on_env():
-    model_id = os.getenv("RESEARCH_AGENT_MODEL_ID")
-    if os.getenv("GOOGLE_API_KEY"):
-        return Gemini(id=model_id or "gemini-2.5-flash")
-    return OpenRouter(id=model_id or "google/gemini-2.5-flash", max_tokens=None)
+from valuecell.utils.model import get_model
 
 
 class ResearchAgent(BaseAgent):
@@ -40,7 +32,7 @@ class ResearchAgent(BaseAgent):
             web_search,
         ]
         self.knowledge_research_agent = Agent(
-            model=_get_model_based_on_env(),
+            model=get_model("RESEARCH_AGENT_MODEL_ID"),
             instructions=[KNOWLEDGE_AGENT_INSTRUCTION],
             expected_output=KNOWLEDGE_AGENT_EXPECTED_OUTPUT,
             tools=tools,

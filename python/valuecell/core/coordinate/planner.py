@@ -12,14 +12,12 @@ and performs JSON parsing/validation of the planner's output.
 
 import asyncio
 import logging
-import os
 from datetime import datetime
 from typing import Callable, List, Optional
 
 from a2a.types import AgentCard
 from agno.agent import Agent
 from agno.db.in_memory import InMemoryDb
-from agno.models.openrouter import OpenRouter
 
 from valuecell.core.agent.connect import RemoteConnections
 from valuecell.core.coordinate.planner_prompts import (
@@ -30,6 +28,7 @@ from valuecell.core.task import Task, TaskPattern, TaskStatus
 from valuecell.core.types import UserInput
 from valuecell.utils import generate_uuid
 from valuecell.utils.env import agent_debug_mode_enabled
+from valuecell.utils.model import get_model
 
 from .models import ExecutionPlan, PlannerInput, PlannerResponse
 
@@ -152,10 +151,7 @@ class ExecutionPlanner:
         """
         # Create planning agent with appropriate tools and instructions
         agent = Agent(
-            model=OpenRouter(
-                id=os.getenv("PLANNER_MODEL_ID", "google/gemini-2.5-flash"),
-                max_tokens=None,
-            ),
+            model=get_model("PLANNER_MODEL_ID"),
             tools=[
                 # TODO: enable UserControlFlowTools when stable
                 # UserControlFlowTools(),
