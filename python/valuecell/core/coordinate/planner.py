@@ -173,7 +173,7 @@ class ExecutionPlanner:
         # Execute planning with the agent
         run_response = agent.run(
             PlannerInput(
-                desired_agent_name=user_input.desired_agent_name,
+                target_agent_name=user_input.target_agent_name,
                 query=user_input.query,
             ),
             session_id=conversation_id,

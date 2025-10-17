@@ -21,7 +21,7 @@ class UserInput(BaseModel):
     """Unified abstraction for user input containing all necessary parameters"""
 
     query: str = Field(..., description="The actual user input text")
-    desired_agent_name: Optional[str] = Field(
+    target_agent_name: Optional[str] = Field(
         None, description="Specific agent name to use for processing this input"
     )
     meta: UserInputMetadata = Field(

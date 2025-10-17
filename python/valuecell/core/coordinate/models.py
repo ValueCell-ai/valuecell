@@ -49,7 +49,7 @@ class PlannerInput(BaseModel):
     when determining what tasks should be executed.
     """
 
-    desired_agent_name: str = Field(
+    target_agent_name: str = Field(
         ..., description="The name of the agent the user wants to use for the task"
     )
     query: str = Field(

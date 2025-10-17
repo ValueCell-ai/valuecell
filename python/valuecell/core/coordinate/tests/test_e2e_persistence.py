@@ -18,7 +18,7 @@ async def test_orchestrator_buffer_store_e2e(tmp_path, monkeypatch):
     user_id = "e2e-user"
     ui = UserInput(
         query="hello world",
-        desired_agent_name="TestAgent",
+        target_agent_name="TestAgent",
         meta=UserInputMetadata(conversation_id=conversation_id, user_id=user_id),
     )
 

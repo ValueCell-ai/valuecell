@@ -58,7 +58,7 @@ def _sample_user_input(
 ) -> UserInput:
     return UserInput(
         query=sample_query,
-        desired_agent_name="TestAgent",
+        target_agent_name="TestAgent",
         meta=UserInputMetadata(conversation_id=conversation_id, user_id=user_id),
     )
 

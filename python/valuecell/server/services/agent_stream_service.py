@@ -36,7 +36,7 @@ class AgentStreamService:
             logger.info(f"Processing streaming query: {query[:100]}...")
 
             user_id = "default_user"
-            desired_agent_name = agent_name
+            target_agent_name = agent_name
 
             conversation_id = agent_name + "_conv_" + user_id
 
@@ -45,7 +45,7 @@ class AgentStreamService:
             )
 
             user_input = UserInput(
-                query=query, desired_agent_name=desired_agent_name, meta=user_input_meta
+                query=query, target_agent_name=target_agent_name, meta=user_input_meta
             )
 
             # Use the orchestrator's process_user_input method for streaming
