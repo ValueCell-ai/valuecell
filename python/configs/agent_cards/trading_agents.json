@@ -23,6 +23,7 @@
             "US market"
         ]
     }],
+    "enabled": false,
     "provider": {
         "organization": "Tauric",
         "url": "https://arxiv.org/abs/2412.20138"
