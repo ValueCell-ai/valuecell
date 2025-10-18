@@ -26,6 +26,7 @@ dependencies = [
     "markdown>=3.9",
     "loguru>=0.7.3",
     "aiofiles>=24.1.0",
+    "crawl4ai>=0.7.4",
 ]
 
 [project.optional-dependencies]

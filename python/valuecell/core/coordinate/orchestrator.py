@@ -20,6 +20,8 @@ from valuecell.core.conversation import (
     ConversationStatus,
     SQLiteItemStore,
 )
+from valuecell.core.coordinate.models import ExecutionPlan
+from valuecell.core.coordinate.planner import ExecutionPlanner, UserInputRequest
 from valuecell.core.coordinate.response import ResponseFactory
 from valuecell.core.coordinate.response_buffer import ResponseBuffer, SaveItem
 from valuecell.core.coordinate.response_router import (
@@ -27,15 +29,22 @@ from valuecell.core.coordinate.response_router import (
     SideEffectKind,
     handle_status_update,
 )
+from valuecell.core.coordinate.super_agent import (
+    SuperAgent,
+    SuperAgentDecision,
+    SuperAgentOutcome,
+)
 from valuecell.core.task import Task, TaskManager
 from valuecell.core.task.models import TaskPattern
-from valuecell.core.types import BaseResponse, ConversationItemEvent, UserInput
+from valuecell.core.types import (
+    BaseResponse,
+    ConversationItemEvent,
+    StreamResponseEvent,
+    UserInput,
+)
 from valuecell.utils import resolve_db_path
 from valuecell.utils.i18n_utils import get_current_language, get_current_timezone
-from valuecell.utils.uuid import generate_thread_id
-
-from .models import ExecutionPlan
-from .planner import ExecutionPlanner, UserInputRequest
+from valuecell.utils.uuid import generate_thread_id, generate_uuid
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +159,9 @@ class AgentOrchestrator:
 
         # Initialize planner
         self.planner = ExecutionPlanner(self.agent_connections)
+
+        # Initialize Super Agent (triage/frontline agent)
+        self.super_agent = SuperAgent()
 
         self._response_factory = ResponseFactory()
         # Buffer for streaming responses -> persisted ConversationItems
@@ -390,18 +402,39 @@ class AgentOrchestrator:
         await self._persist_from_buffer(response)
         yield response
 
-        # Create planning task with user input callback
-        context_aware_callback = self._create_context_aware_callback(conversation_id)
+        # 1) Super Agent triage phase (pre-planning)
+        super_outcome: SuperAgentOutcome = await self.super_agent.run(user_input)
+        if super_outcome.decision == SuperAgentDecision.ANSWER:
+            ans = self._response_factory.message_response_general(
+                StreamResponseEvent.MESSAGE_CHUNK,
+                conversation_id,
+                thread_id,
+                task_id=generate_uuid("task"),
+                content=super_outcome.answer_content,
+            )
+            await self._persist_from_buffer(ans)
+            yield ans
+            return
 
-        planning_task = asyncio.create_task(
-            self.planner.create_plan(user_input, context_aware_callback)
-        )
+        if super_outcome.decision == SuperAgentDecision.HANDOFF_TO_PLANNER:
+            # 2) Planner phase (existing logic), allow enriched query
+            user_input.query = super_outcome.enriched_query
+            enriched_input = user_input
 
-        # Monitor planning progress
-        async for response in self._monitor_planning_task(
-            planning_task, thread_id, user_input, context_aware_callback
-        ):
-            yield response
+            # Create planning task with user input callback
+            context_aware_callback = self._create_context_aware_callback(
+                conversation_id
+            )
+            planning_task = asyncio.create_task(
+                self.planner.create_plan(enriched_input, context_aware_callback)
+            )
+
+            # Monitor planning progress
+            async for response in self._monitor_planning_task(
+                planning_task, thread_id, enriched_input, context_aware_callback
+            ):
+                yield response
+            return
 
     def _create_context_aware_callback(self, conversation_id: str):
         """Return an async callback that tags UserInputRequest objects with the

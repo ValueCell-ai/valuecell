@@ -89,7 +89,9 @@ class ExecutionPlanner:
         self.agent_connections = agent_connections
 
     async def create_plan(
-        self, user_input: UserInput, user_input_callback: Optional[Callable] = None
+        self,
+        user_input: UserInput,
+        user_input_callback: Callable,
     ) -> ExecutionPlan:
         """
         Create an execution plan from user input.
@@ -102,7 +104,7 @@ class ExecutionPlanner:
 
         Args:
             user_input: The user's request to be planned.
-            user_input_callback: Optional async callback invoked with
+            user_input_callback: Async callback invoked with
                 `UserInputRequest` instances when clarification is required.
 
         Returns:
@@ -131,7 +133,7 @@ class ExecutionPlanner:
         self,
         user_input: UserInput,
         conversation_id: str,
-        user_input_callback: Optional[Callable] = None,
+        user_input_callback: Callable,
     ) -> List[Task]:
         """
         Analyze user input and produce a list of `Task` objects.
@@ -144,7 +146,7 @@ class ExecutionPlanner:
         Args:
             user_input: The original user input to analyze.
             conversation_id: Conversation this planning belongs to.
-            user_input_callback: Optional async callback used for Human-in-the-Loop.
+            user_input_callback: Async callback used for Human-in-the-Loop.
 
         Returns:
             A list of `Task` objects derived from the planner response.
@@ -185,16 +187,11 @@ class ExecutionPlanner:
                 input_schema = tool.user_input_schema
 
                 for field in input_schema:
-                    if user_input_callback:
-                        # Use callback for async user input
-                        # TODO: prompt options if available
-                        request = UserInputRequest(field.description)
-                        await user_input_callback(request)
-                        user_value = await request.wait_for_response()
-                    else:
-                        # Fallback to synchronous input for testing/simple scenarios
-                        user_value = input(f"{field.description}: ")
-
+                    # Use callback for async user input
+                    # TODO: prompt options if available
+                    request = UserInputRequest(field.description)
+                    await user_input_callback(request)
+                    user_value = await request.wait_for_response()
                     field.value = user_value
 
             # Continue agent execution with updated inputs
