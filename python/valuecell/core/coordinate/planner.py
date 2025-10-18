@@ -29,6 +29,7 @@ from valuecell.core.types import UserInput
 from valuecell.utils import generate_uuid
 from valuecell.utils.env import agent_debug_mode_enabled
 from valuecell.utils.model import get_model
+from valuecell.utils.uuid import generate_conversation_id, generate_task_id
 
 from .models import ExecutionPlan, PlannerInput, PlannerResponse
 
@@ -159,9 +160,12 @@ class ExecutionPlanner:
                 # UserControlFlowTools(),
                 self.tool_get_agent_description,
             ],
-            markdown=False,
             debug_mode=agent_debug_mode_enabled(),
             instructions=[PLANNER_INSTRUCTION],
+            # output format
+            markdown=False,
+            use_json_mode=True,
+            output_schema=PlannerResponse,
             expected_output=PLANNER_EXPECTED_OUTPUT,
             # context
             db=InMemoryDb(),
@@ -205,17 +209,7 @@ class ExecutionPlanner:
                 break
 
         # Parse planning result and create tasks
-        try:
-            plan_content = run_response.content
-            if plan_content.startswith("```json\n") and plan_content.endswith("\n```"):
-                # Strip markdown code block if present
-                plan_content = "\n".join(plan_content.split("\n")[1:-1])
-            plan_raw = PlannerResponse.model_validate_json(plan_content)
-        except Exception as e:
-            raise ValueError(
-                f"Planner produced invalid JSON for PlannerResponse: {e}. "
-                f"Raw content: {run_response.content}"
-            ) from e
+        plan_raw = run_response.content
         logger.info(f"Planner produced plan: {plan_raw}")
         if not plan_raw.adequate or not plan_raw.tasks:
             # If information is still inadequate, return empty task list
@@ -225,21 +219,25 @@ class ExecutionPlanner:
             )
         return [
             self._create_task(
-                user_input.meta.conversation_id,
                 user_input.meta.user_id,
                 task.agent_name,
                 task.query,
                 task.pattern,
+                conversation_id=(
+                    user_input.meta.conversation_id
+                    if user_input.target_agent_name
+                    else None
+                ),
             )
             for task in plan_raw.tasks
         ]
 
     def _create_task(
         self,
-        conversation_id: str,
         user_id: str,
         agent_name: str,
         query: str,
+        conversation_id: str | None = None,
         pattern: TaskPattern = TaskPattern.ONCE,
     ) -> Task:
         """
@@ -256,8 +254,8 @@ class ExecutionPlanner:
             Task: Configured task ready for execution.
         """
         return Task(
-            task_id=generate_uuid("task"),
-            conversation_id=conversation_id,
+            task_id=generate_task_id(),
+            conversation_id=conversation_id or generate_conversation_id(),
             user_id=user_id,
             agent_name=agent_name,
             status=TaskStatus.PENDING,

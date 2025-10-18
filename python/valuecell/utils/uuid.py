@@ -14,3 +14,11 @@ def generate_item_id() -> str:
 
 def generate_thread_id() -> str:
     return generate_uuid("th")
+
+
+def generate_conversation_id() -> str:
+    return generate_uuid("conv")
+
+
+def generate_task_id() -> str:
+    return generate_uuid("task")

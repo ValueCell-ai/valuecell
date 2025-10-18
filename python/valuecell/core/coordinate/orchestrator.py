@@ -44,7 +44,7 @@ from valuecell.core.types import (
 )
 from valuecell.utils import resolve_db_path
 from valuecell.utils.i18n_utils import get_current_language, get_current_timezone
-from valuecell.utils.uuid import generate_thread_id, generate_uuid
+from valuecell.utils.uuid import generate_task_id, generate_thread_id
 
 logger = logging.getLogger(__name__)
 
@@ -409,7 +409,7 @@ class AgentOrchestrator:
                 StreamResponseEvent.MESSAGE_CHUNK,
                 conversation_id,
                 thread_id,
-                task_id=generate_uuid("task"),
+                task_id=generate_task_id(),
                 content=super_outcome.answer_content,
             )
             await self._persist_from_buffer(ans)
@@ -498,7 +498,9 @@ class AgentOrchestrator:
 
         # Planning completed, execute plan
         plan = await planning_task
-        async for response in self._execute_plan_with_input_support(plan, thread_id):
+        async for response in self._execute_plan_with_input_support(
+            plan, conversation_id, thread_id
+        ):
             yield response
 
     async def _request_user_input(self, conversation_id: str):
@@ -569,7 +571,9 @@ class AgentOrchestrator:
         plan = await planning_task
         del self._execution_contexts[conversation_id]
 
-        async for response in self._execute_plan_with_input_support(plan, thread_id):
+        async for response in self._execute_plan_with_input_support(
+            plan, conversation_id, thread_id
+        ):
             yield response
 
     async def _cancel_execution(self, conversation_id: str):
@@ -623,7 +627,11 @@ class AgentOrchestrator:
     # ==================== Plan and Task Execution Methods ====================
 
     async def _execute_plan_with_input_support(
-        self, plan: ExecutionPlan, thread_id: str, metadata: Optional[dict] = None
+        self,
+        plan: ExecutionPlan,
+        conversation_id: str,
+        thread_id: str,
+        metadata: Optional[dict] = None,
     ) -> AsyncGenerator[BaseResponse, None]:
         """
         Execute an execution plan with Human-in-the-Loop support.
@@ -638,13 +646,6 @@ class AgentOrchestrator:
         Yields:
             Streaming `BaseResponse` objects produced by each task execution.
         """
-        conversation_id = plan.conversation_id
-
-        if not plan.tasks:
-            yield self._response_factory.plan_failed(
-                conversation_id, thread_id, "No tasks found for this request."
-            )
-            return
 
         for task in plan.tasks:
             try:
@@ -653,7 +654,7 @@ class AgentOrchestrator:
 
                 # Execute task with input support
                 async for response in self._execute_task_with_input_support(
-                    task, thread_id, metadata
+                    task, conversation_id, thread_id, metadata
                 ):
                     # Ensure buffered events carry a stable paragraph item_id
                     annotated = self._response_buffer.annotate(response)
@@ -674,7 +675,7 @@ class AgentOrchestrator:
                 )
 
     async def _execute_task_with_input_support(
-        self, task: Task, thread_id: str, metadata: Optional[dict] = None
+        self, task: Task, conversation_id: str, thread_id: str, metadata: Optional[dict] = None
     ) -> AsyncGenerator[BaseResponse, None]:
         """
         Execute a single task with user input interruption support.
@@ -687,9 +688,17 @@ class AgentOrchestrator:
         try:
             # Start task execution
             task_id = task.task_id
-            conversation_id = task.conversation_id
-            await self.task_manager.start_task(task_id)
+            if conversation_id != task.conversation_id:
+                yield self._response_factory.component_generator(
+                    conversation_id=task.conversation_id,
+                    thread_id=thread_id,
+                    task_id=task_id,
+                    content=task.conversation_id,
+                    component_type="conversation_box",
+                )
+                conversation_id = task.conversation_id
 
+            await self.task_manager.start_task(task_id)
             # Get agent connection
             agent_name = task.agent_name
             agent_card = await self.agent_connections.start_agent(

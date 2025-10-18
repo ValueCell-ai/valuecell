@@ -7,6 +7,7 @@ from typing import AsyncGenerator, Optional
 
 from valuecell.core.coordinate.orchestrator import AgentOrchestrator
 from valuecell.core.types import UserInput, UserInputMetadata
+from valuecell.utils.uuid import generate_conversation_id
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,10 @@ class AgentStreamService:
         logger.info("Agent stream service initialized")
 
     async def stream_query_agent(
-        self, query: str, agent_name: Optional[str] = None
+        self,
+        query: str,
+        agent_name: Optional[str] = None,
+        conversation_id: Optional[str] = None,
     ) -> AsyncGenerator[str, None]:
         """
         Stream agent responses for a given query.
@@ -28,6 +32,7 @@ class AgentStreamService:
         Args:
             query: User query to process
             agent_name: Optional specific agent name to use. If provided, takes precedence over query parsing.
+            conversation_id: Optional conversation ID for context tracking.
 
         Yields:
             str: Content chunks from the agent response
@@ -38,7 +43,7 @@ class AgentStreamService:
             user_id = "default_user"
             target_agent_name = agent_name
 
-            conversation_id = agent_name + "_conv_" + user_id
+            conversation_id = conversation_id or generate_conversation_id()
 
             user_input_meta = UserInputMetadata(
                 user_id=user_id, conversation_id=conversation_id
