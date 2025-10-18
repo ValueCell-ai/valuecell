@@ -6,11 +6,11 @@ from openai import OpenAI
 
 class FinancialSituationMemory:
     def __init__(self, name, config):
-        self.embedding = config["embeddings_model"]
-        self.client = OpenAI(base_url=config["embeddings_backend_url"])
-        if "localhost" not in config["embeddings_backend_url"]:
-            embeddings_api_key = os.getenv("EMBEDDINGS_API_KEY") or os.getenv("OPENAI_API_KEY")
-            self.client = OpenAI(api_key=embeddings_api_key, base_url=config["embeddings_backend_url"])
+        self.embedding = config["EMBEDDER_MODEL_ID"]
+        self.client = OpenAI(base_url=config["EMBEDDER_BASE_URL"])
+        if "localhost" not in config["EMBEDDER_BASE_URL"]:
+            EMBEDDER_API_KEY = os.getenv("EMBEDDER_API_KEY") or os.getenv("OPENAI_API_KEY")
+            self.client = OpenAI(api_key=EMBEDDER_API_KEY, base_url=config["EMBEDDER_BASE_URL"])
 
         self.chroma_client = chromadb.Client(Settings(allow_reset=True))
         try:

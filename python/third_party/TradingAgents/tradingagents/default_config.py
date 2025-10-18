@@ -38,8 +38,8 @@ DEFAULT_CONFIG = {
     "quick_think_llm": os.getenv("TRADINGAGENTS_QUICK_THINK_LLM", "gpt-4o-mini"),
     "backend_url": os.getenv("TRADINGAGENTS_BACKEND_URL", "https://api.openai.com/v1"),
     # Embeddings settings
-    "embeddings_backend_url": os.getenv("EMBEDDINGS_BACKEND_URL", "https://api.openai.com/v1"),
-    "embeddings_model": os.getenv("EMBEDDINGS_MODEL", "text-embedding-3-small"),
+    "EMBEDDER_BASE_URL": os.getenv("EMBEDDER_BASE_URL", "https://api.openai.com/v1"),
+    "EMBEDDER_MODEL_ID": os.getenv("EMBEDDER_MODEL_ID", "text-embedding-3-small"),
     # Debate and discussion settings
     "max_debate_rounds": int(os.getenv("TRADINGAGENTS_MAX_DEBATE_ROUNDS", "1")),
     "max_risk_discuss_rounds": int(os.getenv("TRADINGAGENTS_MAX_RISK_DISCUSS_ROUNDS", "1")),
