@@ -108,6 +108,21 @@ class AgentQueryParams(BaseModel):
     )
 
 
+class AgentEnableRequest(BaseModel):
+    """Request model for updating agent enable status."""
+
+    enabled: bool = Field(..., description="Whether to enable or disable the agent")
+
+
+class AgentEnableResponse(BaseModel):
+    """Response model for agent enable status update."""
+
+    agent_name: str = Field(..., description="Name of the agent")
+    enabled: bool = Field(..., description="Current enabled status")
+    message: str = Field(..., description="Status update message")
+
+
 # Type aliases for SuccessResponse
 AgentResponse = SuccessResponse[AgentData]
 AgentListResponse = SuccessResponse[AgentListData]
+AgentEnableSuccessResponse = SuccessResponse[AgentEnableResponse]

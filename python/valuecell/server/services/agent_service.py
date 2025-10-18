@@ -2,6 +2,7 @@
 Agent service layer for handling agent-related business logic.
 """
 
+from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import and_, or_
@@ -91,6 +92,46 @@ class AgentService:
 
         if not agent:
             return None
+
+        return AgentData(
+            id=agent.id,
+            agent_name=agent.name,
+            display_name=agent.display_name,
+            description=agent.description,
+            version=agent.version,
+            enabled=agent.enabled,
+            icon_url=agent.icon_url,
+            agent_metadata=agent.agent_metadata,
+            config=agent.config,
+            created_at=agent.created_at,
+            updated_at=agent.updated_at,
+        )
+
+    @staticmethod
+    def update_agent_enabled(db: Session, agent_name: str, enabled: bool) -> Optional[AgentData]:
+        """
+        Update the enabled status of an agent by name.
+
+        Args:
+            db: Database session
+            agent_name: Name of the agent to update
+            enabled: New enabled status
+
+        Returns:
+            Updated AgentData if found and updated, None if agent not found
+        """
+        agent = db.query(Agent).filter(Agent.name == agent_name).first()
+
+        if not agent:
+            return None
+
+        # Update the enabled status and timestamp
+        agent.enabled = enabled
+        agent.updated_at = datetime.utcnow()
+        
+        # Commit the changes
+        db.commit()
+        db.refresh(agent)
 
         return AgentData(
             id=agent.id,
