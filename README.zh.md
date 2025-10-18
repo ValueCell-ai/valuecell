@@ -25,8 +25,9 @@
 </div>
 
 <div align="center">
-  <a href="README.md" style="color: auto;">English</a>
-  <a href="README.zh.md" style="color: gray;">中文</a>
+  <a href="README.md" style="color: gray;">English</a>
+  <a href="README.zh.md" style="color: gray;">中文（简体）</a>
+  <a href="README.zh_Hant.md" style="color: auto;">中文（繁體）</a>
 </div>
 
 
