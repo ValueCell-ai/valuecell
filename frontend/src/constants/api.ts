@@ -10,13 +10,12 @@ const STOCK_QUERY_KEYS = {
   stockList: ["stock"],
   stockDetail: queryKeyFn(["stock", "detail"]),
   stockSearch: queryKeyFn(["stock", "search"]),
-  stockAdd: queryKeyFn(["stock", "add"]),
   stockPrice: queryKeyFn(["stock", "price"]),
   stockHistory: queryKeyFn(["stock", "history"]),
 } as const;
 
 const AGENT_QUERY_KEYS = {
-  agentList: queryKeyFn(["agent"]),
+  agentList: queryKeyFn(["agent", "list"]),
   agentInfo: queryKeyFn(["agent", "info"]),
 } as const;
 
