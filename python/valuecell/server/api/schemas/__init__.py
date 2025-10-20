@@ -30,6 +30,13 @@ from .i18n import (
     UserI18nSettingsData,
     UserI18nSettingsRequest,
 )
+from .user_profile import (
+    CreateUserProfileRequest,
+    UpdateUserProfileRequest,
+    UserProfileData,
+    UserProfileListData,
+    UserProfileSummaryData,
+)
 from .watchlist import (
     AddAssetRequest,
     AssetDetailData,
@@ -89,4 +96,10 @@ __all__ = [
     "AssetHistoricalPriceData",
     "AssetHistoricalPricesData",
     "WatchlistWithPricesData",
+    # User Profile schemas
+    "UserProfileData",
+    "CreateUserProfileRequest",
+    "UpdateUserProfileRequest",
+    "UserProfileListData",
+    "UserProfileSummaryData",
 ]

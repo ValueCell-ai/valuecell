@@ -157,16 +157,16 @@ def create_agent_router() -> APIRouter:
                 raise HTTPException(
                     status_code=404, detail=f"Agent with name '{agent_name}' not found"
                 )
-            
+
             response_data = AgentEnableResponse(
                 agent_name=updated_agent.agent_name,
                 enabled=updated_agent.enabled,
-                message=f"Agent '{agent_name}' has been {'enabled' if request.enabled else 'disabled'} successfully"
+                message=f"Agent '{agent_name}' has been {'enabled' if request.enabled else 'disabled'} successfully",
             )
-            
+
             return SuccessResponse.create(
                 data=response_data,
-                msg=f"Successfully {'enabled' if request.enabled else 'disabled'} agent '{agent_name}'"
+                msg=f"Successfully {'enabled' if request.enabled else 'disabled'} agent '{agent_name}'",
             )
         except HTTPException:
             raise
