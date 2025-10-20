@@ -646,7 +646,7 @@ class AgentOrchestrator:
         """
 
         for task in plan.tasks:
-            if task.handed_over_from_super_agent:
+            if task.handoff_from_super_agent:
                 yield self._response_factory.component_generator(
                     conversation_id=conversation_id,
                     thread_id=thread_id,
@@ -687,7 +687,7 @@ class AgentOrchestrator:
                     error_msg,
                 )
             finally:
-                if task.handed_over_from_super_agent:
+                if task.handoff_from_super_agent:
                     yield self._response_factory.component_generator(
                         conversation_id=conversation_id,
                         thread_id=thread_id,

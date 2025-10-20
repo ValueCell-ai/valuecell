@@ -161,7 +161,7 @@ class ExecutionPlanner:
             tools=[
                 # TODO: enable UserControlFlowTools when stable
                 # UserControlFlowTools(),
-                self.tool_get_agent_description,
+                self.tool_get_enabled_agents,
             ],
             debug_mode=agent_debug_mode_enabled(),
             instructions=[PLANNER_INSTRUCTION],
@@ -292,6 +292,15 @@ class ExecutionPlanner:
             return agentcard_to_prompt(card)
 
         return "The requested agent could not be found or is not available."
+
+    def tool_get_enabled_agents(self) -> str:
+        map_agent_name_to_card = self.agent_connections.get_all_agent_cards()
+        parts = []
+        for agent_name, card in map_agent_name_to_card.items():
+            parts.append(f"<{agent_name}>")
+            parts.append(agentcard_to_prompt(card))
+            parts.append((f"</{agent_name}>\n"))
+        return "\n".join(parts)
 
 
 def agentcard_to_prompt(card: AgentCard):
