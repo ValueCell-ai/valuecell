@@ -463,6 +463,7 @@ class ResponseFactory:
         task_id: str,
         content: str,
         component_type: str,
+        item_id: Optional[str] = None,
     ) -> ComponentGeneratorResponse:
         """Create a ComponentGeneratorResponse for UI component generation.
 
@@ -472,6 +473,7 @@ class ResponseFactory:
             task_id: Task id.
             content: Serialized component content (e.g., markup or json).
             component_type: Free-form type string for the generated component.
+            item_id: Optional stable paragraph/item id; generated if omitted.
 
         Returns:
             ComponentGeneratorResponse wrapping the payload.
@@ -486,5 +488,6 @@ class ResponseFactory:
                     component_type=component_type,
                 ),
                 role=Role.AGENT,
+                item_id=item_id or generate_item_id(),
             ),
         )

@@ -45,7 +45,7 @@ from valuecell.core.types import (
 )
 from valuecell.utils import resolve_db_path
 from valuecell.utils.i18n_utils import get_current_language, get_current_timezone
-from valuecell.utils.uuid import generate_task_id, generate_thread_id
+from valuecell.utils.uuid import generate_item_id, generate_task_id, generate_thread_id
 
 logger = logging.getLogger(__name__)
 
@@ -646,6 +646,7 @@ class AgentOrchestrator:
         """
 
         for task in plan.tasks:
+            subagent_conversation_item_id = generate_item_id()
             if task.handoff_from_super_agent:
                 yield self._response_factory.component_generator(
                     conversation_id=conversation_id,
@@ -654,12 +655,12 @@ class AgentOrchestrator:
                     content=json.dumps(
                         {
                             "conversation_id": task.conversation_id,
-                            "thread_id": task.thread_id,
-                            "task_id": task.task_id,
+                            "agent_name": task.agent_name,
                             "phase": "start",
                         }
                     ),
                     component_type="subagent_conversation",
+                    item_id=subagent_conversation_item_id,
                 )
             try:
                 # Register the task with TaskManager (persist in-memory)
@@ -695,12 +696,12 @@ class AgentOrchestrator:
                         content=json.dumps(
                             {
                                 "conversation_id": task.conversation_id,
-                                "thread_id": task.thread_id,
-                                "task_id": task.task_id,
+                                "agent_name": task.agent_name,
                                 "phase": "end",
                             }
                         ),
                         component_type="subagent_conversation",
+                        item_id=subagent_conversation_item_id,
                     )
 
     async def _execute_task_with_input_support(
