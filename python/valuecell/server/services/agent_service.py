@@ -108,7 +108,9 @@ class AgentService:
         )
 
     @staticmethod
-    def update_agent_enabled(db: Session, agent_name: str, enabled: bool) -> Optional[AgentData]:
+    def update_agent_enabled(
+        db: Session, agent_name: str, enabled: bool
+    ) -> Optional[AgentData]:
         """
         Update the enabled status of an agent by name.
 
@@ -128,7 +130,7 @@ class AgentService:
         # Update the enabled status and timestamp
         agent.enabled = enabled
         agent.updated_at = datetime.utcnow()
-        
+
         # Commit the changes
         db.commit()
         db.refresh(agent)

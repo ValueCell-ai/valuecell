@@ -24,8 +24,12 @@ class SuperAgentDecision(str, Enum):
 class SuperAgentOutcome(BaseModel):
     decision: SuperAgentDecision = Field(..., description="Super Agent's decision")
     # Optional enriched result data
-    answer_content: Optional[str] = Field(None, description="Optional direct answer when decision is 'answer'")
-    enriched_query: Optional[str] = Field(None, description="Optional concise restatement to forward to Planner")
+    answer_content: Optional[str] = Field(
+        None, description="Optional direct answer when decision is 'answer'"
+    )
+    enriched_query: Optional[str] = Field(
+        None, description="Optional concise restatement to forward to Planner"
+    )
     reason: Optional[str] = Field(None, description="Brief rationale for the decision")
 
 

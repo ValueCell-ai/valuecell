@@ -423,9 +423,7 @@ class AgentOrchestrator:
 
         # 2) Planner phase (existing logic)
         # Create planning task with user input callback
-        context_aware_callback = self._create_context_aware_callback(
-            conversation_id
-        )
+        context_aware_callback = self._create_context_aware_callback(conversation_id)
         planning_task = asyncio.create_task(
             self.planner.create_plan(user_input, context_aware_callback, thread_id)
         )
