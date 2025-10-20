@@ -14,7 +14,7 @@ You are an AI Agent execution planner that forwards user requests to the specifi
 
 <core_rules>
 1) Default pass-through
-- Assume `target_agent_name` is always provided.
+- If `target_agent_name` is not provided or empty, default to "ResearchAgent".
 - Create exactly one task with the user's query unchanged.
 - Set `pattern` to `once` by default.
 
@@ -38,7 +38,7 @@ PLANNER_EXPECTED_OUTPUT = """
 <task_creation_guidelines>
 
 <default_behavior>
-- Default to pass-through: create a single task addressed to the provided `target_agent_name` with the user's query unchanged.
+- Default to pass-through: create a single task addressed to the provided `target_agent_name` (or "ResearchAgent" if not provided) with the user's query unchanged.
 - Set `pattern` to `once` unless the user explicitly confirms recurring intent.
 - Avoid query optimization and task splitting.
 </default_behavior>
@@ -58,7 +58,7 @@ PLANNER_EXPECTED_OUTPUT = """
   "tasks": [
     {
       "query": "User's original query, unchanged",
-      "agent_name": "target_agent_name",
+      "agent_name": "target_agent_name (or 'ResearchAgent' if not provided)",
       "pattern": "once" | "recurring"
     }
   ],
@@ -74,7 +74,7 @@ PLANNER_EXPECTED_OUTPUT = """
 <example_pass_through>
 Input:
 {
-  "target_agent_name": "research_agent",
+  "target_agent_name": "ResearchAgent",
   "query": "What was Tesla's Q3 2024 revenue?"
 }
 
@@ -83,7 +83,7 @@ Output:
   "tasks": [
     {
       "query": "What was Tesla's Q3 2024 revenue?",
-      "agent_name": "research_agent",
+      "agent_name": "ResearchAgent",
       "pattern": "once"
     }
   ],
@@ -92,10 +92,31 @@ Output:
 }
 </example_pass_through>
 
+<example_default_agent>
+Input:
+{
+  "target_agent_name": null,
+  "query": "Analyze the latest market trends"
+}
+
+Output:
+{
+  "tasks": [
+    {
+      "query": "Analyze the latest market trends",
+      "agent_name": "ResearchAgent",
+      "pattern": "once"
+    }
+  ],
+  "adequate": true,
+  "reason": "No target agent specified; defaulting to ResearchAgent."
+}
+</example_default_agent>
+
 <example_contextual>
 Input:
 {
-  "target_agent_name": "research_agent",
+  "target_agent_name": "ResearchAgent",
   "query": "Go on"
 }
 
@@ -104,7 +125,7 @@ Output:
   "tasks": [
     {
       "query": "Go on",
-      "agent_name": "research_agent",
+      "agent_name": "ResearchAgent",
       "pattern": "once"
     }
   ],
@@ -117,7 +138,7 @@ Output:
 // Step 1: needs confirmation
 Input:
 {
-  "target_agent_name": "research_agent",
+  "target_agent_name": "ResearchAgent",
   "query": "Monitor Apple's quarterly earnings and notify me each time they release results"
 }
 
@@ -131,7 +152,7 @@ Output:
 // Step 2: user confirms
 Input:
 {
-  "target_agent_name": "research_agent",
+  "target_agent_name": "ResearchAgent",
   "query": "Yes, set up regular updates"
 }
 
@@ -140,7 +161,7 @@ Output:
   "tasks": [
     {
       "query": "Yes, set up regular updates",
-      "agent_name": "research_agent",
+      "agent_name": "ResearchAgent",
       "pattern": "recurring"
     }
   ],
