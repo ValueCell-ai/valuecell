@@ -329,3 +329,48 @@ async def test_unknown_agent_raises(tmp_path: Path, monkeypatch: pytest.MonkeyPa
 
     with pytest.raises(ValueError):
         await rc.start_agent("NotExist")
+
+
+def _write_card(path: Path, card_dict: dict):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(card_dict, f)
+
+
+@pytest.mark.asyncio
+async def test_disabled_agents_are_skipped(tmp_path: Path):
+    dir_path = tmp_path / "agent_cards"
+    dir_path.mkdir(parents=True)
+
+    enabled_card = make_card_dict("EnabledAgent", "http://127.0.0.1:8701", True)
+    disabled_card = make_card_dict("DisabledAgent", "http://127.0.0.1:8702", True)
+    disabled_card["enabled"] = False
+
+    _write_card(dir_path / "EnabledAgent.json", enabled_card)
+    _write_card(dir_path / "DisabledAgent.json", disabled_card)
+
+    rc = RemoteConnections()
+    rc.load_from_dir(str(dir_path))
+
+    assert rc.list_available_agents() == ["EnabledAgent"]
+
+
+@pytest.mark.asyncio
+async def test_get_all_agent_cards_returns_local_cards(tmp_path: Path):
+    dir_path = tmp_path / "agent_cards"
+    dir_path.mkdir(parents=True)
+
+    cards = [
+        make_card_dict("CardOne", "http://127.0.0.1:8801", False),
+        make_card_dict("CardTwo", "http://127.0.0.1:8802", True),
+    ]
+
+    for card in cards:
+        _write_card(dir_path / f"{card['name']}.json", card)
+
+    rc = RemoteConnections()
+    rc.load_from_dir(str(dir_path))
+
+    all_cards = rc.get_all_agent_cards()
+
+    assert set(all_cards.keys()) == {"CardOne", "CardTwo"}
+    assert all(isinstance(card, AgentCard) for card in all_cards.values())

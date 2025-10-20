@@ -40,6 +40,7 @@ class SuperAgent:
     Future versions can stream content, ask for user input via callback,
     or directly produce tasks/plans.
     """
+
     name: str = "ValueCellAgent"
 
     def __init__(self) -> None:

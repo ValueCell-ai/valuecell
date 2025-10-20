@@ -27,6 +27,10 @@ from a2a.types import (
 
 from valuecell.core.coordinate.models import ExecutionPlan
 from valuecell.core.coordinate.orchestrator import AgentOrchestrator
+from valuecell.core.coordinate.super_agent import (
+    SuperAgentDecision,
+    SuperAgentOutcome,
+)
 from valuecell.core.conversation import ConversationStatus
 from valuecell.core.task import Task, TaskStatus as CoreTaskStatus
 from valuecell.core.types import UserInput, UserInputMetadata
@@ -426,3 +430,108 @@ async def test_cancel_execution_with_planning_task(
     orchestrator.user_input_manager.clear_request.assert_called_once_with(
         conversation_id
     )
+
+
+@pytest.mark.asyncio
+async def test_super_agent_answer_short_circuits_planner(
+    orchestrator: AgentOrchestrator,
+):
+    outcome = SuperAgentOutcome(
+        decision=SuperAgentDecision.ANSWER,
+        answer_content="Concise reply",
+        enriched_query=None,
+        reason="Handled directly",
+    )
+    orchestrator.super_agent = SimpleNamespace(
+        name="ValueCellAgent",
+        run=AsyncMock(return_value=outcome),
+    )
+
+    user_input = UserInput(
+        query="What is 2+2?",
+        target_agent_name=orchestrator.super_agent.name,
+        meta=UserInputMetadata(conversation_id="conv-answer", user_id="user-answer"),
+    )
+
+    responses = []
+    async for resp in orchestrator.process_user_input(user_input):
+        responses.append(resp)
+
+    orchestrator.planner.create_plan.assert_not_called()
+    payload_contents = [
+        getattr(resp.data.payload, "content", "")
+        for resp in responses
+        if getattr(resp, "data", None) and getattr(resp.data, "payload", None)
+    ]
+    assert any("Concise reply" in content for content in payload_contents)
+
+
+@pytest.mark.asyncio
+async def test_super_agent_handoff_creates_component_events(
+    orchestrator: AgentOrchestrator,
+):
+    outcome = SuperAgentOutcome(
+        decision=SuperAgentDecision.HANDOFF_TO_PLANNER,
+        answer_content=None,
+        enriched_query="Updated question",
+        reason="Needs planner",
+    )
+    orchestrator.super_agent = SimpleNamespace(
+        name="ValueCellAgent",
+        run=AsyncMock(return_value=outcome),
+    )
+
+    handoff_task = Task(
+        conversation_id="sub-conv",
+        user_id="user-1",
+        agent_name="ResearchAgent",
+        query="Updated question",
+        status=CoreTaskStatus.PENDING,
+        handoff_from_super_agent=True,
+    )
+    plan = ExecutionPlan(
+        plan_id="plan-handoff",
+        conversation_id="conv-handoff",
+        user_id="user-1",
+        orig_query="Updated question",
+        tasks=[handoff_task],
+        created_at="2025-10-20T00:00:00",
+    )
+    orchestrator.planner.create_plan = AsyncMock(return_value=plan)
+
+    def _empty_task_runner(*args, **kwargs):
+        async def _gen():
+            if False:
+                yield None
+
+        return _gen()
+
+    orchestrator._execute_task_with_input_support = Mock(side_effect=_empty_task_runner)
+    orchestrator._response_buffer.annotate = Mock(side_effect=lambda r: r)
+    orchestrator._persist_from_buffer = AsyncMock()
+    orchestrator._response_buffer.flush_task = Mock(return_value=[])
+    orchestrator._persist_items = AsyncMock()
+
+    user_input = UserInput(
+        query="Original question",
+        target_agent_name=orchestrator.super_agent.name,
+        meta=UserInputMetadata(conversation_id="conv-handoff", user_id="user-1"),
+    )
+
+    responses = []
+    async for resp in orchestrator.process_user_input(user_input):
+        responses.append(resp)
+
+    orchestrator.planner.create_plan.assert_awaited_once()
+    assert user_input.target_agent_name == ""
+    assert user_input.query == "Updated question"
+
+    component_payloads = [
+        getattr(resp.data.payload, "content", "")
+        for resp in responses
+        if getattr(resp, "data", None)
+        and getattr(resp.data, "payload", None)
+        and getattr(resp.data.payload, "component_type", "") == "subagent_conversation"
+    ]
+    assert any('"phase": "start"' in payload for payload in component_payloads)
+    assert any('"phase": "end"' in payload for payload in component_payloads)
