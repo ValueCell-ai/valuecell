@@ -71,7 +71,7 @@ async def _write_and_ingest(
             period_of_report=period_of_report,
             filing_date=filing_date,
         )
-        async with aiofiles.open(path, "w") as file:
+        async with aiofiles.open(path, "w", encoding="utf-8") as file:
             await file.write(content)
 
         result = SECFilingResult(file_name, path, metadata)
