@@ -5,7 +5,7 @@ from typing import Optional
 from agno.agent import Agent
 from agno.db.in_memory import InMemoryDb
 from agno.tools.crawl4ai import Crawl4aiTools
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from valuecell.core.coordinate.super_agent_prompts import (
     SUPER_AGENT_EXPECTED_OUTPUT,
@@ -22,11 +22,11 @@ class SuperAgentDecision(str, Enum):
 
 
 class SuperAgentOutcome(BaseModel):
-    decision: SuperAgentDecision
+    decision: SuperAgentDecision = Field(..., description="Super Agent's decision")
     # Optional enriched result data
-    answer_content: Optional[str] = None
-    enriched_query: Optional[str] = None
-    reason: Optional[str] = None
+    answer_content: Optional[str] = Field(None, description="Optional direct answer when decision is 'answer'")
+    enriched_query: Optional[str] = Field(None, description="Optional concise restatement to forward to Planner")
+    reason: Optional[str] = Field(None, description="Brief rationale for the decision")
 
 
 class SuperAgent:
@@ -44,7 +44,10 @@ class SuperAgent:
             markdown=False,
             debug_mode=agent_debug_mode_enabled(),
             instructions=[SUPER_AGENT_INSTRUCTION],
+            # output format
             expected_output=SUPER_AGENT_EXPECTED_OUTPUT,
+            use_json_mode=True,
+            output_schema=SuperAgentOutcome,
             # context
             db=InMemoryDb(),
             add_datetime_to_context=True,
@@ -52,8 +55,6 @@ class SuperAgent:
             num_history_runs=5,
             read_chat_history=True,
             enable_session_summaries=True,
-            use_json_mode=True,
-            output_schema=SuperAgentOutcome,
         )
 
     async def run(self, user_input: UserInput) -> SuperAgentOutcome:
