@@ -14,12 +14,14 @@ export const useGetAgentInfo = (params: { agentName: string }) => {
   });
 };
 
-export const useGetAgentList = (params?: { enabled_only: boolean }) => {
+export const useGetAgentList = (
+  params: { enabled_only: string } = { enabled_only: "false" },
+) => {
   return useQuery({
-    queryKey: API_QUERY_KEYS.AGENT.agentList,
+    queryKey: API_QUERY_KEYS.AGENT.agentList(Object.values(params)),
     queryFn: () =>
       apiClient.get<ApiResponse<{ agents: AgentInfo[] }>>(
-        `/agents?enabled_only=${params?.enabled_only || false}`,
+        `/agents?enabled_only=${params.enabled_only}`,
       ),
     select: (data) => data.data.agents,
   });

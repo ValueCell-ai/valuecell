@@ -16,7 +16,7 @@ const STOCK_QUERY_KEYS = {
 } as const;
 
 const AGENT_QUERY_KEYS = {
-  agentList: ["agent"],
+  agentList: queryKeyFn(["agent"]),
   agentInfo: queryKeyFn(["agent", "info"]),
 } as const;
 

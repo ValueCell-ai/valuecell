@@ -159,7 +159,7 @@ const AppSidebar: FC = () => {
     };
   }, []);
 
-  const { data: agentList } = useGetAgentList({ enabled_only: true });
+  const { data: agentList } = useGetAgentList({ enabled_only: "true" });
   const agentItems = useMemo(() => {
     return agentList?.map((agent) => ({
       id: agent.agent_name,
@@ -196,7 +196,7 @@ const AppSidebar: FC = () => {
 
       <SidebarContent className="max-h-[calc(100vh-11rem)]">
         <ScrollContainer className="w-full">
-          <SidebarMenu className="pt-3">
+          <SidebarMenu className="py-3">
             {agentItems?.map((item) => {
               return (
                 <NavLink key={item.id} to={item.to}>
