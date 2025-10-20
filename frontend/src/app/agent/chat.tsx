@@ -121,10 +121,8 @@ function AgentChatContent() {
 }
 
 export default function AgentChat() {
-  const { agentName } = useParams<Route.LoaderArgs["params"]>();
-
   return (
-    <AgentStoreProvider agentName={agentName ?? ""}>
+    <AgentStoreProvider>
       <AgentChatContent />
     </AgentStoreProvider>
   );

@@ -5,7 +5,6 @@ import {
   type ReactNode,
   type RefObject,
   use,
-  useEffect,
   useMemo,
   useReducer,
   useRef,
@@ -39,29 +38,17 @@ const AgentStoreContext = createContext<AgentStoreContextType | null>(null);
 
 interface AgentStoreProviderProps {
   children: ReactNode;
-  agentName: string;
 }
 
 export const AgentStoreProvider: FC<AgentStoreProviderProps> = ({
   children,
-  agentName,
 }) => {
   // Use optimized reducer for state management
   const [agentStore, dispatchAgentStore] = useReducer(agentStoreReducer, {});
 
   // TODO: temporary conversation id (after will remove hardcoded)
-  const [curConversationId, setCurConversationId] = useState<string>(
-    `${agentName}_conv_default_user`,
-  );
+  const [curConversationId, setCurConversationId] = useState<string>("");
   const curThreadId = useRef<string>("");
-
-  // Only update conversation ID when agentName actually changes
-  useEffect(() => {
-    const newConversationId = `${agentName}_conv_default_user`;
-    if (curConversationId !== newConversationId) {
-      setCurConversationId(newConversationId);
-    }
-  }, [agentName, curConversationId]);
 
   // Get current conversation using original data structure
   const currentConversation = useMemo(() => {

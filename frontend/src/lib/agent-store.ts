@@ -132,6 +132,7 @@ export function updateAgentConversationsStore(
         switch (component_type) {
           case "filtered_line_chart":
           case "filtered_card_push_notification":
+          case "subagent_conversation":
             handleChatItemEvent(
               draft,
               {
