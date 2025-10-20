@@ -404,7 +404,7 @@ class AgentOrchestrator:
         yield response
 
         # 1) Super Agent triage phase (pre-planning) - skip if target agent is specified
-        if not user_input.target_agent_name:
+        if user_input.target_agent_name == self.super_agent.name:
             super_outcome: SuperAgentOutcome = await self.super_agent.run(user_input)
             if super_outcome.decision == SuperAgentDecision.ANSWER:
                 ans = self._response_factory.message_response_general(
@@ -419,6 +419,7 @@ class AgentOrchestrator:
                 return
 
             if super_outcome.decision == SuperAgentDecision.HANDOFF_TO_PLANNER:
+                user_input.target_agent_name = ""
                 user_input.query = super_outcome.enriched_query
 
         # 2) Planner phase (existing logic)
