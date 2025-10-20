@@ -14,6 +14,7 @@ export type MarkdownRendererProps = BaseRendererProps;
 export type ToolCallRendererProps = BaseRendererProps;
 export type ModelTradeRendererProps = BaseRendererProps;
 export type ModelTradeTableRendererProps = BaseRendererProps;
+export type ChatConversationRendererProps = BaseRendererProps;
 
 /**
  * Mapping from component type to its corresponding props type
@@ -26,6 +27,7 @@ export type RendererPropsMap = {
   tool_call: ToolCallRendererProps;
   filtered_line_chart: ModelTradeRendererProps;
   filtered_card_push_notification: ModelTradeTableRendererProps;
+  subagent_conversation: ChatConversationRendererProps;
 };
 
 /**

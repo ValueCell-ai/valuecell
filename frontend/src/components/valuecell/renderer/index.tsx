@@ -1,3 +1,4 @@
+export { default as ChatConversationRenderer } from "./chat-conversation-renderer";
 export { default as MarkdownRenderer } from "./markdown-renderer";
 export { default as ModelTradeRenderer } from "./model-trade-renderer";
 export { default as ModelTradeTableRenderer } from "./model-trade-table-renderer";

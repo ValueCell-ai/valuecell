@@ -19,6 +19,7 @@ import {
   WarrenBuffettPng,
 } from "@/assets/png";
 import {
+  ChatConversationRenderer,
   MarkdownRenderer,
   ModelTradeRenderer,
   ModelTradeTableRenderer,
@@ -43,6 +44,7 @@ export const AGENT_MULTI_SECTION_COMPONENT_TYPE = ["report"] as const;
 export const AGENT_COMPONENT_TYPE = [
   "markdown",
   "tool_call",
+  "subagent_conversation",
   ...AGENT_SECTION_COMPONENT_TYPE,
   ...AGENT_MULTI_SECTION_COMPONENT_TYPE,
 ] as const;
@@ -59,6 +61,7 @@ export const COMPONENT_RENDERER_MAP: {
   report: ReportRenderer,
   markdown: MarkdownRenderer,
   tool_call: ToolCallRenderer,
+  subagent_conversation: ChatConversationRenderer,
 };
 
 export const AGENT_AVATAR_MAP: Record<string, string> = {

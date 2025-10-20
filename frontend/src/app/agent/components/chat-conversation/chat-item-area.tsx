@@ -40,6 +40,7 @@ const ChatItemArea: FC<ChatItemAreaProps> = ({ items }) => {
                 case "markdown":
                 case "tool_call":
                 case "sec_feed":
+                case "subagent_conversation":
                   return <RendererComponent content={item.payload.content} />;
 
                 case "report":

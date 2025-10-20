@@ -1,10 +1,4 @@
-import {
-  createContext,
-  type FC,
-  type ReactNode,
-  useContext,
-  useState,
-} from "react";
+import { createContext, type FC, type ReactNode, use, useState } from "react";
 import type { ChatItem } from "@/types/agent";
 
 interface MultiSectionContextType {
@@ -46,7 +40,7 @@ export const MultiSectionProvider: FC<MultiSectionProviderProps> = ({
 };
 
 export const useMultiSection = (): MultiSectionContextType => {
-  const context = useContext(MultiSectionContext);
+  const context = use(MultiSectionContext);
   if (!context) {
     throw new Error(
       "useMultiSection must be used within a MultiSectionProvider",
