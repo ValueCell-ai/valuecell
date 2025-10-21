@@ -91,7 +91,7 @@ export const mockModelTradeTableData = JSON.stringify({
 });
 
 /**
- * Mock data for completed trades view
+ * Mock data for completed trades view (single object - backward compatible)
  */
 export const mockCompletedTradesData = JSON.stringify({
   title: "Completed Trades - All Models",
@@ -169,3 +169,158 @@ export const mockCompletedTradesData = JSON.stringify({
   table_title: "Completed Trades",
   create_time: "2025-10-21 12:50:00",
 });
+
+/**
+ * Mock data for array format (new format)
+ * Demonstrates multiple tabs with different table_title and filtering
+ */
+export const mockModelTradeTableArrayData = JSON.stringify([
+  // Completed Trades - GPT 5
+  {
+    title: "GPT 5 Trade 1",
+    data: `## 🤖 GPT 5 completed a **long** trade on 💎 **ETH!**
+*10/21, 12:48 PM*
+
+**Price:** $3,959.1 → $3,845.1  
+**Quantity:** 1.51  
+**Notional:** $5,978 → $5,806  
+**Holding time:** 38h 1M  
+
+**NET P&L:** <span style="color: #DC2626; font-weight: 600;">-$177.44</span>`,
+    filters: ["openai/gpt-5"],
+    table_title: "Completed Trades",
+    create_time: "2025-10-21 12:48:00",
+  },
+  // Completed Trades - Claude Sonnet 4.5
+  {
+    title: "Claude Trade 1",
+    data: `## ☀️ Claude Sonnet 4.5 completed a **long** trade on 💎 **ETH!**
+*10/21, 12:32 PM*
+
+**Price:** $3,944 → $3,862.3  
+**Quantity:** 9.66  
+**Notional:** $38,099 → $37,310  
+**Holding time:** 11H 54M  
+
+**NET P&L:** <span style="color: #DC2626; font-weight: 600;">-$823.06</span>`,
+    filters: ["anthropic/claude-sonnet-4.5"],
+    table_title: "Completed Trades",
+    create_time: "2025-10-21 12:32:00",
+  },
+  // Completed Trades - Gemini 2.5 Pro (multiple trades)
+  {
+    title: "Gemini Trade 1",
+    data: `## 🔷 Gemini 2.5 Pro completed a **long** trade on 🟡 **BTC!**
+*10/21, 12:29 PM*
+
+**Price:** $107,641 → $108,143  
+**Quantity:** 0.07  
+**Notional:** $7,535 → $7,570  
+**Holding time:** 28H 4M  
+
+**NET P&L:** <span style="color: #16A34A; font-weight: 600;">+$28.34</span>`,
+    filters: ["google/gemini-2.5-pro"],
+    table_title: "Completed Trades",
+    create_time: "2025-10-21 12:29:00",
+  },
+  {
+    title: "Gemini Trade 2",
+    data: `## 🔷 Gemini 2.5 Pro completed a **long** trade on 💎 **ETH!**
+*10/21, 12:19 PM*
+
+**Price:** $3,883.2 → $3,874.7  
+**Quantity:** 2.98  
+**Notional:** $11,572 → $11,547  
+**Holding time:** 12H 42M  
+
+**NET P&L:** <span style="color: #DC2626; font-weight: 600;">-$35.73</span>`,
+    filters: ["google/gemini-2.5-pro"],
+    table_title: "Completed Trades",
+    create_time: "2025-10-21 12:19:00",
+  },
+  {
+    title: "Gemini Trade 3",
+    data: `## 🔷 Gemini 2.5 Pro completed a **long** trade on 🐶 **DOGE!**
+*10/21, 12:17 PM*
+
+**Price:** $0.16779 → $0.16910  
+**Quantity:** 15,423  
+**Notional:** $2,587 → $2,608  
+**Holding time:** 9H 23M  
+
+**NET P&L:** <span style="color: #16A34A; font-weight: 600;">+$18.92</span>`,
+    filters: ["google/gemini-2.5-pro"],
+    table_title: "Completed Trades",
+    create_time: "2025-10-21 12:17:00",
+  },
+  // Open Positions - Different tab
+  {
+    title: "GPT 5 Position 1",
+    data: `## Open Position - 🟡 **BTC**
+*Opened: 10/21, 10:30 AM*
+
+**Entry Price:** $108,500  
+**Current Price:** $108,750  
+**Quantity:** 0.05  
+**Notional:** $5,425 → $5,437  
+**Holding time:** 2H 15M  
+
+**Unrealized P&L:** <span style="color: #16A34A; font-weight: 600;">+$12.50</span>`,
+    filters: ["openai/gpt-5"],
+    table_title: "Open Positions",
+    create_time: "2025-10-21 12:45:00",
+  },
+  {
+    title: "Claude Position 1",
+    data: `## Open Position - 💎 **ETH**
+*Opened: 10/21, 11:00 AM*
+
+**Entry Price:** $3,900  
+**Current Price:** $3,875  
+**Quantity:** 2.5  
+**Notional:** $9,750 → $9,687  
+**Holding time:** 1H 45M  
+
+**Unrealized P&L:** <span style="color: #DC2626; font-weight: 600;">-$62.50</span>`,
+    filters: ["anthropic/claude-sonnet-4.5"],
+    table_title: "Open Positions",
+    create_time: "2025-10-21 12:45:00",
+  },
+  {
+    title: "Gemini Position 1",
+    data: `## Open Position - 🐶 **DOGE**
+*Opened: 10/21, 11:30 AM*
+
+**Entry Price:** $0.1685  
+**Current Price:** $0.1695  
+**Quantity:** 10,000  
+**Notional:** $1,685 → $1,695  
+**Holding time:** 1H 15M  
+
+**Unrealized P&L:** <span style="color: #16A34A; font-weight: 600;">+$10.00</span>`,
+    filters: ["google/gemini-2.5-pro"],
+    table_title: "Open Positions",
+    create_time: "2025-10-21 12:45:00",
+  },
+  // Instance Details - Another tab
+  {
+    title: "DeepSeek Instance",
+    data: `## Instance Summary
+
+| Metric | Value |
+|--------|-------|
+| Instance ID | trade_20251021_104538_59d5aa9b |
+| Model | deepseek/deepseek-v3.1-terminus |
+| Symbols | BTC-USD, ETH-USD |
+| Initial Capital | $100,000.00 |
+| Current Value | $96,038.70 |
+| Total P&L | $-3,961.30 (-3.96%) |
+| Available Cash | $92,236.82 |
+| Open Positions | 2 |
+| Total Trades | 4 |
+| Status | 🟢 Active |`,
+    filters: ["deepseek/deepseek-v3.1-terminus"],
+    table_title: "Instance Details",
+    create_time: "2025-10-21 12:50:00",
+  },
+]);
