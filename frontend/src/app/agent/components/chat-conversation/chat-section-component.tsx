@@ -43,12 +43,50 @@ const SecFeedComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
   );
 };
 
+const ModelTradeComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
+  const Component = COMPONENT_RENDERER_MAP.filtered_line_chart;
+  return (
+    <ScrollContainer className="flex-1 px-4">
+      {items.length > 0 && (
+        <div className="space-y-3">
+          {items.map(
+            (item) =>
+              item.payload && (
+                <Component key={item.item_id} content={item.payload.content} />
+              ),
+          )}
+        </div>
+      )}
+    </ScrollContainer>
+  );
+};
+
+const ModelTradeTableComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
+  const Component = COMPONENT_RENDERER_MAP.filtered_card_push_notification;
+  return (
+    <ScrollContainer className="flex-1 px-4">
+      {items.length > 0 && (
+        <div className="space-y-3">
+          {items.map(
+            (item) =>
+              item.payload && (
+                <Component key={item.item_id} content={item.payload.content} />
+              ),
+          )}
+        </div>
+      )}
+    </ScrollContainer>
+  );
+};
+
 // component mapping table
 const SECTION_COMPONENT_MAP: Record<
   SectionComponentType,
   FC<{ items: ChatItem[] }>
 > = {
   sec_feed: SecFeedComponent,
+  filtered_line_chart: ModelTradeComponent,
+  filtered_card_push_notification: ModelTradeTableComponent,
 };
 
 interface ChatSectionComponentProps {
