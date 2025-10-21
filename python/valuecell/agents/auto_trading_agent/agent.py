@@ -63,7 +63,9 @@ class AutoTradingAgent(BaseAgent):
         # Notification cache for batch sending
         # Structure: {session_id: deque[FilteredCardPushNotificationComponentData]}
         # Using deque with maxlen for automatic FIFO eviction
-        self.notification_cache: Dict[str, Deque[FilteredCardPushNotificationComponentData]] = {}
+        self.notification_cache: Dict[
+            str, Deque[FilteredCardPushNotificationComponentData]
+        ] = {}
 
         try:
             # Parser agent for natural language query parsing
@@ -85,7 +87,9 @@ class AutoTradingAgent(BaseAgent):
     def _init_notification_cache(self, session_id: str) -> None:
         """Initialize notification cache for a session if not exists"""
         if session_id not in self.notification_cache:
-            self.notification_cache[session_id] = deque(maxlen=MAX_NOTIFICATION_CACHE_SIZE)
+            self.notification_cache[session_id] = deque(
+                maxlen=MAX_NOTIFICATION_CACHE_SIZE
+            )
             logger.info(f"Initialized notification cache for session {session_id}")
 
     def _cache_notification(
@@ -234,7 +238,7 @@ class AutoTradingAgent(BaseAgent):
         output = []
 
         # Header
-        output.append(f"# 📊 Trading Portfolio Status - {instance_id}")
+        output.append(f"📊 **Trading Portfolio Status - {instance_id}**")
         output.append("\n**Instance Configuration**")
         output.append(f"- Model: `{config.agent_model}`")
         output.append(f"- Symbols: {', '.join(config.crypto_symbols)}")
@@ -243,7 +247,7 @@ class AutoTradingAgent(BaseAgent):
         )
 
         # Portfolio Summary Section
-        output.append("\n## 💰 Portfolio Summary")
+        output.append("\n💰 **Portfolio Summary**")
         output.append("\n**Overall Performance**")
         output.append(f"- Initial Capital: `${config.initial_capital:,.2f}`")
         output.append(f"- Current Value: `${portfolio_value:,.2f}`")
@@ -258,7 +262,7 @@ class AutoTradingAgent(BaseAgent):
         output.append(f"- Available Cash: `${available_cash:,.2f}`")
 
         # Current Positions Section
-        output.append(f"\n## 📈 Current Positions ({len(executor.positions)})")
+        output.append(f"\n📈 **Current Positions ({len(executor.positions)})**")
 
         if executor.positions:
             output.append(
@@ -472,7 +476,7 @@ class AutoTradingAgent(BaseAgent):
                 f"- Checks: {instance['check_count']}\n\n"
             )
 
-        yield streaming.message_chunk(status_message)
+        logger.info(f"Status message: {status_message}")
 
     async def stream(
         self,
@@ -619,7 +623,7 @@ class AutoTradingAgent(BaseAgent):
                         f"Trading check #{check_count} for instance {instance_id}"
                     )
 
-                    yield streaming.message_chunk(
+                    logger.info(
                         f"\n{'=' * 50}\n"
                         f"🔄 **Check #{check_count}** - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
                         f"Instance: `{instance_id}`\n"
@@ -627,9 +631,7 @@ class AutoTradingAgent(BaseAgent):
                     )
 
                     # Phase 1: Collect analysis for all symbols
-                    yield streaming.message_chunk(
-                        "📊 **Phase 1: Analyzing all assets...**\n\n"
-                    )
+                    logger.info("📊 **Phase 1: Analyzing all assets...**\n\n")
 
                     # Initialize portfolio manager with LLM client for AI-powered decisions
                     llm_client = None
@@ -692,7 +694,7 @@ class AutoTradingAgent(BaseAgent):
                         portfolio_manager.add_asset_analysis(asset_analysis)
 
                         # Display individual asset analysis
-                        yield streaming.message_chunk(
+                        logger.info(
                             MessageFormatter.format_market_analysis_notification(
                                 symbol,
                                 indicators,
@@ -704,7 +706,7 @@ class AutoTradingAgent(BaseAgent):
                         )
 
                     # Phase 2: Make portfolio-level decision
-                    yield streaming.message_chunk(
+                    logger.info(
                         "\n" + "=" * 50 + "\n"
                         "🎯 **Phase 2: Portfolio Decision Making...**\n"
                         + "=" * 50
@@ -713,7 +715,7 @@ class AutoTradingAgent(BaseAgent):
 
                     # Get portfolio summary
                     portfolio_summary = portfolio_manager.get_portfolio_summary()
-                    yield streaming.message_chunk(portfolio_summary + "\n")
+                    logger.info(portfolio_summary + "\n")
 
                     # Make coordinated decision (async call for AI analysis)
                     portfolio_decision = (
@@ -739,7 +741,7 @@ class AutoTradingAgent(BaseAgent):
 
                     # Phase 3: Execute approved trades
                     if portfolio_decision.trades_to_execute:
-                        yield streaming.message_chunk(
+                        logger.info(
                             "\n" + "=" * 50 + "\n"
                             f"⚡ **Phase 3: Executing {len(portfolio_decision.trades_to_execute)} trade(s)...**\n"
                             + "=" * 50
@@ -839,7 +841,7 @@ class AutoTradingAgent(BaseAgent):
                                 )
                                 portfolio_msg += f"- {symbol}: {pos.trade_type.value.upper()} @ ${pos.entry_price:,.2f}\n"
 
-                    yield streaming.message_chunk(portfolio_msg + "\n")
+                    logger.info(portfolio_msg + "\n")
 
                     # Cache portfolio status notification
                     component_data = self._get_instance_status_component_data(
@@ -858,7 +860,9 @@ class AutoTradingAgent(BaseAgent):
                         )
                         # Convert all cached notifications to a list of dicts for batch sending
                         # Format: [{"title": "...", "data": "...", "filters": [...], ...}, ...]
-                        batch_data = [notif.model_dump() for notif in cached_notifications]
+                        batch_data = [
+                            notif.model_dump() for notif in cached_notifications
+                        ]
                         # Send as a single batch component - frontend will receive all historical data
                         yield streaming.component_generator(
                             json.dumps(batch_data),
@@ -877,9 +881,6 @@ class AutoTradingAgent(BaseAgent):
 
                     # Wait for next check interval
                     logger.info(f"Waiting {check_interval}s until next check...")
-                    yield streaming.message_chunk(
-                        f"⏳ Waiting {check_interval} seconds until next check...\n\n"
-                    )
                     await asyncio.sleep(check_interval)
 
                 except Exception as e:
