@@ -7,7 +7,7 @@ from valuecell.core.types import (
     ResponsePayload,
     Role,
 )
-from valuecell.utils import generate_uuid
+from valuecell.utils.uuid import generate_conversation_id, generate_item_id
 
 from .conversation_store import ConversationStore, InMemoryConversationStore
 from .item_store import InMemoryItemStore, ItemStore
@@ -38,7 +38,7 @@ class ConversationManager:
     ) -> Conversation:
         """Create new conversation"""
         conversation = Conversation(
-            conversation_id=conversation_id or generate_uuid("conversation"),
+            conversation_id=conversation_id or generate_conversation_id(),
             user_id=user_id,
             title=title,
         )
@@ -113,7 +113,7 @@ class ConversationManager:
                     payload_str = None
 
         item = ConversationItem(
-            item_id=item_id or generate_uuid("item"),
+            item_id=item_id or generate_item_id(),
             role=role,
             event=event,
             conversation_id=conversation_id,
