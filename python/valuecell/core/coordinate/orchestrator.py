@@ -42,6 +42,8 @@ from valuecell.core.types import (
     ConversationItemEvent,
     StreamResponseEvent,
     UserInput,
+    ComponentType,
+    SubagentConversationPhase,
 )
 from valuecell.utils import resolve_db_path
 from valuecell.utils.i18n_utils import get_current_language, get_current_timezone
@@ -661,10 +663,10 @@ class AgentOrchestrator:
                         {
                             "conversation_id": task.conversation_id,
                             "agent_name": task.agent_name,
-                            "phase": "start",
+                            "phase": SubagentConversationPhase.START.value,
                         }
                     ),
-                    component_type="subagent_conversation",
+                    component_type=ComponentType.SUBAGENT_CONVERSATION.value,
                     item_id=subagent_conversation_item_id,
                     agent_name=task.agent_name,
                 )
@@ -704,10 +706,10 @@ class AgentOrchestrator:
                             {
                                 "conversation_id": task.conversation_id,
                                 "agent_name": task.agent_name,
-                                "phase": "end",
+                                "phase": SubagentConversationPhase.END.value,
                             }
                         ),
-                        component_type="subagent_conversation",
+                        component_type=ComponentType.SUBAGENT_CONVERSATION.value,
                         item_id=subagent_conversation_item_id,
                         agent_name=task.agent_name,
                     )

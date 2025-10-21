@@ -147,6 +147,13 @@ class ComponentType(str, Enum):
 
     REPORT = "report"
     PROFILE = "profile"
+    SUBAGENT_CONVERSATION = "subagent_conversation"
+
+class SubagentConversationPhase(str, Enum):
+    """Phases for subagent conversation component."""
+
+    START = "start"
+    END = "end"
 
 
 class ReportComponentData(BaseModel):
