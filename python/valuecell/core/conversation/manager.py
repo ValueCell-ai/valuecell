@@ -132,7 +132,7 @@ class ConversationManager:
 
     async def get_conversation_items(
         self,
-        conversation_id: str,
+        conversation_id: Optional[str] = None,
         event: Optional[ConversationItemEvent] = None,
         component_type: Optional[str] = None,
     ) -> List[ConversationItem]:
@@ -145,7 +145,7 @@ class ConversationManager:
             role: Filter by specific role (optional)
         """
         return await self.item_store.get_items(
-            conversation_id, event=event, component_type=component_type
+            conversation_id=conversation_id, event=event, component_type=component_type
         )
 
     async def get_latest_item(self, conversation_id: str) -> Optional[ConversationItem]:

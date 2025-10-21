@@ -279,7 +279,7 @@ class AgentOrchestrator:
 
     async def get_conversation_history(
         self,
-        conversation_id: str,
+        conversation_id: Optional[str] = None,
         event: Optional[ConversationItemEvent] = None,
         component_type: Optional[str] = None,
     ) -> list[BaseResponse]:
@@ -295,7 +295,7 @@ class AgentOrchestrator:
             ConversationItems.
         """
         items = await self.conversation_manager.get_conversation_items(
-            conversation_id, event=event, component_type=component_type
+            conversation_id=conversation_id, event=event, component_type=component_type
         )
         return [self._response_factory.from_conversation_item(it) for it in items]
 

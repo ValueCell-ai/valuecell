@@ -23,7 +23,7 @@ class ItemStore(ABC):
     @abstractmethod
     async def get_items(
         self,
-        conversation_id: str,
+        conversation_id: Optional[str] = None,
         limit: Optional[int] = None,
         offset: int = 0,
         role: Optional[Role] = None,
@@ -61,13 +61,19 @@ class InMemoryItemStore(ItemStore):
 
     async def get_items(
         self,
-        conversation_id: str,
+        conversation_id: Optional[str] = None,
         limit: Optional[int] = None,
         offset: int = 0,
         role: Optional[Role] = None,
         **kwargs,
     ) -> List[ConversationItem]:
-        items = list(self._items.get(conversation_id, []))
+        if conversation_id is not None:
+            items = list(self._items.get(conversation_id, []))
+        else:
+            # Collect all items from all conversations
+            items = []
+            for conv_items in self._items.values():
+                items.extend(conv_items)
         if role is not None:
             items = [m for m in items if m.role == role]
         if offset:
@@ -176,7 +182,7 @@ class SQLiteItemStore(ItemStore):
 
     async def get_items(
         self,
-        conversation_id: str,
+        conversation_id: Optional[str] = None,
         limit: Optional[int] = None,
         offset: int = 0,
         role: Optional[Role] = None,
@@ -185,18 +191,22 @@ class SQLiteItemStore(ItemStore):
         **kwargs,
     ) -> List[ConversationItem]:
         await self._ensure_initialized()
-        params = [conversation_id]
-        where = "WHERE conversation_id = ?"
+        params = []
+        where_clauses = []
+        if conversation_id is not None:
+            where_clauses.append("conversation_id = ?")
+            params.append(conversation_id)
         if role is not None:
-            where += " AND role = ?"
+            where_clauses.append("role = ?")
             params.append(getattr(role, "value", str(role)))
-        # Add additional optional filters before building the final SQL string
         if event is not None:
-            where += " AND event = ?"
+            where_clauses.append("event = ?")
             params.append(getattr(event, "value", str(event)))
         if component_type is not None:
-            where += " AND json_extract(payload, '$.component_type') = ?"
+            where_clauses.append("json_extract(payload, '$.component_type') = ?")
             params.append(component_type)
+
+        where = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
 
         sql = f"SELECT * FROM conversation_items {where} ORDER BY datetime(created_at) ASC"
         if limit is not None:
