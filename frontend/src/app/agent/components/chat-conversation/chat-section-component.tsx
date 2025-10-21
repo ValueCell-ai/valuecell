@@ -12,12 +12,12 @@ const SecFeedComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
   const Component = COMPONENT_RENDERER_MAP.sec_feed;
 
   return selectedItemContent ? (
-    <>
+    <section className="flex flex-1 flex-col">
       <BackButton className="mb-3" onClick={() => setSelectedItemContent("")} />
       <MarkdownRenderer content={selectedItemContent} />
-    </>
+    </section>
   ) : (
-    <>
+    <section className="flex flex-1 flex-col">
       <h4 className="mb-3 px-4 font-medium text-lg">
         {TimeUtils.nowUTC().format(TIME_FORMATS.DATE)}
       </h4>
@@ -39,14 +39,14 @@ const SecFeedComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
           </div>
         )}
       </ScrollContainer>
-    </>
+    </section>
   );
 };
 
 const ModelTradeComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
   const Component = COMPONENT_RENDERER_MAP.filtered_line_chart;
   return (
-    <ScrollContainer className="flex-1 px-4">
+    <ScrollContainer className="min-w-[540px] flex-1 px-4">
       {items.length > 0 && (
         <div className="space-y-3">
           {items.map(
@@ -64,7 +64,7 @@ const ModelTradeComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
 const ModelTradeTableComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
   const Component = COMPONENT_RENDERER_MAP.filtered_card_push_notification;
   return (
-    <ScrollContainer className="flex-1 px-4">
+    <ScrollContainer className="w-[364px] shrink-0 overflow-hidden px-4">
       {items.length > 0 && (
         <div className="space-y-3">
           {items.map(

@@ -1,6 +1,17 @@
 import { parse } from "best-effort-json-parser";
+import { Filter } from "lucide-react";
 import { type FC, memo, useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import type { ModelTradeTableRendererProps } from "@/types/renderer";
+import ScrollContainer from "../scroll/scroll-container";
 import MarkdownRenderer from "./markdown-renderer";
 
 interface TradeTableData {
@@ -52,56 +63,49 @@ const ModelTradeTableRenderer: FC<ModelTradeTableRendererProps> = ({
   const [selectedFilter, setSelectedFilter] = useState("ALL MODELS");
 
   // Get all available models from filters
-  const modelOptions = ["ALL MODELS", ...(filters || [])];
+  const modelOptions = ["ALL MODELS", ...filters];
 
   return (
-    <div className="flex size-full flex-col bg-gray-50">
+    <Tabs value={table_title} className="flex size-full flex-col">
       {/* Tab Navigation */}
-      <div className="flex items-center border-gray-300 border-b bg-white">
-        <button
-          type="button"
-          className="border-gray-800 border-b-2 bg-gray-100 px-4 py-2 font-medium text-gray-900 text-xs"
-        >
-          {table_title}
-        </button>
+      <TabsList className="bg-transparent px-3">
+        <TabsTrigger value={table_title}>{table_title}</TabsTrigger>
+      </TabsList>
+
+      {/* Filter Bar */}
+      <div className="flex items-center gap-2 border-border border-b px-4 py-2.5 text-muted-foreground text-xs">
+        <Filter className="size-3.5" />
+        <span className="font-medium">Filter:</span>
+        <Select value={selectedFilter} onValueChange={setSelectedFilter}>
+          <SelectTrigger size="sm" className="h-8 w-fit min-w-[140px]">
+            <SelectValue placeholder="Select model" />
+          </SelectTrigger>
+          <SelectContent align="end">
+            {modelOptions.map((option) => (
+              <SelectItem key={option} value={option}>
+                {option}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Content Area */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Filter Bar */}
-        <div className="flex items-center justify-between border-gray-200 border-b bg-white px-4 py-3">
-          <div className="flex items-center gap-3">
-            <span className="font-medium text-gray-700 text-xs">FILTER:</span>
-            <select
-              value={selectedFilter}
-              onChange={(e) => setSelectedFilter(e.target.value)}
-              className="rounded border border-gray-300 bg-white px-3 py-1.5 font-medium text-gray-900 text-xs transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            >
-              {modelOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option.toUpperCase()} ▼
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="text-gray-600 text-xs">
-            {table_title && `Showing ${table_title}`}
-          </div>
-        </div>
-
+      <TabsContent
+        value={table_title}
+        className="m-0 flex flex-1 flex-col overflow-hidden"
+      >
         {/* Trade List/Content */}
-        <div className="flex-1 overflow-y-auto bg-gray-50 p-6">
-          <div className="mx-auto max-w-5xl">
-            <MarkdownRenderer content={data} />
-          </div>
-        </div>
+        <ScrollContainer className="p-3">
+          <MarkdownRenderer content={data} />
+        </ScrollContainer>
 
         {/* Footer */}
-        <div className="border-gray-200 border-t bg-gray-50 px-4 py-2 text-right text-gray-500 text-xs">
-          Last updated: {new Date().toLocaleString()}
+        <div className="border-border border-t px-3 py-2 text-right text-muted-foreground text-xs">
+          Last updated: {TimeUtils.nowUTC().format(TIME_FORMATS.DATE)}
         </div>
-      </div>
-    </div>
+      </TabsContent>
+    </Tabs>
   );
 };
 

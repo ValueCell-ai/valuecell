@@ -5,7 +5,7 @@
 
 export const mockModelTradeData = JSON.stringify({
   title: "Portfolio Value History - Session AutoTrad",
-  data: [
+  data: JSON.stringify([
     ["Time", "deepseek/deepseek-v3.1-terminus"],
     ["2025-10-21 10:45:38", 100000.0],
     ["2025-10-21 10:45:51", 100000.0],
@@ -18,13 +18,13 @@ export const mockModelTradeData = JSON.stringify({
     ["2025-10-21 10:54:51", 96033.1870562167],
     ["2025-10-21 10:56:05", 96033.2831119797],
     ["2025-10-21 10:57:18", 94155.95705403051],
-  ],
+  ]),
   create_time: "2025-10-21 02:57:22",
 });
 
 export const mockModelTradeDataMultiple = JSON.stringify({
   title: "Portfolio Value History - Multi Models Comparison",
-  data: [
+  data: JSON.stringify([
     [
       "Time",
       "deepseek/deepseek-v3.1-terminus",
@@ -42,7 +42,7 @@ export const mockModelTradeDataMultiple = JSON.stringify({
     ["2025-10-21 10:54:51", 96033.18, 103400.0, 97700.0],
     ["2025-10-21 10:56:05", 96033.28, 103700.0, 97400.0],
     ["2025-10-21 10:57:18", 94155.95, 104000.0, 97100.0],
-  ],
+  ]),
   create_time: "2025-10-21 02:57:22",
 });
 
