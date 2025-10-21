@@ -41,7 +41,7 @@ class TestConversationManager:
         manager = ConversationManager()
         user_id = "user-123"
 
-        with patch("valuecell.core.conversation.manager.generate_uuid") as mock_uuid:
+        with patch("valuecell.core.conversation.manager.generate_conversation_id") as mock_uuid:
             mock_uuid.return_value = "conv-generated-123"
 
             result = await manager.create_conversation(user_id)
@@ -226,7 +226,7 @@ class TestConversationManager:
         manager.item_store.save_item = AsyncMock()
         manager.conversation_store.save_conversation = AsyncMock()
 
-        with patch("valuecell.core.conversation.manager.generate_uuid") as mock_uuid:
+        with patch("valuecell.core.conversation.manager.generate_item_id") as mock_uuid:
             mock_uuid.return_value = "item-generated-123"
 
             result = await manager.add_item(

@@ -123,7 +123,6 @@ class TestComponentIdInResponseFactory:
             task_id="task_789",
             content='{"data": "test"}',
             component_type="test_component",
-            item_id="item_abc",
             component_id="component_xyz",
         )
 
@@ -140,7 +139,7 @@ class TestComponentIdInResponseFactory:
             task_id="task_789",
             content='{"data": "test"}',
             component_type="test_component",
-            item_id="item_custom",
+            component_id="item_custom",
         )
 
         # item_id should be used
@@ -157,7 +156,6 @@ class TestComponentIdInResponseFactory:
             task_id="task",
             content="test",
             component_type="type",
-            item_id="item_id",
             component_id="component_id",
         )
         assert r1.data.item_id == "component_id"
@@ -169,10 +167,9 @@ class TestComponentIdInResponseFactory:
             task_id="task",
             content="test",
             component_type="type",
-            item_id="item_id",
             component_id=None,
         )
-        assert r2.data.item_id == "item_id"
+        assert r2.data.item_id != "item_id"
 
         # Priority 3: auto-generated (lowest)
         r3 = factory.component_generator(
@@ -181,7 +178,6 @@ class TestComponentIdInResponseFactory:
             task_id="task",
             content="test",
             component_type="type",
-            item_id=None,
             component_id=None,
         )
         assert r3.data.item_id.startswith("item-")
