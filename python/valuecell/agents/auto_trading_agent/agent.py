@@ -13,6 +13,7 @@ from agno.models.openrouter import OpenRouter
 from valuecell.core.agent.responses import streaming
 from valuecell.core.types import (
     BaseAgent,
+    ComponentType,
     FilteredCardPushNotificationComponentData,
     FilteredLineChartComponentData,
     StreamResponse,
@@ -21,14 +22,15 @@ from valuecell.core.types import (
 from .constants import (
     DEFAULT_AGENT_MODEL,
     DEFAULT_CHECK_INTERVAL,
-    PORTFOLIO_COMPONENT_TYPE,
-    TRADING_COMPONENT_TYPE,
 )
 from .formatters import MessageFormatter
 from .models import (
     AutoTradingConfig,
-    TradeAction,
     TradingRequest,
+)
+from .portfolio_decision_manager import (
+    AssetAnalysis,
+    PortfolioDecisionManager,
 )
 from .technical_analysis import AISignalGenerator, TechnicalAnalyzer
 from .trading_executor import TradingExecutor
@@ -144,10 +146,10 @@ class AutoTradingAgent(BaseAgent):
         self, session_id: str, instance_id: str
     ) -> str:
         """
-        Generate FilteredCardPushNotificationComponentData for an instance
+        Generate portfolio status report in rich text format
 
         Returns:
-            JSON string of FilteredCardPushNotificationComponentData
+            Formatted portfolio details as markdown string
         """
         if session_id not in self.trading_instances:
             return ""
@@ -159,87 +161,103 @@ class AutoTradingAgent(BaseAgent):
         executor: TradingExecutor = instance["executor"]
         config: AutoTradingConfig = instance["config"]
 
-        # Prepare current positions data
-        positions_data = []
-        for symbol, pos in executor.positions.items():
-            try:
-                import yfinance as yf
+        # Get comprehensive portfolio summary
+        portfolio_summary = executor.get_portfolio_summary()
 
-                ticker = yf.Ticker(symbol)
-                current_price = ticker.history(period="1d", interval="1m")[
-                    "Close"
-                ].iloc[-1]
+        # Calculate overall statistics
+        total_pnl = portfolio_summary["portfolio"]["total_pnl"]
+        pnl_pct = portfolio_summary["portfolio"]["pnl_percentage"]
+        portfolio_value = portfolio_summary["portfolio"]["total_value"]
+        available_cash = portfolio_summary["cash"]["available"]
 
-                if pos.trade_type.value == "long":
-                    unrealized_pnl = (current_price - pos.entry_price) * abs(
-                        pos.quantity
-                    )
-                else:
-                    unrealized_pnl = (pos.entry_price - current_price) * abs(
-                        pos.quantity
-                    )
+        # Build rich text output
+        output = []
 
-                positions_data.append(
-                    {
-                        "Symbol": symbol,
-                        "Type": pos.trade_type.value.upper(),
-                        "Entry Price": f"${pos.entry_price:,.2f}",
-                        "Current Price": f"${current_price:,.2f}",
-                        "Quantity": f"{abs(pos.quantity):.4f}",
-                        "Unrealized P&L": f"${unrealized_pnl:,.2f}",
-                    }
-                )
-            except Exception as e:
-                logger.warning(f"Failed to get price for {symbol}: {e}")
-
-        # Recent trade history (last 5 trades)
-        trade_history = executor.get_trade_history()
-        recent_trades = trade_history[-5:] if trade_history else []
-        trades_data = []
-        for trade in recent_trades:
-            pnl_str = f"${trade.pnl:,.2f}" if trade.pnl is not None else "N/A"
-            trades_data.append(
-                {
-                    "Time": trade.timestamp.strftime("%H:%M:%S"),
-                    "Symbol": trade.symbol,
-                    "Action": trade.action.upper(),
-                    "Type": trade.trade_type.upper(),
-                    "Price": f"${trade.price:,.2f}",
-                    "P&L": pnl_str,
-                }
-            )
-
-        # Portfolio summary
-        portfolio_value = executor.get_portfolio_value()
-        total_pnl = portfolio_value - config.initial_capital
-        pnl_pct = (total_pnl / config.initial_capital) * 100
-
-        component_data = FilteredCardPushNotificationComponentData(
-            title=f"Trading Instance: {instance_id}",
-            data=json.dumps(
-                {
-                    "summary": {
-                        "Instance ID": instance_id,
-                        "Model": config.agent_model,
-                        "Symbols": ", ".join(config.crypto_symbols),
-                        "Initial Capital": f"${config.initial_capital:,.2f}",
-                        "Current Value": f"${portfolio_value:,.2f}",
-                        "Total P&L": f"${total_pnl:,.2f} ({pnl_pct:+.2f}%)",
-                        "Available Cash": f"${executor.current_capital:,.2f}",
-                        "Open Positions": len(executor.positions),
-                        "Total Trades": len(trade_history),
-                        "Check Count": instance["check_count"],
-                        "Status": "🟢 Active" if instance["active"] else "🔴 Stopped",
-                    },
-                    "current_positions": positions_data,
-                    "recent_trades": trades_data,
-                }
-            ),
-            filters=[config.agent_model],
-            table_title="Instance Details",
-            create_time=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        # Header
+        output.append(f"# 📊 Trading Portfolio Status - {instance_id}")
+        output.append("\n**Instance Configuration**")
+        output.append(f"- Model: `{config.agent_model}`")
+        output.append(f"- Symbols: {', '.join(config.crypto_symbols)}")
+        output.append(
+            f"- Status: {'🟢 Active' if instance['active'] else '🔴 Stopped'}"
         )
 
+        # Portfolio Summary Section
+        output.append("\n## 💰 Portfolio Summary")
+        output.append("\n**Overall Performance**")
+        output.append(f"- Initial Capital: `${config.initial_capital:,.2f}`")
+        output.append(f"- Current Value: `${portfolio_value:,.2f}`")
+
+        pnl_emoji = "🟢" if total_pnl >= 0 else "🔴"
+        pnl_sign = "+" if total_pnl >= 0 else ""
+        output.append(
+            f"- Total P&L: {pnl_emoji} **{pnl_sign}${total_pnl:,.2f}** ({pnl_sign}{pnl_pct:.2f}%)"
+        )
+
+        output.append("\n**Cash Position**")
+        output.append(f"- Available Cash: `${available_cash:,.2f}`")
+
+        # Current Positions Section
+        output.append(f"\n## 📈 Current Positions ({len(executor.positions)})")
+
+        if executor.positions:
+            output.append(
+                "\n| Symbol | Type | Quantity | Avg Price | Current Price | Position Value | Unrealized P&L |"
+            )
+            output.append(
+                "|--------|------|----------|-----------|---------------|----------------|----------------|"
+            )
+
+            for symbol, pos in executor.positions.items():
+                try:
+                    import yfinance as yf
+
+                    ticker = yf.Ticker(symbol)
+                    current_price = ticker.history(period="1d", interval="1m")[
+                        "Close"
+                    ].iloc[-1]
+
+                    # Calculate unrealized P&L
+                    if pos.trade_type.value == "long":
+                        unrealized_pnl = (current_price - pos.entry_price) * abs(
+                            pos.quantity
+                        )
+                        position_value = abs(pos.quantity) * current_price
+                    else:
+                        unrealized_pnl = (pos.entry_price - current_price) * abs(
+                            pos.quantity
+                        )
+                        position_value = pos.notional + unrealized_pnl
+
+                    # Format row
+                    pnl_emoji = "🟢" if unrealized_pnl >= 0 else "🔴"
+                    pnl_sign = "+" if unrealized_pnl >= 0 else ""
+
+                    output.append(
+                        f"| **{symbol}** | {pos.trade_type.value.upper()} | "
+                        f"{abs(pos.quantity):.4f} | ${pos.entry_price:,.2f} | "
+                        f"${current_price:,.2f} | ${position_value:,.2f} | "
+                        f"{pnl_emoji} {pnl_sign}${unrealized_pnl:,.2f} |"
+                    )
+
+                except Exception as e:
+                    logger.warning(f"Failed to get price for {symbol}: {e}")
+                    # Fallback display with entry price only
+                    output.append(
+                        f"| **{symbol}** | {pos.trade_type.value.upper()} | "
+                        f"{abs(pos.quantity):.4f} | ${pos.entry_price:,.2f} | "
+                        f"N/A | ${pos.notional:,.2f} | N/A |"
+                    )
+        else:
+            output.append("\n*No open positions*")
+
+        component_data = FilteredCardPushNotificationComponentData(
+            title=f"{config.agent_model} Portfolio Status",
+            data="\n".join(output),
+            filters=[config.agent_model],
+            table_title="Portfolio Detail",
+            create_time=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        )
         return component_data.model_dump_json()
 
     def _get_session_portfolio_chart_data(self, session_id: str) -> str:
@@ -516,12 +534,17 @@ class AutoTradingAgent(BaseAgent):
             portfolio_value = executor.get_portfolio_value()
             executor.snapshot_portfolio(datetime.now())
 
-            initial_portfolio_msg = (
-                f"💰 **Initial Portfolio**\n"
-                f"Total Value: ${portfolio_value:,.2f}\n"
-                f"Available Capital: ${executor.current_capital:,.2f}\n\n"
+            initial_portfolio_msg = FilteredCardPushNotificationComponentData(
+                title=f"{config.agent_model} Portfolio",
+                data=f"💰 **Initial Portfolio**\nTotal Value: ${portfolio_value:,.2f}\nAvailable Capital: ${executor.current_capital:,.2f}\n",
+                filters=[config.agent_model],
+                table_title="Portfolio Detail",
+                create_time=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
             )
-            yield streaming.message_chunk(initial_portfolio_msg)
+            yield streaming.component_generator(
+                initial_portfolio_msg.model_dump_json(),
+                ComponentType.FILTERED_CARD_PUSH_NOTIFICATION,
+            )
 
             # Set check interval
             check_interval = DEFAULT_CHECK_INTERVAL
@@ -547,7 +570,18 @@ class AutoTradingAgent(BaseAgent):
                         f"{'=' * 50}\n\n"
                     )
 
-                    # Analyze each symbol
+                    # Phase 1: Collect analysis for all symbols
+                    yield streaming.message_chunk(
+                        "📊 **Phase 1: Analyzing all assets...**\n\n"
+                    )
+
+                    # Initialize portfolio manager with LLM client for AI-powered decisions
+                    llm_client = None
+                    if ai_signal_generator and ai_signal_generator.llm_client:
+                        llm_client = ai_signal_generator.llm_client
+
+                    portfolio_manager = PortfolioDecisionManager(config, llm_client)
+
                     for symbol in config.crypto_symbols:
                         # Calculate indicators
                         indicators = TechnicalAnalyzer.calculate_indicators(symbol)
@@ -559,52 +593,156 @@ class AutoTradingAgent(BaseAgent):
                             )
                             continue
 
-                        # Generate trading signal (AI-enhanced if enabled)
-                        action, trade_type = None, None
-                        ai_reasoning = None
+                        # Generate technical signal
+                        technical_action, technical_trade_type = (
+                            TechnicalAnalyzer.generate_signal(indicators)
+                        )
+
+                        # Generate AI signal if enabled
+                        ai_action, ai_trade_type, ai_reasoning, ai_confidence = (
+                            None,
+                            None,
+                            None,
+                            None,
+                        )
 
                         if ai_signal_generator:
                             ai_signal = await ai_signal_generator.get_signal(indicators)
                             if ai_signal:
-                                action, trade_type, ai_reasoning = ai_signal
+                                (
+                                    ai_action,
+                                    ai_trade_type,
+                                    ai_reasoning,
+                                    ai_confidence,
+                                ) = ai_signal
                                 logger.info(
-                                    f"Using AI signal for {symbol}: {action.value} {trade_type.value}"
+                                    f"AI signal for {symbol}: {ai_action.value} {ai_trade_type.value} "
+                                    f"(confidence: {ai_confidence}%)"
                                 )
 
-                        # Fall back to technical signal if no AI signal
-                        if action is None:
-                            action, trade_type = TechnicalAnalyzer.generate_signal(
-                                indicators
-                            )
+                        # Create asset analysis
+                        asset_analysis = AssetAnalysis(
+                            symbol=symbol,
+                            indicators=indicators,
+                            technical_action=technical_action,
+                            technical_trade_type=technical_trade_type,
+                            ai_action=ai_action,
+                            ai_trade_type=ai_trade_type,
+                            ai_reasoning=ai_reasoning,
+                            ai_confidence=ai_confidence,
+                        )
 
-                        # Send market analysis
-                        analysis_message = (
+                        # Add to portfolio manager
+                        portfolio_manager.add_asset_analysis(asset_analysis)
+
+                        # Display individual asset analysis
+                        yield streaming.message_chunk(
                             MessageFormatter.format_market_analysis_notification(
                                 symbol,
                                 indicators,
-                                action,
-                                trade_type,
+                                asset_analysis.recommended_action,
+                                asset_analysis.recommended_trade_type,
                                 executor.positions,
                                 ai_reasoning,
                             )
                         )
-                        yield streaming.message_chunk(analysis_message + "\n\n")
 
-                        # Execute trade if action is not HOLD
-                        if action != TradeAction.HOLD:
+                    # Phase 2: Make portfolio-level decision
+                    yield streaming.message_chunk(
+                        "\n" + "=" * 50 + "\n"
+                        "🎯 **Phase 2: Portfolio Decision Making...**\n"
+                        + "=" * 50
+                        + "\n\n"
+                    )
+
+                    # Get portfolio summary
+                    portfolio_summary = portfolio_manager.get_portfolio_summary()
+                    yield streaming.message_chunk(portfolio_summary + "\n")
+
+                    # Make coordinated decision (async call for AI analysis)
+                    portfolio_decision = (
+                        await portfolio_manager.make_portfolio_decision(
+                            current_positions=executor.positions,
+                            available_cash=executor.get_current_capital(),
+                            total_portfolio_value=executor.get_portfolio_value(),
+                        )
+                    )
+
+                    # Display decision reasoning
+                    portfolio_decision_msg = FilteredCardPushNotificationComponentData(
+                        title=f"{config.agent_model} Analysis",
+                        data=f"💰 **Portfolio Decision Reasoning**\n{portfolio_decision.reasoning}\n",
+                        filters=[config.agent_model],
+                        table_title="Market Analysis",
+                        create_time=datetime.now(timezone.utc).strftime(
+                            "%Y-%m-%d %H:%M:%S"
+                        ),
+                    )
+                    yield streaming.component_generator(
+                        portfolio_decision_msg.model_dump_json(),
+                        ComponentType.FILTERED_CARD_PUSH_NOTIFICATION,
+                    )
+
+                    # Phase 3: Execute approved trades
+                    if portfolio_decision.trades_to_execute:
+                        yield streaming.message_chunk(
+                            "\n" + "=" * 50 + "\n"
+                            f"⚡ **Phase 3: Executing {len(portfolio_decision.trades_to_execute)} trade(s)...**\n"
+                            + "=" * 50
+                            + "\n\n"
+                        )
+
+                        for (
+                            symbol,
+                            action,
+                            trade_type,
+                        ) in portfolio_decision.trades_to_execute:
+                            # Get indicators for this symbol
+                            asset_analysis = portfolio_manager.asset_analyses.get(
+                                symbol
+                            )
+                            if not asset_analysis:
+                                continue
+
+                            # Execute trade
                             trade_details = executor.execute_trade(
-                                symbol, action, trade_type, indicators
+                                symbol, action, trade_type, asset_analysis.indicators
                             )
 
                             if trade_details:
                                 # Send trade notification
-                                trade_message = (
+                                trade_message_text = (
                                     MessageFormatter.format_trade_notification(
                                         trade_details, config.agent_model
                                     )
                                 )
-                                yield streaming.message_chunk(
-                                    f"💼 **Trade Executed**\n{trade_message}\n\n"
+                                trade_message = FilteredCardPushNotificationComponentData(
+                                    title=f"{config.agent_model} Trade",
+                                    data=f"💰 **Trade Executed:**\n{trade_message_text}\n",
+                                    filters=[config.agent_model],
+                                    table_title="Trade Detail",
+                                    create_time=datetime.now(timezone.utc).strftime(
+                                        "%Y-%m-%d %H:%M:%S"
+                                    ),
+                                )
+                                yield streaming.component_generator(
+                                    trade_message.model_dump_json(),
+                                    ComponentType.FILTERED_CARD_PUSH_NOTIFICATION,
+                                )
+                            else:
+                                trade_message = FilteredCardPushNotificationComponentData(
+                                    title=f"{config.agent_model} Trade",
+                                    data=f"💰 **Trade Failed:** Could not execute {action.value} "
+                                    f"{trade_type.value} on {symbol}\n",
+                                    filters=[config.agent_model],
+                                    table_title="Trade Detail",
+                                    create_time=datetime.now(timezone.utc).strftime(
+                                        "%Y-%m-%d %H:%M:%S"
+                                    ),
+                                )
+                                yield streaming.component_generator(
+                                    trade_message.model_dump_json(),
+                                    ComponentType.FILTERED_CARD_PUSH_NOTIFICATION,
                                 )
 
                     # Take snapshots
@@ -653,23 +791,20 @@ class AutoTradingAgent(BaseAgent):
 
                     yield streaming.message_chunk(portfolio_msg + "\n")
 
-                    # Send instance status component every 5 checks
-                    if check_count % 5 == 0:
-                        component_data = self._get_instance_status_component_data(
-                            session_id, instance_id
+                    component_data = self._get_instance_status_component_data(
+                        session_id, instance_id
+                    )
+                    if component_data:
+                        yield streaming.component_generator(
+                            component_data,
+                            ComponentType.FILTERED_CARD_PUSH_NOTIFICATION,
                         )
-                        if component_data:
-                            yield streaming.component_generator(
-                                component_data, TRADING_COMPONENT_TYPE
-                            )
 
-                    # Send session portfolio chart every 10 checks
-                    if check_count % 10 == 0:
-                        chart_data = self._get_session_portfolio_chart_data(session_id)
-                        if chart_data:
-                            yield streaming.component_generator(
-                                chart_data, PORTFOLIO_COMPONENT_TYPE
-                            )
+                    chart_data = self._get_session_portfolio_chart_data(session_id)
+                    if chart_data:
+                        yield streaming.component_generator(
+                            chart_data, ComponentType.FILTERED_LINE_CHART
+                        )
 
                     # Wait for next check interval
                     logger.info(f"Waiting {check_interval}s until next check...")

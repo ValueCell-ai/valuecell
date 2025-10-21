@@ -1,28 +1,32 @@
-"""Technical analysis and signal generation"""
+"""Technical analysis and signal generation (refactored)"""
 
 import json
 import logging
-from datetime import datetime, timezone
 from typing import Optional
 
-import pandas as pd
-import yfinance as yf
 from agno.agent import Agent
 
+from .market_data import MarketDataProvider, SignalGenerator
 from .models import TechnicalIndicators, TradeAction, TradeType
 
 logger = logging.getLogger(__name__)
 
 
 class TechnicalAnalyzer:
-    """Technical analysis and indicator calculation"""
+    """
+    Static interface for technical analysis (backward compatible).
+
+    Now delegates to MarketDataProvider internally.
+    """
+
+    _market_data_provider = MarketDataProvider()
 
     @staticmethod
     def calculate_indicators(
         symbol: str, period: str = "5d", interval: str = "1m"
     ) -> Optional[TechnicalIndicators]:
         """
-        Calculate technical indicators using yfinance data
+        Calculate technical indicators using yfinance data.
 
         Args:
             symbol: Trading symbol (e.g., BTC-USD)
@@ -32,84 +36,16 @@ class TechnicalAnalyzer:
         Returns:
             TechnicalIndicators object or None if calculation fails
         """
-        try:
-            # Fetch data from yfinance
-            ticker = yf.Ticker(symbol)
-            df = ticker.history(period=period, interval=interval)
-
-            if df.empty or len(df) < 50:
-                logger.warning(f"Insufficient data for {symbol}")
-                return None
-
-            # Calculate EMAs
-            df["ema_12"] = df["Close"].ewm(span=12, adjust=False).mean()
-            df["ema_26"] = df["Close"].ewm(span=26, adjust=False).mean()
-            df["ema_50"] = df["Close"].ewm(span=50, adjust=False).mean()
-
-            # Calculate MACD
-            df["macd"] = df["ema_12"] - df["ema_26"]
-            df["macd_signal"] = df["macd"].ewm(span=9, adjust=False).mean()
-            df["macd_histogram"] = df["macd"] - df["macd_signal"]
-
-            # Calculate RSI
-            delta = df["Close"].diff()
-            gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-            rs = gain / loss
-            df["rsi"] = 100 - (100 / (1 + rs))
-
-            # Calculate Bollinger Bands
-            df["bb_middle"] = df["Close"].rolling(window=20).mean()
-            bb_std = df["Close"].rolling(window=20).std()
-            df["bb_upper"] = df["bb_middle"] + (bb_std * 2)
-            df["bb_lower"] = df["bb_middle"] - (bb_std * 2)
-
-            # Get the latest values
-            latest = df.iloc[-1]
-
-            return TechnicalIndicators(
-                symbol=symbol,
-                timestamp=datetime.now(timezone.utc),
-                close_price=float(latest["Close"]),
-                volume=float(latest["Volume"]),
-                macd=float(latest["macd"]) if not pd.isna(latest["macd"]) else None,
-                macd_signal=float(latest["macd_signal"])
-                if not pd.isna(latest["macd_signal"])
-                else None,
-                macd_histogram=float(latest["macd_histogram"])
-                if not pd.isna(latest["macd_histogram"])
-                else None,
-                rsi=float(latest["rsi"]) if not pd.isna(latest["rsi"]) else None,
-                ema_12=float(latest["ema_12"])
-                if not pd.isna(latest["ema_12"])
-                else None,
-                ema_26=float(latest["ema_26"])
-                if not pd.isna(latest["ema_26"])
-                else None,
-                ema_50=float(latest["ema_50"])
-                if not pd.isna(latest["ema_50"])
-                else None,
-                bb_upper=float(latest["bb_upper"])
-                if not pd.isna(latest["bb_upper"])
-                else None,
-                bb_middle=float(latest["bb_middle"])
-                if not pd.isna(latest["bb_middle"])
-                else None,
-                bb_lower=float(latest["bb_lower"])
-                if not pd.isna(latest["bb_lower"])
-                else None,
-            )
-
-        except Exception as e:
-            logger.error(f"Failed to calculate indicators for {symbol}: {e}")
-            return None
+        return TechnicalAnalyzer._market_data_provider.calculate_indicators(
+            symbol, period, interval
+        )
 
     @staticmethod
     def generate_signal(
         indicators: TechnicalIndicators,
     ) -> tuple[TradeAction, TradeType]:
         """
-        Generate trading signal based on technical indicators
+        Generate trading signal based on technical indicators.
 
         Args:
             indicators: Technical indicators for analysis
@@ -117,55 +53,7 @@ class TechnicalAnalyzer:
         Returns:
             Tuple of (TradeAction, TradeType)
         """
-        try:
-            # Check if we have all required indicators
-            if (
-                indicators.macd is None
-                or indicators.macd_signal is None
-                or indicators.rsi is None
-            ):
-                return (TradeAction.HOLD, TradeType.LONG)
-
-            # MACD Strategy
-            macd_bullish = indicators.macd > indicators.macd_signal
-            macd_bearish = indicators.macd < indicators.macd_signal
-
-            # RSI Strategy
-            rsi_oversold = indicators.rsi < 30
-            rsi_overbought = indicators.rsi > 70
-
-            # Bollinger Bands Strategy
-            bb_lower_breach = (
-                indicators.bb_lower is not None
-                and indicators.close_price < indicators.bb_lower
-            )
-            bb_upper_breach = (
-                indicators.bb_upper is not None
-                and indicators.close_price > indicators.bb_upper
-            )
-
-            # Combined Signal Logic
-            # Long signal: MACD bullish + RSI oversold or price below lower BB
-            if macd_bullish and (rsi_oversold or bb_lower_breach):
-                return (TradeAction.BUY, TradeType.LONG)
-
-            # Short signal: MACD bearish + RSI overbought or price above upper BB
-            if macd_bearish and (rsi_overbought or bb_upper_breach):
-                return (TradeAction.BUY, TradeType.SHORT)
-
-            # Exit long position: MACD turns bearish or RSI overbought
-            if macd_bearish or rsi_overbought:
-                return (TradeAction.SELL, TradeType.LONG)
-
-            # Exit short position: MACD turns bullish or RSI oversold
-            if macd_bullish or rsi_oversold:
-                return (TradeAction.SELL, TradeType.SHORT)
-
-            return (TradeAction.HOLD, TradeType.LONG)
-
-        except Exception as e:
-            logger.error(f"Failed to generate signal: {e}")
-            return (TradeAction.HOLD, TradeType.LONG)
+        return SignalGenerator.generate_signal(indicators)
 
 
 class AISignalGenerator:
@@ -182,7 +70,7 @@ class AISignalGenerator:
 
     async def get_signal(
         self, indicators: TechnicalIndicators
-    ) -> Optional[tuple[TradeAction, TradeType, str]]:
+    ) -> Optional[tuple[TradeAction, TradeType, str, float]]:
         """
         Get AI-enhanced trading signal using OpenRouter model
 
@@ -190,7 +78,7 @@ class AISignalGenerator:
             indicators: Technical indicators for analysis
 
         Returns:
-            Tuple of (TradeAction, TradeType, reasoning) or None if AI not available
+            Tuple of (TradeAction, TradeType, reasoning, confidence) or None if AI not available
         """
         if not self.llm_client:
             return None
@@ -282,12 +170,14 @@ Format your response as JSON:
                 TradeType(result["type"].lower()) if result["type"] else TradeType.LONG
             )
             reasoning = result["reasoning"]
+            confidence = float(result.get("confidence", 75.0))
 
             logger.info(
-                f"AI Signal for {indicators.symbol}: {action.value} {trade_type.value} - {reasoning}"
+                f"AI Signal for {indicators.symbol}: {action.value} {trade_type.value} "
+                f"(confidence: {confidence}%) - {reasoning}"
             )
 
-            return (action, trade_type, reasoning)
+            return (action, trade_type, reasoning, confidence)
 
         except Exception as e:
             logger.error(f"Failed to get AI trading signal: {e}")

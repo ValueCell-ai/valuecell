@@ -228,7 +228,7 @@ class MessageFormatter:
                     f"- Unrealized P&L: {pnl_emoji} ${current_pnl:,.2f}\n"
                 )
             else:
-                message += f"\n**Current Position:** No open position for {symbol}\n"
+                message += f"\n**Current Position:** No open position for {symbol}\n\n"
 
             return message
 

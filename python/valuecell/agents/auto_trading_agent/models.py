@@ -122,6 +122,27 @@ class Position(BaseModel):
     notional: float
 
 
+class CashManagement(BaseModel):
+    """Cash management tracking"""
+
+    total_cash: float = Field(..., description="Total available cash for trading")
+    initial_cash: float = Field(..., description="Initial cash allocated")
+    reserved_cash: float = Field(
+        default=0, description="Cash reserved for pending positions"
+    )
+    available_cash: float = Field(
+        ..., description="Available cash for new trades (total_cash - reserved_cash)"
+    )
+    cash_in_trades: float = Field(
+        default=0, description="Cash currently deployed in open positions"
+    )
+
+    class Config:
+        """Pydantic config"""
+
+        frozen = False
+
+
 class TechnicalIndicators(BaseModel):
     """Technical indicators for a symbol"""
 
@@ -155,6 +176,7 @@ class TradeHistoryRecord(BaseModel):
     portfolio_value_after: float = Field(
         ..., description="Portfolio value after this trade"
     )
+    cash_after: float = Field(..., description="Available cash after this trade")
 
 
 class PositionHistorySnapshot(BaseModel):
@@ -176,6 +198,9 @@ class PortfolioValueSnapshot(BaseModel):
     timestamp: datetime = Field(..., description="Snapshot timestamp")
     total_value: float = Field(..., description="Total portfolio value")
     cash: float = Field(..., description="Available cash")
+    cash_in_trades: float = Field(
+        ..., description="Cash currently deployed in positions"
+    )
     positions_value: float = Field(..., description="Value of open positions")
     positions_count: int = Field(..., description="Number of open positions")
     total_pnl: float = Field(..., description="Total unrealized P&L")

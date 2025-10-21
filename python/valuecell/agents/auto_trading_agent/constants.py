@@ -1,11 +1,5 @@
 """Constants for auto trading agent"""
 
-from valuecell.core.types import ComponentType
-
-# Component types
-TRADING_COMPONENT_TYPE = ComponentType.FILTERED_CARD_PUSH_NOTIFICATION.value
-PORTFOLIO_COMPONENT_TYPE = ComponentType.FILTERED_LINE_CHART.value
-
 # Limits
 MAX_SYMBOLS = 10
 DEFAULT_CHECK_INTERVAL = 60  # 1 minute in seconds

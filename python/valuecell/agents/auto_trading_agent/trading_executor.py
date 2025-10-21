@@ -1,10 +1,8 @@
-"""Trading execution and position management"""
+"""Trading execution and position management (refactored)"""
 
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
-
-import yfinance as yf
 
 from .models import (
     AutoTradingConfig,
@@ -16,29 +14,35 @@ from .models import (
     TradeHistoryRecord,
     TradeType,
 )
+from .position_manager import PositionManager
+from .trade_recorder import TradeRecorder
 
 logger = logging.getLogger(__name__)
 
 
 class TradingExecutor:
-    """Handles trade execution and position management"""
+    """
+    Orchestrates trade execution using specialized modules.
+
+    This is the main facade that coordinates:
+    - Position management (via PositionManager)
+    - Trade recording (via TradeRecorder)
+    - Cash management (via PositionManager)
+    """
 
     def __init__(self, config: AutoTradingConfig):
         """
-        Initialize trading executor
+        Initialize trading executor.
 
         Args:
             config: Auto trading configuration
         """
         self.config = config
-        self.current_capital = config.initial_capital
         self.initial_capital = config.initial_capital
-        self.positions: Dict[str, Position] = {}
 
-        # Historical tracking
-        self.trade_history: List[TradeHistoryRecord] = []
-        self.position_history: List[PositionHistorySnapshot] = []
-        self.portfolio_history: List[PortfolioValueSnapshot] = []
+        # Use specialized modules
+        self._position_manager = PositionManager(config.initial_capital)
+        self._trade_recorder = TradeRecorder()
 
     def execute_trade(
         self,
@@ -48,7 +52,7 @@ class TradingExecutor:
         indicators: TechnicalIndicators,
     ) -> Optional[Dict[str, Any]]:
         """
-        Execute a trade and update positions
+        Execute a trade (open or close position).
 
         Args:
             symbol: Trading symbol
@@ -57,19 +61,16 @@ class TradingExecutor:
             indicators: Current technical indicators
 
         Returns:
-            Trade execution details or None
+            Trade execution details or None if execution failed
         """
         try:
             current_price = indicators.close_price
             timestamp = datetime.now(timezone.utc)
 
             if action == TradeAction.BUY:
-                return self._open_position(symbol, trade_type, current_price, timestamp)
-
+                return self._execute_buy(symbol, trade_type, current_price, timestamp)
             elif action == TradeAction.SELL:
-                return self._close_position(
-                    symbol, trade_type, current_price, timestamp
-                )
+                return self._execute_sell(symbol, trade_type, current_price, timestamp)
 
             return None
 
@@ -77,7 +78,7 @@ class TradingExecutor:
             logger.error(f"Failed to execute trade for {symbol}: {e}")
             return None
 
-    def _open_position(
+    def _execute_buy(
         self,
         symbol: str,
         trade_type: TradeType,
@@ -85,22 +86,30 @@ class TradingExecutor:
         timestamp: datetime,
     ) -> Optional[Dict[str, Any]]:
         """Open a new position"""
-        # Check if we can open a new position
-        if len(self.positions) >= self.config.max_positions:
-            logger.info(f"Max positions reached, cannot buy {symbol}")
+        # Check if we already have a position
+        if self._position_manager.get_position(symbol) is not None:
+            logger.info(f"Position already exists for {symbol}, skipping")
             return None
 
-        # Calculate position size based on risk management
-        risk_amount = self.current_capital * self.config.risk_per_trade
+        # Check max positions limit
+        if self._position_manager.get_positions_count() >= self.config.max_positions:
+            logger.info(f"Max positions reached ({self.config.max_positions})")
+            return None
+
+        # Calculate position size
+        available_cash = self._position_manager.get_available_cash()
+        risk_amount = available_cash * self.config.risk_per_trade
         quantity = risk_amount / current_price
         notional = quantity * current_price
 
-        # Check if we have enough capital
-        if notional > self.current_capital:
-            logger.warning(f"Insufficient capital for {symbol} trade")
+        # Check if we have enough cash
+        if notional > available_cash:
+            logger.warning(
+                f"Insufficient cash: need ${notional:.2f}, have ${available_cash:.2f}"
+            )
             return None
 
-        # Create position
+        # Create and open position
         position = Position(
             symbol=symbol,
             entry_price=current_price,
@@ -110,10 +119,10 @@ class TradingExecutor:
             notional=notional,
         )
 
-        self.positions[symbol] = position
-        self.current_capital -= notional
+        if not self._position_manager.open_position(symbol, position):
+            return None
 
-        # Record trade history
+        # Record trade
         portfolio_value = self.get_portfolio_value()
         trade_record = TradeHistoryRecord(
             timestamp=timestamp,
@@ -125,8 +134,9 @@ class TradingExecutor:
             notional=notional,
             pnl=None,
             portfolio_value_after=portfolio_value,
+            cash_after=self._position_manager.get_available_cash(),
         )
-        self.trade_history.append(trade_record)
+        self._trade_recorder.record_trade(trade_record)
 
         return {
             "action": "opened",
@@ -138,7 +148,7 @@ class TradingExecutor:
             "timestamp": timestamp,
         }
 
-    def _close_position(
+    def _execute_sell(
         self,
         symbol: str,
         trade_type: TradeType,
@@ -146,53 +156,46 @@ class TradingExecutor:
         timestamp: datetime,
     ) -> Optional[Dict[str, Any]]:
         """Close an existing position"""
-        # Check if we have a position to close
-        if symbol not in self.positions:
+        # Get position
+        position = self._position_manager.get_position(symbol)
+        if position is None:
             return None
-
-        position = self.positions[symbol]
 
         # Check if trade type matches
         if position.trade_type != trade_type:
             return None
 
         # Calculate P&L
-        exit_price = current_price
-        exit_notional = abs(position.quantity) * exit_price
+        pnl = self._position_manager.calculate_position_pnl(position, current_price)
+        exit_notional = abs(position.quantity) * current_price
+
+        # Close position
+        self._position_manager.close_position(symbol)
+        self._position_manager.release_cash(position.notional, pnl)
+
+        # Record trade
         holding_time = timestamp - position.entry_time
-
-        if trade_type == TradeType.LONG:
-            pnl = exit_notional - position.notional
-        else:  # SHORT
-            pnl = position.notional - exit_notional
-
-        # Update capital
-        self.current_capital += position.notional + pnl
-
-        # Remove position
-        del self.positions[symbol]
-
-        # Record trade history
         portfolio_value = self.get_portfolio_value()
         trade_record = TradeHistoryRecord(
             timestamp=timestamp,
             symbol=symbol,
             action="closed",
             trade_type=trade_type.value,
-            price=exit_price,
+            price=current_price,
             quantity=abs(position.quantity),
             notional=exit_notional,
             pnl=pnl,
             portfolio_value_after=portfolio_value,
+            cash_after=self._position_manager.get_available_cash(),
         )
-        self.trade_history.append(trade_record)
+        self._trade_recorder.record_trade(trade_record)
 
         return {
             "action": "closed",
             "trade_type": trade_type.value,
             "symbol": symbol,
             "entry_price": position.entry_price,
-            "exit_price": exit_price,
+            "exit_price": current_price,
             "quantity": position.quantity,
             "entry_notional": position.notional,
             "exit_notional": exit_notional,
@@ -201,160 +204,70 @@ class TradingExecutor:
             "timestamp": timestamp,
         }
 
+    # ============ Portfolio Queries ============
+
     def get_portfolio_value(self) -> float:
-        """
-        Calculate current portfolio value (cash + open positions)
+        """Get total portfolio value"""
+        total_value, _, _ = self._position_manager.calculate_portfolio_value()
+        return total_value
 
-        Returns:
-            Total portfolio value
-        """
-        try:
-            total_value = self.current_capital
+    def get_portfolio_summary(self) -> Dict:
+        """Get complete portfolio summary"""
+        return self._position_manager.get_portfolio_summary()
 
-            # Add value of open positions
-            for symbol, position in self.positions.items():
-                try:
-                    ticker = yf.Ticker(symbol)
-                    current_price = ticker.history(period="1d", interval="1m")[
-                        "Close"
-                    ].iloc[-1]
+    def get_current_capital(self) -> float:
+        """Get available cash"""
+        return self._position_manager.get_available_cash()
 
-                    if position.trade_type == TradeType.LONG:
-                        position_value = abs(position.quantity) * current_price
-                    else:  # SHORT
-                        # For short: initial_notional + (entry_price - current_price) * quantity
-                        position_value = position.notional + (
-                            position.entry_price - current_price
-                        ) * abs(position.quantity)
+    @property
+    def current_capital(self) -> float:
+        """Property for backward compatibility"""
+        return self._position_manager.get_available_cash()
 
-                    total_value += position_value
+    @property
+    def positions(self) -> Dict[str, Position]:
+        """Property for backward compatibility"""
+        return self._position_manager.get_all_positions()
 
-                except Exception as e:
-                    logger.warning(f"Failed to get price for {symbol}: {e}")
-                    # Use entry notional as fallback
-                    total_value += position.notional
-
-            return total_value
-
-        except Exception as e:
-            logger.error(f"Failed to calculate portfolio value: {e}")
-            return self.current_capital
-
-    def get_portfolio_summary(self) -> Dict[str, Any]:
-        """Get portfolio summary"""
-        return {
-            "capital": self.current_capital,
-            "portfolio_value": self.get_portfolio_value(),
-            "positions": len(self.positions),
-            "position_details": [
-                {
-                    "symbol": pos.symbol,
-                    "quantity": pos.quantity,
-                    "entry_price": pos.entry_price,
-                    "trade_type": pos.trade_type.value,
-                }
-                for pos in self.positions.values()
-            ],
-        }
-
-    def reset(self, initial_capital: float):
-        """Reset executor state"""
-        self.current_capital = initial_capital
-        self.initial_capital = initial_capital
-        self.positions = {}
-        self.trade_history = []
-        self.position_history = []
-        self.portfolio_history = []
+    # ============ History Management ============
 
     def snapshot_positions(self, timestamp: datetime):
-        """
-        Take a snapshot of all current positions
-
-        Args:
-            timestamp: Snapshot timestamp
-        """
-        for symbol, position in self.positions.items():
-            try:
-                # Get current price
-                ticker = yf.Ticker(symbol)
-                current_price = ticker.history(period="1d", interval="1m")[
-                    "Close"
-                ].iloc[-1]
-
-                # Calculate unrealized P&L
-                if position.trade_type == TradeType.LONG:
-                    unrealized_pnl = (current_price - position.entry_price) * abs(
-                        position.quantity
-                    )
-                else:
-                    unrealized_pnl = (position.entry_price - current_price) * abs(
-                        position.quantity
-                    )
-
-                # Create snapshot
-                snapshot = PositionHistorySnapshot(
-                    timestamp=timestamp,
-                    symbol=symbol,
-                    quantity=position.quantity,
-                    entry_price=position.entry_price,
-                    current_price=current_price,
-                    trade_type=position.trade_type.value,
-                    unrealized_pnl=unrealized_pnl,
-                    notional=position.notional,
-                )
-                self.position_history.append(snapshot)
-
-            except Exception as e:
-                logger.warning(f"Failed to snapshot position for {symbol}: {e}")
+        """Take a snapshot of all positions"""
+        self._position_manager.snapshot_positions(timestamp)
 
     def snapshot_portfolio(self, timestamp: datetime):
-        """
-        Take a snapshot of the entire portfolio
-
-        Args:
-            timestamp: Snapshot timestamp
-        """
-        portfolio_value = self.get_portfolio_value()
-        positions_value = portfolio_value - self.current_capital
-
-        # Calculate total unrealized P&L
-        total_pnl = 0.0
-        for symbol, position in self.positions.items():
-            try:
-                ticker = yf.Ticker(symbol)
-                current_price = ticker.history(period="1d", interval="1m")[
-                    "Close"
-                ].iloc[-1]
-
-                if position.trade_type == TradeType.LONG:
-                    total_pnl += (current_price - position.entry_price) * abs(
-                        position.quantity
-                    )
-                else:
-                    total_pnl += (position.entry_price - current_price) * abs(
-                        position.quantity
-                    )
-            except Exception as e:
-                logger.warning(f"Failed to calculate P&L for {symbol}: {e}")
-
-        snapshot = PortfolioValueSnapshot(
-            timestamp=timestamp,
-            total_value=portfolio_value,
-            cash=self.current_capital,
-            positions_value=positions_value,
-            positions_count=len(self.positions),
-            total_pnl=total_pnl,
-        )
-        self.portfolio_history.append(snapshot)
+        """Take a snapshot of portfolio value"""
+        self._position_manager.snapshot_portfolio(timestamp)
 
     def get_trade_history(self) -> List[TradeHistoryRecord]:
         """Get all trade history"""
-        return self.trade_history
+        return self._trade_recorder.get_all_trades()
 
     def get_position_history(self) -> List[PositionHistorySnapshot]:
         """Get all position snapshots"""
-        return self.position_history
+        return self._position_manager.get_position_history()
 
     def get_portfolio_history(self) -> List[PortfolioValueSnapshot]:
         """Get all portfolio snapshots"""
-        return self.portfolio_history
+        return self._position_manager.get_portfolio_history()
+
+    # ============ Statistics ============
+
+    def get_trade_statistics(self) -> Dict:
+        """Get trading statistics"""
+        return self._trade_recorder.get_trade_statistics()
+
+    def get_symbol_statistics(self, symbol: str) -> Dict:
+        """Get statistics for a symbol"""
+        return self._trade_recorder.get_symbol_statistics(symbol)
+
+    def get_daily_statistics(self) -> Dict[str, Dict]:
+        """Get daily P&L breakdown"""
+        return self._trade_recorder.get_daily_statistics()
+
+    # ============ Management ============
+
+    def reset(self, initial_capital: float):
+        """Reset executor state"""
+        self._position_manager.reset(initial_capital)
+        self._trade_recorder.reset()
