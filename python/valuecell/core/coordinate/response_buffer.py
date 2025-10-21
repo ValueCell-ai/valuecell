@@ -26,6 +26,7 @@ class SaveItem:
     task_id: Optional[str]
     payload: Optional[BaseModel]
     role: Role = Role.AGENT
+    agent_name: Optional[str] = None
 
 
 # conversation_id, thread_id, task_id, event
@@ -40,7 +41,12 @@ class BufferEntry:
     be correlated with the final persisted ConversationItem.
     """
 
-    def __init__(self, item_id: Optional[str] = None, role: Optional[Role] = None):
+    def __init__(
+        self,
+        item_id: Optional[str] = None,
+        role: Optional[Role] = None,
+        agent_name: Optional[str] = None,
+    ):
         self.parts: List[str] = []
         self.last_updated: float = time.monotonic()
         # Stable paragraph id for this buffer entry. Reused across streamed chunks
@@ -48,6 +54,7 @@ class BufferEntry:
         # we rotate to a new paragraph id for subsequent chunks.
         self.item_id: str = item_id or generate_item_id()
         self.role: Optional[Role] = role
+        self.agent_name: Optional[str] = agent_name
 
     def append(self, text: str):
         """Append a chunk of text to this buffer and update the timestamp."""
@@ -114,8 +121,10 @@ class ResponseBuffer:
             entry = self._buffers.get(key)
             if not entry:
                 # Start a new paragraph buffer with a fresh paragraph item_id
-                entry = BufferEntry(role=data.role)
+                entry = BufferEntry(role=data.role, agent_name=data.agent_name)
                 self._buffers[key] = entry
+            if entry.agent_name is None and data.agent_name:
+                entry.agent_name = data.agent_name
             # Stamp the response with the stable paragraph id
             data.item_id = entry.item_id
             resp.data = data
@@ -158,8 +167,10 @@ class ResponseBuffer:
             entry = self._buffers.get(key)
             if not entry:
                 # If annotate() wasn't called, create an entry now.
-                entry = BufferEntry(role=data.role)
+                entry = BufferEntry(role=data.role, agent_name=data.agent_name)
                 self._buffers[key] = entry
+            elif entry.agent_name is None and data.agent_name:
+                entry.agent_name = data.agent_name
 
             # Extract text content from payload
             payload = data.payload
@@ -229,6 +240,7 @@ class ResponseBuffer:
                         task_id=key[2],
                         payload=payload,
                         role=entry.role or Role.AGENT,
+                        agent_name=entry.agent_name,
                     )
                 )
             if key in self._buffers:
@@ -275,6 +287,7 @@ class ResponseBuffer:
             task_id=data.task_id,
             payload=bm,
             role=data.role,
+            agent_name=data.agent_name,
         )
 
     def _make_save_item(
@@ -292,4 +305,5 @@ class ResponseBuffer:
             task_id=data.task_id,
             payload=payload,
             role=data.role,
+            agent_name=data.agent_name,
         )

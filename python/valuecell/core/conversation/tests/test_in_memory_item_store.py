@@ -389,7 +389,9 @@ class TestInMemoryItemStore:
         # Items should be in order of conversations, but since dict iteration order is not guaranteed,
         # just check that all items are present
         result_ids = {item.item_id for item in result}
-        expected_ids = {f"conv1-{i}" for i in range(2)} | {f"conv2-{i}" for i in range(2)}
+        expected_ids = {f"conv1-{i}" for i in range(2)} | {
+            f"conv2-{i}" for i in range(2)
+        }
         assert result_ids == expected_ids
 
     @pytest.mark.asyncio

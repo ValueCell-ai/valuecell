@@ -90,6 +90,7 @@ async def test_sqlite_item_store_get_items_all_conversations():
                 thread_id="t1",
                 task_id=None,
                 payload='{"msg": "conv1 item2"}',
+                agent_name="agent-alpha",
             ),
             ConversationItem(
                 item_id="c2-i1",
@@ -110,6 +111,8 @@ async def test_sqlite_item_store_get_items_all_conversations():
         assert len(all_items) == 3
         item_ids = {item.item_id for item in all_items}
         assert item_ids == {"c1-i1", "c1-i2", "c2-i1"}
+        agent_items = [item for item in all_items if item.role == Role.AGENT]
+        assert agent_items and agent_items[0].agent_name == "agent-alpha"
 
         # Get all items with role filter
         user_items = await store.get_items(conversation_id=None, role=Role.USER)

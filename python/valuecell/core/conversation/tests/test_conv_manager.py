@@ -234,6 +234,7 @@ class TestConversationManager:
                 event=NotifyResponseEvent.MESSAGE,
                 conversation_id="conv-123",
                 payload='{"message": "Hello"}',
+                agent_name="agent-123",
             )
 
             assert result is not None
@@ -242,12 +243,15 @@ class TestConversationManager:
             assert result.event == NotifyResponseEvent.MESSAGE
             assert result.conversation_id == "conv-123"
             assert result.payload == '{"message": "Hello"}'
+            assert result.agent_name == "agent-123"
 
             # Verify stores were called
             manager.conversation_store.load_conversation.assert_called_once_with(
                 "conv-123"
             )
             manager.item_store.save_item.assert_called_once()
+            saved_item = manager.item_store.save_item.call_args.args[0]
+            assert saved_item.agent_name == "agent-123"
             manager.conversation_store.save_conversation.assert_called_once_with(
                 conversation
             )

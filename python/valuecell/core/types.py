@@ -195,6 +195,9 @@ class ConversationItem(BaseModel):
 
     item_id: str = Field(..., description="Unique message identifier")
     role: Role = Field(..., description="Role of the message sender")
+    agent_name: Optional[str] = Field(
+        None, description="Name of the agent that sent this message"
+    )
     event: ConversationItemEvent = Field(..., description="Event type of the message")
     conversation_id: str = Field(
         ..., description="Conversation ID this message belongs to"
@@ -218,6 +221,9 @@ class UnifiedResponseData(BaseModel):
         None, description="Unique ID for the message thread"
     )
     task_id: Optional[str] = Field(None, description="Unique ID for the task")
+    agent_name: Optional[str] = Field(
+        None, description="Name of the agent associated with this response"
+    )
     payload: Optional[ResponsePayload] = Field(
         None, description="The message data payload"
     )

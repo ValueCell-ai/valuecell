@@ -81,6 +81,7 @@ class ConversationManager:
         task_id: Optional[str] = None,
         payload: ResponsePayload = None,
         item_id: Optional[str] = None,
+        agent_name: Optional[str] = None,
     ) -> Optional[ConversationItem]:
         """Add item to conversation
 
@@ -119,6 +120,7 @@ class ConversationManager:
             thread_id=thread_id,
             task_id=task_id,
             payload=payload_str,
+            agent_name=agent_name,
         )
 
         # Save item directly to item store

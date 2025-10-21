@@ -27,6 +27,7 @@ def _mk_item(
     conversation_id: str = "sess-1",
     thread_id: str | None = "th-1",
     task_id: str | None = "tk-1",
+    agent_name: str | None = None,
 ) -> ConversationItem:
     return ConversationItem(
         item_id=item_id,
@@ -36,6 +37,7 @@ def _mk_item(
         thread_id=thread_id,
         task_id=task_id,
         payload=payload,
+        agent_name=agent_name,
     )
 
 
@@ -54,10 +56,15 @@ def test_thread_started_with_payload(factory: ResponseFactory):
 
 def test_message_chunk(factory: ResponseFactory):
     payload = BaseResponseDataPayload(content="chunk").model_dump_json()
-    item = _mk_item(event=StreamResponseEvent.MESSAGE_CHUNK.value, payload=payload)
+    item = _mk_item(
+        event=StreamResponseEvent.MESSAGE_CHUNK.value,
+        payload=payload,
+        agent_name="agent-x",
+    )
     resp = factory.from_conversation_item(item)
     assert resp.event == StreamResponseEvent.MESSAGE_CHUNK
     assert resp.data.payload.content == "chunk"  # type: ignore[attr-defined]
+    assert resp.data.agent_name == "agent-x"
 
 
 def test_notify_message(factory: ResponseFactory):

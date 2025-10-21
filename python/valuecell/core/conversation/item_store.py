@@ -132,6 +132,7 @@ class SQLiteItemStore(ItemStore):
                       thread_id TEXT,
                       task_id TEXT,
                       payload TEXT,
+                      agent_name TEXT,
                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     );
                     """
@@ -155,6 +156,7 @@ class SQLiteItemStore(ItemStore):
             thread_id=row["thread_id"],
             task_id=row["task_id"],
             payload=row["payload"],
+            agent_name=row["agent_name"],
         )
 
     async def save_item(self, item: ConversationItem) -> None:
@@ -165,8 +167,8 @@ class SQLiteItemStore(ItemStore):
             await db.execute(
                 """
                 INSERT OR REPLACE INTO conversation_items (
-                    item_id, role, event, conversation_id, thread_id, task_id, payload
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    item_id, role, event, conversation_id, thread_id, task_id, payload, agent_name
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     item.item_id,
@@ -176,6 +178,7 @@ class SQLiteItemStore(ItemStore):
                     item.thread_id,
                     item.task_id,
                     item.payload,
+                    item.agent_name,
                 ),
             )
             await db.commit()
