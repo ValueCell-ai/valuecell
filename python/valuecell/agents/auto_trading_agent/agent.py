@@ -4,8 +4,9 @@ import asyncio
 import json
 import logging
 import os
+from collections import deque
 from datetime import datetime, timezone
-from typing import Any, AsyncGenerator, Dict, Optional
+from typing import Any, AsyncGenerator, Deque, Dict, List, Optional
 
 from agno.agent import Agent
 from agno.models.openrouter import OpenRouter
@@ -39,6 +40,9 @@ from .trading_executor import TradingExecutor
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Maximum cached notifications per session
+MAX_NOTIFICATION_CACHE_SIZE = 5000
+
 
 class AutoTradingAgent(BaseAgent):
     """
@@ -56,6 +60,11 @@ class AutoTradingAgent(BaseAgent):
         # Structure: {session_id: {instance_id: TradingInstanceData}}
         self.trading_instances: Dict[str, Dict[str, Dict[str, Any]]] = {}
 
+        # Notification cache for batch sending
+        # Structure: {session_id: deque[FilteredCardPushNotificationComponentData]}
+        # Using deque with maxlen for automatic FIFO eviction
+        self.notification_cache: Dict[str, Deque[FilteredCardPushNotificationComponentData]] = {}
+
         try:
             # Parser agent for natural language query parsing
             self.parser_agent = Agent(
@@ -72,6 +81,57 @@ class AutoTradingAgent(BaseAgent):
         """Generate unique instance ID"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         return f"trade_{timestamp}_{task_id[:8]}"
+
+    def _init_notification_cache(self, session_id: str) -> None:
+        """Initialize notification cache for a session if not exists"""
+        if session_id not in self.notification_cache:
+            self.notification_cache[session_id] = deque(maxlen=MAX_NOTIFICATION_CACHE_SIZE)
+            logger.info(f"Initialized notification cache for session {session_id}")
+
+    def _cache_notification(
+        self, session_id: str, notification: FilteredCardPushNotificationComponentData
+    ) -> None:
+        """
+        Cache a notification for later batch sending.
+        Automatically evicts oldest notifications when cache exceeds MAX_NOTIFICATION_CACHE_SIZE.
+
+        Args:
+            session_id: Session ID
+            notification: Notification to cache
+        """
+        self._init_notification_cache(session_id)
+        self.notification_cache[session_id].append(notification)
+        logger.debug(
+            f"Cached notification for session {session_id}. "
+            f"Cache size: {len(self.notification_cache[session_id])}"
+        )
+
+    def _get_cached_notifications(
+        self, session_id: str
+    ) -> List[FilteredCardPushNotificationComponentData]:
+        """
+        Get all cached notifications for a session.
+
+        Args:
+            session_id: Session ID
+
+        Returns:
+            List of cached notifications (oldest to newest)
+        """
+        if session_id not in self.notification_cache:
+            return []
+        return list(self.notification_cache[session_id])
+
+    def _clear_notification_cache(self, session_id: str) -> None:
+        """
+        Clear notification cache for a session.
+
+        Args:
+            session_id: Session ID
+        """
+        if session_id in self.notification_cache:
+            self.notification_cache[session_id].clear()
+            logger.info(f"Cleared notification cache for session {session_id}")
 
     async def _parse_trading_request(self, query: str) -> TradingRequest:
         """
@@ -144,18 +204,18 @@ class AutoTradingAgent(BaseAgent):
 
     def _get_instance_status_component_data(
         self, session_id: str, instance_id: str
-    ) -> str:
+    ) -> Optional[FilteredCardPushNotificationComponentData]:
         """
         Generate portfolio status report in rich text format
 
         Returns:
-            Formatted portfolio details as markdown string
+            FilteredCardPushNotificationComponentData object or None if instance not found
         """
         if session_id not in self.trading_instances:
-            return ""
+            return None
 
         if instance_id not in self.trading_instances[session_id]:
-            return ""
+            return None
 
         instance = self.trading_instances[session_id][instance_id]
         executor: TradingExecutor = instance["executor"]
@@ -258,7 +318,7 @@ class AutoTradingAgent(BaseAgent):
             table_title="Portfolio Detail",
             create_time=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         )
-        return component_data.model_dump_json()
+        return component_data
 
     def _get_session_portfolio_chart_data(self, session_id: str) -> str:
         """
@@ -489,6 +549,9 @@ class AutoTradingAgent(BaseAgent):
             if session_id not in self.trading_instances:
                 self.trading_instances[session_id] = {}
 
+            # Initialize notification cache for this session
+            self._init_notification_cache(session_id)
+
             # Store instance
             self.trading_instances[session_id][instance_id] = {
                 "instance_id": instance_id,
@@ -525,7 +588,7 @@ class AutoTradingAgent(BaseAgent):
             # Get instance reference
             instance = self.trading_instances[session_id][instance_id]
 
-            # Send initial portfolio snapshot
+            # Send initial portfolio snapshot - cache it
             portfolio_value = executor.get_portfolio_value()
             executor.snapshot_portfolio(datetime.now())
 
@@ -536,10 +599,8 @@ class AutoTradingAgent(BaseAgent):
                 table_title="Portfolio Detail",
                 create_time=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
             )
-            yield streaming.component_generator(
-                initial_portfolio_msg.model_dump_json(),
-                ComponentType.FILTERED_CARD_PUSH_NOTIFICATION,
-            )
+            # Cache the initial notification
+            self._cache_notification(session_id, initial_portfolio_msg)
 
             # Set check interval
             check_interval = DEFAULT_CHECK_INTERVAL
@@ -663,7 +724,7 @@ class AutoTradingAgent(BaseAgent):
                         )
                     )
 
-                    # Display decision reasoning
+                    # Display decision reasoning - cache it
                     portfolio_decision_msg = FilteredCardPushNotificationComponentData(
                         title=f"{config.agent_model} Analysis",
                         data=f"💰 **Portfolio Decision Reasoning**\n{portfolio_decision.reasoning}\n",
@@ -673,10 +734,8 @@ class AutoTradingAgent(BaseAgent):
                             "%Y-%m-%d %H:%M:%S"
                         ),
                     )
-                    yield streaming.component_generator(
-                        portfolio_decision_msg.model_dump_json(),
-                        ComponentType.FILTERED_CARD_PUSH_NOTIFICATION,
-                    )
+                    # Cache the decision notification
+                    self._cache_notification(session_id, portfolio_decision_msg)
 
                     # Phase 3: Execute approved trades
                     if portfolio_decision.trades_to_execute:
@@ -705,7 +764,7 @@ class AutoTradingAgent(BaseAgent):
                             )
 
                             if trade_details:
-                                # Send trade notification
+                                # Cache trade notification
                                 trade_message_text = (
                                     MessageFormatter.format_trade_notification(
                                         trade_details, config.agent_model
@@ -720,10 +779,8 @@ class AutoTradingAgent(BaseAgent):
                                         "%Y-%m-%d %H:%M:%S"
                                     ),
                                 )
-                                yield streaming.component_generator(
-                                    trade_message.model_dump_json(),
-                                    ComponentType.FILTERED_CARD_PUSH_NOTIFICATION,
-                                )
+                                # Cache the trade notification
+                                self._cache_notification(session_id, trade_message)
                             else:
                                 trade_message = FilteredCardPushNotificationComponentData(
                                     title=f"{config.agent_model} Trade",
@@ -735,10 +792,8 @@ class AutoTradingAgent(BaseAgent):
                                         "%Y-%m-%d %H:%M:%S"
                                     ),
                                 )
-                                yield streaming.component_generator(
-                                    trade_message.model_dump_json(),
-                                    ComponentType.FILTERED_CARD_PUSH_NOTIFICATION,
-                                )
+                                # Cache the failed trade notification
+                                self._cache_notification(session_id, trade_message)
 
                     # Take snapshots
                     timestamp = datetime.now()
@@ -786,15 +841,32 @@ class AutoTradingAgent(BaseAgent):
 
                     yield streaming.message_chunk(portfolio_msg + "\n")
 
+                    # Cache portfolio status notification
                     component_data = self._get_instance_status_component_data(
                         session_id, instance_id
                     )
                     if component_data:
+                        self._cache_notification(session_id, component_data)
+
+                    # Batch send all cached notifications
+                    # All notifications accumulated during this interval are sent together
+                    # as a single list to comply with frontend requirements
+                    cached_notifications = self._get_cached_notifications(session_id)
+                    if cached_notifications:
+                        logger.info(
+                            f"Sending {len(cached_notifications)} cached notifications for session {session_id}"
+                        )
+                        # Convert all cached notifications to a list of dicts for batch sending
+                        # Format: [{"title": "...", "data": "...", "filters": [...], ...}, ...]
+                        batch_data = [notif.model_dump() for notif in cached_notifications]
+                        # Send as a single batch component - frontend will receive all historical data
                         yield streaming.component_generator(
-                            component_data,
+                            json.dumps(batch_data),
                             ComponentType.FILTERED_CARD_PUSH_NOTIFICATION,
+                            component_id=f"trading_status_{session_id}",
                         )
 
+                    # Send chart data (not cached, sent separately)
                     chart_data = self._get_session_portfolio_chart_data(session_id)
                     if chart_data:
                         yield streaming.component_generator(
