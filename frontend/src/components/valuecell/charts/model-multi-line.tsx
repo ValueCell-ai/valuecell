@@ -11,6 +11,7 @@ import { CanvasRenderer } from "echarts/renderers";
 import type { EChartsOption } from "echarts/types/dist/shared";
 import { useEffect, useMemo, useRef } from "react";
 import { useChartResize } from "@/hooks/use-chart-resize";
+import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import type { MultiLineChartData } from "@/types/chart";
 
@@ -97,6 +98,10 @@ function ModelMultiLine({
       },
       xAxis: {
         type: "category",
+        axisLabel: {
+          formatter: (value: string) =>
+            TimeUtils.format(value, TIME_FORMATS.MODAL_TRADE_TIME),
+        },
       },
       yAxis: {
         type: "value",
@@ -104,6 +109,31 @@ function ModelMultiLine({
       },
       tooltip: {
         trigger: "axis",
+        formatter: (params: unknown) => {
+          if (!Array.isArray(params) || params.length === 0) return "";
+
+          const date = TimeUtils.format(
+            params[0].axisValue,
+            TIME_FORMATS.MODAL_TRADE_TIME,
+          );
+
+          const items = params
+            .map((param) => {
+              const value = param.value[param.seriesIndex + 1];
+              const formattedValue =
+                typeof value === "number"
+                  ? `$${value.toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}`
+                  : "N/A";
+
+              return `${param.marker} ${param.seriesName}: <strong>${formattedValue}</strong>`;
+            })
+            .join("<br/>");
+
+          return `<strong>${date}</strong><br/>${items}`;
+        },
       },
       series: Array.from({ length: seriesCount }, () => ({
         type: "line",
