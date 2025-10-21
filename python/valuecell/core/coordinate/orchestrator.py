@@ -651,6 +651,11 @@ class AgentOrchestrator:
 
         for task in plan.tasks:
             subagent_conversation_item_id = generate_item_id()
+            subagent_component_content_dict = {
+                "conversation_id": task.conversation_id,
+                "agent_name": task.agent_name,
+                "phase": SubagentConversationPhase.START.value,
+            }
             await self.conversation_manager.create_conversation(
                 plan.user_id, conversation_id=task.conversation_id
             )
@@ -659,13 +664,7 @@ class AgentOrchestrator:
                     conversation_id=conversation_id,
                     thread_id=thread_id,
                     task_id=task.task_id,
-                    content=json.dumps(
-                        {
-                            "conversation_id": task.conversation_id,
-                            "agent_name": task.agent_name,
-                            "phase": SubagentConversationPhase.START.value,
-                        }
-                    ),
+                    content=json.dumps(subagent_component_content_dict),
                     component_type=ComponentType.SUBAGENT_CONVERSATION.value,
                     item_id=subagent_conversation_item_id,
                     agent_name=task.agent_name,
@@ -703,17 +702,12 @@ class AgentOrchestrator:
                 )
             finally:
                 if task.handoff_from_super_agent:
+                    subagent_component_content_dict["phase"] = SubagentConversationPhase.END.value
                     yield self._response_factory.component_generator(
                         conversation_id=conversation_id,
                         thread_id=thread_id,
                         task_id=task.task_id,
-                        content=json.dumps(
-                            {
-                                "conversation_id": task.conversation_id,
-                                "agent_name": task.agent_name,
-                                "phase": SubagentConversationPhase.END.value,
-                            }
-                        ),
+                        content=json.dumps(subagent_component_content_dict),
                         component_type=ComponentType.SUBAGENT_CONVERSATION.value,
                         item_id=subagent_conversation_item_id,
                         agent_name=task.agent_name,
