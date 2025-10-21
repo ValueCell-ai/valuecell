@@ -149,6 +149,7 @@ class ComponentType(str, Enum):
     PROFILE = "profile"
     SUBAGENT_CONVERSATION = "subagent_conversation"
 
+
 class SubagentConversationPhase(str, Enum):
     """Phases for subagent conversation component."""
 

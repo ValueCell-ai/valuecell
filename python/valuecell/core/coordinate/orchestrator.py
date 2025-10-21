@@ -39,11 +39,11 @@ from valuecell.core.task import Task, TaskManager
 from valuecell.core.task.models import TaskPattern
 from valuecell.core.types import (
     BaseResponse,
+    ComponentType,
     ConversationItemEvent,
     StreamResponseEvent,
-    UserInput,
-    ComponentType,
     SubagentConversationPhase,
+    UserInput,
 )
 from valuecell.utils import resolve_db_path
 from valuecell.utils.i18n_utils import get_current_language, get_current_timezone
