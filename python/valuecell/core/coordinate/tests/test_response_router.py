@@ -437,6 +437,7 @@ class TestHandleStatusUpdate:
             task_id="task-123",
             content="Generating component",
             component_type="button",
+            component_id=None,
         )
 
     async def test_component_generator_event_no_component_type(self):
@@ -481,6 +482,7 @@ class TestHandleStatusUpdate:
             task_id="task-123",
             content="Generating component",
             component_type="unknown",
+            component_id=None,
         )
 
     async def test_message_event(self):
