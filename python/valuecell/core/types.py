@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import AsyncGenerator, Callable, Dict, Literal, Optional, Union
+from typing import AsyncGenerator, Callable, Dict, List, Literal, Optional, Union
 
 from a2a.types import Task, TaskArtifactUpdateEvent, TaskStatusUpdateEvent
 from pydantic import BaseModel, Field
@@ -147,6 +147,8 @@ class ComponentType(str, Enum):
 
     REPORT = "report"
     PROFILE = "profile"
+    FILTERED_LINE_CHART = "filtered_line_chart"
+    FILTERED_CARD_PUSH_NOTIFICATION = "filtered_card_push_notification"
 
 
 class ReportComponentData(BaseModel):
@@ -159,6 +161,47 @@ class ReportComponentData(BaseModel):
     url: Optional[str] = Field(None, description="The report URL")
     create_time: str = Field(
         ..., description="The report create time, UTC time, YYYY-MM-DD HH:MM:SS format"
+    )
+
+
+class FilteredLineChartComponentData(BaseModel):
+    """Filtered line chart component data payload.
+    Data format:
+    [
+        ['x_axis_name', 'value1', 'value2', 'value3', 'value4'],
+        ['timestamp1', value1, value2, value3, value4],
+        ['timestamp2', value1, value2, value3, value4],
+        ['timestamp3', value1, value2, value3, value4],
+    ]
+    """
+
+    title: str = Field(
+        ...,
+        description="The line chart title, used by UI to display the line chart title",
+    )
+    data: str = Field(
+        ...,
+        description="The line chart data, format: [['x_axis_value', 'value1', 'value2', 'value3', 'value4'], ['x_axis_value', value1, value2, value3, value4], ...]",
+    )
+    create_time: str = Field(
+        ...,
+        description="The line chart create time, UTC time, YYYY-MM-DD HH:MM:SS format",
+    )
+
+
+class FilteredCardPushNotificationComponentData(BaseModel):
+    """Filtered card push notification component data payload."""
+
+    title: str = Field(
+        ...,
+        description="The card push notification title, used by UI to display the card push notification title",
+    )
+    data: str = Field(..., description="The card push notification data")
+    filters: List[str] = Field(..., description="The card push notification filters")
+    table_title: str = Field(..., description="The card push notification table title")
+    create_time: str = Field(
+        ...,
+        description="The card push notification create time, UTC time, YYYY-MM-DD HH:MM:SS format",
     )
 
 
