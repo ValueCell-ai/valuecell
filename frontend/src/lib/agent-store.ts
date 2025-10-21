@@ -102,8 +102,13 @@ function handleChatItemEvent(
       conversation.sections[componentType as SectionComponentType] = [];
     }
 
-    // Add item to corresponding section (components are complete, no merging)
-    conversation.sections[componentType as SectionComponentType].push(data);
+    if (event === "replace") {
+      conversation.sections[componentType as SectionComponentType] = [data];
+    }
+    if (event === "append") {
+      // Add item to corresponding section (components are complete, no merging)
+      conversation.sections[componentType as SectionComponentType].push(data);
+    }
 
     return;
   }
@@ -120,13 +125,31 @@ export function updateAgentConversationsStore(
   // Use mutative to create new state with type-safe event handling
   return create(store, (draft) => {
     switch (event) {
-      case "component_generator":
-        // component_generator preserves original component_type
-        handleChatItemEvent(draft, {
-          ...data,
-          component_type: data.payload.component_type,
-        });
+      // component_generator preserves original component_type
+      case "component_generator": {
+        const component_type = data.payload.component_type;
+
+        switch (component_type) {
+          case "filtered_line_chart":
+          case "filtered_card_push_notification":
+            handleChatItemEvent(
+              draft,
+              {
+                ...data,
+                component_type,
+              },
+              "replace",
+            );
+            break;
+          default:
+            handleChatItemEvent(draft, {
+              ...data,
+              component_type,
+            });
+            break;
+        }
         break;
+      }
 
       case "thread_started":
       case "message_chunk":

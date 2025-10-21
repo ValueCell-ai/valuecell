@@ -666,7 +666,7 @@ class AgentOrchestrator:
                     task_id=task.task_id,
                     content=json.dumps(subagent_component_content_dict),
                     component_type=ComponentType.SUBAGENT_CONVERSATION.value,
-                    item_id=subagent_conversation_item_id,
+                    component_id=subagent_conversation_item_id,
                     agent_name=task.agent_name,
                 )
                 yield self._response_factory.thread_started(
@@ -702,14 +702,16 @@ class AgentOrchestrator:
                 )
             finally:
                 if task.handoff_from_super_agent:
-                    subagent_component_content_dict["phase"] = SubagentConversationPhase.END.value
+                    subagent_component_content_dict["phase"] = (
+                        SubagentConversationPhase.END.value
+                    )
                     yield self._response_factory.component_generator(
                         conversation_id=conversation_id,
                         thread_id=thread_id,
                         task_id=task.task_id,
                         content=json.dumps(subagent_component_content_dict),
                         component_type=ComponentType.SUBAGENT_CONVERSATION.value,
-                        item_id=subagent_conversation_item_id,
+                        component_id=subagent_conversation_item_id,
                         agent_name=task.agent_name,
                     )
 

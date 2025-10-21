@@ -204,6 +204,7 @@ class GenericAgentExecutor(AgentExecutor):
                     continue
                 if response_event == CommonResponseEvent.COMPONENT_GENERATOR:
                     metadata["component_type"] = response.metadata.get("component_type")
+                    metadata["component_id"] = response.metadata.get("component_id")
                 await updater.update_status(
                     TaskState.working,
                     message=new_agent_text_message(response.content or ""),

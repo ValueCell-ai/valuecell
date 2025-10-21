@@ -1,0 +1,175 @@
+{
+    "name": "AutoTradingAgent",
+    "display_name": "Auto Trading Agent",
+    "url": "http://localhost:10003/",
+    "description": "Automated cryptocurrency trading agent with real-time technical analysis, position management, and continuous monitoring. Supports multiple crypto assets and AI-powered trading strategies using various LLM models via OpenRouter.",
+    "capabilities": {
+        "streaming": true,
+        "push_notifications": true
+    },
+    "skills": [{
+            "id": "auto_trading_setup",
+            "name": "Setup Auto Trading",
+            "description": "Configure the automated trading agent with initial capital, crypto symbols, risk parameters, and AI model selection.",
+            "examples": [
+                "Setup trading with $100,000 for BTC-USD and ETH-USD using DeepSeek model",
+                "Configure auto trader with $50,000 capital, trade BTC-USD, ETH-USD, SOL-USD with 1.5% risk",
+                "Setup trading agent with default settings for Bitcoin"
+            ],
+            "tags": [
+                "setup",
+                "configuration",
+                "initialization"
+            ]
+        },
+        {
+            "id": "auto_trading_notify",
+            "name": "Live Trading Monitoring",
+            "description": "Start continuous automated trading with real-time technical analysis, trade execution notifications, and portfolio updates.",
+            "examples": [
+                "Start automated trading for BTC-USD with Claude model",
+                "Monitor and trade ETH-USD and SOL-USD using GPT-4 analysis",
+                "Begin live trading with portfolio notifications"
+            ],
+            "tags": [
+                "trading",
+                "monitoring",
+                "real-time",
+                "notifications"
+            ]
+        },
+        {
+            "id": "technical_analysis",
+            "name": "Technical Analysis",
+            "description": "Calculate and analyze technical indicators including MACD, RSI, EMA, and Bollinger Bands for trading decisions.",
+            "examples": [
+                "Analyze BTC-USD technical indicators",
+                "Show MACD and RSI signals for ETH-USD",
+                "Calculate Bollinger Bands for SOL-USD"
+            ],
+            "tags": [
+                "analysis",
+                "indicators",
+                "signals"
+            ]
+        },
+        {
+            "id": "position_management",
+            "name": "Position Management",
+            "description": "Manage trading positions with risk controls, automatic entry/exit, and portfolio tracking.",
+            "examples": [
+                "Show current positions and portfolio value",
+                "What is my P&L on open trades?",
+                "Display portfolio summary"
+            ],
+            "tags": [
+                "positions",
+                "portfolio",
+                "risk-management"
+            ]
+        }
+    ],
+    "enabled": true,
+    "provider": {
+        "organization": "ValueCell",
+        "url": "https://github.com/valuecell"
+    },
+    "metadata": {
+        "version": "1.0.0",
+        "author": "ValueCell Team",
+        "tags": [
+            "trading",
+            "crypto",
+            "automation",
+            "technical-analysis",
+            "ai-trading",
+            "real-time"
+        ],
+        "supported_crypto_symbols": [
+            "BTC-USD",
+            "ETH-USD",
+            "USDT-USD",
+            "BNB-USD",
+            "XRP-USD",
+            "SOL-USD",
+            "USDC-USD",
+            "TRX-USD",
+            "DOGE-USD",
+            "ADA-USD",
+            "MATIC-USD",
+            "WBTC-USD",
+            "LINK-USD",
+            "XLM-USD",
+            "BCH-USD",
+            "SUI-USD",
+            "HBAR-USD",
+            "AVAX-USD",
+            "TON-USD",
+            "LTC-USD",
+            "MNT-USD",
+            "NEAR-USD",
+            "FLOW-USD",
+            "OKB-USD",
+            "APE-USD",
+            "ATOM-USD",
+            "QNT-USD",
+            "BSV-USD",
+            "EOS-USD",
+            "NEO-USD",
+            "DYDX-USD",
+            "CRV-USD",
+            "KLAY-USD",
+            "MINA-USD",
+            "CHZ-USD",
+            "AXS-USD",
+            "FTM-USD",
+            "IMX-USD",
+            "ZEC-USD",
+            "ALGO-USD",
+            "XDC-USD",
+            "ICP-USD",
+            "BTG-USD",
+            "BLZ-USD",
+            "ENJ-USD",
+            "KSM-USD",
+            "VGX-USD",
+            "RUNE-USD",
+            "BAT-USD",
+            "THETA-USD",
+            "QTUM-USD"
+        ],
+        "technical_indicators": [
+            "MACD (12/26/9)",
+            "RSI (14)",
+            "EMA (12/26/50)",
+            "Bollinger Bands (20, 2σ)"
+        ],
+        "supported_models": [
+            "deepseek/deepseek-v3.1-terminus",
+            "openai/gpt-5",
+            "anthropic/claude-sonnet-4.5",
+            "x-ai/grok-4",
+            "qwen/qwen-max",
+            "google/gemini-2.5-pro",
+            "meta-llama/llama-3.1-70b-instruct"
+        ],
+        "trading_features": [
+            "Long and Short positions",
+            "Risk-based position sizing",
+            "Maximum position limits",
+            "Real-time notifications",
+            "Portfolio value tracking",
+            "Multi-symbol trading"
+        ],
+        "notification_types": [
+            "Trade execution (open/close)",
+            "Portfolio value updates",
+            "Technical signal alerts"
+        ],
+        "risk_parameters": {
+            "default_risk_per_trade": 0.02,
+            "default_max_positions": 3,
+            "default_check_interval": 60
+        }
+    }
+}

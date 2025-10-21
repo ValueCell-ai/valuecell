@@ -19,4 +19,7 @@ export default [
     route("/:agentName", "app/agent/chat.tsx"),
     route("/:agentName/config", "app/agent/config.tsx"),
   ]),
+
+  // router for test components
+  route("/test", "app/test.tsx"),
 ] satisfies RouteConfig;

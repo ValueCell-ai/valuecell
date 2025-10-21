@@ -140,6 +140,7 @@ async def handle_status_update(
         and response_event == CommonResponseEvent.COMPONENT_GENERATOR
     ):
         component_type = event.metadata.get("component_type", "unknown")
+        component_id = event.metadata.get("component_id")
         responses.append(
             response_factory.component_generator(
                 conversation_id=task.conversation_id,
@@ -147,6 +148,7 @@ async def handle_status_update(
                 task_id=task.task_id,
                 content=content,
                 component_type=component_type,
+                component_id=component_id,
                 agent_name=task.agent_name,
             )
         )

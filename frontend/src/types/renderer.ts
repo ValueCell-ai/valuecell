@@ -12,6 +12,8 @@ export type ReportRendererProps = BaseRendererProps & {
 export type SecFeedRendererProps = BaseRendererProps;
 export type MarkdownRendererProps = BaseRendererProps;
 export type ToolCallRendererProps = BaseRendererProps;
+export type ModelTradeRendererProps = BaseRendererProps;
+export type ModelTradeTableRendererProps = BaseRendererProps;
 
 /**
  * Mapping from component type to its corresponding props type
@@ -22,6 +24,8 @@ export type RendererPropsMap = {
   report: ReportRendererProps;
   markdown: MarkdownRendererProps;
   tool_call: ToolCallRendererProps;
+  filtered_line_chart: ModelTradeRendererProps;
+  filtered_card_push_notification: ModelTradeTableRendererProps;
 };
 
 /**

@@ -77,12 +77,17 @@ class _StreamResponseNamespace:
             ).model_dump(),
         )
 
-    def component_generator(self, content: str, component_type: str) -> StreamResponse:
+    def component_generator(
+        self, content: str, component_type: str, component_id: Optional[str] = None
+    ) -> StreamResponse:
         """Create a component generator response.
 
         Args:
             content: The component content
             component_type: Type of the component being generated
+            component_id: Optional stable component ID for replace behavior.
+                         If provided, this will override the auto-generated item_id,
+                         allowing the frontend to replace components with the same ID.
 
         Returns:
             StreamResponse with COMPONENT_GENERATOR event.
@@ -92,10 +97,14 @@ class _StreamResponseNamespace:
             the same component generator payload can be streamed and handled by
             the existing streaming pipeline. This is intentional.
         """
+        metadata = {"component_type": component_type}
+        if component_id is not None:
+            metadata["component_id"] = component_id
+
         return StreamResponse(
             event=CommonResponseEvent.COMPONENT_GENERATOR,
             content=content,
-            metadata={"component_type": component_type},
+            metadata=metadata,
         )
 
     def done(self, content: Optional[str] = None) -> StreamResponse:
@@ -151,20 +160,29 @@ class _NotifyResponseNamespace:
             event=NotifyResponseEvent.MESSAGE,
         )
 
-    def component_generator(self, content: str, component_type: str) -> StreamResponse:
+    def component_generator(
+        self, content: str, component_type: str, component_id: Optional[str] = None
+    ) -> StreamResponse:
         """Create a component generator response for notifications.
 
         Args:
             content: The component content
             component_type: Type of the component being generated
+            component_id: Optional stable component ID for replace behavior.
+                         If provided, this will override the auto-generated item_id,
+                         allowing the frontend to replace components with the same ID.
 
         Returns:
             StreamResponse with COMPONENT_GENERATOR event
         """
+        metadata = {"component_type": component_type}
+        if component_id is not None:
+            metadata["component_id"] = component_id
+
         return StreamResponse(
             event=CommonResponseEvent.COMPONENT_GENERATOR,
             content=content,
-            metadata={"component_type": component_type},
+            metadata=metadata,
         )
 
     def done(self, content: Optional[str] = None) -> NotifyResponse:
