@@ -58,6 +58,7 @@ function ModelMultiLine({
         source: data,
       },
       legend: {
+        type: "scroll",
         bottom: 10,
         itemGap: 20,
         itemWidth: 14,

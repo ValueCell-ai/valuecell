@@ -46,9 +46,9 @@ const SecFeedComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
 const ModelTradeComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
   const Component = COMPONENT_RENDERER_MAP.filtered_line_chart;
   return (
-    <ScrollContainer className="min-w-[540px] flex-1 px-4">
+    <ScrollContainer className="min-w-[540px] flex-2 px-4">
       {items.length > 0 && (
-        <div className="space-y-3">
+        <div className="h-full space-y-3 p-4">
           {items.map(
             (item) =>
               item.payload && (

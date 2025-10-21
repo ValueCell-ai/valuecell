@@ -29,11 +29,11 @@ const ModelTradeRenderer: FC<ModelTradeRendererProps> = ({ content }) => {
   const parsedData = parse(data);
 
   return (
-    <div className="flex size-full flex-col gap-3">
+    <div className="flex size-full flex-col justify-center gap-3">
       <h3 className="font-medium text-base text-gray-900 leading-tight">
         {title}
       </h3>
-      <MultiLineChart data={parsedData} height={600} />
+      <MultiLineChart data={parsedData} height={"80%"} />
     </div>
   );
 };
