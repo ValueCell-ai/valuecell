@@ -670,6 +670,11 @@ class AgentOrchestrator:
                     item_id=subagent_conversation_item_id,
                     agent_name=task.agent_name,
                 )
+                yield self._response_factory.thread_started(
+                    conversation_id=task.conversation_id,
+                    thread_id=thread_id,
+                    user_query=task.query,
+                )
             try:
                 # Register the task with TaskManager (persist in-memory)
                 await self.task_manager.update_task(task)
