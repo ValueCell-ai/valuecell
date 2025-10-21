@@ -46,9 +46,9 @@ class TradingRequest(BaseModel):
         default=False,
         description="Whether to use AI-enhanced trading signals",
     )
-    agent_model: Optional[str] = Field(
-        default=DEFAULT_AGENT_MODEL,
-        description="Model ID for trading decisions",
+    agent_models: Optional[List[str]] = Field(
+        default=[DEFAULT_AGENT_MODEL],
+        description="List of model IDs for trading decisions - one instance per model",
     )
 
     @field_validator("crypto_symbols")
@@ -89,7 +89,7 @@ class AutoTradingConfig(BaseModel):
     )
     agent_model: str = Field(
         default=DEFAULT_AGENT_MODEL,
-        description="OpenRouter model ID for AI-enhanced trading decisions",
+        description="OpenRouter model ID for AI-enhanced trading decisions (single model per instance)",
     )
     use_ai_signals: bool = Field(
         default=False,

@@ -12,7 +12,7 @@
             "name": "Setup Auto Trading",
             "description": "Configure the automated trading agent with initial capital, crypto symbols, risk parameters, and AI model selection.",
             "examples": [
-                "Setup trading with $100,000 for BTC-USD and ETH-USD using DeepSeek model",
+                "Setup trading with $100,000 for BTC-USD and ETH-USD using DeepSeek, Grok, Claude model",
                 "Configure auto trader with $50,000 capital, trade BTC-USD, ETH-USD, SOL-USD with 1.5% risk",
                 "Setup trading agent with default settings for Bitcoin"
             ],
