@@ -78,10 +78,7 @@ class _StreamResponseNamespace:
         )
 
     def component_generator(
-        self, 
-        content: str, 
-        component_type: str,
-        component_id: Optional[str] = None
+        self, content: str, component_type: str, component_id: Optional[str] = None
     ) -> StreamResponse:
         """Create a component generator response.
 
@@ -103,7 +100,7 @@ class _StreamResponseNamespace:
         metadata = {"component_type": component_type}
         if component_id is not None:
             metadata["component_id"] = component_id
-        
+
         return StreamResponse(
             event=CommonResponseEvent.COMPONENT_GENERATOR,
             content=content,
@@ -164,10 +161,7 @@ class _NotifyResponseNamespace:
         )
 
     def component_generator(
-        self, 
-        content: str, 
-        component_type: str,
-        component_id: Optional[str] = None
+        self, content: str, component_type: str, component_id: Optional[str] = None
     ) -> StreamResponse:
         """Create a component generator response for notifications.
 
@@ -184,7 +178,7 @@ class _NotifyResponseNamespace:
         metadata = {"component_type": component_type}
         if component_id is not None:
             metadata["component_id"] = component_id
-        
+
         return StreamResponse(
             event=CommonResponseEvent.COMPONENT_GENERATOR,
             content=content,

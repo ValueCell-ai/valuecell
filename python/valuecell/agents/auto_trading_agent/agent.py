@@ -414,11 +414,6 @@ class AutoTradingAgent(BaseAgent):
 
         yield streaming.message_chunk(status_message)
 
-        # Send session-level portfolio chart
-        chart_data = self._get_session_portfolio_chart_data(session_id)
-        if chart_data:
-            yield streaming.component_generator(chart_data, "line_chart")
-
     async def stream(
         self,
         query: str,
@@ -803,7 +798,9 @@ class AutoTradingAgent(BaseAgent):
                     chart_data = self._get_session_portfolio_chart_data(session_id)
                     if chart_data:
                         yield streaming.component_generator(
-                            chart_data, ComponentType.FILTERED_LINE_CHART
+                            content=chart_data,
+                            component_type=ComponentType.FILTERED_LINE_CHART,
+                            component_id=f"portfolio_chart_{session_id}",
                         )
 
                     # Wait for next check interval

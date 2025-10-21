@@ -482,7 +482,7 @@ class ResponseFactory:
         """
         # Priority: component_id > item_id > auto-generated
         final_item_id = component_id or item_id or generate_item_id()
-        
+
         return ComponentGeneratorResponse(
             data=UnifiedResponseData(
                 conversation_id=conversation_id,

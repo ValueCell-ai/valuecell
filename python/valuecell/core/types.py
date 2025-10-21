@@ -137,9 +137,9 @@ class ComponentGeneratorResponseDataPayload(BaseResponseDataPayload):
     """Payload for responses that generate UI components.
 
     `component_type` describes the kind of component produced.
-    
-    Note: To enable component replacement behavior, pass a `component_id` 
-    via the StreamResponse metadata. This will override the auto-generated 
+
+    Note: To enable component replacement behavior, pass a `component_id`
+    via the StreamResponse metadata. This will override the auto-generated
     item_id, allowing the frontend to replace components with matching IDs.
     """
 
