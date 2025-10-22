@@ -5,7 +5,7 @@ import ChatThreadArea from "@/app/agent/components/chat-conversation/chat-thread
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import AgentAvatar from "@/components/valuecell/agent-avatar";
-import { useAgentStore } from "@/provider/agent-store-provider";
+import { useConversationById } from "@/store/agent-store";
 import type { ChatConversationRendererProps } from "@/types/renderer";
 import ScrollContainer from "../scroll/scroll-container";
 
@@ -14,8 +14,7 @@ const ChatConversationRenderer: FC<ChatConversationRendererProps> = ({
 }) => {
   // phase => 'start' | 'end'
   const { conversation_id, agent_name, phase } = parse(content);
-  const { agentStore } = useAgentStore();
-  const currentConversation = agentStore[conversation_id];
+  const currentConversation = useConversationById(conversation_id);
 
   const { data: agent } = useGetAgentInfo({ agentName: agent_name });
 

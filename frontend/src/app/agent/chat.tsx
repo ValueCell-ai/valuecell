@@ -5,29 +5,23 @@ import { useGetAgentInfo } from "@/api/agent";
 import { useSSE } from "@/hooks/use-sse";
 import { getServerUrl } from "@/lib/api-client";
 import {
-  AgentStoreProvider,
-  useAgentStore,
-} from "@/provider/agent-store-provider";
+  useAgentStoreActions,
+  useCurrentConversation,
+} from "@/store/agent-store";
 import type { AgentStreamRequest, SSEData } from "@/types/agent";
 import type { Route } from "./+types/chat";
 import ChatConversationArea from "./components/chat-conversation/chat-conversation-area";
 
-function AgentChatContent() {
+export default function AgentChat() {
   const { agentName } = useParams<Route.LoaderArgs["params"]>();
   const { data: agent, isLoading: isLoadingAgent } = useGetAgentInfo({
     agentName: agentName ?? "",
   });
 
-  // Use agent store from context
-  const {
-    agentStore,
-    dispatchAgentStore,
-    curConversationId,
-    setCurConversationId,
-    currentConversation,
-    curThreadId,
-  } = useAgentStore();
-  console.log("🚀 ~ AgentChatContent ~ agentStore:", agentStore);
+  // Use optimized hooks with built-in shallow comparison
+  const { curConversation, curConversationId } = useCurrentConversation();
+
+  const { dispatchAgentStore, setCurConversationId } = useAgentStoreActions();
 
   // Handle SSE data events using agent store
   // biome-ignore lint/correctness/useExhaustiveDependencies: close is no need to be in dependencies
@@ -40,10 +34,6 @@ function AgentChatContent() {
     switch (event) {
       case "conversation_started":
         setCurConversationId(data.conversation_id);
-        break;
-
-      case "thread_started":
-        curThreadId.current = data.thread_id;
         break;
 
       case "system_failed":
@@ -60,10 +50,6 @@ function AgentChatContent() {
 
       // All message-related events are handled by the store
       default:
-        // Update current thread ID for message events
-        if ("thread_id" in data) {
-          curThreadId.current = data.thread_id;
-        }
         break;
     }
   }, []);
@@ -112,18 +98,10 @@ function AgentChatContent() {
     <main className="relative flex flex-1 flex-col overflow-hidden">
       <ChatConversationArea
         agent={agent}
-        currentConversation={currentConversation}
+        currentConversation={curConversation}
         isStreaming={isStreaming}
         sendMessage={sendMessage}
       />
     </main>
-  );
-}
-
-export default function AgentChat() {
-  return (
-    <AgentStoreProvider>
-      <AgentChatContent />
-    </AgentStoreProvider>
   );
 }
