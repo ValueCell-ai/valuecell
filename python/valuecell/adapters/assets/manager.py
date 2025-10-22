@@ -201,6 +201,94 @@ class AdapterManager:
         logger.warning(f"No suitable adapter found for ticker: {ticker}")
         return None
 
+    def _deduplicate_search_results(
+        self, results: List[AssetSearchResult]
+    ) -> List[AssetSearchResult]:
+        """Smart deduplication of search results to handle cross-exchange duplicates.
+        
+        This method handles cases where the same asset appears on multiple exchanges
+        (e.g., AMEX:GORO vs NASDAQ:GORO). It prioritizes certain exchanges and removes
+        likely duplicates based on symbol matching.
+        
+        Args:
+            results: List of search results to deduplicate
+            
+        Returns:
+            Deduplicated list of search results
+        """
+        # Exchange priority for US stocks (higher number = higher priority)
+        exchange_priority = {
+            "NASDAQ": 3,
+            "NYSE": 2,
+            "AMEX": 1,
+            "HKEX": 3,
+            "SSE": 2,
+            "SZSE": 2,
+            "BSE": 1,
+        }
+        
+        seen_tickers = set()
+        # Map: (symbol, country) -> best result so far
+        symbol_map: Dict[tuple, AssetSearchResult] = {}
+        unique_results = []
+        
+        for result in results:
+            # Skip exact ticker duplicates
+            if result.ticker in seen_tickers:
+                continue
+            
+            try:
+                exchange, symbol = result.ticker.split(":", 1)
+            except ValueError:
+                # Invalid ticker format, skip
+                logger.warning(f"Invalid ticker format in search result: {result.ticker}")
+                continue
+            
+            # Create a key for cross-exchange deduplication
+            # Group by symbol and country to identify potential duplicates
+            dedup_key = (symbol.upper(), result.country)
+            
+            # Check if we've seen this symbol in the same country before
+            if dedup_key in symbol_map:
+                existing_result = symbol_map[dedup_key]
+                existing_exchange = existing_result.ticker.split(":")[0]
+                
+                # Compare exchange priorities
+                current_priority = exchange_priority.get(exchange, 0)
+                existing_priority = exchange_priority.get(existing_exchange, 0)
+                
+                if current_priority > existing_priority:
+                    # Replace with higher priority exchange
+                    symbol_map[dedup_key] = result
+                    logger.debug(
+                        f"Preferring {result.ticker} over {existing_result.ticker} (priority)"
+                    )
+                elif current_priority == existing_priority:
+                    # Same priority, prefer the one with higher relevance score
+                    if result.relevance_score > existing_result.relevance_score:
+                        symbol_map[dedup_key] = result
+                        logger.debug(
+                            f"Preferring {result.ticker} over {existing_result.ticker} (relevance)"
+                        )
+                # else: keep existing result (lower priority exchange)
+            else:
+                # First time seeing this symbol, add it
+                symbol_map[dedup_key] = result
+            
+            seen_tickers.add(result.ticker)
+        
+        # Convert map back to list
+        unique_results = list(symbol_map.values())
+        
+        # Sort by relevance score (descending)
+        unique_results.sort(key=lambda x: x.relevance_score, reverse=True)
+        
+        logger.info(
+            f"Deduplicated {len(results)} results to {len(unique_results)} unique assets"
+        )
+        
+        return unique_results
+
     def search_assets(self, query: AssetSearchQuery) -> List[AssetSearchResult]:
         """Search for assets across all available adapters.
 
@@ -239,14 +327,8 @@ class AdapterManager:
                         f"Search failed for adapter {adapter.source.value}: {e}"
                     )
 
-        # Deduplicate results by ticker
-        seen_tickers = set()
-        unique_results = []
-
-        for result in all_results:
-            if result.ticker not in seen_tickers:
-                seen_tickers.add(result.ticker)
-                unique_results.append(result)
+        # Smart deduplication of results
+        unique_results = self._deduplicate_search_results(all_results)
 
         # Use fallback search if no results found
         if len(unique_results) == 0:
@@ -254,7 +336,9 @@ class AdapterManager:
                 f"No results from adapters, trying fallback search for query: {query.query}"
             )
             fallback_results = self._fallback_search_assets(query)
-            unique_results.extend(fallback_results)
+            # Deduplicate fallback results with existing results
+            combined_results = unique_results + fallback_results
+            unique_results = self._deduplicate_search_results(combined_results)
 
         return unique_results[: query.limit]
 
@@ -400,7 +484,7 @@ Generate up to at least 1 possible ticker candidate up to 10. Be creative but re
             return []
 
     def get_asset_info(self, ticker: str) -> Optional[Asset]:
-        """Get detailed asset information.
+        """Get detailed asset information with automatic failover.
 
         Args:
             ticker: Asset ticker in internal format
@@ -408,16 +492,64 @@ Generate up to at least 1 possible ticker candidate up to 10. Be creative but re
         Returns:
             Asset information or None if not found
         """
+        # Get the primary adapter for this ticker
         adapter = self.get_adapter_for_ticker(ticker)
+        
         if not adapter:
             logger.warning(f"No suitable adapter found for ticker: {ticker}")
             return None
 
+        # Try the primary adapter
         try:
-            return adapter.get_asset_info(ticker)
+            logger.debug(f"Fetching asset info for {ticker} from {adapter.source.value}")
+            asset_info = adapter.get_asset_info(ticker)
+            if asset_info:
+                logger.info(
+                    f"Successfully fetched asset info for {ticker} from {adapter.source.value}"
+                )
+                return asset_info
+            else:
+                logger.debug(
+                    f"Adapter {adapter.source.value} returned None for {ticker}"
+                )
         except Exception as e:
-            logger.error(f"Error fetching asset info for {ticker}: {e}")
-            return None
+            logger.warning(
+                f"Primary adapter {adapter.source.value} failed for {ticker}: {e}"
+            )
+
+        # Automatic failover: try other adapters for this exchange
+        exchange = ticker.split(":")[0] if ":" in ticker else ""
+        fallback_adapters = self.get_adapters_for_exchange(exchange)
+
+        for fallback_adapter in fallback_adapters:
+            # Skip the primary adapter we already tried
+            if fallback_adapter.source == adapter.source:
+                continue
+
+            if not fallback_adapter.validate_ticker(ticker):
+                continue
+
+            try:
+                logger.debug(
+                    f"Fallback: trying {fallback_adapter.source.value} for {ticker}"
+                )
+                asset_info = fallback_adapter.get_asset_info(ticker)
+                if asset_info:
+                    logger.info(
+                        f"Fallback success: fetched asset info for {ticker} from {fallback_adapter.source.value}"
+                    )
+                    # Update cache to use successful adapter
+                    with self._cache_lock:
+                        self._ticker_cache[ticker] = fallback_adapter
+                    return asset_info
+            except Exception as e:
+                logger.warning(
+                    f"Fallback adapter {fallback_adapter.source.value} failed for {ticker}: {e}"
+                )
+                continue
+
+        logger.error(f"All adapters failed for {ticker}")
+        return None
 
     def get_real_time_price(self, ticker: str) -> Optional[AssetPrice]:
         """Get real-time price for an asset with automatic failover.
@@ -490,7 +622,7 @@ Generate up to at least 1 possible ticker candidate up to 10. Be creative but re
     def get_multiple_prices(
         self, tickers: List[str]
     ) -> Dict[str, Optional[AssetPrice]]:
-        """Get real-time prices for multiple assets efficiently.
+        """Get real-time prices for multiple assets efficiently with automatic failover.
 
         Args:
             tickers: List of asset tickers
@@ -510,6 +642,7 @@ Generate up to at least 1 possible ticker candidate up to 10. Be creative but re
 
         # Fetch prices in parallel from each adapter
         all_results = {}
+        failed_tickers = []
 
         if not adapter_tickers:
             # If no adapters found for any tickers, return None for all
@@ -525,11 +658,29 @@ Generate up to at least 1 possible ticker candidate up to 10. Be creative but re
                 adapter = future_to_adapter[future]
                 try:
                     results = future.result(timeout=60)  # 60 second timeout
-                    all_results.update(results)
+                    # Separate successful and failed results
+                    for ticker, price in results.items():
+                        if price is not None:
+                            all_results[ticker] = price
+                        else:
+                            failed_tickers.append(ticker)
                 except Exception as e:
                     logger.warning(
                         f"Batch price fetch failed for adapter {adapter.source.value}: {e}"
                     )
+                    # Mark all tickers from this adapter as failed
+                    failed_tickers.extend(adapter_tickers[adapter])
+
+        # Retry failed tickers individually with fallback adapters
+        if failed_tickers:
+            logger.info(
+                f"Retrying {len(failed_tickers)} failed tickers with fallback adapters"
+            )
+            for ticker in failed_tickers:
+                if ticker not in all_results or all_results[ticker] is None:
+                    # Try to get price with automatic failover
+                    price = self.get_real_time_price(ticker)
+                    all_results[ticker] = price
 
         # Ensure all requested tickers are in results
         for ticker in tickers:
