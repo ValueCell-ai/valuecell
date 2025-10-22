@@ -5,6 +5,7 @@ Global financial market data including stocks, funds, bonds, and economic indica
 """
 
 import logging
+import os
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
@@ -271,25 +272,40 @@ class AKShareAdapter(BaseDataAdapter):
             # A-shares market (SSE, SZSE, BSE)
             if exchange in [Exchange.SSE, Exchange.SZSE, Exchange.BSE]:
                 try:
-                    df = ak.stock_individual_basic_info_xq(symbol=xq_symbol)
+                    df = ak.stock_individual_basic_info_xq(
+                        symbol=xq_symbol, token=os.getenv("XUEQIU_TOKEN", None)
+                    )
                 except Exception as e:
-                    logger.error(f"Error fetching A-share info for {xq_symbol}: {e}")
+                    logger.error(
+                        f"Error fetching A-share info for {xq_symbol}: {e}",
+                        exc_info=True,
+                    )
                     return None
 
             # Hong Kong stock market
             elif exchange == Exchange.HKEX:
                 try:
-                    df = ak.stock_individual_basic_info_hk_xq(symbol=symbol)
+                    df = ak.stock_individual_basic_info_hk_xq(
+                        symbol=xq_symbol, token=os.getenv("XUEQIU_TOKEN", None)
+                    )
                 except Exception as e:
-                    logger.error(f"Error fetching HK stock info for {symbol}: {e}")
+                    logger.error(
+                        f"Error fetching HK stock info for {xq_symbol}: {e}",
+                        exc_info=True,
+                    )
                     return None
 
             # US stock market (NASDAQ, NYSE, AMEX)
             elif exchange in [Exchange.NASDAQ, Exchange.NYSE, Exchange.AMEX]:
                 try:
-                    df = ak.stock_individual_basic_info_us_xq(symbol=symbol)
+                    df = ak.stock_individual_basic_info_us_xq(
+                        symbol=xq_symbol, token=os.getenv("XUEQIU_TOKEN", None)
+                    )
                 except Exception as e:
-                    logger.error(f"Error fetching US stock info for {symbol}: {e}")
+                    logger.error(
+                        f"Error fetching US stock info for {xq_symbol}: {e}",
+                        exc_info=True,
+                    )
                     return None
 
             else:

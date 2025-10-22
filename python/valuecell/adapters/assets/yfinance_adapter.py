@@ -55,18 +55,14 @@ class YFinanceAdapter(BaseDataAdapter):
 
         # Map yfinance exchanges to our internal exchanges
         self.exchange_mapping = {
-            "NMS": "NASDAQ",
-            "NYQ": "NYSE",
-            "ASE": "AMEX",
-            "SHH": "SSE",
-            "SHZ": "SZSE",
-            "HKG": "HKEX",
-            "PCX": "NYSE",
-            "CCC": "CRYPTO",
-            # "TYO": "TSE",
-            # "LSE": "LSE",
-            # "PAR": "EURONEXT",
-            # "FRA": "XETRA",
+            "NMS": Exchange.NASDAQ,
+            "NYQ": Exchange.NYSE,
+            "ASE": Exchange.AMEX,
+            "SHH": Exchange.SSE,
+            "SHZ": Exchange.SZSE,
+            "HKG": Exchange.HKEX,
+            "PCX": Exchange.NYSE,
+            "CCC": Exchange.CRYPTO,
         }
 
         logger.info("Yahoo Finance adapter initialized")
@@ -114,13 +110,14 @@ class YFinanceAdapter(BaseDataAdapter):
                 return None
 
             # Get exchange information first
-            exchange = quote.get("exchange", "UNKNOWN")
+            exchange = quote.get("exchange")
+            if not exchange:
+                return None
 
-            mapped_exchange = self.exchange_mapping.get(exchange, exchange)
+            mapped_exchange = self.exchange_mapping.get(exchange)
 
             # Filter: Only support specific exchanges
-            supported_exchanges = ["NASDAQ", "NYSE", "SSE", "SZSE", "HKEX", "CRYPTO"]
-            if mapped_exchange not in supported_exchanges:
+            if mapped_exchange not in self.exchange_mapping.values():
                 logger.debug(
                     f"Skipping unsupported exchange: {mapped_exchange} for symbol {symbol}"
                 )
@@ -128,7 +125,9 @@ class YFinanceAdapter(BaseDataAdapter):
 
             # Convert to internal ticker format and normalize
             # Remove any suffixes that yfinance might include
-            internal_ticker = self.convert_to_internal_ticker(symbol, mapped_exchange)
+            internal_ticker = self.convert_to_internal_ticker(
+                symbol, mapped_exchange.value
+            )
 
             # Validate the ticker format
             if not self._is_valid_internal_ticker(internal_ticker):
@@ -145,11 +144,11 @@ class YFinanceAdapter(BaseDataAdapter):
 
             # Get country information
             country = "US"  # Default
-            if mapped_exchange in ["SSE", "SZSE"]:
+            if mapped_exchange in [Exchange.SSE, Exchange.SZSE]:
                 country = "CN"
-            elif mapped_exchange == "HKEX":
+            elif mapped_exchange == Exchange.HKEX:
                 country = "HK"
-            elif mapped_exchange == "CRYPTO":
+            elif mapped_exchange == Exchange.CRYPTO:
                 country = "US"
 
             # Get names in different languages
@@ -170,7 +169,7 @@ class YFinanceAdapter(BaseDataAdapter):
                 ticker=internal_ticker,
                 asset_type=asset_type,
                 names=names,
-                exchange=mapped_exchange,
+                exchange=mapped_exchange.value,
                 country=country,
                 currency=quote.get("currency", "USD"),
                 market_status=MarketStatus.UNKNOWN,
@@ -282,9 +281,12 @@ class YFinanceAdapter(BaseDataAdapter):
             long_name = info.get("longName", info.get("shortName", ticker))
             names.set_name("en-US", long_name)
 
+            if info.get("exchange"):
+                exchange = self.exchange_mapping.get(info.get("exchange"))
+
             # Create market info
             market_info = MarketInfo(
-                exchange=info.get("exchange", "UNKNOWN"),
+                exchange=exchange.value if exchange else "UNKNOWN",
                 country=info.get("country", "US"),
                 currency=info.get("currency", "USD"),
                 timezone=info.get("exchangeTimezoneName", "America/New_York"),
