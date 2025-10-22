@@ -102,7 +102,7 @@ export default function StockSearchModal({ children }: StockSearchModalProps) {
         </header>
 
         {/* Search Input */}
-        <div className="focus-within:!ring-neutral-600 flex items-center gap-4 rounded-lg bg-white px-4 py-2 hover:ring-1 hover:ring-neutral-200">
+        <div className="flex items-center gap-4 rounded-lg bg-white px-4 py-2 focus-within:ring-neutral-600! hover:ring-1 hover:ring-neutral-200">
           <Search className="size-5 text-neutral-400" />
           <Input
             onChange={(e) => setQuery(e.target.value)}
