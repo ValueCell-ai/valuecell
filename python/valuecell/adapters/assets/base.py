@@ -6,8 +6,9 @@ must implement to ensure consistent behavior across different providers.
 
 import logging
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 from .types import (
     Asset,
@@ -16,204 +17,42 @@ from .types import (
     AssetSearchResult,
     AssetType,
     DataSource,
+    Exchange,
 )
 
 logger = logging.getLogger(__name__)
 
 
-class TickerConverter:
-    """Utility class for converting between internal ticker format and data source formats."""
+@dataclass
+class AdapterCapability:
+    """Describes the asset types and exchanges supported by an adapter.
 
-    def __init__(self):
-        """Initialize ticker converter with mapping rules."""
-        # Mapping from internal exchange codes to data source specific formats
-        self.exchange_mappings: Dict[DataSource, Dict[str, str]] = {
-            DataSource.YFINANCE: {
-                "NASDAQ": "",  # NASDAQ stocks don't need suffix in yfinance
-                "NYSE": "",  # NYSE stocks don't need suffix in yfinance
-                "SSE": ".SS",  # Shanghai Stock Exchange
-                "SZSE": ".SZ",  # Shenzhen Stock Exchange
-                "HKEX": ".HK",  # Hong Kong Exchange
-                "TSE": ".T",  # Tokyo Stock Exchange
-            },
-            DataSource.AKSHARE: {
-                "SSE": "",  # AKShare uses plain symbols for Chinese stocks
-                "SZSE": "",  # AKShare uses plain symbols for Chinese stocks
-                "BSE": "",  # Beijing Stock Exchange
-            },
-        }
+    This provides fine-grained control over adapter routing based on
+    specific exchange and asset type combinations.
+    """
 
-        # Reverse mappings for converting back to internal format
-        self.reverse_mappings: Dict[DataSource, Dict[str, str]] = {}
-        for source, mappings in self.exchange_mappings.items():
-            self.reverse_mappings[source] = {v: k for k, v in mappings.items() if v}
+    asset_type: AssetType
+    exchanges: Set[Exchange]  # Supported exchanges
 
-    def to_source_format(self, internal_ticker: str, source: DataSource) -> str:
-        """Convert internal ticker format to data source specific format.
+    def supports_exchange(self, exchange: Exchange) -> bool:
+        """Check if this capability supports the given exchange.
 
         Args:
-            internal_ticker: Ticker in internal format (e.g., "NASDAQ:AAPL")
-            source: Target data source
+            exchange: Exchange to check (can be Exchange enum or string)
 
         Returns:
-            Ticker in data source specific format (e.g., "AAPL" for yfinance)
+            True if this capability supports the exchange
         """
-        try:
-            exchange, symbol = internal_ticker.split(":", 1)
+        # Support both Exchange enum and string for backward compatibility
+        if isinstance(exchange, str):
+            exchange_str = exchange
+        else:
+            exchange_str = exchange.value
 
-            # Special handling for indices in yfinance (use ^ prefix)
-            if source == DataSource.YFINANCE:
-                index_mapping = {
-                    # US Indices
-                    "NASDAQ:IXIC": "^IXIC",  # NASDAQ Composite
-                    "NYSE:DJI": "^DJI",  # Dow Jones Industrial Average
-                    "NYSE:GSPC": "^GSPC",  # S&P 500
-                    "NASDAQ:NDX": "^NDX",  # NASDAQ 100
-                    # Hong Kong Indices
-                    "HKEX:HSI": "^HSI",  # Hang Seng Index
-                    "HKEX:HSCEI": "^HSCEI",  # Hang Seng China Enterprises Index
-                    # Chinese Indices (already work with .SS/.SZ suffixes)
-                    # European Indices
-                    "LSE:FTSE": "^FTSE",  # FTSE 100
-                    "EURONEXT:FCHI": "^FCHI",  # CAC 40
-                    "XETRA:GDAXI": "^GDAXI",  # DAX
-                }
-
-                if internal_ticker in index_mapping:
-                    return index_mapping[internal_ticker]
-
-            # Special handling for crypto tickers in yfinance
-            if exchange == "CRYPTO" and source == DataSource.YFINANCE:
-                # Map common crypto symbols to yfinance format
-                crypto_mapping = {
-                    "BTC": "BTC-USD",
-                    "ETH": "ETH-USD",
-                    "ADA": "ADA-USD",
-                    "DOT": "DOT-USD",
-                    "SOL": "SOL-USD",
-                    "MATIC": "MATIC-USD",
-                    "LINK": "LINK-USD",
-                    "UNI": "UNI-USD",
-                    "AVAX": "AVAX-USD",
-                    "ATOM": "ATOM-USD",
-                }
-                return crypto_mapping.get(symbol, f"{symbol}-USD")
-
-            # Special handling for Hong Kong stocks in yfinance
-            if exchange == "HKEX" and source == DataSource.YFINANCE:
-                # Hong Kong stock codes need to be in proper format
-                # e.g., "700" -> "0700.HK", "00700" -> "0700.HK", "1234" -> "1234.HK"
-                if symbol.isdigit():
-                    # Remove leading zeros first, then pad to 4 digits
-                    clean_symbol = str(int(symbol))  # Remove leading zeros
-                    padded_symbol = clean_symbol.zfill(4)  # Pad to 4 digits
-                    return f"{padded_symbol}.HK"
-                else:
-                    # For non-numeric symbols, use as-is with .HK suffix
-                    return f"{symbol}.HK"
-
-            if source not in self.exchange_mappings:
-                logger.warning(f"No mapping found for data source: {source}")
-                return symbol
-
-            suffix = self.exchange_mappings[source].get(exchange, "")
-            return f"{symbol}{suffix}"
-
-        except ValueError:
-            logger.error(f"Invalid ticker format: {internal_ticker}")
-            return internal_ticker
-
-    def to_internal_format(
-        self,
-        source_ticker: str,
-        source: DataSource,
-        default_exchange: Optional[str] = None,
-    ) -> str:
-        """Convert data source ticker to internal format.
-
-        Args:
-            source_ticker: Ticker in data source format (e.g., "000001.SZ")
-            source: Source data provider
-            default_exchange: Default exchange if cannot be determined from ticker
-
-        Returns:
-            Ticker in internal format (e.g., "SZSE:000001")
-        """
-        try:
-            # Special handling for indices from yfinance (reverse ^ prefix mapping)
-            if source == DataSource.YFINANCE and source_ticker.startswith("^"):
-                index_reverse_mapping = {
-                    # US Indices
-                    "^IXIC": "NASDAQ:IXIC",  # NASDAQ Composite
-                    "^DJI": "NYSE:DJI",  # Dow Jones Industrial Average
-                    "^GSPC": "NYSE:GSPC",  # S&P 500
-                    "^NDX": "NASDAQ:NDX",  # NASDAQ 100
-                    # Hong Kong Indices
-                    "^HSI": "HKEX:HSI",  # Hang Seng Index
-                    "^HSCEI": "HKEX:HSCEI",  # Hang Seng China Enterprises Index
-                    # European Indices
-                    "^FTSE": "LSE:FTSE",  # FTSE 100
-                    "^FCHI": "EURONEXT:FCHI",  # CAC 40
-                    "^GDAXI": "XETRA:GDAXI",  # DAX
-                }
-
-                if source_ticker in index_reverse_mapping:
-                    return index_reverse_mapping[source_ticker]
-
-            # Special handling for crypto from yfinance - remove currency suffix
-            if source == DataSource.YFINANCE and (
-                "-USD" in source_ticker
-                or "-CAD" in source_ticker
-                or "-EUR" in source_ticker
-            ):
-                # Remove any currency suffix
-                crypto_symbol = source_ticker.split("-")[0].upper()
-                return f"CRYPTO:{crypto_symbol}"
-
-            # Special handling for Hong Kong stocks from yfinance
-            if source == DataSource.YFINANCE and ".HK" in source_ticker:
-                symbol = source_ticker.replace(".HK", "")  # Remove .HK suffix
-                # Keep as digits only, no leading zero removal for internal format
-                if symbol.isdigit():
-                    # Pad to 5 digits for Hong Kong stocks
-                    symbol = symbol.zfill(5)
-                return f"HKEX:{symbol}"
-
-            # Special handling for Shanghai stocks from yfinance
-            if source == DataSource.YFINANCE and ".SS" in source_ticker:
-                symbol = source_ticker.replace(".SS", "")
-                return f"SSE:{symbol}"
-
-            # Special handling for Shenzhen stocks from yfinance
-            if source == DataSource.YFINANCE and ".SZ" in source_ticker:
-                symbol = source_ticker.replace(".SZ", "")
-                return f"SZSE:{symbol}"
-
-            # Check for known suffixes
-            if source in self.reverse_mappings:
-                for suffix, exchange in self.reverse_mappings[source].items():
-                    if source_ticker.endswith(suffix):
-                        symbol = (
-                            source_ticker[: -len(suffix)] if suffix else source_ticker
-                        )
-                        return f"{exchange}:{symbol}"
-
-            # If no suffix found and default exchange provided
-            if default_exchange:
-                # For US stocks from yfinance, symbol is already clean
-                return f"{default_exchange}:{source_ticker}"
-
-            # For other assets without clear exchange mapping
-            # Fallback to using the source as exchange
-            return f"{source.value.upper()}:{source_ticker}"
-
-        except Exception as e:
-            logger.error(f"Error converting ticker {source_ticker}: {e}")
-            return f"UNKNOWN:{source_ticker}"
-
-    def get_supported_exchanges(self, source: DataSource) -> List[str]:
-        """Get list of supported exchanges for a data source."""
-        return list(self.exchange_mappings.get(source, {}).keys())
+        return any(
+            ex.value == exchange_str if isinstance(ex, Exchange) else ex == exchange_str
+            for ex in self.exchanges
+        )
 
 
 class BaseDataAdapter(ABC):
@@ -230,7 +69,6 @@ class BaseDataAdapter(ABC):
         self.source = source
         self.api_key = api_key
         self.config = kwargs
-        self.converter = TickerConverter()
         self.logger = logging.getLogger(f"{__name__}.{source.value}")
 
         # Initialize adapter-specific configuration
@@ -322,145 +160,79 @@ class BaseDataAdapter(ABC):
         """Validate if a ticker format is supported by this adapter.
 
         Args:
-            ticker: Ticker in internal format
+            ticker: Ticker in internal format (e.g., "NASDAQ:AAPL")
 
         Returns:
             True if ticker is valid for this adapter
         """
         try:
+            if ":" not in ticker:
+                return False
+
             exchange, _ = ticker.split(":", 1)
-            supported_exchanges = self.converter.get_supported_exchanges(self.source)
-            return exchange in supported_exchanges
-        except ValueError:
+            capabilities = self.get_capabilities()
+
+            # Check if any capability supports this exchange
+            return any(cap.supports_exchange(exchange) for cap in capabilities)
+        except Exception:
             return False
 
+    @abstractmethod
     def convert_to_source_ticker(self, internal_ticker: str) -> str:
-        """Convert internal ticker to data source format."""
-        return self.converter.to_source_format(internal_ticker, self.source)
-
-    def convert_to_internal_ticker(
-        self, source_ticker: str, default_exchange: Optional[str] = None
-    ) -> str:
-        """Convert data source ticker to internal format."""
-        return self.converter.to_internal_format(
-            source_ticker, self.source, default_exchange
-        )
-
-    def is_market_open(self, exchange: str) -> bool:
-        """Check if a specific market is currently open.
+        """Convert internal ticker to data source format.
 
         Args:
-            exchange: Exchange identifier
+            internal_ticker: Ticker in internal format (e.g., "NASDAQ:AAPL")
+            source: Target data source
 
         Returns:
-            True if market is open, False otherwise
-        """
-        # This is a basic implementation - subclasses should override
-        # with more accurate market hours checking
-        now = datetime.utcnow()
-        hour = now.hour
-
-        # Basic US market hours (9:30 AM - 4:00 PM EST = 14:30 - 21:00 UTC)
-        if exchange in ["NASDAQ", "NYSE"]:
-            return 14 <= hour < 21
-
-        # Basic Chinese market hours (9:30 AM - 3:00 PM CST = 1:30 - 7:00 UTC)
-        elif exchange in ["SSE", "SZSE"]:
-            return 1 <= hour < 7
-
-        # For crypto markets, assume always open
-        elif exchange in ["CRYPTO"]:
-            return True
-
-        return False
-
-    def get_supported_asset_types(self) -> List[AssetType]:
-        """Get list of asset types supported by this adapter."""
-        # Default implementation - subclasses should override
-        return [AssetType.STOCK]
-
-    def health_check(self) -> Dict[str, Any]:
-        """Perform health check on the data adapter.
-
-        Returns:
-            Dictionary containing health status information
-        """
-        try:
-            # Try to make a simple API call to test connectivity
-            test_result = self._perform_health_check()
-            return {
-                "source": self.source.value,
-                "status": "healthy" if test_result else "unhealthy",
-                "timestamp": datetime.utcnow().isoformat(),
-                "details": test_result,
-            }
-        except Exception as e:
-            return {
-                "source": self.source.value,
-                "status": "error",
-                "timestamp": datetime.utcnow().isoformat(),
-                "error": str(e),
-            }
-
-    @abstractmethod
-    def _perform_health_check(self) -> Any:
-        """Perform adapter-specific health check.
-
-        Returns:
-            Health check result (implementation-specific)
+            Ticker in data source specific format (e.g., "AAPL" for yfinance)
         """
         pass
 
-
-class AdapterError(Exception):
-    """Base exception class for adapter-related errors."""
-
-    def __init__(
-        self,
-        message: str,
-        source: Optional[DataSource] = None,
-        ticker: Optional[str] = None,
-    ):
-        """Initialize adapter error.
-
+    @abstractmethod
+    def convert_to_internal_ticker(
+        self, source_ticker: str, default_exchange: Optional[str] = None
+    ) -> str:
+        """Convert data source ticker to internal format.
         Args:
-            message: Error message
-            source: Data source where error occurred
-            ticker: Asset ticker related to the error
+            source_ticker: Ticker in data source format (e.g., "000001.SZ")
+            source: Source data provider
+            default_exchange: Default exchange if cannot be determined from ticker
+
+        Returns:
+            Ticker in internal format (e.g., "SZSE:000001")
         """
-        self.source = source
-        self.ticker = ticker
-        super().__init__(message)
+        pass
 
+    @abstractmethod
+    def get_capabilities(self) -> List[AdapterCapability]:
+        """Get detailed capabilities describing supported asset types and exchanges.
 
-class RateLimitError(AdapterError):
-    """Exception raised when API rate limits are exceeded."""
-
-    def __init__(self, message: str, retry_after: Optional[int] = None, **kwargs):
-        """Initialize rate limit error.
-
-        Args:
-            message: Error message
-            retry_after: Seconds to wait before retrying
-            **kwargs: Additional error context
+        Returns:
+            List of capabilities describing what this adapter can handle
         """
-        self.retry_after = retry_after
-        super().__init__(message, **kwargs)
+        pass
 
+    def get_supported_asset_types(self) -> List[AssetType]:
+        """Get list of asset types supported by this adapter.
 
-class DataNotAvailableError(AdapterError):
-    """Exception raised when requested data is not available."""
+        This method extracts asset types from capabilities.
+        """
+        capabilities = self.get_capabilities()
+        asset_types = set()
+        for cap in capabilities:
+            asset_types.add(cap.asset_type)
+        return list(asset_types)
 
-    pass
+    def get_supported_exchanges(self) -> Set[Exchange]:
+        """Get set of all exchanges supported by this adapter.
 
-
-class AuthenticationError(AdapterError):
-    """Exception raised when API authentication fails."""
-
-    pass
-
-
-class InvalidTickerError(AdapterError):
-    """Exception raised when ticker format is invalid or not supported."""
-
-    pass
+        Returns:
+            Set of Exchange enums
+        """
+        capabilities = self.get_capabilities()
+        exchanges: Set[Exchange] = set()
+        for cap in capabilities:
+            exchanges.update(cap.exchanges)
+        return exchanges

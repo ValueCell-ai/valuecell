@@ -107,7 +107,6 @@ class AssetInfoData(BaseModel):
     market_status_display: Optional[str] = Field(
         None, description="Localized market status display"
     )
-    relevance_score: Optional[float] = Field(None, description="Search relevance score")
 
 
 class AssetSearchResultData(BaseModel):

@@ -101,12 +101,6 @@ class AssetService:
                     ),
                     "exchange": result.exchange,
                     "country": result.country,
-                    "currency": result.currency,
-                    "market_status": result.market_status.value,
-                    "market_status_display": self.i18n_service.get_market_status_display_name(
-                        result.market_status, language
-                    ),
-                    "relevance_score": result.relevance_score,
                 }
                 result_dicts.append(result_dict)
 
@@ -633,51 +627,6 @@ class AssetService:
         except Exception as e:
             logger.error(f"Error getting user watchlists: {e}")
             return {"success": False, "error": str(e), "user_id": user_id}
-
-    def get_system_health(self) -> Dict[str, Any]:
-        """Get system health status for all data adapters.
-
-        Returns:
-            Dictionary containing health status for all adapters
-        """
-        try:
-            health_data = self.adapter_manager.health_check()
-
-            # Convert enum keys to strings
-            health_status = {}
-            for source, status in health_data.items():
-                health_status[source.value] = status
-
-            # Calculate overall health
-            healthy_count = sum(
-                1
-                for status in health_status.values()
-                if status.get("status") == "healthy"
-            )
-            total_count = len(health_status)
-
-            # Determine overall status
-            if total_count == 0:
-                overall_status = "no_adapters"
-            elif healthy_count == total_count:
-                overall_status = "healthy"
-            elif healthy_count > 0:
-                overall_status = "degraded"
-            else:
-                overall_status = "unhealthy"
-
-            return {
-                "success": True,
-                "overall_status": overall_status,
-                "healthy_adapters": healthy_count,
-                "total_adapters": total_count,
-                "adapters": health_status,
-                "timestamp": datetime.utcnow().isoformat(),
-            }
-
-        except Exception as e:
-            logger.error(f"Error getting system health: {e}")
-            return {"success": False, "error": str(e), "overall_status": "error"}
 
 
 # Global service instance

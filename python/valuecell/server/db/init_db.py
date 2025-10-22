@@ -213,9 +213,6 @@ class DatabaseInitializer:
                                             "market_status"
                                         ),
                                         "source": "adapter_search",
-                                        "relevance_score": asset_data.get(
-                                            "relevance_score", 0.0
-                                        ),
                                         "original_search_query": query,
                                         "standardized_ticker": asset_ticker,
                                     },

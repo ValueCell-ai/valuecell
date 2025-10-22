@@ -7,14 +7,11 @@ to fetch stock market data, including real-time prices and historical data.
 import logging
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
-try:
-    import yfinance as yf
-except ImportError:
-    yf = None
+import yfinance as yf
 
-from .base import BaseDataAdapter
+from .base import AdapterCapability, BaseDataAdapter
 from .types import (
     Asset,
     AssetPrice,
@@ -22,6 +19,7 @@ from .types import (
     AssetSearchResult,
     AssetType,
     DataSource,
+    Exchange,
     Interval,
     LocalizedName,
     MarketInfo,
@@ -45,18 +43,30 @@ class YFinanceAdapter(BaseDataAdapter):
 
     def _initialize(self) -> None:
         """Initialize Yahoo Finance adapter configuration."""
-        self.session = None  # yfinance handles sessions internally
         self.timeout = self.config.get("timeout", 30)
 
         # Asset type mapping for Yahoo Finance
-        self.asset_type_mapping = {
+        self.quote_type_to_asset_type_mapping = {
             "EQUITY": AssetType.STOCK,
             "ETF": AssetType.ETF,
             "INDEX": AssetType.INDEX,
             "CRYPTOCURRENCY": AssetType.CRYPTO,
-            # Additional mappings for search results
-            "STOCK": AssetType.STOCK,
-            "FUND": AssetType.ETF,
+        }
+
+        # Map yfinance exchanges to our internal exchanges
+        self.exchange_mapping = {
+            "NMS": "NASDAQ",
+            "NYQ": "NYSE",
+            "ASE": "AMEX",
+            "SHH": "SSE",
+            "SHZ": "SZSE",
+            "HKG": "HKEX",
+            "PCX": "NYSE",
+            "CCC": "CRYPTO",
+            # "TYO": "TSE",
+            # "LSE": "LSE",
+            # "PAR": "EURONEXT",
+            # "FRA": "XETRA",
         }
 
         logger.info("Yahoo Finance adapter initialized")
@@ -66,6 +76,8 @@ class YFinanceAdapter(BaseDataAdapter):
 
         Uses yfinance.Search for better search results across stocks, ETFs, and other assets.
         Falls back to direct ticker lookup for specific symbols.
+
+        This method
         """
         results = []
         search_term = query.query.strip()
@@ -78,13 +90,9 @@ class YFinanceAdapter(BaseDataAdapter):
             search_quotes = getattr(search_obj, "quotes", [])
 
             # Process search results
-            for quote in search_quotes[
-                : query.limit * 2
-            ]:  # Get more results to filter later
+            for quote in search_quotes:
                 try:
-                    result = self._create_search_result_from_quote(
-                        quote, query.language
-                    )
+                    result = self._create_search_result_from_quote(quote)
                     if result:
                         results.append(result)
                 except Exception as e:
@@ -92,34 +100,12 @@ class YFinanceAdapter(BaseDataAdapter):
                     continue
 
         except Exception as e:
-            logger.debug(f"yfinance Search API failed for '{search_term}': {e}")
-
-            # Fallback to direct ticker lookup
-            results.extend(self._fallback_ticker_search(search_term, query))
-
-        # If no results from search, try direct ticker lookup as final fallback
-        if not results:
-            results.extend(self._fallback_ticker_search(search_term.upper(), query))
-
-        # Filter by asset types if specified
-        if query.asset_types:
-            results = [r for r in results if r.asset_type in query.asset_types]
-
-        # Filter by exchanges if specified
-        if query.exchanges:
-            results = [r for r in results if r.exchange in query.exchanges]
-
-        # Filter by countries if specified
-        if query.countries:
-            results = [r for r in results if r.country in query.countries]
-
-        # Sort by relevance score (highest first)
-        results.sort(key=lambda x: x.relevance_score, reverse=True)
+            logger.error(f"yfinance Search API failed for '{search_term}': {e}")
 
         return results[: query.limit]
 
     def _create_search_result_from_quote(
-        self, quote: Dict, language: str
+        self, quote: Dict
     ) -> Optional[AssetSearchResult]:
         """Create search result from Yahoo Finance search quote."""
         try:
@@ -130,22 +116,7 @@ class YFinanceAdapter(BaseDataAdapter):
             # Get exchange information first
             exchange = quote.get("exchange", "UNKNOWN")
 
-            # Map yfinance exchange codes to our internal format
-            exchange_mapping = {
-                "NMS": "NASDAQ",
-                "NYQ": "NYSE",
-                "ASE": "AMEX",
-                "SHH": "SSE",
-                "SHZ": "SZSE",
-                "HKG": "HKEX",
-                "TYO": "TSE",
-                "LSE": "LSE",
-                "PAR": "EURONEXT",
-                "FRA": "XETRA",
-                "PCX": "NYSE",  # Pacific Exchange (for ETFs like SPY)
-                "CCC": "CRYPTO",  # Crypto
-            }
-            mapped_exchange = exchange_mapping.get(exchange, exchange)
+            mapped_exchange = self.exchange_mapping.get(exchange, exchange)
 
             # Filter: Only support specific exchanges
             supported_exchanges = ["NASDAQ", "NYSE", "SSE", "SZSE", "HKEX", "CRYPTO"]
@@ -168,7 +139,9 @@ class YFinanceAdapter(BaseDataAdapter):
 
             # Get asset type from quote type
             quote_type = quote.get("quoteType", "").upper()
-            asset_type = self.asset_type_mapping.get(quote_type, AssetType.STOCK)
+            asset_type = self.quote_type_to_asset_type_mapping.get(
+                quote_type, AssetType.STOCK
+            )
 
             # Get country information
             country = "US"  # Default
@@ -220,7 +193,7 @@ class YFinanceAdapter(BaseDataAdapter):
             info = ticker_obj.info
 
             if info and "symbol" in info and info.get("symbol"):
-                result = self._create_search_result_from_info(info, query.language)
+                result = self._create_search_result_from_info(info)
                 if result:
                     results.append(result)
         except Exception as e:
@@ -247,37 +220,8 @@ class YFinanceAdapter(BaseDataAdapter):
 
         return results
 
-    def _calculate_search_relevance(self, quote: Dict, symbol: str, name: str) -> float:
-        """Calculate relevance score for search results."""
-        score = 0.0
-
-        # Base score for having a result
-        score += 0.5
-
-        # Higher score for exact symbol matches
-        if quote.get("symbol", "").upper() == symbol.upper():
-            score += 0.3
-
-        # Score based on market cap (larger companies get higher scores)
-        market_cap = quote.get("marketCap")
-        if market_cap and isinstance(market_cap, (int, float)) and market_cap > 0:
-            # Normalize market cap to 0-0.2 range
-            score += min(
-                0.2, market_cap / 1e12
-            )  # Trillion dollar companies get max score
-
-        # Bonus for having complete information
-        if quote.get("longname"):
-            score += 0.1
-        if quote.get("currency"):
-            score += 0.05
-        if quote.get("exchange"):
-            score += 0.05
-
-        return min(1.0, score)  # Cap at 1.0
-
     def _create_search_result_from_info(
-        self, info: Dict, language: str
+        self, info: Dict
     ) -> Optional[AssetSearchResult]:
         """Create search result from Yahoo Finance info dictionary."""
         try:
@@ -289,7 +233,7 @@ class YFinanceAdapter(BaseDataAdapter):
             internal_ticker = self.convert_to_internal_ticker(symbol)
 
             # Get asset type
-            asset_type = self.asset_type_mapping.get(
+            asset_type = self.quote_type_to_asset_type_mapping.get(
                 info.get("quoteType", "").upper(), AssetType.STOCK
             )
 
@@ -303,7 +247,7 @@ class YFinanceAdapter(BaseDataAdapter):
             }
 
             # For Chinese markets, try to get Chinese name
-            if exchange in ["SSE", "SHE"] and language.startswith("zh"):
+            if exchange in ["SSE", "SZSE"]:
                 # This would require additional API calls or data sources
                 # For now, use English name as fallback
                 pass
@@ -347,7 +291,7 @@ class YFinanceAdapter(BaseDataAdapter):
             )
 
             # Determine asset type
-            asset_type = self.asset_type_mapping.get(
+            asset_type = self.quote_type_to_asset_type_mapping.get(
                 info.get("quoteType", "").upper(), AssetType.STOCK
             )
 
@@ -631,6 +575,53 @@ class YFinanceAdapter(BaseDataAdapter):
             # Fallback to individual requests
             return super().get_multiple_prices(tickers)
 
+    def get_capabilities(self) -> List[AdapterCapability]:
+        """Get detailed capabilities of Yahoo Finance adapter.
+
+        Yahoo Finance supports major US, Hong Kong, and Chinese exchanges.
+
+        Returns:
+            List of capabilities describing supported asset types and exchanges
+        """
+        return [
+            AdapterCapability(
+                asset_type=AssetType.STOCK,
+                exchanges={
+                    Exchange.NASDAQ,
+                    Exchange.NYSE,
+                    Exchange.AMEX,
+                    Exchange.SSE,
+                    Exchange.SZSE,
+                    Exchange.HKEX,
+                },
+            ),
+            AdapterCapability(
+                asset_type=AssetType.ETF,
+                exchanges={
+                    Exchange.NASDAQ,
+                    Exchange.NYSE,
+                    Exchange.AMEX,
+                    Exchange.SSE,
+                    Exchange.SZSE,
+                    Exchange.HKEX,
+                },
+            ),
+            AdapterCapability(
+                asset_type=AssetType.INDEX,
+                exchanges={
+                    Exchange.NASDAQ,
+                    Exchange.NYSE,
+                    Exchange.SSE,
+                    Exchange.SZSE,
+                    Exchange.HKEX,
+                },
+            ),
+            AdapterCapability(
+                asset_type=AssetType.CRYPTO,
+                exchanges={Exchange.CRYPTO},
+            ),
+        ]
+
     def get_supported_asset_types(self) -> List[AssetType]:
         """Get asset types supported by Yahoo Finance."""
         return [
@@ -640,82 +631,122 @@ class YFinanceAdapter(BaseDataAdapter):
             AssetType.CRYPTO,
         ]
 
-    def _perform_health_check(self) -> Any:
-        """Perform health check by fetching a known ticker."""
-        try:
-            # Test with Apple stock
-            ticker_obj = yf.Ticker("AAPL")
-            info = ticker_obj.info
-
-            if info and "symbol" in info:
-                return {
-                    "status": "ok",
-                    "test_ticker": "AAPL",
-                    "response_received": True,
-                }
-            else:
-                return {"status": "error", "message": "No data received"}
-
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
-
-    def _is_valid_internal_ticker(self, ticker: str) -> bool:
-        """Validate if internal ticker format is correct and supported.
-
-        Args:
-            ticker: Internal ticker format (e.g., "NASDAQ:AAPL", "HKEX:00700", "CRYPTO:BTC")
-
-        Returns:
-            True if ticker format is valid
-        """
-        try:
-            if ":" not in ticker:
-                return False
-
-            exchange, symbol = ticker.split(":", 1)
-
-            # Validate exchange
-            supported_exchanges = ["NASDAQ", "NYSE", "SSE", "SZSE", "HKEX", "CRYPTO"]
-            if exchange not in supported_exchanges:
-                return False
-
-            # Validate symbol format based on exchange
-            if exchange in ["NASDAQ", "NYSE"]:
-                # US stocks: 1-5 uppercase letters, no special characters except hyphen
-                return (
-                    bool(symbol)
-                    and len(symbol) <= 5
-                    and symbol.replace("-", "").isalnum()
-                )
-
-            elif exchange in ["SSE", "SZSE"]:
-                # A-shares: exactly 6 digits
-                return symbol.isdigit() and len(symbol) == 6
-
-            elif exchange == "HKEX":
-                # HK stocks: 1-5 digits (e.g., 00700)
-                # HK indices: uppercase letters (e.g., HSI, HSCEI)
-                # No .HK suffix allowed
-                if ".HK" in symbol:
-                    return False
-                return (symbol.isdigit() and 1 <= len(symbol) <= 5) or (
-                    symbol.isalpha() and symbol.isupper()
-                )
-
-            elif exchange == "CRYPTO":
-                # Crypto: uppercase letters, no currency suffix (e.g., BTC, not BTC-USD)
-                return (
-                    bool(symbol)
-                    and symbol.isalpha()
-                    and symbol.isupper()
-                    and "-" not in symbol
-                )
-
-            return False
-
-        except (ValueError, AttributeError):
-            return False
-
     def validate_ticker(self, ticker: str) -> bool:
-        """Validate if ticker is supported by Yahoo Finance."""
-        return self._is_valid_internal_ticker(ticker)
+        """Validate if ticker is supported by Yahoo Finance.
+        Args:
+            ticker: Ticker in internal format, suppose the ticker has been validated before by the caller.
+            (e.g., "NASDAQ:AAPL", "HKEX:00700", "CRYPTO:BTC")
+        Returns:
+            True if ticker is supported
+        """
+
+        if ":" not in ticker:
+            return False
+
+        exchange, symbol = ticker.split(":", 1)
+
+        # Validate exchange
+        supported_exchanges = ["NASDAQ", "NYSE", "SSE", "SZSE", "HKEX", "CRYPTO"]
+        if exchange not in supported_exchanges:
+            return False
+
+        return True
+
+    def convert_to_source_ticker(self, internal_ticker: str) -> str:
+        """Convert internal ticker to Yahoo Finance source ticker."""
+        try:
+            exchange, symbol = internal_ticker.split(":", 1)
+            exchange_mapping = {
+                "NASDAQ": "",  # NASDAQ stocks don't need suffix in yfinance
+                "NYSE": "",  # NYSE stocks don't need suffix in yfinance
+                "SSE": ".SS",  # Shanghai Stock Exchange
+                "SZSE": ".SZ",  # Shenzhen Stock Exchange
+                "HKEX": ".HK",  # Hong Kong Exchange
+                "TSE": ".T",  # Tokyo Stock Exchange
+                "CRYPTO": "-USD",  # Crypto
+            }
+
+            if exchange == "HKEX":
+                # Hong Kong stock codes need to be in proper format
+                # e.g., "700" -> "0700.HK", "00700" -> "0700.HK", "1234" -> "1234.HK"
+                if symbol.isdigit():
+                    # Remove leading zeros first, then pad to 4 digits
+                    clean_symbol = str(int(symbol))  # Remove leading zeros
+                    padded_symbol = clean_symbol.zfill(4)  # Pad to 4 digits
+                    return f"{padded_symbol}{exchange_mapping.get(exchange, '')}"
+                else:
+                    # For non-numeric symbols, use as-is with .HK suffix
+                    return f"{symbol}{exchange_mapping.get(exchange, '')}"
+
+            if exchange in exchange_mapping.keys():
+                return f"{symbol}{exchange_mapping.get(exchange, '')}"
+            else:
+                logger.warning("No mapping found for data source: Yfinance")
+                return symbol
+
+        except ValueError:
+            logger.error(f"Invalid ticker format: {internal_ticker}, Yfinance adapter.")
+            return internal_ticker
+
+    def convert_to_internal_ticker(
+        self, source_ticker: str, default_exchange: Optional[str] = None
+    ) -> str:
+        """Convert Yahoo Finance source ticker to internal ticker."""
+
+        # Special handling for indices from yfinance (reverse ^ prefix mapping)
+        if source_ticker.startswith("^"):
+            index_reverse_mapping = {
+                # US Indices
+                "^IXIC": "NASDAQ:IXIC",  # NASDAQ Composite
+                "^DJI": "NYSE:DJI",  # Dow Jones Industrial Average
+                "^GSPC": "NYSE:GSPC",  # S&P 500
+                "^NDX": "NASDAQ:NDX",  # NASDAQ 100
+                # Hong Kong Indices
+                "^HSI": "HKEX:HSI",  # Hang Seng Index
+                "^HSCEI": "HKEX:HSCEI",  # Hang Seng China Enterprises Index
+                # European Indices
+                "^FTSE": "LSE:FTSE",  # FTSE 100
+                "^FCHI": "EURONEXT:FCHI",  # CAC 40
+                "^GDAXI": "XETRA:GDAXI",  # DAX
+            }
+
+            if source_ticker in index_reverse_mapping:
+                return index_reverse_mapping[source_ticker]
+
+        # Special handling for crypto from yfinance - remove currency suffix
+        if (
+            "-USD" in source_ticker
+            or "-CAD" in source_ticker
+            or "-EUR" in source_ticker
+        ):
+            # Remove any currency suffix
+            crypto_symbol = source_ticker.split("-")[0].upper()
+            return f"CRYPTO:{crypto_symbol}"
+
+        # Special handling for Hong Kong stocks from yfinance
+        if ".HK" in source_ticker:
+            symbol = source_ticker.replace(".HK", "")  # Remove .HK suffix
+            # Keep as digits only, no leading zero removal for internal format
+            if symbol.isdigit():
+                # Pad to 5 digits for Hong Kong stocks
+                symbol = symbol.zfill(5)
+            return f"HKEX:{symbol}"
+
+        # Special handling for Shanghai stocks from yfinance
+        if ".SS" in source_ticker:
+            symbol = source_ticker.replace(".SS", "")
+            return f"SSE:{symbol}"
+
+        # Special handling for Shenzhen stocks from yfinance
+        if ".SZ" in source_ticker:
+            symbol = source_ticker.replace(".SZ", "")
+            return f"SZSE:{symbol}"
+
+        # If no suffix found and default exchange provided
+        if default_exchange:
+            # For US stocks from yfinance, symbol is already clean
+            return f"{default_exchange}:{source_ticker}"
+
+        # For other assets without clear exchange mapping
+        # Fallback to using the source as exchange
+        return f"YFINANCE:{source_ticker}"

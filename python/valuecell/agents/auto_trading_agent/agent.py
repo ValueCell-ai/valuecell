@@ -80,15 +80,15 @@ class AutoTradingAgent(BaseAgent):
             raise
 
     async def _process_trading_instance(
-        self, 
-        session_id: str, 
-        instance_id: str, 
+        self,
+        session_id: str,
+        instance_id: str,
         semaphore: asyncio.Semaphore,
-        unified_timestamp: Optional[datetime] = None
+        unified_timestamp: Optional[datetime] = None,
     ) -> None:
         """
         Process a single trading instance with semaphore control for concurrency limiting.
-        
+
         Args:
             session_id: Session identifier
             instance_id: Trading instance identifier
@@ -100,16 +100,16 @@ class AutoTradingAgent(BaseAgent):
                 # Check if instance still exists and is active
                 if instance_id not in self.trading_instances.get(session_id, {}):
                     return
-                
+
                 instance = self.trading_instances[session_id][instance_id]
                 if not instance["active"]:
                     return
-                
+
                 # Get instance components
                 executor = instance["executor"]
                 config = instance["config"]
                 ai_signal_generator = instance["ai_signal_generator"]
-                
+
                 # Update check info
                 instance["check_count"] += 1
                 instance["last_check"] = datetime.now()
@@ -202,9 +202,7 @@ class AutoTradingAgent(BaseAgent):
                 # Phase 2: Make portfolio-level decision
                 logger.info(
                     "\n" + "=" * 50 + "\n"
-                    "🎯 **Phase 2: Portfolio Decision Making...**\n"
-                    + "=" * 50
-                    + "\n\n"
+                    "🎯 **Phase 2: Portfolio Decision Making...**\n" + "=" * 50 + "\n\n"
                 )
 
                 # Get portfolio summary
@@ -212,12 +210,10 @@ class AutoTradingAgent(BaseAgent):
                 logger.info(portfolio_summary + "\n")
 
                 # Make coordinated decision (async call for AI analysis)
-                portfolio_decision = (
-                    await portfolio_manager.make_portfolio_decision(
-                        current_positions=executor.positions,
-                        available_cash=executor.get_current_capital(),
-                        total_portfolio_value=executor.get_portfolio_value(),
-                    )
+                portfolio_decision = await portfolio_manager.make_portfolio_decision(
+                    current_positions=executor.positions,
+                    available_cash=executor.get_current_capital(),
+                    total_portfolio_value=executor.get_portfolio_value(),
                 )
 
                 # Display decision reasoning - cache it
@@ -248,9 +244,7 @@ class AutoTradingAgent(BaseAgent):
                         trade_type,
                     ) in portfolio_decision.trades_to_execute:
                         # Get indicators for this symbol
-                        asset_analysis = portfolio_manager.asset_analyses.get(
-                            symbol
-                        )
+                        asset_analysis = portfolio_manager.asset_analyses.get(symbol)
                         if not asset_analysis:
                             continue
 
@@ -317,23 +311,21 @@ class AutoTradingAgent(BaseAgent):
                             import yfinance as yf
 
                             ticker = yf.Ticker(symbol)
-                            current_price = ticker.history(
-                                period="1d", interval="1m"
-                            )["Close"].iloc[-1]
+                            current_price = ticker.history(period="1d", interval="1m")[
+                                "Close"
+                            ].iloc[-1]
                             if pos.trade_type.value == "long":
-                                current_pnl = (
-                                    current_price - pos.entry_price
-                                ) * abs(pos.quantity)
+                                current_pnl = (current_price - pos.entry_price) * abs(
+                                    pos.quantity
+                                )
                             else:
-                                current_pnl = (
-                                    pos.entry_price - current_price
-                                ) * abs(pos.quantity)
+                                current_pnl = (pos.entry_price - current_price) * abs(
+                                    pos.quantity
+                                )
                             pnl_emoji = "🟢" if current_pnl >= 0 else "🔴"
                             portfolio_msg += f"- {symbol}: {pos.trade_type.value.upper()} @ ${pos.entry_price:,.2f} {pnl_emoji} P&L: ${current_pnl:,.2f}\n"
                         except Exception as e:
-                            logger.warning(
-                                f"Failed to calculate P&L for {symbol}: {e}"
-                            )
+                            logger.warning(f"Failed to calculate P&L for {symbol}: {e}")
                             portfolio_msg += f"- {symbol}: {pos.trade_type.value.upper()} @ ${pos.entry_price:,.2f}\n"
 
                 logger.info(portfolio_msg + "\n")
@@ -352,22 +344,24 @@ class AutoTradingAgent(BaseAgent):
     def _generate_instance_id(self, task_id: str, model_id: str) -> str:
         """
         Generate unique instance ID for a specific model
-        
+
         Args:
             task_id: Task ID from the request
             model_id: Model identifier (e.g., 'deepseek/deepseek-v3.1-terminus')
-        
+
         Returns:
             Unique instance ID combining timestamp, task, and model
         """
         import hashlib
-        
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")  # Include microseconds for uniqueness
+
+        timestamp = datetime.now().strftime(
+            "%Y%m%d_%H%M%S_%f"
+        )  # Include microseconds for uniqueness
         # Create a short hash from model_id for readability
         model_hash = hashlib.md5(model_id.encode()).hexdigest()[:6]
         # Extract model name (last part after /)
-        model_name = model_id.split('/')[-1].replace('-', '_').replace('.', '_')[:15]
-        
+        model_name = model_id.split("/")[-1].replace("-", "_").replace(".", "_")[:15]
+
         return f"trade_{timestamp}_{model_name}_{model_hash}"
 
     def _init_notification_cache(self, session_id: str) -> None:
@@ -640,14 +634,14 @@ class AutoTradingAgent(BaseAgent):
 
             if model_id not in model_data:
                 model_data[model_id] = {
-                    'initial_capital': config.initial_capital,
-                    'history': []
+                    "initial_capital": config.initial_capital,
+                    "history": [],
                 }
 
             portfolio_history = executor.get_portfolio_history()
 
             for snapshot in portfolio_history:
-                model_data[model_id]['history'].append(
+                model_data[model_id]["history"].append(
                     (snapshot.timestamp, snapshot.total_value)
                 )
 
@@ -656,12 +650,12 @@ class AutoTradingAgent(BaseAgent):
 
         # Sort each model's history by timestamp
         for model_id in model_data:
-            model_data[model_id]['history'].sort(key=lambda x: x[0])
+            model_data[model_id]["history"].sort(key=lambda x: x[0])
 
         # Collect all unique timestamps across all models
         all_timestamps = set()
         for model_id, data in model_data.items():
-            for timestamp, _ in data['history']:
+            for timestamp, _ in data["history"]:
                 all_timestamps.add(timestamp)
 
         if not all_timestamps:
@@ -675,8 +669,9 @@ class AutoTradingAgent(BaseAgent):
         data_array = [["Time"] + model_ids]
 
         # Track last known value for each model (for forward-fill)
-        last_known_values = {model_id: data['initial_capital'] 
-                            for model_id, data in model_data.items()}
+        last_known_values = {
+            model_id: data["initial_capital"] for model_id, data in model_data.items()
+        }
 
         # Data rows: ['timestamp', value1, value2, ...]
         for timestamp in sorted_timestamps:
@@ -686,7 +681,7 @@ class AutoTradingAgent(BaseAgent):
             for model_id in model_ids:
                 # Find value at this timestamp for this model
                 value_at_timestamp = None
-                for ts, val in model_data[model_id]['history']:
+                for ts, val in model_data[model_id]["history"]:
                     if ts == timestamp:
                         value_at_timestamp = val
                         break
@@ -818,7 +813,7 @@ class AutoTradingAgent(BaseAgent):
         """
         # Track created instances for cleanup
         created_instances = []
-        
+
         try:
             logger.info(
                 f"Processing auto trading request - session: {session_id}, task: {task_id}"
@@ -863,12 +858,12 @@ class AutoTradingAgent(BaseAgent):
 
             # Get list of models to create instances for
             agent_models = trading_request.agent_models or [DEFAULT_AGENT_MODEL]
-            
+
             # Create one trading instance per model
             yield streaming.message_chunk(
                 f"🚀 **Creating {len(agent_models)} trading instance(s)...**\n\n"
             )
-            
+
             for model_id in agent_models:
                 # Generate unique instance ID for this model
                 instance_id = self._generate_instance_id(task_id, model_id)
@@ -898,7 +893,7 @@ class AutoTradingAgent(BaseAgent):
                     "check_count": 0,
                     "last_check": None,
                 }
-                
+
                 created_instances.append(instance_id)
 
                 # Display configuration for this instance
@@ -917,7 +912,7 @@ class AutoTradingAgent(BaseAgent):
                 )
 
                 yield streaming.message_chunk(config_message)
-            
+
             # Summary message
             yield streaming.message_chunk(
                 f"**Session ID:** `{session_id[:8]}`\n"
@@ -933,7 +928,7 @@ class AutoTradingAgent(BaseAgent):
                 instance = self.trading_instances[session_id][instance_id]
                 executor = instance["executor"]
                 config = instance["config"]
-                
+
                 # Send initial portfolio snapshot - cache it
                 portfolio_value = executor.get_portfolio_value()
                 executor.snapshot_portfolio(unified_initial_timestamp)
@@ -943,7 +938,9 @@ class AutoTradingAgent(BaseAgent):
                     data=f"💰 **Initial Portfolio**\nTotal Value: ${portfolio_value:,.2f}\nAvailable Capital: ${executor.current_capital:,.2f}\n",
                     filters=[config.agent_model],
                     table_title="Portfolio Detail",
-                    create_time=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                    create_time=datetime.now(timezone.utc).strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    ),
                 )
                 # Cache the initial notification
                 self._cache_notification(session_id, initial_portfolio_msg)
@@ -955,7 +952,9 @@ class AutoTradingAgent(BaseAgent):
             semaphore = asyncio.Semaphore(10)
 
             # Main trading loop - monitor all instances in parallel
-            yield streaming.message_chunk("📈 **Starting monitoring loop for all instances...**\n\n")
+            yield streaming.message_chunk(
+                "📈 **Starting monitoring loop for all instances...**\n\n"
+            )
 
             # Check if any instance is still active
             while any(
@@ -966,18 +965,18 @@ class AutoTradingAgent(BaseAgent):
                 try:
                     # Create unified timestamp for this iteration to align snapshots
                     unified_timestamp = datetime.now()
-                    
+
                     # Process all active instances concurrently using task pool
                     tasks = []
                     for instance_id in created_instances:
                         # Skip if instance was removed or is inactive
                         if instance_id not in self.trading_instances[session_id]:
                             continue
-                        
+
                         instance = self.trading_instances[session_id][instance_id]
                         if not instance["active"]:
                             continue
-                        
+
                         # Create task for this instance with semaphore control and unified timestamp
                         task = asyncio.create_task(
                             self._process_trading_instance(
@@ -985,17 +984,19 @@ class AutoTradingAgent(BaseAgent):
                             )
                         )
                         tasks.append(task)
-                    
+
                     # Wait for all instance tasks to complete (process concurrently)
                     if tasks:
                         # Gather all tasks and handle any exceptions
                         results = await asyncio.gather(*tasks, return_exceptions=True)
-                        
+
                         # Log any exceptions that occurred
                         for i, result in enumerate(results):
                             if isinstance(result, Exception):
-                                logger.error(f"Task {i} failed with exception: {result}")
-                    
+                                logger.error(
+                                    f"Task {i} failed with exception: {result}"
+                                )
+
                     # After processing all instances, send batched notifications
                     cached_notifications = self._get_cached_notifications(session_id)
                     if cached_notifications:
@@ -1012,7 +1013,7 @@ class AutoTradingAgent(BaseAgent):
                             ComponentType.FILTERED_CARD_PUSH_NOTIFICATION,
                             component_id=f"trading_status_{session_id}",
                         )
-                    
+
                     # Send chart data (not cached, sent separately)
                     chart_data = self._get_session_portfolio_chart_data(session_id)
                     if chart_data:
@@ -1042,5 +1043,7 @@ class AutoTradingAgent(BaseAgent):
             if session_id in self.trading_instances:
                 for instance_id in created_instances:
                     if instance_id in self.trading_instances[session_id]:
-                        self.trading_instances[session_id][instance_id]["active"] = False
+                        self.trading_instances[session_id][instance_id]["active"] = (
+                            False
+                        )
                         logger.info(f"Stopped instance: {instance_id}")
