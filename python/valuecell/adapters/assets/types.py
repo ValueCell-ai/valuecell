@@ -353,11 +353,15 @@ class AssetSearchResult(BaseModel):
     names: Dict[str, str] = Field(..., description="Asset names in different languages")
     exchange: str = Field(..., description="Exchange name")
     country: str = Field(..., description="Country code")
-    
+
     # Optional fields for enhanced search results
     currency: Optional[str] = Field(default=None, description="Currency code")
-    market_status: Optional[MarketStatus] = Field(default=None, description="Market status")
-    relevance_score: float = Field(default=0.5, description="Search relevance score (0-1)")
+    market_status: Optional[MarketStatus] = Field(
+        default=None, description="Market status"
+    )
+    relevance_score: float = Field(
+        default=0.5, description="Search relevance score (0-1)"
+    )
 
     def get_display_name(self, language: str = "en-US") -> str:
         """Get display name for specified language."""

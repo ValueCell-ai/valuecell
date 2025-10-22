@@ -11,6 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..connection import get_database_manager
+from ..models.asset import Asset
 from ..models.watchlist import Watchlist, WatchlistItem
 
 
@@ -260,6 +261,12 @@ class WatchlistRepository:
 
             if not watchlist:
                 return False
+
+            # If display_name is not provided, try to get it from assets table
+            if not display_name:
+                asset = session.query(Asset).filter(Asset.symbol == ticker).first()
+                if asset and asset.name:
+                    display_name = asset.name
 
             # Set order_index if not provided
             if order_index is None:

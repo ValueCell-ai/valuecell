@@ -205,14 +205,14 @@ class AdapterManager:
         self, results: List[AssetSearchResult]
     ) -> List[AssetSearchResult]:
         """Smart deduplication of search results to handle cross-exchange duplicates.
-        
+
         This method handles cases where the same asset appears on multiple exchanges
         (e.g., AMEX:GORO vs NASDAQ:GORO). It prioritizes certain exchanges and removes
         likely duplicates based on symbol matching.
-        
+
         Args:
             results: List of search results to deduplicate
-            
+
         Returns:
             Deduplicated list of search results
         """
@@ -226,37 +226,39 @@ class AdapterManager:
             "SZSE": 2,
             "BSE": 1,
         }
-        
+
         seen_tickers = set()
         # Map: (symbol, country) -> best result so far
         symbol_map: Dict[tuple, AssetSearchResult] = {}
         unique_results = []
-        
+
         for result in results:
             # Skip exact ticker duplicates
             if result.ticker in seen_tickers:
                 continue
-            
+
             try:
                 exchange, symbol = result.ticker.split(":", 1)
             except ValueError:
                 # Invalid ticker format, skip
-                logger.warning(f"Invalid ticker format in search result: {result.ticker}")
+                logger.warning(
+                    f"Invalid ticker format in search result: {result.ticker}"
+                )
                 continue
-            
+
             # Create a key for cross-exchange deduplication
             # Group by symbol and country to identify potential duplicates
             dedup_key = (symbol.upper(), result.country)
-            
+
             # Check if we've seen this symbol in the same country before
             if dedup_key in symbol_map:
                 existing_result = symbol_map[dedup_key]
                 existing_exchange = existing_result.ticker.split(":")[0]
-                
+
                 # Compare exchange priorities
                 current_priority = exchange_priority.get(exchange, 0)
                 existing_priority = exchange_priority.get(existing_exchange, 0)
-                
+
                 if current_priority > existing_priority:
                     # Replace with higher priority exchange
                     symbol_map[dedup_key] = result
@@ -274,19 +276,19 @@ class AdapterManager:
             else:
                 # First time seeing this symbol, add it
                 symbol_map[dedup_key] = result
-            
+
             seen_tickers.add(result.ticker)
-        
+
         # Convert map back to list
         unique_results = list(symbol_map.values())
-        
+
         # Sort by relevance score (descending)
         unique_results.sort(key=lambda x: x.relevance_score, reverse=True)
-        
+
         logger.info(
             f"Deduplicated {len(results)} results to {len(unique_results)} unique assets"
         )
-        
+
         return unique_results
 
     def search_assets(self, query: AssetSearchQuery) -> List[AssetSearchResult]:
@@ -494,14 +496,16 @@ Generate up to at least 1 possible ticker candidate up to 10. Be creative but re
         """
         # Get the primary adapter for this ticker
         adapter = self.get_adapter_for_ticker(ticker)
-        
+
         if not adapter:
             logger.warning(f"No suitable adapter found for ticker: {ticker}")
             return None
 
         # Try the primary adapter
         try:
-            logger.debug(f"Fetching asset info for {ticker} from {adapter.source.value}")
+            logger.debug(
+                f"Fetching asset info for {ticker} from {adapter.source.value}"
+            )
             asset_info = adapter.get_asset_info(ticker)
             if asset_info:
                 logger.info(
