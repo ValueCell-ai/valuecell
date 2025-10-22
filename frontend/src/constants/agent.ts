@@ -27,7 +27,7 @@ import {
   SecFeedRenderer,
   ToolCallRenderer,
 } from "@/components/valuecell/renderer";
-import type { AgentComponentType } from "@/types/agent";
+import type { AgentComponentType, AgentInfo } from "@/types/agent";
 import type { RendererComponent } from "@/types/renderer";
 
 // component_type to section type
@@ -88,4 +88,19 @@ export const AGENT_AVATAR_MAP: Record<string, string> = {
   // System Agents
   TradingAgents: PortfolioManagerPng,
   SECAgent: SecAgentPng,
+};
+
+export const VALUECELL_AGENT: AgentInfo = {
+  agent_name: "ValueCellAgent",
+  display_name: "ValueCell Agent",
+  enabled: true,
+  description:
+    "ValueCell Agent is a super-agent that can help you manage different agents and tasks",
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+  agent_metadata: {
+    version: "1.0.0",
+    author: "ValueCell",
+    tags: ["valuecell", "super-agent"],
+  },
 };

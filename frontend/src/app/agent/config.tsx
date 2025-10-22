@@ -51,9 +51,11 @@ export default function AgentConfig() {
 
         {agent?.enabled ? (
           <div className="flex items-center gap-4">
-            <Button variant="secondary" onClick={handleEnableAgent}>
-              Disable
-            </Button>
+            {agentName !== "ValueCellAgent" && (
+              <Button variant="secondary" onClick={handleEnableAgent}>
+                Disable
+              </Button>
+            )}
             <Link
               className="flex items-center gap-2 rounded-md bg-black px-5 py-1.5 font-semibold text-base text-white hover:bg-black/80"
               to={`/agent/${agentName}`}

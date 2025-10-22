@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { VALUECELL_AGENT } from "@/constants/agent";
 import { API_QUERY_KEYS } from "@/constants/api";
 import { type ApiResponse, apiClient } from "@/lib/api-client";
 import type { AgentInfo } from "@/types/agent";
@@ -6,10 +7,16 @@ import type { AgentInfo } from "@/types/agent";
 export const useGetAgentInfo = (params: { agentName: string }) => {
   return useQuery({
     queryKey: API_QUERY_KEYS.AGENT.agentInfo(Object.values(params)),
-    queryFn: () =>
-      apiClient.get<ApiResponse<AgentInfo>>(
+    queryFn: async () => {
+      // Return hardcoded data for ValueCellAgent
+      if (params.agentName === "ValueCellAgent") {
+        return Promise.resolve({ data: VALUECELL_AGENT });
+      }
+      // Fetch from API for other agents
+      return apiClient.get<ApiResponse<AgentInfo>>(
         `/agents/by-name/${params.agentName}`,
-      ),
+      );
+    },
     select: (data) => data.data,
   });
 };
