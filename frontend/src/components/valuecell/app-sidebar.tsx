@@ -173,7 +173,7 @@ const AppSidebar: FC = () => {
   const verifyActive = (to: string) => prefix === to;
 
   return (
-    <Sidebar>
+    <Sidebar className="bg-gray-100">
       <SidebarHeader>
         <SidebarMenu>
           {navItems.home.map((item) => {
@@ -192,7 +192,7 @@ const AppSidebar: FC = () => {
         </SidebarMenu>
       </SidebarHeader>
 
-      <Separator className="!w-10 bg-white" />
+      <Separator className="w-10! bg-white" />
 
       <SidebarContent className="max-h-[calc(100vh-11rem)]">
         <ScrollContainer className="w-full">

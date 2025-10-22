@@ -32,7 +32,7 @@ function SparklineStockItem({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-4 rounded-xl border border-gray-100 px-4 py-3",
+        "flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-white px-4 py-3",
         className,
       )}
       {...props}

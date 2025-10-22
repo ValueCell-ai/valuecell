@@ -81,7 +81,7 @@ function AgentMenuIcon({ className, children, ...props }: AgentMenuIconProps) {
   return (
     <div
       className={cn(
-        "flex size-8 shrink-0 items-center justify-center rounded-md bg-gray-100 p-2",
+        "flex size-6 shrink-0 items-center justify-center rounded-[6px] bg-gray-100 p-1.5",
         className,
       )}
       {...props}
@@ -99,7 +99,7 @@ function AgentMenuTitle({
   return (
     <p
       className={cn(
-        "whitespace-nowrap font-normal text-black text-sm leading-[22px]",
+        "whitespace-nowrap font-medium text-[16px] text-gray-950 leading-[22px]",
         className,
       )}
       title={typeof children === "string" ? children : undefined}
@@ -118,7 +118,7 @@ function AgentMenuDescription({
   return (
     <p
       className={cn(
-        "max-w-2/3 text-left text-gray-600 text-sm leading-4.5",
+        "max-w-2/3 text-left text-gray-500 text-sm leading-4.5",
         className,
       )}
       {...props}
@@ -139,7 +139,7 @@ function AgentMenuCard({
     <button
       type="button"
       className={cn(
-        "relative flex-1 overflow-hidden rounded-xl p-4 transition-all hover:shadow-md",
+        "relative flex-1 overflow-hidden rounded-xl border border-gray-100 p-4 transition-all hover:shadow-md",
         bgColor || "bg-white",
         className,
       )}
