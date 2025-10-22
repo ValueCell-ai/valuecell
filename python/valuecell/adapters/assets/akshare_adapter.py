@@ -112,18 +112,27 @@ class AKShareAdapter(BaseDataAdapter):
         }
 
         # US exchange codes for AKShare API
-        # AKShare requires exchange code prefix for US stocks
-        # Format: exchange_code.SYMBOL (e.g., 105.AAPL for NASDAQ:AAPL)
+        # AKShare requires exchange code prefix for US stocks and indices
+        # Format: exchange_code.SYMBOL (e.g., 105.AAPL for NASDAQ:AAPL, 100.IXIC for INDEX)
+        # Code 100: US Index data (for INDEX asset type)
+        # Code 105: NASDAQ stocks
+        # Code 106: NYSE stocks
+        # Code 107: AMEX stocks
         self.us_exchange_codes = {
             Exchange.NASDAQ: "105",
             Exchange.NYSE: "106",
             Exchange.AMEX: "107",
         }
 
+        # Special exchange code for US indices
+        self.us_index_exchange_code = "100"
+
         # Reverse mapping for converting AKShare format back to internal format
         self.us_exchange_codes_reverse = {
             v: k for k, v in self.us_exchange_codes.items()
         }
+        # Add index code to reverse mapping
+        self.us_exchange_codes_reverse["100"] = None  # Special handling for indices
 
         logger.info("AKShare adapter initialized with caching and field mapping")
 
@@ -450,6 +459,47 @@ class AKShareAdapter(BaseDataAdapter):
             for key, value in info_dict.items():
                 if value and str(value).strip() and str(value).lower() != "none":
                     asset.add_property(key, value)
+
+            # Save asset metadata to database
+            try:
+                from ...server.db.repositories.asset_repository import (
+                    get_asset_repository,
+                )
+
+                asset_repo = get_asset_repository()
+
+                # Get the primary name for the asset
+                primary_name = (
+                    localized_names.get_name("en-US")
+                    or localized_names.get_name("zh-Hans")
+                    or localized_names.get_name("zh-Hant")
+                    or ticker
+                )
+
+                asset_repo.upsert_asset(
+                    symbol=ticker,
+                    name=primary_name,
+                    asset_type=asset.asset_type.value,
+                    description=None,  # AKShare info_dict doesn't have structured description field
+                    sector=info_dict.get("industry") or info_dict.get("sector"),
+                    asset_metadata={
+                        "currency": currency,
+                        "country": country,
+                        "timezone": timezone,
+                        "source": "akshare",
+                        "info": {
+                            k: v
+                            for k, v in info_dict.items()
+                            if v and str(v).strip() and str(v).lower() != "none"
+                        },
+                    },
+                )
+                logger.debug(f"Saved asset info from AKShare for {ticker}")
+            except Exception as e:
+                # Don't fail the info fetch if database save fails
+                logger.warning(
+                    f"Failed to save asset info from AKShare for {ticker}: {e}"
+                )
 
             return asset
 
@@ -1041,10 +1091,10 @@ class AKShareAdapter(BaseDataAdapter):
     def convert_to_source_ticker(self, internal_ticker: str) -> str:
         """Convert internal ticker to data source format.
         Args:
-            internal_ticker: Ticker in internal format (e.g., "NASDAQ:AAPL")
+            internal_ticker: Ticker in internal format (e.g., "NASDAQ:AAPL", "NYSE:GSPC")
             source: Target data source
         Returns:
-            Ticker in data source specific format (e.g., "105.AAPL")
+            Ticker in data source specific format (e.g., "105.AAPL", "100.GSPC")
         """
         try:
             exchange, symbol = internal_ticker.split(":", 1)
@@ -1057,6 +1107,27 @@ class AKShareAdapter(BaseDataAdapter):
                     f"Unknown exchange '{exchange}' for ticker {internal_ticker}"
                 )
                 return symbol
+
+            # Check if this is an INDEX asset type from database
+            # Use lazy import to avoid circular dependency
+            try:
+                from ...server.db.repositories.asset_repository import (
+                    get_asset_repository,
+                )
+
+                asset_repo = get_asset_repository()
+                asset = asset_repo.get_asset_by_symbol(internal_ticker)
+
+                # For US INDEX assets, use special exchange code 100
+                if asset and asset.asset_type == AssetType.INDEX.value:
+                    if exchange_enum in [Exchange.NASDAQ, Exchange.NYSE, Exchange.AMEX]:
+                        return f"{self.us_index_exchange_code}.{symbol}"
+            except (ImportError, Exception) as e:
+                # If repository is not available, skip database lookup
+                logger.debug(
+                    f"Asset repository not available for AKShare, skipping database lookup: {e}"
+                )
+                pass
 
             # Handle US stocks - add exchange code prefix
             if exchange_enum in self.us_exchange_codes:

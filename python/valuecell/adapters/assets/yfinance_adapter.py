@@ -65,6 +65,16 @@ class YFinanceAdapter(BaseDataAdapter):
             "CCC": Exchange.CRYPTO,
         }
 
+        self.yfinance_exchange_suffix_mapping = {
+            Exchange.NASDAQ.value: "",
+            Exchange.NYSE.value: "",
+            Exchange.AMEX.value: "",
+            Exchange.SSE.value: ".SS",
+            Exchange.SZSE.value: ".SZ",
+            Exchange.HKEX.value: ".HK",
+            Exchange.CRYPTO.value: "-USD",
+        }
+
         logger.info("Yahoo Finance adapter initialized")
 
     def search_assets(self, query: AssetSearchQuery) -> List[AssetSearchResult]:
@@ -165,7 +175,8 @@ class YFinanceAdapter(BaseDataAdapter):
                 quote, symbol, long_name or short_name
             )
 
-            return AssetSearchResult(
+            # Create search result
+            search_result = AssetSearchResult(
                 ticker=internal_ticker,
                 asset_type=asset_type,
                 names=names,
@@ -175,6 +186,34 @@ class YFinanceAdapter(BaseDataAdapter):
                 market_status=MarketStatus.UNKNOWN,
                 relevance_score=relevance_score,
             )
+
+            # Save asset metadata to database for future lookups
+            try:
+                from ...server.db.repositories.asset_repository import (
+                    get_asset_repository,
+                )
+
+                asset_repo = get_asset_repository()
+                asset_repo.upsert_asset(
+                    symbol=internal_ticker,
+                    name=long_name or short_name,
+                    asset_type=asset_type.value,
+                    description=quote.get("longname"),
+                    sector=quote.get("sector"),
+                    asset_metadata={
+                        "currency": quote.get("currency", "USD"),
+                        "exchange_code": exchange,  # Original yfinance exchange code
+                        "quote_type": quote_type,
+                    },
+                )
+                logger.debug(f"Saved asset metadata for {internal_ticker}")
+            except Exception as e:
+                # Don't fail the search if database save fails
+                logger.warning(
+                    f"Failed to save asset metadata for {internal_ticker}: {e}"
+                )
+
+            return search_result
 
         except Exception as e:
             logger.error(f"Error creating search result from quote: {e}")
@@ -237,6 +276,32 @@ class YFinanceAdapter(BaseDataAdapter):
             # Filter out None values
             properties = {k: v for k, v in properties.items() if v is not None}
             asset.properties.update(properties)
+
+            # Save asset metadata to database
+            try:
+                from ...server.db.repositories.asset_repository import (
+                    get_asset_repository,
+                )
+
+                asset_repo = get_asset_repository()
+                asset_repo.upsert_asset(
+                    symbol=ticker,
+                    name=long_name,
+                    asset_type=asset_type.value,
+                    description=info.get("longBusinessSummary"),
+                    sector=info.get("sector"),
+                    asset_metadata={
+                        "currency": info.get("currency", "USD"),
+                        "exchange_code": info.get("exchange"),
+                        "quote_type": info.get("quoteType"),
+                        "industry": info.get("industry"),
+                        "market_cap": info.get("marketCap"),
+                    },
+                )
+                logger.debug(f"Saved asset info for {ticker}")
+            except Exception as e:
+                # Don't fail the info fetch if database save fails
+                logger.warning(f"Failed to save asset info for {ticker}: {e}")
 
             return asset
 
@@ -562,42 +627,66 @@ class YFinanceAdapter(BaseDataAdapter):
         exchange, symbol = ticker.split(":", 1)
 
         # Validate exchange
-        supported_exchanges = ["NASDAQ", "NYSE", "SSE", "SZSE", "HKEX", "CRYPTO"]
-        if exchange not in supported_exchanges:
+        if exchange not in [
+            exchange.value for exchange in self.exchange_mapping.values()
+        ]:
             return False
 
         return True
 
     def convert_to_source_ticker(self, internal_ticker: str) -> str:
-        """Convert internal ticker to Yahoo Finance source ticker."""
+        """Convert internal ticker to Yahoo Finance source ticker.
+
+        For INDEX assets, adds ^ prefix (e.g., NASDAQ:IXIC -> ^IXIC).
+        For other assets, applies exchange-specific suffix rules.
+        """
         try:
             exchange, symbol = internal_ticker.split(":", 1)
-            exchange_mapping = {
-                "NASDAQ": "",  # NASDAQ stocks don't need suffix in yfinance
-                "NYSE": "",  # NYSE stocks don't need suffix in yfinance
-                "SSE": ".SS",  # Shanghai Stock Exchange
-                "SZSE": ".SZ",  # Shenzhen Stock Exchange
-                "HKEX": ".HK",  # Hong Kong Exchange
-                "TSE": ".T",  # Tokyo Stock Exchange
-                "CRYPTO": "-USD",  # Crypto
-            }
 
-            if exchange == "HKEX":
+            # Check asset type from database to determine if it's an index
+            # Use lazy import to avoid circular dependency
+            try:
+                from ...server.db.repositories.asset_repository import (
+                    get_asset_repository,
+                )
+
+                asset_repo = get_asset_repository()
+                asset = asset_repo.get_asset_by_symbol(internal_ticker)
+
+                if (
+                    asset
+                    and asset.asset_type == AssetType.INDEX.value
+                    and exchange != Exchange.SSE.value
+                    and exchange != Exchange.SZSE.value
+                ):
+                    # For indices, add ^ prefix
+                    return f"^{symbol}"
+            except (ImportError, Exception) as e:
+                # If repository is not available, skip database lookup
+                logger.debug(
+                    f"Asset repository not available, skipping database lookup: {e}"
+                )
+                pass
+
+            # For non-index assets, apply exchange-specific formatting
+            if exchange == Exchange.HKEX.value:
                 # Hong Kong stock codes need to be in proper format
                 # e.g., "700" -> "0700.HK", "00700" -> "0700.HK", "1234" -> "1234.HK"
                 if symbol.isdigit():
                     # Remove leading zeros first, then pad to 4 digits
                     clean_symbol = str(int(symbol))  # Remove leading zeros
                     padded_symbol = clean_symbol.zfill(4)  # Pad to 4 digits
-                    return f"{padded_symbol}{exchange_mapping.get(exchange, '')}"
+                    return f"{padded_symbol}{self.yfinance_exchange_suffix_mapping.get(exchange, '')}"
                 else:
                     # For non-numeric symbols, use as-is with .HK suffix
-                    return f"{symbol}{exchange_mapping.get(exchange, '')}"
+                    return f"{symbol}{self.yfinance_exchange_suffix_mapping.get(exchange, '')}"
 
-            if exchange in exchange_mapping.keys():
-                return f"{symbol}{exchange_mapping.get(exchange, '')}"
+            if exchange in self.yfinance_exchange_suffix_mapping.keys():
+                return (
+                    f"{symbol}{self.yfinance_exchange_suffix_mapping.get(exchange, '')}"
+                )
             else:
-                logger.warning("No mapping found for data source: Yfinance")
+                logger.warning(f"No mapping found for exchange: {exchange} in Yfinance")
                 return symbol
 
         except ValueError:
@@ -607,27 +696,24 @@ class YFinanceAdapter(BaseDataAdapter):
     def convert_to_internal_ticker(
         self, source_ticker: str, default_exchange: Optional[str] = None
     ) -> str:
-        """Convert Yahoo Finance source ticker to internal ticker."""
+        """Convert Yahoo Finance source ticker to internal ticker.
 
-        # Special handling for indices from yfinance (reverse ^ prefix mapping)
+        Simply removes yfinance-specific prefixes/suffixes and formats the symbol.
+        Asset type determination (e.g., INDEX) is done during search/info retrieval.
+        """
+        # Special handling for indices from yfinance - remove ^ prefix
         if source_ticker.startswith("^"):
-            index_reverse_mapping = {
-                # US Indices
-                "^IXIC": "NASDAQ:IXIC",  # NASDAQ Composite
-                "^DJI": "NYSE:DJI",  # Dow Jones Industrial Average
-                "^GSPC": "NYSE:GSPC",  # S&P 500
-                "^NDX": "NASDAQ:NDX",  # NASDAQ 100
-                # Hong Kong Indices
-                "^HSI": "HKEX:HSI",  # Hang Seng Index
-                "^HSCEI": "HKEX:HSCEI",  # Hang Seng China Enterprises Index
-                # European Indices
-                "^FTSE": "LSE:FTSE",  # FTSE 100
-                "^FCHI": "EURONEXT:FCHI",  # CAC 40
-                "^GDAXI": "XETRA:GDAXI",  # DAX
-            }
-
-            if source_ticker in index_reverse_mapping:
-                return index_reverse_mapping[source_ticker]
+            symbol = source_ticker[1:]  # Remove ^ prefix
+            # Use default exchange if provided, otherwise try to infer from symbol
+            if default_exchange:
+                return f"{default_exchange}:{symbol}"
+            # Common index exchange inference (simplified)
+            # Most major indices use their primary exchange
+            return (
+                f"{default_exchange}:{symbol}"
+                if default_exchange
+                else f"UNKNOWN:{symbol}"
+            )
 
         # Special handling for crypto from yfinance - remove currency suffix
         if (

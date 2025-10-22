@@ -4,12 +4,7 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
-
-from valuecell.utils.path import get_agent_card_path
-
-if TYPE_CHECKING:
-    from .models.asset import Asset
+from typing import Optional
 
 from sqlalchemy import inspect, text
 from sqlalchemy.exc import SQLAlchemyError
@@ -17,9 +12,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from valuecell.server.config.settings import get_settings
 from valuecell.server.db.connection import DatabaseManager, get_database_manager
 from valuecell.server.db.models.agent import Agent
-from valuecell.server.db.models.asset import Asset
 from valuecell.server.db.models.base import Base
+from valuecell.server.db.repositories.asset_repository import get_asset_repository
 from valuecell.server.services.assets import get_asset_service
+from valuecell.utils.path import get_agent_card_path
 
 # Configure logging
 logging.basicConfig(
@@ -132,27 +128,19 @@ class DatabaseInitializer:
         try:
             logger.info("Initializing assets using AssetService...")
 
-            # Get asset service instance
+            # Get asset service and repository instances
             asset_service = get_asset_service()
+            session = self.db_manager.get_session()
+            asset_repo = get_asset_repository(db_session=session)
 
             # Define default tickers to search and initialize
             # Using proper EXCHANGE:SYMBOL format for better adapter matching
             default_tickers = [
-                "NASDAQ:AAPL",  # Apple Inc.
-                "NASDAQ:GOOGL",  # Alphabet Inc.
-                "NASDAQ:MSFT",  # Microsoft Corporation
-                "NYSE:SPY",  # SPDR S&P 500 ETF
-                "CRYPTO:BTC",  # Bitcoin
-                # Additional diverse assets
-                "NYSE:TSLA",  # Tesla Inc.
-                "NASDAQ:NVDA",  # NVIDIA Corporation
-                "NYSE:JPM",  # JPMorgan Chase & Co.
-                "CRYPTO:ETH",  # Ethereum
-                "NASDAQ:QQQ",  # Invesco QQQ Trust ETF
+                # Major indices
+                "NASDAQ:IXIC",  # NASDAQ Composite Index
+                "HKEX:HSI",  # Hang Seng Index
+                "SSE:000001",  # Shanghai Composite Index
             ]
-
-            # Get database session for manual asset creation if needed
-            session = self.db_manager.get_session()
 
             try:
                 initialized_count = 0
@@ -182,7 +170,7 @@ class DatabaseInitializer:
                             search_result = {"success": False, "results": []}
 
                         if search_result["success"] and search_result["results"]:
-                            # Asset found via adapter, create database record
+                            # Asset found via adapter, create or update database record
                             asset_data = search_result["results"][0]
 
                             # Use the standardized ticker format (ensure EXCHANGE:SYMBOL format)
@@ -192,15 +180,33 @@ class DatabaseInitializer:
                                 asset_ticker = ticker
 
                             # Check if asset already exists in database
-                            existing_asset = (
-                                session.query(Asset)
-                                .filter_by(symbol=asset_ticker)
-                                .first()
-                            )
+                            if asset_repo.asset_exists(asset_ticker):
+                                # Update existing asset with adapter data
+                                metadata_updates = {
+                                    "exchange": asset_data.get("exchange")
+                                    or ticker.split(":")[0],
+                                    "country": asset_data.get("country"),
+                                    "currency": asset_data.get("currency"),
+                                    "market_status": asset_data.get("market_status"),
+                                    "last_updated_from_adapter": True,
+                                    "last_search_query": query,
+                                }
 
-                            if not existing_asset:
+                                asset_repo.update_asset(
+                                    symbol=asset_ticker,
+                                    name=asset_data["display_name"],
+                                    asset_type=asset_data["asset_type"],
+                                )
+                                asset_repo.update_asset_metadata(
+                                    symbol=asset_ticker,
+                                    metadata_updates=metadata_updates,
+                                )
+                                logger.info(
+                                    f"Updated asset from adapter: {asset_ticker} (searched as '{query}')"
+                                )
+                            else:
                                 # Create new asset from adapter data
-                                new_asset = Asset(
+                                asset_repo.create_asset(
                                     symbol=asset_ticker,
                                     name=asset_data["display_name"],
                                     asset_type=asset_data["asset_type"],
@@ -217,34 +223,10 @@ class DatabaseInitializer:
                                         "standardized_ticker": asset_ticker,
                                     },
                                 )
-                                session.add(new_asset)
                                 logger.info(
                                     f"Added asset from adapter: {asset_ticker} (searched as '{query}')"
                                 )
                                 initialized_count += 1
-                            else:
-                                # Update existing asset with adapter data
-                                existing_asset.name = asset_data["display_name"]
-                                existing_asset.asset_type = asset_data["asset_type"]
-                                # Update existing asset metadata
-                                existing_metadata = existing_asset.asset_metadata or {}
-                                existing_metadata.update(
-                                    {
-                                        "exchange": asset_data.get("exchange")
-                                        or ticker.split(":")[0],
-                                        "country": asset_data.get("country"),
-                                        "currency": asset_data.get("currency"),
-                                        "market_status": asset_data.get(
-                                            "market_status"
-                                        ),
-                                        "last_updated_from_adapter": True,
-                                        "last_search_query": query,
-                                    }
-                                )
-                                existing_asset.asset_metadata = existing_metadata
-                                logger.info(
-                                    f"Updated asset from adapter: {asset_ticker} (searched as '{query}')"
-                                )
 
                         else:
                             # Fallback: create basic asset record for common tickers
@@ -252,13 +234,10 @@ class DatabaseInitializer:
                                 f"Could not find {ticker} via adapters, creating basic record"
                             )
 
-                            existing_asset = (
-                                session.query(Asset).filter_by(symbol=ticker).first()
-                            )
-                            if not existing_asset:
-                                fallback_asset = self._create_fallback_asset(ticker)
-                                if fallback_asset:
-                                    session.add(fallback_asset)
+                            if not asset_repo.asset_exists(ticker):
+                                fallback_data = self._get_fallback_asset_data(ticker)
+                                if fallback_data:
+                                    asset_repo.create_asset(**fallback_data)
                                     logger.info(f"Added fallback asset: {ticker}")
                                     initialized_count += 1
 
@@ -291,116 +270,46 @@ class DatabaseInitializer:
             logger.error(f"Error getting asset service or database session: {e}")
             return False
 
-    def _create_fallback_asset(self, ticker: str) -> Optional["Asset"]:
-        """Create fallback asset data when adapter search fails."""
+    def _get_fallback_asset_data(self, ticker: str) -> Optional[dict]:
+        """Get fallback asset data when adapter search fails.
 
+        Returns:
+            Dictionary with asset data suitable for create_asset() method
+        """
         # Basic fallback data for common tickers (using proper EXCHANGE:SYMBOL format)
-        fallback_data = {
-            "NASDAQ:AAPL": {
-                "name": "Apple Inc.",
-                "asset_type": "stock",
-                "sector": "Technology",
+        fallback_configs = {
+            "SSE:000001": {
+                "name": "Shanghai Composite Index",
+                "asset_type": "index",
+                "exchange": "SSE",
+            },
+            "HKEX:HSI": {
+                "name": "Hang Seng Index",
+                "asset_type": "index",
+                "exchange": "HKEX",
+            },
+            "NASDAQ:IXIC": {
+                "name": "NASDAQ Composite Index",
+                "asset_type": "index",
                 "exchange": "NASDAQ",
-                "metadata": {
-                    "market_cap": "large",
-                    "tags": ["blue-chip", "technology"],
-                },
-            },
-            "NASDAQ:GOOGL": {
-                "name": "Alphabet Inc. Class A",
-                "asset_type": "stock",
-                "sector": "Technology",
-                "exchange": "NASDAQ",
-                "metadata": {
-                    "market_cap": "large",
-                    "tags": ["growth", "tech-giant", "ai"],
-                },
-            },
-            "NASDAQ:MSFT": {
-                "name": "Microsoft Corporation",
-                "asset_type": "stock",
-                "sector": "Technology",
-                "exchange": "NASDAQ",
-                "metadata": {
-                    "market_cap": "large",
-                    "tags": ["blue-chip", "cloud", "ai"],
-                },
-            },
-            "NYSE:SPY": {
-                "name": "SPDR S&P 500 ETF Trust",
-                "asset_type": "etf",
-                "sector": "Diversified",
-                "exchange": "NYSE",
-                "metadata": {"tags": ["index", "diversified", "low-cost"]},
-            },
-            "CRYPTO:BTC": {
-                "name": "Bitcoin",
-                "asset_type": "crypto",
-                "sector": "Cryptocurrency",
-                "exchange": "CRYPTO",
-                "metadata": {"tags": ["crypto", "store-of-value", "digital-gold"]},
-            },
-            "NYSE:TSLA": {
-                "name": "Tesla Inc.",
-                "asset_type": "stock",
-                "sector": "Automotive",
-                "exchange": "NYSE",
-                "metadata": {
-                    "market_cap": "large",
-                    "tags": ["electric-vehicles", "innovation", "growth"],
-                },
-            },
-            "NASDAQ:NVDA": {
-                "name": "NVIDIA Corporation",
-                "asset_type": "stock",
-                "sector": "Technology",
-                "exchange": "NASDAQ",
-                "metadata": {
-                    "market_cap": "large",
-                    "tags": ["semiconductors", "ai", "gaming"],
-                },
-            },
-            "NYSE:JPM": {
-                "name": "JPMorgan Chase & Co.",
-                "asset_type": "stock",
-                "sector": "Financial Services",
-                "exchange": "NYSE",
-                "metadata": {
-                    "market_cap": "large",
-                    "tags": ["banking", "blue-chip", "finance"],
-                },
-            },
-            "CRYPTO:ETH": {
-                "name": "Ethereum",
-                "asset_type": "crypto",
-                "sector": "Cryptocurrency",
-                "exchange": "CRYPTO",
-                "metadata": {"tags": ["crypto", "smart-contracts", "defi"]},
-            },
-            "NASDAQ:QQQ": {
-                "name": "Invesco QQQ Trust ETF",
-                "asset_type": "etf",
-                "sector": "Technology",
-                "exchange": "NASDAQ",
-                "metadata": {"tags": ["tech-etf", "index", "growth"]},
             },
         }
 
-        if ticker in fallback_data:
-            data = fallback_data[ticker]
-            return Asset(
-                symbol=ticker,
-                name=data["name"],
-                asset_type=data["asset_type"],
-                sector=data.get("sector"),
-                is_active=True,
-                asset_metadata={
-                    **data.get("metadata", {}),
-                    "exchange": data.get("exchange"),
+        if ticker in fallback_configs:
+            config = fallback_configs[ticker]
+            return {
+                "symbol": ticker,
+                "name": config["name"],
+                "asset_type": config["asset_type"],
+                "sector": config.get("sector"),
+                "is_active": True,
+                "asset_metadata": {
+                    **config.get("metadata", {}),
+                    "exchange": config.get("exchange"),
                     "source": "fallback_data",
                     "initialized_at": "database_init",
                 },
-            )
+            }
         return None
 
     def initialize_basic_data(self) -> bool:
