@@ -201,13 +201,31 @@ class AssetService:
                     "ticker": ticker,
                 }
 
+            # Get asset_type from database to handle formatting correctly
+            asset_type = None
+            try:
+                from ...db.repositories.asset_repository import get_asset_repository
+
+                asset_repo = get_asset_repository()
+                db_asset = asset_repo.get_asset_by_symbol(ticker)
+                if db_asset:
+                    asset_type = db_asset.asset_type
+            except Exception as e:
+                logger.debug(
+                    f"Could not get asset_type from database for {ticker}: {e}"
+                )
+                # If asset not in database, it will be treated as a regular asset with currency
+
             # Format price data with localization
             formatted_price = {
                 "success": True,
                 "ticker": price_data.ticker,
                 "price": float(price_data.price),
                 "price_formatted": self.i18n_service.format_currency_amount(
-                    float(price_data.price), price_data.currency, language
+                    float(price_data.price),
+                    price_data.currency,
+                    language,
+                    asset_type,
                 ),
                 "currency": price_data.currency,
                 "timestamp": price_data.timestamp.isoformat(),
@@ -265,14 +283,28 @@ class AssetService:
         try:
             price_data = self.adapter_manager.get_multiple_prices(tickers)
 
+            # Get asset_types from database for all tickers in batch
+            asset_types = {}
+            try:
+                from ...db.repositories.asset_repository import get_asset_repository
+
+                asset_repo = get_asset_repository()
+                for ticker in tickers:
+                    db_asset = asset_repo.get_asset_by_symbol(ticker)
+                    if db_asset:
+                        asset_types[ticker] = db_asset.asset_type
+            except Exception as e:
+                logger.debug(f"Could not get asset_types from database: {e}")
+
             formatted_prices = {}
 
             for ticker, price in price_data.items():
                 if price:
+                    asset_type = asset_types.get(ticker)
                     formatted_prices[ticker] = {
                         "price": float(price.price),
                         "price_formatted": self.i18n_service.format_currency_amount(
-                            float(price.price), price.currency, language
+                            float(price.price), price.currency, language, asset_type
                         ),
                         "currency": price.currency,
                         "timestamp": price.timestamp.isoformat(),
