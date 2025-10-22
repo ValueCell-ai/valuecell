@@ -9,17 +9,54 @@ def create_social_media_analyst(llm, toolkit):
         ticker = state["company_of_interest"]
         company_name = state["company_of_interest"]
 
-        if toolkit.config["online_tools"]:
-            tools = [toolkit.get_stock_news_openai]
-        else:
-            tools = [
-                toolkit.get_reddit_stock_info,
-            ]
-
-        system_message = (
-            "You are a social media and company specific news researcher/analyst tasked with analyzing social media posts, recent company news, and public sentiment for a specific company over the past week. You will be given a company's name your objective is to write a comprehensive long report detailing your analysis, insights, and implications for traders and investors on this company's current state after looking at social media and what people are saying about that company, analyzing sentiment data of what people feel each day about the company, and looking at recent company news. Try to look at all sources possible from social media to sentiment to news. Do not simply state the trends are mixed, provide detailed and finegrained analysis and insights that may help traders make decisions."
-            + """ Make sure to append a Makrdown table at the end of the report to organize key points in the report, organized and easy to read.""",
+        # Check if ticker is A-share stock
+        is_a_share = (
+            ticker.isdigit()
+            and len(ticker) == 6
+            and ticker[0] in ['0', '3', '6', '8']
         )
+
+        if toolkit.config["online_tools"]:
+            if is_a_share:
+                # Use A-share sentiment tools for Chinese stocks
+                tools = [
+                    toolkit.get_a_share_guba_sentiment,
+                    toolkit.get_a_share_news,
+                ]
+            else:
+                # Use US stock sentiment tools
+                tools = [toolkit.get_stock_news_openai]
+        else:
+            if is_a_share:
+                # Use A-share sentiment tools (offline mode)
+                tools = [
+                    toolkit.get_a_share_guba_sentiment,
+                ]
+            else:
+                # Use US stock sentiment tools (offline mode)
+                tools = [
+                    toolkit.get_reddit_stock_info,
+                ]
+
+        # Adjust system message based on market
+        if is_a_share:
+            system_message = (
+                "You are a social media and sentiment analyst for A-share (Chinese stock market) companies. "
+                "Your task is to analyze public sentiment and social media discussions about the company. "
+                "Please write a comprehensive report covering: "
+                "1) East Money Guba (股吧) sentiment and discussion trends - analyze what retail investors are saying "
+                "2) Hot discussion topics and their sentiment (bullish, bearish, or neutral) "
+                "3) Analysis of post engagement (reads, comments) to gauge investor interest "
+                "4) Recent news sentiment and its impact on public perception. "
+                "Do not simply state the trends are mixed, provide detailed and fine-grained analysis and insights that may help traders make decisions. "
+                "Note: Guba is similar to Reddit for US stocks - it's where Chinese retail investors discuss stocks."
+                + """ Make sure to append a Markdown table at the end of the report to organize key points in the report, organized and easy to read.""",
+            )
+        else:
+            system_message = (
+                "You are a social media and company specific news researcher/analyst tasked with analyzing social media posts, recent company news, and public sentiment for a specific company over the past week. You will be given a company's name your objective is to write a comprehensive long report detailing your analysis, insights, and implications for traders and investors on this company's current state after looking at social media and what people are saying about that company, analyzing sentiment data of what people feel each day about the company, and looking at recent company news. Try to look at all sources possible from social media to sentiment to news. Do not simply state the trends are mixed, provide detailed and finegrained analysis and insights that may help traders make decisions."
+                + """ Make sure to append a Makrdown table at the end of the report to organize key points in the report, organized and easy to read.""",
+            )
 
         prompt = ChatPromptTemplate.from_messages(
             [

@@ -11,6 +11,7 @@ import os
 from dateutil.relativedelta import relativedelta
 from langchain_openai import ChatOpenAI
 import tradingagents.dataflows.interface as interface
+from tradingagents.dataflows import akshare_china_adapter
 from tradingagents.default_config import DEFAULT_CONFIG
 from langchain_core.messages import HumanMessage
 
@@ -418,3 +419,129 @@ class Toolkit:
         )
 
         return openai_fundamentals_results
+
+    # ============================================================================
+    # A-Share (China Stock Market) Tools
+    # ============================================================================
+
+    @staticmethod
+    @tool
+    def get_a_share_news(
+        ticker: Annotated[str, "A-share stock code (6 digits), e.g. 600519, 000001"],
+        curr_date: Annotated[str, "Current date in yyyy-mm-dd format"],
+        look_back_days: Annotated[int, "How many days to look back"] = 7,
+    ):
+        """
+        Retrieve news about an A-share company from East Money.
+        Args:
+            ticker (str): A-share stock code (6 digits), e.g. 600519 for Moutai, 000001 for Ping An Bank
+            curr_date (str): Current date in yyyy-mm-dd format
+            look_back_days (int): Number of days to look back (default: 7)
+        Returns:
+            str: Formatted news report for the A-share company
+        """
+        return akshare_china_adapter.get_a_share_news(ticker, curr_date, look_back_days)
+
+    @staticmethod
+    @tool
+    def get_a_share_announcements(
+        ticker: Annotated[str, "A-share stock code"],
+        curr_date: Annotated[str, "Current date in yyyy-mm-dd format"],
+        look_back_days: Annotated[int, "How many days to look back"] = 30,
+    ):
+        """
+        Retrieve official announcements for an A-share company.
+        Args:
+            ticker (str): A-share stock code
+            curr_date (str): Current date in yyyy-mm-dd format
+            look_back_days (int): Number of days to look back (default: 30)
+        Returns:
+            str: Formatted announcements report
+        """
+        return akshare_china_adapter.get_a_share_announcements(ticker, curr_date, look_back_days)
+
+    @staticmethod
+    @tool
+    def get_a_share_balance_sheet(
+        ticker: Annotated[str, "A-share stock code"],
+        curr_date: Annotated[str, "Current date in yyyy-mm-dd format"],
+    ):
+        """
+        Get balance sheet for an A-share company.
+        Args:
+            ticker (str): A-share stock code
+            curr_date (str): Current date in yyyy-mm-dd format
+        Returns:
+            str: Formatted balance sheet report
+        """
+        return akshare_china_adapter.get_a_share_balance_sheet(ticker, curr_date)
+
+    @staticmethod
+    @tool
+    def get_a_share_income_statement(
+        ticker: Annotated[str, "A-share stock code"],
+        curr_date: Annotated[str, "Current date in yyyy-mm-dd format"],
+    ):
+        """
+        Get income statement for an A-share company.
+        Args:
+            ticker (str): A-share stock code
+            curr_date (str): Current date in yyyy-mm-dd format
+        Returns:
+            str: Formatted income statement report
+        """
+        return akshare_china_adapter.get_a_share_income_statement(ticker, curr_date)
+
+    @staticmethod
+    @tool
+    def get_a_share_cashflow_statement(
+        ticker: Annotated[str, "A-share stock code"],
+        curr_date: Annotated[str, "Current date in yyyy-mm-dd format"],
+    ):
+        """
+        Get cash flow statement for an A-share company.
+        Args:
+            ticker (str): A-share stock code
+            curr_date (str): Current date in yyyy-mm-dd format
+        Returns:
+            str: Formatted cash flow statement report
+        """
+        return akshare_china_adapter.get_a_share_cashflow_statement(ticker, curr_date)
+
+    @staticmethod
+    @tool
+    def get_a_share_major_holder_trades(
+        ticker: Annotated[str, "A-share stock code"],
+        curr_date: Annotated[str, "Current date in yyyy-mm-dd format"],
+        look_back_days: Annotated[int, "How many days to look back"] = 90,
+    ):
+        """
+        Get major shareholder trading information for an A-share company.
+        This is similar to insider trading data for US stocks.
+        Args:
+            ticker (str): A-share stock code
+            curr_date (str): Current date in yyyy-mm-dd format
+            look_back_days (int): Number of days to look back (default: 90)
+        Returns:
+            str: Formatted major holder trades report
+        """
+        return akshare_china_adapter.get_a_share_major_holder_trades(ticker, curr_date, look_back_days)
+
+    @staticmethod
+    @tool
+    def get_a_share_guba_sentiment(
+        ticker: Annotated[str, "A-share stock code"],
+        curr_date: Annotated[str, "Current date in yyyy-mm-dd format"],
+        look_back_days: Annotated[int, "How many days to look back"] = 7,
+    ):
+        """
+        Get sentiment from East Money Guba (股吧) - Chinese stock forum.
+        This is similar to Reddit sentiment for US stocks.
+        Args:
+            ticker (str): A-share stock code
+            curr_date (str): Current date in yyyy-mm-dd format
+            look_back_days (int): Number of days to look back (default: 7)
+        Returns:
+            str: Formatted sentiment report from Guba
+        """
+        return akshare_china_adapter.get_a_share_eastmoney_guba_sentiment(ticker, curr_date, look_back_days)

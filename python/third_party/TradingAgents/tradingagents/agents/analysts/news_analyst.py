@@ -8,19 +8,58 @@ def create_news_analyst(llm, toolkit):
         current_date = state["trade_date"]
         ticker = state["company_of_interest"]
 
-        if toolkit.config["online_tools"]:
-            tools = [toolkit.get_global_news_openai, toolkit.get_google_news]
-        else:
-            tools = [
-                toolkit.get_finnhub_news,
-                toolkit.get_reddit_news,
-                toolkit.get_google_news,
-            ]
-
-        system_message = (
-            "You are a news researcher tasked with analyzing recent news and trends over the past week. Please write a comprehensive report of the current state of the world that is relevant for trading and macroeconomics. Look at news from EODHD, and finnhub to be comprehensive. Do not simply state the trends are mixed, provide detailed and finegrained analysis and insights that may help traders make decisions."
-            + """ Make sure to append a Makrdown table at the end of the report to organize key points in the report, organized and easy to read."""
+        # Check if ticker is A-share stock
+        is_a_share = (
+            ticker.isdigit()
+            and len(ticker) == 6
+            and ticker[0] in ['0', '3', '6', '8']
         )
+
+        if toolkit.config["online_tools"]:
+            if is_a_share:
+                # Use A-share news tools for Chinese stocks
+                tools = [
+                    toolkit.get_a_share_news,
+                    toolkit.get_a_share_announcements,
+                    toolkit.get_google_news,
+                ]
+            else:
+                # Use US stock news tools
+                tools = [toolkit.get_global_news_openai, toolkit.get_google_news]
+        else:
+            if is_a_share:
+                # Use A-share news tools (offline mode)
+                tools = [
+                    toolkit.get_a_share_news,
+                    toolkit.get_a_share_announcements,
+                    toolkit.get_google_news,
+                ]
+            else:
+                # Use US stock news tools (offline mode)
+                tools = [
+                    toolkit.get_finnhub_news,
+                    toolkit.get_reddit_news,
+                    toolkit.get_google_news,
+                ]
+
+        # Adjust system message based on market
+        if is_a_share:
+            system_message = (
+                "You are a news researcher tasked with analyzing recent news and trends for an A-share (Chinese stock market) company. "
+                "Please write a comprehensive report covering: "
+                "1) Company-specific news from East Money and other Chinese financial media "
+                "2) Official company announcements and regulatory filings "
+                "3) Macroeconomic news relevant to the Chinese market "
+                "4) Government policies and regulations that may affect the company or sector. "
+                "Do not simply state the trends are mixed, provide detailed and fine-grained analysis and insights that may help traders make decisions. "
+                "Pay special attention to: policy changes, sector regulations, and major corporate events."
+                + """ Make sure to append a Markdown table at the end of the report to organize key points in the report, organized and easy to read."""
+            )
+        else:
+            system_message = (
+                "You are a news researcher tasked with analyzing recent news and trends over the past week. Please write a comprehensive report of the current state of the world that is relevant for trading and macroeconomics. Look at news from EODHD, and finnhub to be comprehensive. Do not simply state the trends are mixed, provide detailed and finegrained analysis and insights that may help traders make decisions."
+                + """ Make sure to append a Makrdown table at the end of the report to organize key points in the report, organized and easy to read."""
+            )
 
         prompt = ChatPromptTemplate.from_messages(
             [
