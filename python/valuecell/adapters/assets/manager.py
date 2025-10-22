@@ -4,11 +4,15 @@ This module provides a unified interface for managing multiple data source adapt
 and routing requests to the appropriate providers based on asset types and availability.
 """
 
+import json
 import logging
+import os
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Dict, List, Optional
+
+from openai import OpenAI
 
 from .akshare_adapter import AKShareAdapter
 from .base import BaseDataAdapter
@@ -244,7 +248,156 @@ class AdapterManager:
                 seen_tickers.add(result.ticker)
                 unique_results.append(result)
 
+        # Use fallback search if no results found
+        if len(unique_results) == 0:
+            logger.info(
+                f"No results from adapters, trying fallback search for query: {query.query}"
+            )
+            fallback_results = self._fallback_search_assets(query)
+            unique_results.extend(fallback_results)
+
         return unique_results[: query.limit]
+
+    def _fallback_search_assets(
+        self, query: AssetSearchQuery
+    ) -> List[AssetSearchResult]:
+        """Fallback search assets if no results are found using LLM-based ticker generation.
+
+        This method uses an OpenAI-like API to intelligently generate possible ticker formats
+        based on the user's search query, then validates each generated ticker.
+
+        Args:
+            query: Search query parameters
+
+        Returns:
+            List of validated search results
+        """
+        # Get environment variables
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        model_id = os.getenv("PRODUCT_MODEL_ID")
+
+        if not api_key or not model_id:
+            logger.warning(
+                "OPENROUTER_API_KEY or PRODUCT_MODEL_ID not configured, skipping fallback search"
+            )
+            return []
+
+        try:
+            # Initialize OpenAI client with OpenRouter
+            client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
+
+            # Create prompt to generate possible ticker formats
+            prompt = f"""Given the user search query: "{query.query}"
+
+Generate a list of possible internal ticker IDs that match this query. The internal ticker format is: EXCHANGE:SYMBOL
+
+Supported exchanges and their formats:
+- NASDAQ: NASDAQ:SYMBOL (e.g., NASDAQ:AAPL, NASDAQ:MSFT)
+- NYSE: NYSE:SYMBOL (e.g., NYSE:JPM, NYSE:BAC)
+- AMEX: AMEX:SYMBOL (e.g., AMEX:GORO, AMEX:GLD)
+- SSE: SSE:SYMBOL (Shanghai Stock Exchange, 6-digit code, e.g., SSE:601398, SSE:510050)
+- SZSE: SZSE:SYMBOL (Shenzhen Stock Exchange, 6-digit code, e.g., SZSE:000001, SZSE:002594, SZSE:300750)
+- BSE: BSE:SYMBOL (Beijing Stock Exchange, 6-digit code, e.g., BSE:835368, BSE:560800)
+- HKEX: HKEX:SYMBOL (Hong Kong Stock Exchange, 5-digit code with leading zeros, e.g., HKEX:00700, HKEX:03033)
+- CRYPTO: CRYPTO:SYMBOL (e.g., CRYPTO:BTC, CRYPTO:ETH)
+
+Consider:
+1. Common stock symbols and company names
+2. Chinese company names (if query contains Chinese characters)
+3. Cryptocurrency names
+4. Index names
+5. ETF names
+
+Return ONLY a JSON array of ticker strings, like:
+["NASDAQ:AAPL", "NYSE:AAPL", "HKEX:00700"]
+
+Generate up to at least 1 possible ticker candidate up to 10. Be creative but realistic."""
+
+            # Call LLM API
+            response = client.chat.completions.create(
+                model=model_id,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a financial data expert that helps map search queries to standardized ticker formats. Always respond with valid JSON arrays only.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.7,
+                max_tokens=500,
+            )
+
+            # Parse response
+            response_text = response.choices[0].message.content.strip()
+            logger.debug(f"LLM response for query '{query.query}': {response_text}")
+
+            # Extract JSON array from response (handle cases where LLM adds markdown formatting)
+            if response_text.startswith("```json"):
+                response_text = (
+                    response_text.split("```json")[1].split("```")[0].strip()
+                )
+            elif response_text.startswith("```"):
+                response_text = response_text.split("```")[1].split("```")[0].strip()
+
+            possible_tickers = json.loads(response_text)
+
+            if not isinstance(possible_tickers, list):
+                logger.warning(f"LLM response is not a list: {possible_tickers}")
+                return []
+
+            # Validate each ticker and convert to search results
+            results = []
+            seen_tickers = set()
+
+            for ticker in possible_tickers:
+                if not isinstance(ticker, str):
+                    continue
+
+                ticker = ticker.strip().upper()
+
+                # Skip duplicates
+                if ticker in seen_tickers:
+                    continue
+
+                # Validate ticker format
+                if ":" not in ticker:
+                    continue
+
+                # Try to get asset info
+                try:
+                    asset_info = self.get_asset_info(ticker)
+
+                    if asset_info:
+                        seen_tickers.add(ticker)
+
+                        # Convert Asset to AssetSearchResult
+                        search_result = AssetSearchResult(
+                            ticker=asset_info.ticker,
+                            asset_type=asset_info.asset_type,
+                            names=asset_info.names.names,
+                            exchange=asset_info.market_info.exchange,
+                            country=asset_info.market_info.country,
+                        )
+                        results.append(search_result)
+
+                        logger.info(f"Fallback search found valid asset: {ticker}")
+
+                        # Stop if we have enough results
+                        if len(results) >= query.limit:
+                            break
+
+                except Exception as e:
+                    logger.debug(f"Ticker {ticker} validation failed: {e}")
+                    continue
+
+            logger.info(
+                f"Fallback search returned {len(results)} results for query '{query.query}'"
+            )
+            return results
+
+        except Exception as e:
+            logger.error(f"Fallback search failed: {e}", exc_info=True)
+            return []
 
     def get_asset_info(self, ticker: str) -> Optional[Asset]:
         """Get detailed asset information.

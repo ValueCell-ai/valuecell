@@ -194,8 +194,8 @@ class AKShareAdapter(BaseDataAdapter):
         return None
 
     def search_assets(self, query: AssetSearchQuery) -> List[AssetSearchResult]:
-        """Search for assets using AKShare direct queries."""
-        pass
+        """AKShare does not support search assets."""
+        return []
 
     def __get_xq_symbol(self, ticker: str) -> str:
         """Get XQ symbol for a specific asset.
