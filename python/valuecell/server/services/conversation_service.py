@@ -9,10 +9,12 @@ from valuecell.core.conversation import (
 )
 from valuecell.core.coordinate.orchestrator import AgentOrchestrator
 from valuecell.server.api.schemas.conversation import (
+    ConversationDeleteData,
     ConversationHistoryData,
     ConversationHistoryItem,
     ConversationListData,
     ConversationListItem,
+    MessageData,
 )
 from valuecell.utils import resolve_db_path
 
@@ -98,13 +100,9 @@ class ConversationService:
         for response in base_responses:
             data = response.data
 
-            # Extract content from payload
-            content = None
+            # Convert payload to dict for JSON serialization
             payload_data = None
             if data.payload:
-                if hasattr(data.payload, "content"):
-                    content = data.payload.content
-                # Convert payload to dict for JSON serialization
                 try:
                     payload_data = (
                         data.payload.model_dump()
@@ -114,43 +112,81 @@ class ConversationService:
                 except Exception:
                     payload_data = str(data.payload)
 
-            history_item = ConversationHistoryItem(
-                item_id=data.item_id,
+            # Normalize event and role names
+            event_str = self._normalize_event_name(str(response.event))
+            role_str = self._normalize_role_name(str(data.role))
+
+            # Create unified format: event and data at top level
+            message_data_with_meta = MessageData(
                 conversation_id=data.conversation_id,
                 thread_id=data.thread_id,
                 task_id=data.task_id,
-                event=str(response.event),
-                role=str(data.role),
-                agent_name=data.agent_name,
-                content=content,
                 payload=payload_data,
-                created_at="",  # Will be filled from database if available
+                role=role_str,
+                item_id=data.item_id,
             )
+
+            history_item = ConversationHistoryItem(
+                event=event_str, data=message_data_with_meta
+            )
+
             history_items.append(history_item)
 
-        # Get creation timestamps from the database
-        conversation_items = await self.conversation_manager.get_conversation_items(
-            conversation_id=conversation_id
-        )
-
-        # Create a mapping of item_id to created_at
-        item_timestamps = {
-            item.item_id: item.created_at.isoformat()
-            if hasattr(item, "created_at") and item.created_at
-            else ""
-            for item in conversation_items
-        }
-
-        # Update history items with timestamps
-        for history_item in history_items:
-            if history_item.item_id in item_timestamps:
-                history_item.created_at = item_timestamps[history_item.item_id]
-
         return ConversationHistoryData(
-            conversation_id=conversation_id,
-            messages=history_items,
-            total=len(history_items),
+            conversation_id=conversation_id, items=history_items
         )
+
+    async def delete_conversation(self, conversation_id: str) -> ConversationDeleteData:
+        """Delete a conversation and all its associated data."""
+        # Check if conversation exists
+        conversation = await self.conversation_manager.get_conversation(conversation_id)
+        if not conversation:
+            raise ValueError(f"Conversation {conversation_id} not found")
+
+        try:
+            # Delete the conversation using the conversation manager
+            await self.conversation_manager.delete_conversation(conversation_id)
+
+            return ConversationDeleteData(conversation_id=conversation_id, deleted=True)
+        except Exception:
+            # If deletion fails, return False
+            return ConversationDeleteData(
+                conversation_id=conversation_id, deleted=False
+            )
+
+    def _normalize_role_name(self, role: str) -> str:
+        """Normalize role name to match expected format."""
+        role_lower = role.lower()
+        if "user" in role_lower:
+            return "user"
+        elif "agent" in role_lower or "assistant" in role_lower:
+            return "agent"
+        elif "system" in role_lower:
+            return "system"
+        else:
+            return "user"  # Default fallback
+
+    def _normalize_event_name(self, event: str) -> str:
+        """Normalize event name to match expected format."""
+        event_lower = event.lower()
+
+        # Map common event patterns to expected names
+        if "message_chunk" in event_lower or "chunk" in event_lower:
+            return "message_chunk"
+        elif "reasoning" in event_lower:
+            return "reasoning"
+        elif "tool_call_completed" in event_lower or "tool_completed" in event_lower:
+            return "tool_call_completed"
+        elif "component_generator" in event_lower or "component" in event_lower:
+            return "component_generator"
+        elif "thread_started" in event_lower:
+            return "thread_started"
+        elif "task_started" in event_lower:
+            return "task_started"
+        else:
+            # Extract the last part after the last dot or underscore
+            parts = event.replace(".", "_").split("_")
+            return "_".join(parts[-2:]).lower() if len(parts) > 1 else event.lower()
 
 
 # Global service instance
