@@ -20,8 +20,7 @@ from .task import Task, TaskManager, TaskStatus
 
 # Type system
 from .types import (
-    BaseAgent,
-    RemoteAgentResponse,
+    BaseAgent,RemoteAgentResponse,
     StreamResponse,
     UserInput,
     UserInputMetadata,
