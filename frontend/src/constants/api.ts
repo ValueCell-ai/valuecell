@@ -22,6 +22,7 @@ const AGENT_QUERY_KEYS = {
 
 export const CONVERSATION_QUERY_KEYS = {
   conversationList: ["conversation"],
+  conversationHistory: queryKeyFn(["conversation", "history"]),
 } as const;
 
 export const API_QUERY_KEYS = {

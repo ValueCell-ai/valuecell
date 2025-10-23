@@ -116,76 +116,107 @@ function handleChatItemEvent(
   addOrUpdateItem(task, data, event);
 }
 
+// Core event processor - processes a single SSE event
+function processSSEEvent(draft: AgentConversationsStore, sseData: SSEData) {
+  const { event, data } = sseData;
+
+  switch (event) {
+    // component_generator preserves original component_type
+    case "component_generator": {
+      const component_type = data.payload.component_type;
+
+      switch (component_type) {
+        case "filtered_line_chart":
+        case "filtered_card_push_notification":
+        case "subagent_conversation":
+          handleChatItemEvent(
+            draft,
+            {
+              ...data,
+              component_type,
+            },
+            "replace",
+          );
+          break;
+        default:
+          handleChatItemEvent(draft, {
+            ...data,
+            component_type,
+          });
+          break;
+      }
+      break;
+    }
+
+    case "thread_started":
+    case "message_chunk":
+    case "message":
+    case "reasoning":
+    case "task_failed":
+    case "plan_failed":
+    case "plan_require_user_input":
+      // Other events are set as markdown type
+      handleChatItemEvent(draft, { component_type: "markdown", ...data });
+      break;
+
+    case "tool_call_started":
+    case "tool_call_completed": {
+      handleChatItemEvent(
+        draft,
+        {
+          component_type: "tool_call",
+          ...data,
+          payload: {
+            content: JSON.stringify(data.payload),
+          },
+        },
+        "replace",
+      );
+      break;
+    }
+
+    case "reasoning_started":
+    case "reasoning_completed":
+      ensurePath(draft, data);
+      break;
+
+    default:
+      break;
+  }
+}
+
 export function updateAgentConversationsStore(
   store: AgentConversationsStore,
   sseData: SSEData,
 ) {
-  const { event, data } = sseData;
-
   // Use mutative to create new state with type-safe event handling
   return create(store, (draft) => {
-    switch (event) {
-      // component_generator preserves original component_type
-      case "component_generator": {
-        const component_type = data.payload.component_type;
+    processSSEEvent(draft, sseData);
+  });
+}
 
-        switch (component_type) {
-          case "filtered_line_chart":
-          case "filtered_card_push_notification":
-          case "subagent_conversation":
-            handleChatItemEvent(
-              draft,
-              {
-                ...data,
-                component_type,
-              },
-              "replace",
-            );
-            break;
-          default:
-            handleChatItemEvent(draft, {
-              ...data,
-              component_type,
-            });
-            break;
-        }
-        break;
-      }
+/**
+ * Batch update agent conversations store with multiple SSE events
+ * @param store - Current agent conversations store
+ * @param conversationId - The conversation ID to clear and update
+ * @param sseDataList - Array of SSE events to process
+ * @returns Updated store with all events processed atomically
+ */
+export function batchUpdateAgentConversationsStore(
+  store: AgentConversationsStore,
+  conversationId: string,
+  sseDataList: SSEData[],
+) {
+  // Process all events in a single mutative transaction for better performance
+  return create(store, (draft) => {
+    // Clear existing data for this conversation
+    if (draft[conversationId]) {
+      delete draft[conversationId];
+    }
 
-      case "thread_started":
-      case "message_chunk":
-      case "message":
-      case "reasoning":
-      case "task_failed":
-      case "plan_failed":
-      case "plan_require_user_input":
-        // Other events are set as markdown type
-        handleChatItemEvent(draft, { component_type: "markdown", ...data });
-        break;
-
-      case "tool_call_started":
-      case "tool_call_completed": {
-        handleChatItemEvent(
-          draft,
-          {
-            component_type: "tool_call",
-            ...data,
-            payload: {
-              content: JSON.stringify(data.payload),
-            },
-          },
-          "replace",
-        );
-        break;
-      }
-
-      case "reasoning_started":
-      case "reasoning_completed":
-        ensurePath(draft, data);
-        break;
-
-      default:
-        break;
+    // Process all new events
+    for (const sseData of sseDataList) {
+      processSSEEvent(draft, sseData);
     }
   });
 }

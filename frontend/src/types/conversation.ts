@@ -1,3 +1,5 @@
+import type { SSEData } from "./agent";
+
 export type ConversationItem = {
   conversation_id: string;
   title: string;
@@ -8,4 +10,9 @@ export type ConversationItem = {
 export type ConversationList = {
   conversations: ConversationItem[];
   total: number;
+};
+
+export type ConversationHistory = {
+  conversation_id: string;
+  items: SSEData[];
 };
