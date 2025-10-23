@@ -45,13 +45,11 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v6
       
-      - name: Install Ruff
-        uses: astral-sh/ruff-action@v3
-        with:
-          args: "format --check --diff"
-      
       - name: Install style dependencies
         run: uv sync --locked --only-group style
+      
+      - name: Run format style check
+        run: uv run --directory . ruff format --check --config ./pyproject.toml ./valuecell
       
       - name: Run isort style check
         run: uv run --directory . isort .
