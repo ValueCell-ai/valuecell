@@ -8,6 +8,11 @@ from .base import (
     StatusCode,
     SuccessResponse,
 )
+from .conversation import (
+    ConversationListData,
+    ConversationListItem,
+    ConversationListResponse,
+)
 from .i18n import (
     AgentI18nContextData,
     CurrencyFormatData,
@@ -75,6 +80,10 @@ __all__ = [
     "DateTimeFormatData",
     "NumberFormatData",
     "CurrencyFormatData",
+    # Conversation schemas
+    "ConversationListData",
+    "ConversationListItem",
+    "ConversationListResponse",
     # Watchlist schemas
     "WatchlistItemData",
     "WatchlistData",

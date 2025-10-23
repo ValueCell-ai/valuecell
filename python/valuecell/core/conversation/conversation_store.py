@@ -26,9 +26,9 @@ class ConversationStore(ABC):
 
     @abstractmethod
     async def list_conversations(
-        self, user_id: str, limit: int = 100, offset: int = 0
+        self, user_id: Optional[str] = None, limit: int = 100, offset: int = 0
     ) -> List[Conversation]:
-        """List user conversations"""
+        """List conversations. If user_id is None, return all conversations."""
 
     @abstractmethod
     async def conversation_exists(self, conversation_id: str) -> bool:
@@ -60,21 +60,27 @@ class InMemoryConversationStore(ConversationStore):
         return False
 
     async def list_conversations(
-        self, user_id: str, limit: int = 100, offset: int = 0
+        self, user_id: Optional[str] = None, limit: int = 100, offset: int = 0
     ) -> List[Conversation]:
-        """List user conversations"""
-        user_conversations = [
-            conversation
-            for conversation in self._conversations.values()
-            if conversation.user_id == user_id
-        ]
+        """List conversations. If user_id is None, return all conversations."""
+        if user_id is None:
+            # Return all conversations
+            conversations = list(self._conversations.values())
+        else:
+            # Filter by user_id
+            conversations = [
+                conversation
+                for conversation in self._conversations.values()
+                if conversation.user_id == user_id
+            ]
+
         # Sort by creation time descending
-        user_conversations.sort(key=lambda c: c.created_at, reverse=True)
+        conversations.sort(key=lambda c: c.created_at, reverse=True)
 
         # Apply pagination
         start = offset
         end = offset + limit
-        return user_conversations[start:end]
+        return conversations[start:end]
 
     async def conversation_exists(self, conversation_id: str) -> bool:
         """Check if conversation exists"""

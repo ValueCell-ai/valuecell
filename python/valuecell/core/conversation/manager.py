@@ -63,9 +63,9 @@ class ConversationManager:
         return await self.conversation_store.delete_conversation(conversation_id)
 
     async def list_user_conversations(
-        self, user_id: str, limit: int = 100, offset: int = 0
+        self, user_id: Optional[str] = None, limit: int = 100, offset: int = 0
     ) -> List[Conversation]:
-        """List user conversations"""
+        """List conversations. If user_id is None, return all conversations."""
         return await self.conversation_store.list_conversations(user_id, limit, offset)
 
     async def conversation_exists(self, conversation_id: str) -> bool:
