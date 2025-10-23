@@ -2,11 +2,11 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Path, Query
 
 from valuecell.server.services.conversation_service import get_conversation_service
 
-from ..schemas.conversation import ConversationListResponse
+from ..schemas.conversation import ConversationHistoryResponse, ConversationListResponse
 
 
 def create_conversation_router() -> APIRouter:
@@ -34,5 +34,30 @@ def create_conversation_router() -> APIRouter:
         return ConversationListResponse.create(
             data=data, msg="Conversations retrieved successfully"
         )
+
+    @router.get(
+        "/{conversation_id}/history",
+        response_model=ConversationHistoryResponse,
+        summary="Get conversation history",
+        description="Get the complete message history for a specific conversation",
+    )
+    async def get_conversation_history(
+        conversation_id: str = Path(..., description="The conversation ID"),
+    ) -> ConversationHistoryResponse:
+        """Get conversation history."""
+        try:
+            service = get_conversation_service()
+            data = await service.get_conversation_history(
+                conversation_id=conversation_id
+            )
+            return ConversationHistoryResponse.create(
+                data=data, msg="Conversation history retrieved successfully"
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
 
     return router
