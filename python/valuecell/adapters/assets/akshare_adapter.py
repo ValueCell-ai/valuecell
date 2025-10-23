@@ -1227,6 +1227,6 @@ class AKShareAdapter(BaseDataAdapter):
             capabilities = self.get_capabilities()
 
             # Check if any capability supports this exchange
-            return any(cap.supports_exchange(exchange) for cap in capabilities)
+            return any(cap.supports_exchange(Exchange(exchange)) for cap in capabilities)
         except Exception:
             return False

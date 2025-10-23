@@ -35,24 +35,8 @@ class AdapterCapability:
     exchanges: Set[Exchange]  # Supported exchanges
 
     def supports_exchange(self, exchange: Exchange) -> bool:
-        """Check if this capability supports the given exchange.
-
-        Args:
-            exchange: Exchange to check (can be Exchange enum or string)
-
-        Returns:
-            True if this capability supports the exchange
-        """
-        # Support both Exchange enum and string for backward compatibility
-        if isinstance(exchange, str):
-            exchange_str = exchange
-        else:
-            exchange_str = exchange.value
-
-        return any(
-            ex.value == exchange_str if isinstance(ex, Exchange) else ex == exchange_str
-            for ex in self.exchanges
-        )
+        """Check if this capability supports the given exchange."""
+        return exchange in self.exchanges
 
 
 class BaseDataAdapter(ABC):
@@ -173,7 +157,7 @@ class BaseDataAdapter(ABC):
             capabilities = self.get_capabilities()
 
             # Check if any capability supports this exchange
-            return any(cap.supports_exchange(exchange) for cap in capabilities)
+            return any(cap.supports_exchange(Exchange(exchange)) for cap in capabilities)
         except Exception:
             return False
 
