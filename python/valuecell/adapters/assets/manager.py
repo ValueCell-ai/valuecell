@@ -360,11 +360,11 @@ class AdapterManager:
         """
         # Get environment variables
         api_key = os.getenv("OPENROUTER_API_KEY")
-        model_id = os.getenv("PRODUCT_MODEL_ID")
+        model_id = os.getenv("PRODUCT_MODEL_ID", "anthropic/claude-haiku-4.5")
 
         if not api_key or not model_id:
             logger.warning(
-                "OPENROUTER_API_KEY or PRODUCT_MODEL_ID not configured, skipping fallback search"
+                "OPENROUTER_API_KEY is not configured, skipping fallback search"
             )
             return []
 
