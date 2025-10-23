@@ -163,7 +163,6 @@ const AppSidebar: FC = () => {
   const agentItems = useMemo(() => {
     return agentList?.map((agent) => ({
       id: agent.agent_name,
-      icon: agent.icon_url,
       label: agent.display_name,
       to: `/agent/${agent.agent_name}`,
     }));
