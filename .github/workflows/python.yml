@@ -49,7 +49,7 @@ jobs:
         run: uv sync --locked --only-group style
       
       - name: Run format style check
-        run: ruff format --config ./pyproject.toml ./valuecell
+        run: uv run --directory . ruff format --config ./pyproject.toml ./valuecell
       
       - name: Run isort style check
         run: uv run --directory . isort .
