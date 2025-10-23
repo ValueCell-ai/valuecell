@@ -1,5 +1,11 @@
-import { useCallback } from "react";
-import { Navigate, useParams } from "react-router";
+import { useCallback, useEffect } from "react";
+import {
+  Navigate,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router";
 import { toast } from "sonner";
 import { useGetAgentInfo } from "@/api/agent";
 import { useSSE } from "@/hooks/use-sse";
@@ -14,6 +20,10 @@ import ChatConversationArea from "./components/chat-conversation/chat-conversati
 
 export default function AgentChat() {
   const { agentName } = useParams<Route.LoaderArgs["params"]>();
+  const conversationId = useSearchParams()[0].get("id");
+  const navigate = useNavigate();
+  const inputValue = useLocation().state?.inputValue;
+
   const { data: agent, isLoading: isLoadingAgent } = useGetAgentInfo({
     agentName: agentName ?? "",
   });
@@ -90,6 +100,16 @@ export default function AgentChat() {
     },
     [agentName, curConversationId],
   );
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: setCurConversationId and navigate are no need to be in dependencies
+  useEffect(() => {
+    if (conversationId) setCurConversationId(conversationId);
+    if (inputValue) {
+      sendMessage(inputValue);
+      // Clear the state after using it once to prevent re-triggering on page refresh
+      navigate(".", { replace: true, state: {} });
+    }
+  }, [conversationId, inputValue, sendMessage]);
 
   if (isLoadingAgent) return null;
   if (!agent) return <Navigate to="/" replace />;

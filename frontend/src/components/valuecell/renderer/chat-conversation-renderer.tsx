@@ -43,11 +43,11 @@ const ChatConversationRenderer: FC<ChatConversationRendererProps> = ({
         )}
 
         {/* TODO: Open when conversation history is finished */}
-        {phase === "end" && (
+        {/* {phase === "end" && (
           <Button className="rounded-full bg-blue-500 px-2.5 py-1.5 font-normal text-sm text-white hover:bg-blue-500/80">
             View
           </Button>
-        )}
+        )} */}
       </div>
 
       <ScrollContainer className="max-h-[600px]" autoScrollToBottom>
