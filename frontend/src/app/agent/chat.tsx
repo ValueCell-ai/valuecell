@@ -30,7 +30,6 @@ export default function AgentChat() {
 
   // Use optimized hooks with built-in shallow comparison
   const { curConversation, curConversationId } = useCurrentConversation();
-
   const { dispatchAgentStore, setCurConversationId } = useAgentStoreActions();
 
   // Handle SSE data events using agent store
