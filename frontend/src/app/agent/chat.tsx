@@ -20,7 +20,7 @@ import ChatConversationArea from "./components/chat-conversation/chat-conversati
 
 export default function AgentChat() {
   const { agentName } = useParams<Route.LoaderArgs["params"]>();
-  const conversationId = useSearchParams()[0].get("id");
+  const conversationId = useSearchParams()[0].get("id") ?? "";
   const navigate = useNavigate();
   const inputValue = useLocation().state?.inputValue;
 
@@ -43,7 +43,9 @@ export default function AgentChat() {
     const { event, data } = sseData;
     switch (event) {
       case "conversation_started":
-        setCurConversationId(data.conversation_id);
+        navigate(`/agent/${agentName}?id=${data.conversation_id}`, {
+          replace: true,
+        });
         break;
 
       case "system_failed":
@@ -103,7 +105,8 @@ export default function AgentChat() {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: setCurConversationId and navigate are no need to be in dependencies
   useEffect(() => {
-    if (conversationId) setCurConversationId(conversationId);
+    curConversationId !== conversationId &&
+      setCurConversationId(conversationId);
     if (inputValue) {
       sendMessage(inputValue);
       // Clear the state after using it once to prevent re-triggering on page refresh

@@ -1,4 +1,5 @@
 import MiniSparkline from "@valuecell/charts/mini-sparkline";
+import { memo } from "react";
 import { SparklineStockListSkeleton } from "@/components/valuecell/skeleton";
 import { STOCK_COLORS } from "@/constants/stock";
 import { cn, formatChange, formatPrice, getChangeType } from "@/lib/utils";
@@ -96,4 +97,4 @@ function SparklineStockList({
   );
 }
 
-export { SparklineStockList, SparklineStockItem };
+export default memo(SparklineStockList);

@@ -64,19 +64,13 @@ export function useSparklineStocks(
     end_date: dateRange.endDate,
   });
 
-  // Group queries for easier processing (memoized to stabilize references)
-  const priceQueries = useMemo(
-    () => [stock1Price, stock2Price, stock3Price],
-    [stock1Price, stock2Price, stock3Price],
-  );
-  const historyQueries = useMemo(
-    () => [stock1History, stock2History, stock3History],
-    [stock1History, stock2History, stock3History],
-  );
-
   // Transform data format to SparklineStock
+  // Only depend on actual data, not query objects, to prevent unnecessary re-renders
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Only depend on data, not query objects, to prevent unnecessary re-renders
   const sparklineStocks = useMemo(() => {
     const result: SparklineStock[] = [];
+    const priceQueries = [stock1Price, stock2Price, stock3Price];
+    const historyQueries = [stock1History, stock2History, stock3History];
 
     stocks.forEach((stock, index) => {
       const priceQuery = priceQueries[index];
@@ -117,7 +111,19 @@ export function useSparklineStocks(
     });
 
     return result;
-  }, [stocks, priceQueries, historyQueries]);
+  }, [
+    stocks,
+    stock1Price.data,
+    stock2Price.data,
+    stock3Price.data,
+    stock1History.data,
+    stock2History.data,
+    stock3History.data,
+  ]);
+
+  // Group queries for easier processing
+  const priceQueries = [stock1Price, stock2Price, stock3Price];
+  const historyQueries = [stock1History, stock2History, stock3History];
 
   // Calculate loading states
   const isLoadingPrices = priceQueries.some((query) => query.isLoading);
