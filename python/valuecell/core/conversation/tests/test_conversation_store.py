@@ -190,6 +190,43 @@ class TestInMemoryConversationStore:
         assert result == []
 
     @pytest.mark.asyncio
+    async def test_list_conversations_all_users(self):
+        """Test listing all conversations when user_id is None."""
+        store = InMemoryConversationStore()
+
+        # Create conversations for different users
+        conv1 = Conversation(
+            conversation_id="conv-1",
+            user_id="user-123",
+            created_at=datetime(2023, 1, 1, 10, 0, 0),
+        )
+        conv2 = Conversation(
+            conversation_id="conv-2",
+            user_id="user-456",
+            created_at=datetime(2023, 1, 1, 11, 0, 0),
+        )
+        conv3 = Conversation(
+            conversation_id="conv-3",
+            user_id="user-789",
+            created_at=datetime(2023, 1, 1, 12, 0, 0),
+        )
+
+        store._conversations = {
+            "conv-1": conv1,
+            "conv-2": conv2,
+            "conv-3": conv3,
+        }
+
+        # Test with user_id=None to get all conversations
+        result = await store.list_conversations(user_id=None)
+
+        assert len(result) == 3
+        # Should be sorted by creation time descending
+        assert result[0].conversation_id == "conv-3"  # Newest first
+        assert result[1].conversation_id == "conv-2"
+        assert result[2].conversation_id == "conv-1"  # Oldest last
+
+    @pytest.mark.asyncio
     async def test_list_conversations_pagination(self):
         """Test listing conversations with pagination."""
         store = InMemoryConversationStore()
