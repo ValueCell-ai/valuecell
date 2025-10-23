@@ -545,7 +545,6 @@ class TestSQLiteConversationStore:
     @pytest.mark.asyncio
     async def test_row_to_conversation(self, temp_db_store):
         """Test _row_to_conversation static method."""
-        import sqlite3
         from datetime import datetime
 
         # Create a mock row
