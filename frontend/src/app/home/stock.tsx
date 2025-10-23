@@ -160,7 +160,7 @@ const Stock = memo(function Stock() {
   const changeType = getChangeType(stockInfo.changePercentNumeric);
 
   return (
-    <div className="flex flex-col gap-8 px-8 py-6">
+    <div className="flex flex-col gap-8 rounded-xl bg-white px-8 py-6">
       {/* Stock Main Info */}
       <div className="flex flex-col gap-4">
         <BackButton />
