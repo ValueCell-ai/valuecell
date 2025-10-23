@@ -111,7 +111,7 @@ export default function AgentChat() {
         const request: AgentStreamRequest = {
           query: message,
           agent_name: agentName ?? "",
-          conversation_id: curConversationId,
+          conversation_id: conversationId,
         };
 
         // Connect SSE client with request body to receive streaming response
@@ -120,7 +120,7 @@ export default function AgentChat() {
         console.error("Failed to send message:", error);
       }
     },
-    [agentName, curConversationId],
+    [agentName, conversationId],
   );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: setCurConversationId and navigate are no need to be in dependencies
