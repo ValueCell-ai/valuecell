@@ -63,10 +63,10 @@ def create_i18n_router() -> APIRouter:
         APIRouter: Configured i18n router
     """
     router = APIRouter(prefix="/i18n", tags=["i18n"])
-    
+
     # Get services
     i18n_service = get_i18n_service()
-    
+
     # User context storage (in production, use Redis or database)
     _user_contexts: Dict[str, Dict[str, Any]] = {}
 
@@ -152,8 +152,7 @@ def create_i18n_router() -> APIRouter:
                     {
                         "value": lang_tz,
                         "label": get_timezone_display_name(lang_tz),
-                        "is_current": lang_tz
-                        == i18n_service.get_current_timezone(),
+                        "is_current": lang_tz == i18n_service.get_current_timezone(),
                     }
                 )
 
@@ -195,9 +194,7 @@ def create_i18n_router() -> APIRouter:
             if user_id not in _user_contexts:
                 _user_contexts[user_id] = {}
             _user_contexts[user_id]["language"] = request.language
-            _user_contexts[user_id]["timezone"] = (
-                i18n_service.get_current_timezone()
-            )
+            _user_contexts[user_id]["timezone"] = i18n_service.get_current_timezone()
 
         settings_data = UserI18nSettingsData(
             user_id=user_id,
@@ -251,7 +248,7 @@ def create_i18n_router() -> APIRouter:
         description="Detect user's preferred language based on Accept-Language header",
     )
     async def detect_language(
-        request: LanguageDetectionRequest
+        request: LanguageDetectionRequest,
     ) -> SuccessResponse[LanguageDetectionData]:
         """Detect language from Accept-Language header."""
         detected_language = detect_browser_language(request.accept_language)
@@ -279,7 +276,7 @@ def create_i18n_router() -> APIRouter:
         description="Get translated text based on specified key and language",
     )
     async def translate(
-        request: TranslationRequest
+        request: TranslationRequest,
     ) -> SuccessResponse[TranslationData]:
         """Translate a key."""
         try:
@@ -393,7 +390,7 @@ def create_i18n_router() -> APIRouter:
         description="Get internationalization settings for specified user",
     )
     async def get_user_settings(
-        user_id: str = Header(..., alias="X-User-ID")
+        user_id: str = Header(..., alias="X-User-ID"),
     ) -> SuccessResponse:
         """Get user's i18n settings."""
         user_context = _user_contexts.get(
