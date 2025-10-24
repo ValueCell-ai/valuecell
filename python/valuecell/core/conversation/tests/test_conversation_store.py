@@ -561,7 +561,7 @@ class TestSQLiteConversationStore:
                 "conversation_id": "conv-123",
                 "user_id": "user-123",
                 "title": "Test Title",
-                "agent_name" : "Agent-1",
+                "agent_name": "Agent-1",
                 "created_at": now.isoformat(),
                 "updated_at": now.isoformat(),
                 "status": "active",
