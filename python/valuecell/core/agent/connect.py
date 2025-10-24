@@ -89,6 +89,8 @@ class RemoteConnections:
                 agent_name = agent_card_dict.get("name")
                 if not agent_name:
                     continue
+                if not agent_card_dict.get("enabled", True):
+                    continue
                 local_agent_card = parse_local_agent_card_dict(agent_card_dict)
                 if not local_agent_card or not local_agent_card.url:
                     continue
@@ -313,3 +315,18 @@ class RemoteConnections:
         if ctx.local_agent_card:
             return ctx.local_agent_card
         return None
+
+    def get_all_agent_cards(self) -> Dict[str, AgentCard]:
+        """Get all AgentCards for known agents from local configs.
+
+        Returns:
+            Dict mapping agent names to their AgentCard objects.
+        """
+        self._ensure_remote_contexts_loaded()
+        agent_cards = {}
+        for name, _ in self._contexts.items():
+            card = self.get_agent_card(name)
+            if card:
+                agent_cards[name] = card
+
+        return agent_cards

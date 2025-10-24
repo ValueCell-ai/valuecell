@@ -4,6 +4,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
+from valuecell.utils.uuid import generate_task_id, generate_thread_id
+
 
 class TaskStatus(str, Enum):
     """Task status enumeration"""
@@ -26,7 +28,9 @@ class TaskPattern(str, Enum):
 class Task(BaseModel):
     """Task data model"""
 
-    task_id: str = Field(..., description="Unique task identifier")
+    task_id: str = Field(
+        default_factory=generate_task_id, description="Unique task identifier"
+    )
     remote_task_ids: List[str] = Field(
         default_factory=list,
         description="Task identifier determined by the remote agent after submission",
@@ -35,6 +39,9 @@ class Task(BaseModel):
     conversation_id: str = Field(
         ..., description="Conversation ID this task belongs to"
     )
+    thread_id: str = Field(
+        default_factory=generate_thread_id, description="Thread ID this task belongs to"
+    )
     user_id: str = Field(..., description="User ID who initiated this task")
     agent_name: str = Field(..., description="Name of the agent executing this task")
     status: TaskStatus = Field(
@@ -42,6 +49,10 @@ class Task(BaseModel):
     )
     pattern: TaskPattern = Field(
         default=TaskPattern.ONCE, description="Task execution pattern"
+    )
+    handoff_from_super_agent: bool = Field(
+        False,
+        description="Indicates if the task was handed over from a super agent",
     )
 
     # Time-related fields

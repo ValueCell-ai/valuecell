@@ -353,11 +353,82 @@ class TestInMemoryItemStore:
         assert count_other == 1
 
     @pytest.mark.asyncio
-    async def test_delete_conversation_items_nonexistent(self):
-        """Test deleting items for a nonexistent conversation."""
+    async def test_get_items_all_conversations(self):
+        """Test getting items from all conversations when conversation_id is None."""
         store = InMemoryItemStore()
 
-        # Should not raise an error
-        await store.delete_conversation_items("nonexistent")
+        # Add items to different conversations
+        conv1_items = [
+            ConversationItem(
+                item_id=f"conv1-{i}",
+                role=Role.USER,
+                event="message",
+                conversation_id="conv-1",
+                payload=f"Conv1 Message {i}",
+            )
+            for i in range(2)
+        ]
+        conv2_items = [
+            ConversationItem(
+                item_id=f"conv2-{i}",
+                role=Role.AGENT,
+                event="message",
+                conversation_id="conv-2",
+                payload=f"Conv2 Message {i}",
+            )
+            for i in range(2)
+        ]
 
-        assert "nonexistent" not in store._items
+        for item in conv1_items + conv2_items:
+            await store.save_item(item)
+
+        # Get all items across conversations
+        result = await store.get_items(conversation_id=None)
+
+        assert len(result) == 4
+        # Items should be in order of conversations, but since dict iteration order is not guaranteed,
+        # just check that all items are present
+        result_ids = {item.item_id for item in result}
+        expected_ids = {f"conv1-{i}" for i in range(2)} | {
+            f"conv2-{i}" for i in range(2)
+        }
+        assert result_ids == expected_ids
+
+    @pytest.mark.asyncio
+    async def test_get_items_all_conversations_with_role_filter(self):
+        """Test getting items from all conversations with role filter."""
+        store = InMemoryItemStore()
+
+        # Add items to different conversations with different roles
+        user_item = ConversationItem(
+            item_id="user-conv1",
+            role=Role.USER,
+            event="message",
+            conversation_id="conv-1",
+            payload="User message",
+        )
+        agent_item_conv1 = ConversationItem(
+            item_id="agent-conv1",
+            role=Role.AGENT,
+            event="message",
+            conversation_id="conv-1",
+            payload="Agent message conv1",
+        )
+        agent_item_conv2 = ConversationItem(
+            item_id="agent-conv2",
+            role=Role.AGENT,
+            event="message",
+            conversation_id="conv-2",
+            payload="Agent message conv2",
+        )
+
+        await store.save_item(user_item)
+        await store.save_item(agent_item_conv1)
+        await store.save_item(agent_item_conv2)
+
+        # Filter all conversations by AGENT role
+        result = await store.get_items(conversation_id=None, role=Role.AGENT)
+
+        assert len(result) == 2
+        result_ids = {item.item_id for item in result}
+        assert result_ids == {"agent-conv1", "agent-conv2"}

@@ -14,4 +14,5 @@ __all__ = [
     "I18nService",
     "get_i18n_service",
     # Note: For asset services, import directly from valuecell.services.assets
+    # Note: For conversation services, import directly from valuecell.server.services.conversation_service
 ]

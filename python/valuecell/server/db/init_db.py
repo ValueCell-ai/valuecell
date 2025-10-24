@@ -13,6 +13,8 @@ from valuecell.server.config.settings import get_settings
 from valuecell.server.db.connection import DatabaseManager, get_database_manager
 from valuecell.server.db.models.agent import Agent
 from valuecell.server.db.models.base import Base
+from valuecell.server.db.repositories.asset_repository import get_asset_repository
+from valuecell.server.services.assets import get_asset_service
 from valuecell.utils.path import get_agent_card_path
 
 # Configure logging
@@ -120,6 +122,195 @@ class DatabaseInitializer:
         except SQLAlchemyError as e:
             logger.error(f"Error creating tables: {e}")
             return False
+
+    def initialize_assets_with_service(self) -> bool:
+        """Initialize default assets using AssetService pattern."""
+        try:
+            logger.info("Initializing assets using AssetService...")
+
+            # Get asset service and repository instances
+            asset_service = get_asset_service()
+            session = self.db_manager.get_session()
+            asset_repo = get_asset_repository(db_session=session)
+
+            # Define default tickers to search and initialize
+            # Using proper EXCHANGE:SYMBOL format for better adapter matching
+            default_tickers = [
+                # Major indices
+                "NASDAQ:IXIC",  # NASDAQ Composite Index
+                "HKEX:HSI",  # Hang Seng Index
+                "SSE:000001",  # Shanghai Composite Index
+            ]
+
+            try:
+                initialized_count = 0
+
+                for ticker in default_tickers:
+                    try:
+                        logger.info(f"Initializing asset: {ticker}")
+
+                        # Extract symbol for search - try both full ticker and symbol only
+                        symbol_only = ticker.split(":")[-1] if ":" in ticker else ticker
+
+                        # Try searching with both formats to maximize chances of finding the asset
+                        search_queries = [ticker, symbol_only]
+                        search_result = None
+
+                        for query in search_queries:
+                            search_result = asset_service.search_assets(
+                                query=query, limit=1, language="en-US"
+                            )
+                            if search_result["success"] and search_result["results"]:
+                                logger.info(
+                                    f"Found asset data for {ticker} using query '{query}'"
+                                )
+                                break
+
+                        if not search_result:
+                            search_result = {"success": False, "results": []}
+
+                        if search_result["success"] and search_result["results"]:
+                            # Asset found via adapter, create or update database record
+                            asset_data = search_result["results"][0]
+
+                            # Use the standardized ticker format (ensure EXCHANGE:SYMBOL format)
+                            asset_ticker = asset_data.get("ticker", ticker)
+                            if ":" not in asset_ticker:
+                                # If adapter doesn't return proper format, use our expected format
+                                asset_ticker = ticker
+
+                            # Check if asset already exists in database
+                            if asset_repo.asset_exists(asset_ticker):
+                                # Update existing asset with adapter data
+                                metadata_updates = {
+                                    "exchange": asset_data.get("exchange")
+                                    or ticker.split(":")[0],
+                                    "country": asset_data.get("country"),
+                                    "currency": asset_data.get("currency"),
+                                    "market_status": asset_data.get("market_status"),
+                                    "last_updated_from_adapter": True,
+                                    "last_search_query": query,
+                                }
+
+                                asset_repo.update_asset(
+                                    symbol=asset_ticker,
+                                    name=asset_data["display_name"],
+                                    asset_type=asset_data["asset_type"],
+                                )
+                                asset_repo.update_asset_metadata(
+                                    symbol=asset_ticker,
+                                    metadata_updates=metadata_updates,
+                                )
+                                logger.info(
+                                    f"Updated asset from adapter: {asset_ticker} (searched as '{query}')"
+                                )
+                            else:
+                                # Create new asset from adapter data
+                                asset_repo.create_asset(
+                                    symbol=asset_ticker,
+                                    name=asset_data["display_name"],
+                                    asset_type=asset_data["asset_type"],
+                                    asset_metadata={
+                                        "exchange": asset_data.get("exchange")
+                                        or ticker.split(":")[0],
+                                        "country": asset_data.get("country"),
+                                        "currency": asset_data.get("currency"),
+                                        "market_status": asset_data.get(
+                                            "market_status"
+                                        ),
+                                        "source": "adapter_search",
+                                        "original_search_query": query,
+                                        "standardized_ticker": asset_ticker,
+                                    },
+                                )
+                                logger.info(
+                                    f"Added asset from adapter: {asset_ticker} (searched as '{query}')"
+                                )
+                                initialized_count += 1
+
+                        else:
+                            # Fallback: create basic asset record for common tickers
+                            logger.warning(
+                                f"Could not find {ticker} via adapters, creating basic record"
+                            )
+
+                            if not asset_repo.asset_exists(ticker):
+                                fallback_data = self._get_fallback_asset_data(ticker)
+                                if fallback_data:
+                                    asset_repo.create_asset(**fallback_data)
+                                    logger.info(f"Added fallback asset: {ticker}")
+                                    initialized_count += 1
+
+                    except Exception as e:
+                        logger.error(f"Error initializing asset {ticker}: {e}")
+                        continue
+
+                session.commit()
+                logger.info(
+                    f"Asset initialization completed successfully. "
+                    f"Initialized/updated {initialized_count} out of {len(default_tickers)} assets."
+                )
+
+                # Log summary of initialized assets
+                if initialized_count > 0:
+                    logger.info("Initialized assets summary:")
+                    for ticker in default_tickers[:initialized_count]:
+                        logger.info(f"  - {ticker}")
+
+                return True
+
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Error during asset initialization: {e}")
+                return False
+            finally:
+                session.close()
+
+        except Exception as e:
+            logger.error(f"Error getting asset service or database session: {e}")
+            return False
+
+    def _get_fallback_asset_data(self, ticker: str) -> Optional[dict]:
+        """Get fallback asset data when adapter search fails.
+
+        Returns:
+            Dictionary with asset data suitable for create_asset() method
+        """
+        # Basic fallback data for common tickers (using proper EXCHANGE:SYMBOL format)
+        fallback_configs = {
+            "SSE:000001": {
+                "name": "Shanghai Composite Index",
+                "asset_type": "index",
+                "exchange": "SSE",
+            },
+            "HKEX:HSI": {
+                "name": "Hang Seng Index",
+                "asset_type": "index",
+                "exchange": "HKEX",
+            },
+            "NASDAQ:IXIC": {
+                "name": "NASDAQ Composite Index",
+                "asset_type": "index",
+                "exchange": "NASDAQ",
+            },
+        }
+
+        if ticker in fallback_configs:
+            config = fallback_configs[ticker]
+            return {
+                "symbol": ticker,
+                "name": config["name"],
+                "asset_type": config["asset_type"],
+                "sector": config.get("sector"),
+                "is_active": True,
+                "asset_metadata": {
+                    **config.get("metadata", {}),
+                    "exchange": config.get("exchange"),
+                    "source": "fallback_data",
+                    "initialized_at": "database_init",
+                },
+            }
+        return None
 
     def initialize_basic_data(self) -> bool:
         """Initialize default agent data."""

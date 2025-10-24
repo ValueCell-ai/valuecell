@@ -173,6 +173,7 @@ class TestHandleStatusUpdate:
             thread_id="thread-123",
             task_id="task-123",
             content="Task failed",
+            agent_name="test-agent",
         )
 
     async def test_failed_state_with_complex_message(self):
@@ -295,6 +296,7 @@ class TestHandleStatusUpdate:
             tool_call_id="call-123",
             tool_name="test_tool",
             tool_result="Tool result",
+            agent_name="test-agent",
         )
 
     async def test_tool_call_event_no_result(self):
@@ -344,6 +346,7 @@ class TestHandleStatusUpdate:
             tool_call_id="call-123",
             tool_name="test_tool",
             tool_result=None,
+            agent_name="test-agent",
         )
 
     async def test_reasoning_event(self):
@@ -391,6 +394,7 @@ class TestHandleStatusUpdate:
             task_id="task-123",
             event="reasoning_started",
             content="Thinking...",
+            agent_name="test-agent",
         )
 
     async def test_component_generator_event(self):
@@ -437,6 +441,8 @@ class TestHandleStatusUpdate:
             task_id="task-123",
             content="Generating component",
             component_type="button",
+            agent_name="test-agent",
+            component_id=None,
         )
 
     async def test_component_generator_event_no_component_type(self):
@@ -481,6 +487,8 @@ class TestHandleStatusUpdate:
             task_id="task-123",
             content="Generating component",
             component_type="unknown",
+            agent_name="test-agent",
+            component_id=None,
         )
 
     async def test_message_event(self):
@@ -528,6 +536,7 @@ class TestHandleStatusUpdate:
             thread_id="thread-123",
             task_id="task-123",
             content="Hello world",
+            agent_name="test-agent",
         )
 
     async def test_unknown_event_type(self):

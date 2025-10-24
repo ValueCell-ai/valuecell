@@ -31,6 +31,19 @@ class AssetType(str, Enum):
     # FUTURE = "future"
 
 
+class Exchange(str, Enum):
+    """Enumeration of supported exchanges."""
+
+    NASDAQ = "NASDAQ"  # NASDAQ Market in the US
+    NYSE = "NYSE"  # NYSE Market in the US
+    AMEX = "AMEX"  # AMEX Market in the US
+    SSE = "SSE"  # Shanghai Stock Exchange
+    SZSE = "SZSE"  # Shenzhen Stock Exchange
+    BSE = "BSE"  # Beijing Stock Exchange
+    HKEX = "HKEX"  # Hong Kong Stock Exchange
+    CRYPTO = "CRYPTO"  # Crypto Market
+
+
 class MarketStatus(str, Enum):
     """Market status enumeration."""
 
@@ -340,9 +353,15 @@ class AssetSearchResult(BaseModel):
     names: Dict[str, str] = Field(..., description="Asset names in different languages")
     exchange: str = Field(..., description="Exchange name")
     country: str = Field(..., description="Country code")
-    currency: str = Field(..., description="Currency code")
-    market_status: MarketStatus = Field(default=MarketStatus.UNKNOWN)
-    relevance_score: float = Field(default=0.0, description="Search relevance score")
+
+    # Optional fields for enhanced search results
+    currency: Optional[str] = Field(default=None, description="Currency code")
+    market_status: Optional[MarketStatus] = Field(
+        default=None, description="Market status"
+    )
+    relevance_score: float = Field(
+        default=0.5, description="Search relevance score (0-1)"
+    )
 
     def get_display_name(self, language: str = "en-US") -> str:
         """Get display name for specified language."""
@@ -353,13 +372,7 @@ class AssetSearchQuery(BaseModel):
     """Asset search query parameters."""
 
     query: str = Field(..., description="Search query string")
-    asset_types: Optional[List[AssetType]] = Field(
-        None, description="Filter by asset types"
-    )
-    exchanges: Optional[List[str]] = Field(None, description="Filter by exchanges")
-    countries: Optional[List[str]] = Field(None, description="Filter by countries")
-    limit: int = Field(default=50, description="Maximum number of results")
-    language: str = Field(default="en-US", description="Preferred language for results")
+    limit: int = Field(default=10, description="Maximum number of results")
 
     @validator("limit")
     def validate_limit(cls, v):

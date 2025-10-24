@@ -35,17 +35,19 @@ class TestBufferEntry:
         assert isinstance(entry.item_id, str)
         assert len(entry.item_id) > 0
         assert entry.role is None
+        assert entry.agent_name is None
 
     def test_init_with_params(self):
         """Test BufferEntry initialization with parameters."""
         item_id = "test-item-123"
         role = Role.USER
-        entry = BufferEntry(item_id=item_id, role=role)
+        entry = BufferEntry(item_id=item_id, role=role, agent_name="agent-test")
 
         assert entry.parts == []
         assert isinstance(entry.last_updated, float)
         assert entry.item_id == item_id
         assert entry.role == role
+        assert entry.agent_name == "agent-test"
 
     def test_append_empty_text(self):
         """Test appending empty text."""
@@ -190,6 +192,7 @@ class TestResponseBuffer:
                 role=Role.USER,
                 item_id="item-123",
                 payload=BaseResponseDataPayload(content="Hello"),
+                agent_name="agent-immediate",
             ),
         )
 
@@ -202,6 +205,7 @@ class TestResponseBuffer:
         assert result[0].conversation_id == "conv-123"
         assert result[0].role == Role.USER
         assert result[0].payload.content == "Hello"
+        assert result[0].agent_name == "agent-immediate"
 
     @pytest.mark.asyncio
     async def test_ingest_buffered_event_message_chunk(self):
@@ -214,6 +218,7 @@ class TestResponseBuffer:
                 role=Role.AGENT,
                 item_id="item-123",
                 payload=BaseResponseDataPayload(content="Hello"),
+                agent_name="agent-buffer",
             ),
         )
 
@@ -225,6 +230,7 @@ class TestResponseBuffer:
         assert result[0].conversation_id == "conv-123"
         assert result[0].role == Role.AGENT
         assert result[0].payload.content == "Hello"
+        assert result[0].agent_name == "agent-buffer"
 
     @pytest.mark.asyncio
     async def test_ingest_buffered_event_reasoning(self):

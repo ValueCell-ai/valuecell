@@ -17,6 +17,7 @@ export const TIME_FORMATS = {
   DATETIME: "YYYY-MM-DD HH:mm:ss",
   DATETIME_SHORT: "YYYY-MM-DD HH:mm",
   MARKET: "MM/DD HH:mm",
+  MODAL_TRADE_TIME: "MMM DD HH:mm",
 } as const;
 
 /**

@@ -1,167 +1,58 @@
-import { useCallback, useMemo } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
-import { useGetAgentList } from "@/api/agent";
-import { useGetStockHistory, useGetStockPrice } from "@/api/stock";
-import AgentAvatar from "@/components/valuecell/agent-avatar";
+import AppConversationSheet from "@/components/valuecell/app-conversation-sheet";
 import { HOME_STOCK_SHOW } from "@/constants/stock";
-import { TimeUtils } from "@/lib/time";
 import { agentSuggestions } from "@/mock/agent-data";
-import type { SparklineData } from "@/types/chart";
-import {
-  AgentRecommendList,
-  AgentSuggestionsList,
-  type SparklineStock,
-  SparklineStockList,
-} from "./components";
+import ChatInputArea from "../agent/components/chat-conversation/chat-input-area";
+import { AgentSuggestionsList, SparklineStockList } from "./components";
+import { useSparklineStocks } from "./hooks/use-sparkline-stocks";
 
 function Home() {
-  const { data: agentList } = useGetAgentList();
   const navigate = useNavigate();
+  const [inputValue, setInputValue] = useState<string>("");
 
-  const handleAgentClick = useCallback(
-    (agentId: string) => {
-      navigate(`/agent/${agentId}`);
-    },
-    [navigate],
-  );
+  const handleAgentClick = (agentId: string) => {
+    navigate(`/agent/${agentId}`);
+  };
 
-  // Get fixed stock tickers for homepage display
-  const stockTickers = useMemo(() => {
-    return HOME_STOCK_SHOW.map((stock) => stock.ticker);
-  }, []);
-
-  // Calculate date range for historical data
-  const dateRange = useMemo(() => {
-    const now = TimeUtils.nowUTC();
-    const thirtyDaysAgo = now.subtract(30, "day");
-    return {
-      startDate: thirtyDaysAgo.toISOString(),
-      endDate: now.toISOString(),
-    };
-  }, []);
-
-  // Fetch stock price data for each ticker
-  const stock1Price = useGetStockPrice({ ticker: stockTickers[0] || "" });
-  const stock2Price = useGetStockPrice({ ticker: stockTickers[1] || "" });
-  const stock3Price = useGetStockPrice({ ticker: stockTickers[2] || "" });
-
-  // Fetch historical data for each stock (used for sparkline charts)
-  const stock1History = useGetStockHistory({
-    ticker: stockTickers[0] || "",
-    interval: "d",
-    start_date: dateRange.startDate,
-    end_date: dateRange.endDate,
-  });
-  const stock2History = useGetStockHistory({
-    ticker: stockTickers[1] || "",
-    interval: "d",
-    start_date: dateRange.startDate,
-    end_date: dateRange.endDate,
-  });
-  const stock3History = useGetStockHistory({
-    ticker: stockTickers[2] || "",
-    interval: "d",
-    start_date: dateRange.startDate,
-    end_date: dateRange.endDate,
-  });
-
-  // Transform data format to SparklineStock
-  const sparklineStocks = useMemo(() => {
-    const stocks: SparklineStock[] = [];
-
-    const stocksData = [
-      {
-        ticker: stockTickers[0],
-        symbol: HOME_STOCK_SHOW[0]?.symbol,
-        price: stock1Price,
-        history: stock1History,
-      },
-      {
-        ticker: stockTickers[1],
-        symbol: HOME_STOCK_SHOW[1]?.symbol,
-        price: stock2Price,
-        history: stock2History,
-      },
-      {
-        ticker: stockTickers[2],
-        symbol: HOME_STOCK_SHOW[2]?.symbol,
-        price: stock3Price,
-        history: stock3History,
-      },
-    ];
-
-    stocksData.forEach(({ ticker, symbol, price, history }) => {
-      const priceData = price?.data;
-      const historyData = history?.data;
-
-      if (ticker && symbol && priceData && historyData) {
-        // Convert historical data to sparkline format
-        // UTC timestamp strings are converted to UTC millisecond timestamps for chart
-        const sparklineData: SparklineData = historyData.prices.map(
-          (pricePoint) => [
-            TimeUtils.createUTC(pricePoint.timestamp).valueOf(),
-            pricePoint.close_price,
-          ],
-        );
-
-        // Extract current price (remove currency symbols and formatting)
-        const currentPrice = parseFloat(
-          priceData.price_formatted.replace(/[^0-9.-]/g, ""),
-        );
-
-        // Extract change percentage (remove % symbol)
-        const changePercent = parseFloat(
-          priceData.change_percent_formatted.replace(/[^0-9.-]/g, ""),
-        );
-
-        stocks.push({
-          symbol: symbol,
-          price: currentPrice,
-          currency: "$", // Default USD, can be adjusted as needed
-          changeAmount: priceData.change,
-          changePercent: changePercent,
-          sparklineData: sparklineData,
-        });
-      }
-    });
-
-    return stocks;
-  }, [
-    stockTickers,
-    stock1Price,
-    stock2Price,
-    stock3Price,
-    stock1History,
-    stock2History,
-    stock3History,
-  ]);
-
-  const recommendations = useMemo(() => {
-    return agentList?.map((agent) => ({
-      id: agent.agent_name,
-      title: agent.display_name,
-      icon: <AgentAvatar agentName={agent.agent_name} className="size-8" />,
-    }));
-  }, [agentList]);
+  const { sparklineStocks } = useSparklineStocks(HOME_STOCK_SHOW);
 
   return (
-    <div className="flex flex-col gap-6 p-8">
-      <h1 className="font-medium text-3xl">👋 Welcome to ValueCell !</h1>
-
+    <div className="flex h-full min-w-[800px] flex-col gap-4 px-2">
       <SparklineStockList stocks={sparklineStocks} />
 
-      <AgentSuggestionsList
-        title="What can I help you？"
-        suggestions={agentSuggestions.map((suggestion) => ({
-          ...suggestion,
-          onClick: () => handleAgentClick(suggestion.id),
-        }))}
-      />
+      <section className="relative flex flex-1 flex-col items-center justify-center gap-12 rounded-xl bg-white py-8">
+        <div className="absolute top-2 left-2">
+          <AppConversationSheet />
+        </div>
 
-      <AgentRecommendList
-        title="Recommended Agents"
-        recommendations={recommendations || []}
-      />
+        <div className="space-y-4 text-center text-gray-950">
+          <h1 className="font-medium text-3xl">👋 Hello Investor!</h1>
+          <p>
+            You can analyze and track the stock information you want to know
+          </p>
+        </div>
+
+        <ChatInputArea
+          className="w-3/4 max-w-[800px]"
+          value={inputValue}
+          onChange={(value) => setInputValue(value)}
+          onSend={() =>
+            navigate("/agent/ValueCellAgent", {
+              state: {
+                inputValue,
+              },
+            })
+          }
+        />
+
+        <AgentSuggestionsList
+          suggestions={agentSuggestions.map((suggestion) => ({
+            ...suggestion,
+            onClick: () => handleAgentClick(suggestion.id),
+          }))}
+        />
+      </section>
     </div>
   );
 }

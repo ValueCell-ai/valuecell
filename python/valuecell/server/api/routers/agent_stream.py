@@ -30,7 +30,9 @@ def create_agent_stream_router() -> APIRouter:
             async def generate_stream():
                 """Generate SSE formatted stream chunks."""
                 async for chunk in agent_service.stream_query_agent(
-                    query=request.query, agent_name=request.agent_name
+                    query=request.query,
+                    agent_name=request.agent_name,
+                    conversation_id=request.conversation_id,
                 ):
                     # Format as SSE (Server-Sent Events)
                     yield f"data: {json.dumps(chunk)}\n\n"

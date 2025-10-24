@@ -74,7 +74,7 @@ function AgentSuggestionItem({
 }: AgentSuggestionItemProps) {
   return (
     <AgentMenuCard
-      className={cn("h-[140px] cursor-pointer", className)}
+      className={cn("h-[220px] w-52 cursor-pointer", className)}
       onClick={suggestion.onClick}
       bgColor={suggestion.bgColor}
       {...props}
@@ -84,12 +84,8 @@ function AgentSuggestionItem({
         <AgentMenuContent className="flex-col items-start gap-2">
           {/* Icon and title row */}
           <div className="flex items-center gap-2">
-            <AgentMenuIcon className="size-6 p-1.5">
-              {suggestion.icon}
-            </AgentMenuIcon>
-            <AgentMenuTitle className="font-medium text-base text-gray-950 leading-5.5">
-              {suggestion.title}
-            </AgentMenuTitle>
+            <AgentMenuIcon>{suggestion.icon}</AgentMenuIcon>
+            <AgentMenuTitle>{suggestion.title}</AgentMenuTitle>
           </div>
 
           {/* Description text */}
@@ -139,7 +135,7 @@ function AgentSuggestionsList({
         />
       )}
 
-      <div className="flex w-full gap-4 pb-2">
+      <div className="flex gap-4">
         {suggestions.map((suggestion) => (
           <AgentSuggestionItem key={suggestion.id} suggestion={suggestion} />
         ))}

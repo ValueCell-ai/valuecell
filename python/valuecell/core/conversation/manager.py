@@ -7,7 +7,7 @@ from valuecell.core.types import (
     ResponsePayload,
     Role,
 )
-from valuecell.utils import generate_uuid
+from valuecell.utils.uuid import generate_conversation_id, generate_item_id
 
 from .conversation_store import ConversationStore, InMemoryConversationStore
 from .item_store import InMemoryItemStore, ItemStore
@@ -38,7 +38,7 @@ class ConversationManager:
     ) -> Conversation:
         """Create new conversation"""
         conversation = Conversation(
-            conversation_id=conversation_id or generate_uuid("conversation"),
+            conversation_id=conversation_id or generate_conversation_id(),
             user_id=user_id,
             title=title,
         )
@@ -63,9 +63,9 @@ class ConversationManager:
         return await self.conversation_store.delete_conversation(conversation_id)
 
     async def list_user_conversations(
-        self, user_id: str, limit: int = 100, offset: int = 0
+        self, user_id: Optional[str] = None, limit: int = 100, offset: int = 0
     ) -> List[Conversation]:
-        """List user conversations"""
+        """List conversations. If user_id is None, return all conversations."""
         return await self.conversation_store.list_conversations(user_id, limit, offset)
 
     async def conversation_exists(self, conversation_id: str) -> bool:
@@ -81,6 +81,7 @@ class ConversationManager:
         task_id: Optional[str] = None,
         payload: ResponsePayload = None,
         item_id: Optional[str] = None,
+        agent_name: Optional[str] = None,
     ) -> Optional[ConversationItem]:
         """Add item to conversation
 
@@ -112,13 +113,14 @@ class ConversationManager:
                     payload_str = None
 
         item = ConversationItem(
-            item_id=item_id or generate_uuid("item"),
+            item_id=item_id or generate_item_id(),
             role=role,
             event=event,
             conversation_id=conversation_id,
             thread_id=thread_id,
             task_id=task_id,
             payload=payload_str,
+            agent_name=agent_name,
         )
 
         # Save item directly to item store
@@ -132,7 +134,7 @@ class ConversationManager:
 
     async def get_conversation_items(
         self,
-        conversation_id: str,
+        conversation_id: Optional[str] = None,
         event: Optional[ConversationItemEvent] = None,
         component_type: Optional[str] = None,
     ) -> List[ConversationItem]:
@@ -145,7 +147,7 @@ class ConversationManager:
             role: Filter by specific role (optional)
         """
         return await self.item_store.get_items(
-            conversation_id, event=event, component_type=component_type
+            conversation_id=conversation_id, event=event, component_type=component_type
         )
 
     async def get_latest_item(self, conversation_id: str) -> Optional[ConversationItem]:

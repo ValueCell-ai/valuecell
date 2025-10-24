@@ -1,4 +1,5 @@
 import MiniSparkline from "@valuecell/charts/mini-sparkline";
+import { memo } from "react";
 import { SparklineStockListSkeleton } from "@/components/valuecell/skeleton";
 import { STOCK_COLORS } from "@/constants/stock";
 import { cn, formatChange, formatPrice, getChangeType } from "@/lib/utils";
@@ -32,7 +33,7 @@ function SparklineStockItem({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-4 rounded-xl border border-gray-100 px-4 py-3",
+        "flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-white px-4 py-3",
         className,
       )}
       {...props}
@@ -96,4 +97,4 @@ function SparklineStockList({
   );
 }
 
-export { SparklineStockList, SparklineStockItem };
+export default memo(SparklineStockList);

@@ -33,13 +33,8 @@ from .akshare_adapter import AKShareAdapter
 
 # Base adapter classes
 from .base import (
-    AdapterError,
-    AuthenticationError,
+    AdapterCapability,
     BaseDataAdapter,
-    DataNotAvailableError,
-    InvalidTickerError,
-    RateLimitError,
-    TickerConverter,
 )
 
 # Internationalization support
@@ -66,6 +61,7 @@ from .types import (
     AssetSearchResult,
     AssetType,
     DataSource,
+    Exchange,
     LocalizedName,
     MarketInfo,
     MarketStatus,
@@ -90,18 +86,14 @@ __all__ = [
     "AssetType",
     "MarketStatus",
     "DataSource",
+    "Exchange",
     "MarketInfo",
     "LocalizedName",
     "Watchlist",
     "WatchlistItem",
     # Base classes
     "BaseDataAdapter",
-    "TickerConverter",
-    "AdapterError",
-    "RateLimitError",
-    "DataNotAvailableError",
-    "AuthenticationError",
-    "InvalidTickerError",
+    "AdapterCapability",
     # Adapters
     "YFinanceAdapter",
     "AKShareAdapter",

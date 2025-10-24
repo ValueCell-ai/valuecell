@@ -29,6 +29,7 @@ from valuecell.core.types import UserInput
 from valuecell.utils import generate_uuid
 from valuecell.utils.env import agent_debug_mode_enabled
 from valuecell.utils.model import get_model
+from valuecell.utils.uuid import generate_conversation_id, generate_thread_id
 
 from .models import ExecutionPlan, PlannerInput, PlannerResponse
 
@@ -89,7 +90,10 @@ class ExecutionPlanner:
         self.agent_connections = agent_connections
 
     async def create_plan(
-        self, user_input: UserInput, user_input_callback: Optional[Callable] = None
+        self,
+        user_input: UserInput,
+        user_input_callback: Callable,
+        thread_id: str,
     ) -> ExecutionPlan:
         """
         Create an execution plan from user input.
@@ -102,7 +106,7 @@ class ExecutionPlanner:
 
         Args:
             user_input: The user's request to be planned.
-            user_input_callback: Optional async callback invoked with
+            user_input_callback: Async callback invoked with
                 `UserInputRequest` instances when clarification is required.
 
         Returns:
@@ -122,6 +126,7 @@ class ExecutionPlanner:
             user_input,
             conversation_id,
             user_input_callback,
+            thread_id,
         )
         plan.tasks = tasks
 
@@ -131,7 +136,8 @@ class ExecutionPlanner:
         self,
         user_input: UserInput,
         conversation_id: str,
-        user_input_callback: Optional[Callable] = None,
+        user_input_callback: Callable,
+        thread_id: str,
     ) -> List[Task]:
         """
         Analyze user input and produce a list of `Task` objects.
@@ -144,7 +150,7 @@ class ExecutionPlanner:
         Args:
             user_input: The original user input to analyze.
             conversation_id: Conversation this planning belongs to.
-            user_input_callback: Optional async callback used for Human-in-the-Loop.
+            user_input_callback: Async callback used for Human-in-the-Loop.
 
         Returns:
             A list of `Task` objects derived from the planner response.
@@ -155,11 +161,14 @@ class ExecutionPlanner:
             tools=[
                 # TODO: enable UserControlFlowTools when stable
                 # UserControlFlowTools(),
-                self.tool_get_agent_description,
+                self.tool_get_enabled_agents,
             ],
-            markdown=False,
             debug_mode=agent_debug_mode_enabled(),
             instructions=[PLANNER_INSTRUCTION],
+            # output format
+            markdown=False,
+            use_json_mode=True,
+            output_schema=PlannerResponse,
             expected_output=PLANNER_EXPECTED_OUTPUT,
             # context
             db=InMemoryDb(),
@@ -185,16 +194,11 @@ class ExecutionPlanner:
                 input_schema = tool.user_input_schema
 
                 for field in input_schema:
-                    if user_input_callback:
-                        # Use callback for async user input
-                        # TODO: prompt options if available
-                        request = UserInputRequest(field.description)
-                        await user_input_callback(request)
-                        user_value = await request.wait_for_response()
-                    else:
-                        # Fallback to synchronous input for testing/simple scenarios
-                        user_value = input(f"{field.description}: ")
-
+                    # Use callback for async user input
+                    # TODO: prompt options if available
+                    request = UserInputRequest(field.description)
+                    await user_input_callback(request)
+                    user_value = await request.wait_for_response()
                     field.value = user_value
 
             # Continue agent execution with updated inputs
@@ -208,17 +212,7 @@ class ExecutionPlanner:
                 break
 
         # Parse planning result and create tasks
-        try:
-            plan_content = run_response.content
-            if plan_content.startswith("```json\n") and plan_content.endswith("\n```"):
-                # Strip markdown code block if present
-                plan_content = "\n".join(plan_content.split("\n")[1:-1])
-            plan_raw = PlannerResponse.model_validate_json(plan_content)
-        except Exception as e:
-            raise ValueError(
-                f"Planner produced invalid JSON for PlannerResponse: {e}. "
-                f"Raw content: {run_response.content}"
-            ) from e
+        plan_raw = run_response.content
         logger.info(f"Planner produced plan: {plan_raw}")
         if not plan_raw.adequate or not plan_raw.tasks:
             # If information is still inadequate, return empty task list
@@ -228,22 +222,26 @@ class ExecutionPlanner:
             )
         return [
             self._create_task(
-                user_input.meta.conversation_id,
                 user_input.meta.user_id,
                 task.agent_name,
                 task.query,
-                task.pattern,
+                conversation_id=user_input.meta.conversation_id,
+                thread_id=thread_id,
+                pattern=task.pattern,
+                handoff_from_super_agent=(not user_input.target_agent_name),
             )
             for task in plan_raw.tasks
         ]
 
     def _create_task(
         self,
-        conversation_id: str,
         user_id: str,
         agent_name: str,
         query: str,
+        conversation_id: str | None = None,
+        thread_id: str | None = None,
         pattern: TaskPattern = TaskPattern.ONCE,
+        handoff_from_super_agent: bool = False,
     ) -> Task:
         """
         Create a new task for the specified agent.
@@ -258,14 +256,19 @@ class ExecutionPlanner:
         Returns:
             Task: Configured task ready for execution.
         """
+        if handoff_from_super_agent:
+            conversation_id = generate_conversation_id()
+            thread_id = generate_thread_id()
+
         return Task(
-            task_id=generate_uuid("task"),
             conversation_id=conversation_id,
+            thread_id=thread_id,
             user_id=user_id,
             agent_name=agent_name,
             status=TaskStatus.PENDING,
             query=query,
             pattern=pattern,
+            handoff_from_super_agent=handoff_from_super_agent,
         )
 
     def tool_get_agent_description(self, agent_name: str) -> str:
@@ -289,6 +292,15 @@ class ExecutionPlanner:
             return agentcard_to_prompt(card)
 
         return "The requested agent could not be found or is not available."
+
+    def tool_get_enabled_agents(self) -> str:
+        map_agent_name_to_card = self.agent_connections.get_all_agent_cards()
+        parts = []
+        for agent_name, card in map_agent_name_to_card.items():
+            parts.append(f"<{agent_name}>")
+            parts.append(agentcard_to_prompt(card))
+            parts.append((f"</{agent_name}>\n"))
+        return "\n".join(parts)
 
 
 def agentcard_to_prompt(card: AgentCard):

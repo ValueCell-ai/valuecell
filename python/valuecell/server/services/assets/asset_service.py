@@ -101,12 +101,6 @@ class AssetService:
                     ),
                     "exchange": result.exchange,
                     "country": result.country,
-                    "currency": result.currency,
-                    "market_status": result.market_status.value,
-                    "market_status_display": self.i18n_service.get_market_status_display_name(
-                        result.market_status, language
-                    ),
-                    "relevance_score": result.relevance_score,
                 }
                 result_dicts.append(result_dict)
 
@@ -207,13 +201,31 @@ class AssetService:
                     "ticker": ticker,
                 }
 
+            # Get asset_type from database to handle formatting correctly
+            asset_type = None
+            try:
+                from ...db.repositories.asset_repository import get_asset_repository
+
+                asset_repo = get_asset_repository()
+                db_asset = asset_repo.get_asset_by_symbol(ticker)
+                if db_asset:
+                    asset_type = db_asset.asset_type
+            except Exception as e:
+                logger.debug(
+                    f"Could not get asset_type from database for {ticker}: {e}"
+                )
+                # If asset not in database, it will be treated as a regular asset with currency
+
             # Format price data with localization
             formatted_price = {
                 "success": True,
                 "ticker": price_data.ticker,
                 "price": float(price_data.price),
                 "price_formatted": self.i18n_service.format_currency_amount(
-                    float(price_data.price), price_data.currency, language
+                    float(price_data.price),
+                    price_data.currency,
+                    language,
+                    asset_type,
                 ),
                 "currency": price_data.currency,
                 "timestamp": price_data.timestamp.isoformat(),
@@ -271,14 +283,28 @@ class AssetService:
         try:
             price_data = self.adapter_manager.get_multiple_prices(tickers)
 
+            # Get asset_types from database for all tickers in batch
+            asset_types = {}
+            try:
+                from ...db.repositories.asset_repository import get_asset_repository
+
+                asset_repo = get_asset_repository()
+                for ticker in tickers:
+                    db_asset = asset_repo.get_asset_by_symbol(ticker)
+                    if db_asset:
+                        asset_types[ticker] = db_asset.asset_type
+            except Exception as e:
+                logger.debug(f"Could not get asset_types from database: {e}")
+
             formatted_prices = {}
 
             for ticker, price in price_data.items():
                 if price:
+                    asset_type = asset_types.get(ticker)
                     formatted_prices[ticker] = {
                         "price": float(price.price),
                         "price_formatted": self.i18n_service.format_currency_amount(
-                            float(price.price), price.currency, language
+                            float(price.price), price.currency, language, asset_type
                         ),
                         "currency": price.currency,
                         "timestamp": price.timestamp.isoformat(),
@@ -633,51 +659,6 @@ class AssetService:
         except Exception as e:
             logger.error(f"Error getting user watchlists: {e}")
             return {"success": False, "error": str(e), "user_id": user_id}
-
-    def get_system_health(self) -> Dict[str, Any]:
-        """Get system health status for all data adapters.
-
-        Returns:
-            Dictionary containing health status for all adapters
-        """
-        try:
-            health_data = self.adapter_manager.health_check()
-
-            # Convert enum keys to strings
-            health_status = {}
-            for source, status in health_data.items():
-                health_status[source.value] = status
-
-            # Calculate overall health
-            healthy_count = sum(
-                1
-                for status in health_status.values()
-                if status.get("status") == "healthy"
-            )
-            total_count = len(health_status)
-
-            # Determine overall status
-            if total_count == 0:
-                overall_status = "no_adapters"
-            elif healthy_count == total_count:
-                overall_status = "healthy"
-            elif healthy_count > 0:
-                overall_status = "degraded"
-            else:
-                overall_status = "unhealthy"
-
-            return {
-                "success": True,
-                "overall_status": overall_status,
-                "healthy_adapters": healthy_count,
-                "total_adapters": total_count,
-                "adapters": health_status,
-                "timestamp": datetime.utcnow().isoformat(),
-            }
-
-        except Exception as e:
-            logger.error(f"Error getting system health: {e}")
-            return {"success": False, "error": str(e), "overall_status": "error"}
 
 
 # Global service instance

@@ -31,7 +31,7 @@ class Asset(Base):
         unique=True,
         nullable=False,
         index=True,
-        comment="Asset symbol/ticker (e.g., AAPL, BTC, etc.)",
+        comment="Asset symbol/ticker (e.g., NASDAQ:MSFT, CRYPTO:BTC, etc.)",
     )
     name = Column(String(200), nullable=False, comment="Full name of the asset")
     description = Column(

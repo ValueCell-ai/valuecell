@@ -65,6 +65,67 @@ async def test_sqlite_item_store_basic_crud():
 
 
 @pytest.mark.asyncio
+async def test_sqlite_item_store_get_items_all_conversations():
+    fd, path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    try:
+        store = SQLiteItemStore(path)
+
+        # Create items in different conversations
+        items = [
+            ConversationItem(
+                item_id="c1-i1",
+                role=Role.USER,
+                event=SystemResponseEvent.THREAD_STARTED,
+                conversation_id="conv-1",
+                thread_id="t1",
+                task_id=None,
+                payload='{"msg": "conv1 item1"}',
+            ),
+            ConversationItem(
+                item_id="c1-i2",
+                role=Role.AGENT,
+                event=SystemResponseEvent.DONE,
+                conversation_id="conv-1",
+                thread_id="t1",
+                task_id=None,
+                payload='{"msg": "conv1 item2"}',
+                agent_name="agent-alpha",
+            ),
+            ConversationItem(
+                item_id="c2-i1",
+                role=Role.USER,
+                event=SystemResponseEvent.THREAD_STARTED,
+                conversation_id="conv-2",
+                thread_id="t2",
+                task_id=None,
+                payload='{"msg": "conv2 item1"}',
+            ),
+        ]
+
+        for item in items:
+            await store.save_item(item)
+
+        # Get all items across conversations
+        all_items = await store.get_items(conversation_id=None)
+        assert len(all_items) == 3
+        item_ids = {item.item_id for item in all_items}
+        assert item_ids == {"c1-i1", "c1-i2", "c2-i1"}
+        agent_items = [item for item in all_items if item.role == Role.AGENT]
+        assert agent_items and agent_items[0].agent_name == "agent-alpha"
+
+        # Get all items with role filter
+        user_items = await store.get_items(conversation_id=None, role=Role.USER)
+        assert len(user_items) == 2
+        user_ids = {item.item_id for item in user_items}
+        assert user_ids == {"c1-i1", "c2-i1"}
+
+    finally:
+        if os.path.exists(path):
+            os.remove(path)
+
+
+@pytest.mark.asyncio
 async def test_sqlite_item_store_filters_and_pagination():
     fd, path = tempfile.mkstemp(suffix=".db")
     os.close(fd)

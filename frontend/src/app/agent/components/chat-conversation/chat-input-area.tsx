@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 interface ChatInputAreaProps {
   value: string;
   onChange: (value: string) => void;
-  onSend: () => Promise<void>;
+  onSend: () => Promise<void> | void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   placeholder?: string;
   disabled?: boolean;

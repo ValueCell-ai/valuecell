@@ -83,6 +83,7 @@ async def handle_status_update(
                 thread_id=thread_id,
                 task_id=task.task_id,
                 content=err_msg,
+                agent_name=task.agent_name,
             )
         )
         return RouteResult(
@@ -113,6 +114,7 @@ async def handle_status_update(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
                 tool_result=tool_result,
+                agent_name=task.agent_name,
             )
         )
         return RouteResult(responses)
@@ -127,6 +129,7 @@ async def handle_status_update(
                 task_id=task.task_id,
                 event=response_event,
                 content=content,
+                agent_name=task.agent_name,
             )
         )
         return RouteResult(responses)
@@ -137,6 +140,7 @@ async def handle_status_update(
         and response_event == CommonResponseEvent.COMPONENT_GENERATOR
     ):
         component_type = event.metadata.get("component_type", "unknown")
+        component_id = event.metadata.get("component_id")
         responses.append(
             response_factory.component_generator(
                 conversation_id=task.conversation_id,
@@ -144,6 +148,8 @@ async def handle_status_update(
                 task_id=task.task_id,
                 content=content,
                 component_type=component_type,
+                component_id=component_id,
+                agent_name=task.agent_name,
             )
         )
         return RouteResult(responses)
@@ -157,6 +163,7 @@ async def handle_status_update(
                 thread_id=thread_id,
                 task_id=task.task_id,
                 content=content,
+                agent_name=task.agent_name,
             )
         )
         return RouteResult(responses)

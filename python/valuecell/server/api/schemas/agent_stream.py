@@ -2,6 +2,8 @@
 Agent stream API schemas for handling streaming agent queries.
 """
 
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -9,8 +11,11 @@ class AgentStreamRequest(BaseModel):
     """Request model for agent streaming queries."""
 
     query: str = Field(..., description="User query to send to the agent")
-    agent_name: str = Field(
+    agent_name: Optional[str] = Field(
         None, description="Specific agent name to use for the query"
+    )
+    conversation_id: Optional[str] = Field(
+        None, description="Optional conversation ID for context tracking"
     )
 
     class Config:

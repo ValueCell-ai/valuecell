@@ -23,7 +23,7 @@ class ItemStore(ABC):
     @abstractmethod
     async def get_items(
         self,
-        conversation_id: str,
+        conversation_id: Optional[str] = None,
         limit: Optional[int] = None,
         offset: int = 0,
         role: Optional[Role] = None,
@@ -61,13 +61,19 @@ class InMemoryItemStore(ItemStore):
 
     async def get_items(
         self,
-        conversation_id: str,
+        conversation_id: Optional[str] = None,
         limit: Optional[int] = None,
         offset: int = 0,
         role: Optional[Role] = None,
         **kwargs,
     ) -> List[ConversationItem]:
-        items = list(self._items.get(conversation_id, []))
+        if conversation_id is not None:
+            items = list(self._items.get(conversation_id, []))
+        else:
+            # Collect all items from all conversations
+            items = []
+            for conv_items in self._items.values():
+                items.extend(conv_items)
         if role is not None:
             items = [m for m in items if m.role == role]
         if offset:
@@ -126,6 +132,7 @@ class SQLiteItemStore(ItemStore):
                       thread_id TEXT,
                       task_id TEXT,
                       payload TEXT,
+                      agent_name TEXT,
                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     );
                     """
@@ -149,6 +156,7 @@ class SQLiteItemStore(ItemStore):
             thread_id=row["thread_id"],
             task_id=row["task_id"],
             payload=row["payload"],
+            agent_name=row["agent_name"],
         )
 
     async def save_item(self, item: ConversationItem) -> None:
@@ -159,8 +167,8 @@ class SQLiteItemStore(ItemStore):
             await db.execute(
                 """
                 INSERT OR REPLACE INTO conversation_items (
-                    item_id, role, event, conversation_id, thread_id, task_id, payload
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    item_id, role, event, conversation_id, thread_id, task_id, payload, agent_name
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     item.item_id,
@@ -170,13 +178,14 @@ class SQLiteItemStore(ItemStore):
                     item.thread_id,
                     item.task_id,
                     item.payload,
+                    item.agent_name,
                 ),
             )
             await db.commit()
 
     async def get_items(
         self,
-        conversation_id: str,
+        conversation_id: Optional[str] = None,
         limit: Optional[int] = None,
         offset: int = 0,
         role: Optional[Role] = None,
@@ -185,18 +194,22 @@ class SQLiteItemStore(ItemStore):
         **kwargs,
     ) -> List[ConversationItem]:
         await self._ensure_initialized()
-        params = [conversation_id]
-        where = "WHERE conversation_id = ?"
+        params = []
+        where_clauses = []
+        if conversation_id is not None:
+            where_clauses.append("conversation_id = ?")
+            params.append(conversation_id)
         if role is not None:
-            where += " AND role = ?"
+            where_clauses.append("role = ?")
             params.append(getattr(role, "value", str(role)))
-        # Add additional optional filters before building the final SQL string
         if event is not None:
-            where += " AND event = ?"
+            where_clauses.append("event = ?")
             params.append(getattr(event, "value", str(event)))
         if component_type is not None:
-            where += " AND json_extract(payload, '$.component_type') = ?"
+            where_clauses.append("json_extract(payload, '$.component_type') = ?")
             params.append(component_type)
+
+        where = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
 
         sql = f"SELECT * FROM conversation_items {where} ORDER BY datetime(created_at) ASC"
         if limit is not None:

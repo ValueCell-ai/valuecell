@@ -78,7 +78,7 @@ def find_local_agent_card_by_agent_name(
                 continue
             if agent_card_dict.get("name") != agent_name:
                 continue
-            if agent_card_dict.get("enabled", True) is False:
+            if not agent_card_dict.get("enabled", True):
                 continue
             return parse_local_agent_card_dict(agent_card_dict)
 

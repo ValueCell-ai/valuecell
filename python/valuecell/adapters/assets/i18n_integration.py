@@ -284,7 +284,11 @@ class AssetI18nService:
         return t(key, default=status.value.replace("_", " ").title())
 
     def format_currency_amount(
-        self, amount: float, currency: str, language: Optional[str] = None
+        self,
+        amount: float,
+        currency: str,
+        language: Optional[str] = None,
+        asset_type: Optional[str] = None,
     ) -> str:
         """Format currency amount according to locale.
 
@@ -292,6 +296,7 @@ class AssetI18nService:
             amount: Amount to format
             currency: Currency code
             language: Target language (uses current i18n config if None)
+            asset_type: Asset type (e.g., 'stock', 'index', 'etf'). If 'index', no currency symbol is added.
 
         Returns:
             Formatted currency string
@@ -300,6 +305,10 @@ class AssetI18nService:
             config = get_i18n_config()
         else:
             config = I18nConfig(language=language)
+
+        # For index type assets, don't add currency symbol
+        if asset_type == "index":
+            return config.format_number(amount, 2)
 
         # Use the existing i18n currency formatting
         if currency == "USD":
