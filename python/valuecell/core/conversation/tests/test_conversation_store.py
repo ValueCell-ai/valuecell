@@ -561,6 +561,7 @@ class TestSQLiteConversationStore:
                 "conversation_id": "conv-123",
                 "user_id": "user-123",
                 "title": "Test Title",
+                "agent_name" : "Agent-1",
                 "created_at": now.isoformat(),
                 "updated_at": now.isoformat(),
                 "status": "active",
@@ -571,6 +572,7 @@ class TestSQLiteConversationStore:
 
         assert conversation.conversation_id == "conv-123"
         assert conversation.user_id == "user-123"
+        assert conversation.agent_name == "Agent-1"
         assert conversation.title == "Test Title"
         assert conversation.status == "active"
 
