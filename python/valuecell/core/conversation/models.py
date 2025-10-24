@@ -23,6 +23,7 @@ class Conversation(BaseModel):
     conversation_id: str = Field(..., description="Unique conversation identifier")
     user_id: str = Field(..., description="User ID")
     title: Optional[str] = Field(None, description="Conversation title")
+    agent_name: Optional[str] = Field(None, description="Agent name")
     created_at: datetime = Field(
         default_factory=datetime.now, description="Creation time"
     )

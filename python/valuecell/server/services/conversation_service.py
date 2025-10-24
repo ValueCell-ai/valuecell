@@ -13,6 +13,7 @@ from valuecell.server.api.schemas.conversation import (
     ConversationHistoryData,
     ConversationHistoryItem,
     ConversationListData,
+    ConversationListItem,
     MessageData,
 )
 from valuecell.utils import resolve_db_path
@@ -41,11 +42,23 @@ class ConversationService:
             user_id=user_id
         )
 
-        # Convert to response format
+        # Apply pagination
+        total = len(conversations)
 
-        return ConversationListData(
-            conversations=conversations, total=conversations.__len__()
-        )
+        # Convert to response format
+        conversation_items = []
+        for conv in conversations:
+            conversation_item = ConversationListItem(
+                conversation_id=conv.conversation_id,
+                title=conv.title or f"Conversation {conv.conversation_id}",
+                agent_name=conv.agent_name,
+                update_time=conv.updated_at.isoformat()
+                if conv.updated_at
+                else conv.created_at.isoformat(),
+            )
+            conversation_items.append(conversation_item)
+
+        return ConversationListData(conversations=conversations, total=total)
 
     async def get_conversation_history(
         self, conversation_id: str
@@ -82,30 +95,6 @@ class ConversationService:
             event_str = self._normalize_event_name(str(response.event))
             role_str = self._normalize_role_name(str(data.role))
 
-            # Get agent_name from item metadata or attributes
-            agent_name = "unknown"
-            if data.item_id:
-                # Try to get the item to extract agent_name
-                try:
-                    items = await self.item_store.get_items(
-                        conversation_id=conversation_id, item_ids=[data.item_id]
-                    )
-                    if items:
-                        item = items[0]
-                        if hasattr(item, "metadata") and item.metadata:
-                            extracted_name = item.metadata.get("agent_name")
-                            if extracted_name:
-                                agent_name = extracted_name
-                        elif hasattr(item, "agent_name") and item.agent_name:
-                            agent_name = item.agent_name
-                except Exception:
-                    # If we can't get the item, keep default "unknown"
-                    pass
-
-            # Ensure agent_name is never None or empty
-            if not agent_name or agent_name is None:
-                agent_name = "unknown"
-
             # Create unified format: event and data at top level
             message_data_with_meta = MessageData(
                 conversation_id=data.conversation_id,
@@ -114,7 +103,6 @@ class ConversationService:
                 payload=payload_data,
                 role=role_str,
                 item_id=data.item_id,
-                agent_name=agent_name,
             )
 
             history_item = ConversationHistoryItem(
