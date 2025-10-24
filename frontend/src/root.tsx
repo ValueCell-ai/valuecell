@@ -5,6 +5,7 @@ import { Toaster } from "./components/ui/sonner";
 
 import "overlayscrollbars/overlayscrollbars.css";
 import "./global.css";
+import { SidebarProvider } from "./components/ui/sidebar";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -43,12 +44,16 @@ const queryClient = new QueryClient({
 export default function Root() {
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="fixed flex size-full overflow-hidden">
-        <AppSidebar />
+      <SidebarProvider>
+        <div className="fixed flex size-full overflow-hidden">
+          <AppSidebar />
 
-        <Outlet />
-        <Toaster />
-      </div>
+          <main className="relative flex flex-1" id="main-content">
+            <Outlet />
+          </main>
+          <Toaster />
+        </div>
+      </SidebarProvider>
     </QueryClientProvider>
   );
 }

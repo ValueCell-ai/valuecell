@@ -48,8 +48,11 @@ jobs:
       - name: Install style dependencies
         run: uv sync --locked --only-group style
       
-      - name: Run style checks
-        run: uv run --no-project isort --check-only ./valuecell
+      - name: Run format style check
+        run: uv run --directory . ruff format --check --config ./pyproject.toml .
+      
+      - name: Run isort style check
+        run: uv run --directory . isort --check .
 
   test:
     runs-on: ubuntu-latest

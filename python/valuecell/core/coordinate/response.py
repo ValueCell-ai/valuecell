@@ -159,7 +159,11 @@ class ResponseFactory:
         )
 
     def thread_started(
-        self, conversation_id: str, thread_id: str, user_query: str
+        self,
+        conversation_id: str,
+        thread_id: str,
+        user_query: str,
+        agent_name: Optional[str] = None,
     ) -> ThreadStartedResponse:
         """Create a `ThreadStartedResponse` for a new conversational thread.
 
@@ -167,6 +171,7 @@ class ResponseFactory:
             conversation_id: Conversation the thread belongs to.
             thread_id: Newly generated thread identifier.
             user_query: The user's original query that started this thread.
+            agent_name: Name of the agent handling this thread.
 
         Returns:
             ThreadStartedResponse populated with a synthetic ask task id and
@@ -179,6 +184,7 @@ class ResponseFactory:
                 task_id=generate_uuid("ask"),
                 payload=BaseResponseDataPayload(content=user_query),
                 role=Role.USER,
+                agent_name=agent_name,
             )
         )
 

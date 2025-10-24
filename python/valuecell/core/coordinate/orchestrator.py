@@ -19,6 +19,7 @@ from valuecell.core.constants import (
 from valuecell.core.conversation import (
     ConversationManager,
     ConversationStatus,
+    SQLiteConversationStore,
     SQLiteItemStore,
 )
 from valuecell.core.coordinate.models import ExecutionPlan
@@ -148,8 +149,10 @@ class AgentOrchestrator:
     """
 
     def __init__(self):
+        db_path = resolve_db_path()
         self.conversation_manager = ConversationManager(
-            item_store=SQLiteItemStore(resolve_db_path())
+            conversation_store=SQLiteConversationStore(db_path=db_path),
+            item_store=SQLiteItemStore(db_path=db_path),
         )
         self.task_manager = TaskManager()
         self.agent_connections = RemoteConnections()
@@ -364,6 +367,7 @@ class AgentOrchestrator:
             conversation_id=conversation_id,
             thread_id=thread_id,
             user_query=user_input.query,
+            agent_name=user_input.target_agent_name,
         )
         await self._persist_from_buffer(response)
         yield response
@@ -401,6 +405,7 @@ class AgentOrchestrator:
             conversation_id=conversation_id,
             thread_id=thread_id,
             user_query=user_input.query,
+            agent_name=user_input.target_agent_name,
         )
         await self._persist_from_buffer(response)
         yield response

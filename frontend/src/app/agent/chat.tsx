@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect } from "react";
 import {
   Navigate,
@@ -8,6 +9,8 @@ import {
 } from "react-router";
 import { toast } from "sonner";
 import { useGetAgentInfo } from "@/api/agent";
+import { useGetConversationHistory } from "@/api/conversation";
+import { API_QUERY_KEYS } from "@/constants/api";
 import { useSSE } from "@/hooks/use-sse";
 import { getServerUrl } from "@/lib/api-client";
 import {
@@ -23,6 +26,9 @@ export default function AgentChat() {
   const conversationId = useSearchParams()[0].get("id") ?? "";
   const navigate = useNavigate();
   const inputValue = useLocation().state?.inputValue;
+  const queryClient = useQueryClient();
+  const { refetch: fetchConversationHistory } =
+    useGetConversationHistory(conversationId);
 
   const { data: agent, isLoading: isLoadingAgent } = useGetAgentInfo({
     agentName: agentName ?? "",
@@ -30,8 +36,11 @@ export default function AgentChat() {
 
   // Use optimized hooks with built-in shallow comparison
   const { curConversation, curConversationId } = useCurrentConversation();
-
-  const { dispatchAgentStore, setCurConversationId } = useAgentStoreActions();
+  const {
+    dispatchAgentStore,
+    setCurConversationId,
+    dispatchAgentStoreHistory,
+  } = useAgentStoreActions();
 
   // Handle SSE data events using agent store
   // biome-ignore lint/correctness/useExhaustiveDependencies: close is no need to be in dependencies
@@ -46,6 +55,17 @@ export default function AgentChat() {
         navigate(`/agent/${agentName}?id=${data.conversation_id}`, {
           replace: true,
         });
+        queryClient.invalidateQueries({
+          queryKey: API_QUERY_KEYS.CONVERSATION.conversationList,
+        });
+        break;
+
+      case "component_generator":
+        if (data.payload.component_type === "subagent_conversation") {
+          queryClient.invalidateQueries({
+            queryKey: API_QUERY_KEYS.CONVERSATION.conversationList,
+          });
+        }
         break;
 
       case "system_failed":
@@ -91,7 +111,7 @@ export default function AgentChat() {
         const request: AgentStreamRequest = {
           query: message,
           agent_name: agentName ?? "",
-          conversation_id: curConversationId,
+          conversation_id: conversationId,
         };
 
         // Connect SSE client with request body to receive streaming response
@@ -100,13 +120,22 @@ export default function AgentChat() {
         console.error("Failed to send message:", error);
       }
     },
-    [agentName, curConversationId],
+    [agentName, conversationId],
   );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: setCurConversationId and navigate are no need to be in dependencies
   useEffect(() => {
-    curConversationId !== conversationId &&
+    if (curConversationId !== conversationId) {
       setCurConversationId(conversationId);
+      if (conversationId)
+        fetchConversationHistory().then((res) => {
+          return dispatchAgentStoreHistory(
+            conversationId,
+            res.data as SSEData[],
+          );
+        });
+    }
+
     if (inputValue) {
       sendMessage(inputValue);
       // Clear the state after using it once to prevent re-triggering on page refresh

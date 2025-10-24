@@ -1,3 +1,4 @@
+import AppConversationSheet from "@/components/valuecell/app-conversation-sheet";
 import ModelTradeRenderer from "@/components/valuecell/renderer/model-trade-renderer";
 import ModelTradeTableRenderer from "@/components/valuecell/renderer/model-trade-table-renderer";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
@@ -21,6 +22,20 @@ export default function Test() {
             Custom legend cards with portfolio value visualization and trading
             tables
           </p>
+        </div>
+
+        {/* Conversation Sheet Demo */}
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="px-4 py-6">
+            <h2 className="mb-2 font-semibold text-gray-900 text-lg">
+              Conversation History Sheet
+            </h2>
+            <p className="mb-4 text-gray-500 text-xs">
+              Click the button to open the conversation history sheet with
+              shadcn sidebar components
+            </p>
+            <AppConversationSheet />
+          </div>
         </div>
 
         {/* Trade Table - Array Format (NEW: Multiple Tabs with Filtering) */}

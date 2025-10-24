@@ -1,5 +1,6 @@
 import { parse } from "best-effort-json-parser";
 import { type FC, memo } from "react";
+import { NavLink } from "react-router";
 import { useGetAgentInfo } from "@/api/agent";
 import ChatThreadArea from "@/app/agent/components/chat-conversation/chat-thread-area";
 import { Button } from "@/components/ui/button";
@@ -42,12 +43,14 @@ const ChatConversationRenderer: FC<ChatConversationRendererProps> = ({
           </Button>
         )}
 
-        {/* TODO: Open when conversation history is finished */}
-        {/* {phase === "end" && (
-          <Button className="rounded-full bg-blue-500 px-2.5 py-1.5 font-normal text-sm text-white hover:bg-blue-500/80">
+        {phase === "end" && (
+          <NavLink
+            to={`/agent/${agent_name}?id=${conversation_id}`}
+            className="rounded-full bg-blue-500 px-2.5 py-1.5 font-normal text-sm text-white hover:bg-blue-500/80"
+          >
             View
-          </Button>
-        )} */}
+          </NavLink>
+        )}
       </div>
 
       <ScrollContainer className="max-h-[600px]" autoScrollToBottom>
