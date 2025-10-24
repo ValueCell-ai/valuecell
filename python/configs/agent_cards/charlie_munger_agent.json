@@ -2,7 +2,7 @@
     "name": "CharlieMungerAgent",
     "display_name": "Charlie Munger Agent",
     "url": "http://localhost:10014/",
-    "description": "Broad multidisciplinary perspective, focus on high-quality businesses with durable competitive advantages. **CAUTION**: Only stock symbols in {AAPL, GOOGL, MSFT, NVDA, TSLA} is/are supported and the agent will refuse to answer for other symbols. The input should contain one or more stock symbol(s) from this list. ",
+    "description": "Broad multidisciplinary perspective, focus on high-quality businesses with durable competitive advantages. ",
     "skills": [
         {
             "id": "charlie_munger_agent",

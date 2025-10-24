@@ -2,7 +2,7 @@
     "name": "BenGrahamAgent",
     "display_name": "Ben Graham Agent",
     "url": "http://localhost:10011/",
-    "description": "Margin-of-safety and value-investing oriented screens and stock selection. **CAUTION**: Only stock symbols in {AAPL, GOOGL, MSFT, NVDA, TSLA} is/are supported and the agent will refuse to answer for other symbols. The input should contain one or more stock symbol(s) from this list. ",
+    "description": "Margin-of-safety and value-investing oriented screens and stock selection. ",
     "skills": [
         {
             "id": "ben_graham_agent",

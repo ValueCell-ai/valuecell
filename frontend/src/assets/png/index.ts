@@ -17,6 +17,9 @@ export { default as StanleyDruckenmillerPng } from "./agents/StanleyDruckenmille
 export { default as TechnicalAgencyPng } from "./agents/TechnicalAgency.png";
 export { default as ValuationAgencyPng } from "./agents/ValuationAgency.png";
 export { default as WarrenBuffettPng } from "./agents/WarrenBuffett.png";
+export { default as ResearchAgentPng } from "./agents/ResearchAgent.png";
+export { default as AutoTradingAgentPng } from "./agents/AutoTradingAgent.png";
+export {default as ValueCellAgentPng} from "./agents/ValueCellAgent.png";
 
 export { default as IconGroupPng } from "./icon-group.png";
 export { default as MessageGroupPng } from "./message-group.png";

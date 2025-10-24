@@ -2,7 +2,7 @@
     "name": "AutoTradingAgent",
     "display_name": "Auto Trading Agent",
     "url": "http://localhost:10003/",
-    "description": "Automated cryptocurrency trading agent with real-time technical analysis, position management, and continuous monitoring. Supports multiple crypto assets and AI-powered trading strategies using various LLM models via OpenRouter.",
+    "description": "Automated cryptocurrency trading agent with real-time technical analysis, position management, and continuous monitoring.",
     "capabilities": {
         "streaming": true,
         "push_notifications": true

@@ -2,7 +2,7 @@
     "name": "TechnicalAnalystAgent",
     "display_name": "Technical Analyst",
     "url": "http://localhost:10022/",
-    "description": "Chart-based technical analysis for entries, exits, trend identification and momentum signals. **CAUTION**: Only stock symbols in {AAPL, GOOGL, MSFT, NVDA, TSLA} is/are supported and the agent will refuse to answer for other symbols. The input should contain one or more stock symbol(s) from this list. ",
+    "description": "Chart-based technical analysis for entries, exits, trend identification and momentum signals.",
     "skills": [
         {
             "id": "technical_analyst_agent",
