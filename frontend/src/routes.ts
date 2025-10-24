@@ -23,7 +23,9 @@ export default [
     route("/:agentName/config", "app/agent/config.tsx"),
   ]),
 
-  ...prefix("/setting", [index("app/setting/memory.tsx")]),
+  ...prefix("/setting", [
+    layout("app/setting/_layout.tsx", [index("app/setting/memory.tsx")]),
+  ]),
 
   // router for test components
   route("/test", "app/test.tsx"),

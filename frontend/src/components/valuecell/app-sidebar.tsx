@@ -153,7 +153,7 @@ const AppSidebar: FC = () => {
           id: "setting",
           icon: Setting,
           label: "Setting",
-          to: "setting",
+          to: "/setting",
         },
       ],
     };
