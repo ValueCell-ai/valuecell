@@ -48,7 +48,10 @@ export default function Root() {
         <div className="fixed flex size-full overflow-hidden">
           <AppSidebar />
 
-          <main className="relative flex flex-1" id="main-content">
+          <main
+            className="relative flex flex-1 overflow-hidden"
+            id="main-content"
+          >
             <Outlet />
           </main>
           <Toaster />

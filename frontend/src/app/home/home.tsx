@@ -18,10 +18,10 @@ function Home() {
   const { sparklineStocks } = useSparklineStocks(HOME_STOCK_SHOW);
 
   return (
-    <div className="flex h-full min-w-[800px] flex-col gap-4 px-2">
+    <div className="flex h-full min-w-[800px] flex-col gap-3">
       <SparklineStockList stocks={sparklineStocks} />
 
-      <section className="relative flex flex-1 flex-col items-center justify-center gap-12 rounded-xl bg-white py-8">
+      <section className="relative flex flex-1 flex-col items-center justify-center gap-8 rounded-lg bg-white py-8">
         <div className="absolute top-2 left-2">
           <AppConversationSheet />
         </div>

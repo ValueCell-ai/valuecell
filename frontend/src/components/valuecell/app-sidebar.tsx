@@ -101,7 +101,7 @@ const SidebarMenuItem: FC<SidebarItemProps> = ({
         "box-border flex size-10 items-center justify-center rounded-full",
         "cursor-pointer transition-all",
         type === "button" && [
-          "bg-neutral-200 p-3",
+          "bg-neutral-200 p-3 text-gray-700",
           "hover:data-[active=false]:bg-neutral-300",
           "data-[active=true]:bg-black data-[active=true]:text-white",
         ],
@@ -181,7 +181,7 @@ const AppSidebar: FC = () => {
                 <SidebarMenuItem
                   aria-label={item.label}
                   data-active={verifyActive(item.to)}
-                  className="p-2"
+                  className="bg-white p-2"
                 >
                   <SvgIcon name={item.icon} />
                 </SidebarMenuItem>

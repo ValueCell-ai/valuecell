@@ -33,7 +33,7 @@ function SparklineStockItem({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-white px-4 py-3",
+        "flex items-center justify-between gap-4 rounded-lg border border-gray-100 bg-white px-4 py-3",
         className,
       )}
       {...props}
@@ -85,7 +85,7 @@ function SparklineStockList({
   return (
     <div
       className={cn(
-        "grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3",
+        "grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-3",
         className,
       )}
       {...props}
