@@ -35,12 +35,14 @@ class ConversationManager:
         user_id: str,
         title: Optional[str] = None,
         conversation_id: Optional[str] = None,
+        agent_name: Optional[str] = None,
     ) -> Conversation:
         """Create new conversation"""
         conversation = Conversation(
             conversation_id=conversation_id or generate_conversation_id(),
             user_id=user_id,
             title=title,
+            agent_name=agent_name,
         )
         await self.conversation_store.save_conversation(conversation)
         return conversation

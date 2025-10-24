@@ -199,6 +199,7 @@ class AgentOrchestrator:
         """
         conversation_id = user_input.meta.conversation_id
         user_id = user_input.meta.user_id
+        agent_name = user_input.target_agent_name
 
         try:
             # Ensure conversation exists
@@ -207,7 +208,7 @@ class AgentOrchestrator:
             )
             if not conversation:
                 await self.conversation_manager.create_conversation(
-                    user_id, conversation_id=conversation_id
+                    user_id, conversation_id=conversation_id, agent_name=agent_name
                 )
                 conversation = await self.conversation_manager.get_conversation(
                     conversation_id
@@ -663,7 +664,9 @@ class AgentOrchestrator:
                 "phase": SubagentConversationPhase.START.value,
             }
             await self.conversation_manager.create_conversation(
-                plan.user_id, conversation_id=task.conversation_id
+                plan.user_id,
+                conversation_id=task.conversation_id,
+                agent_name=task.agent_name,
             )
             if task.handoff_from_super_agent:
                 subagent_conv_start_component = (

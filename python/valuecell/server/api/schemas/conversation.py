@@ -36,6 +36,7 @@ class MessageData(BaseModel):
     payload: Optional[Dict[str, Any]] = Field(None, description="Message payload")
     role: Optional[str] = Field(None, description="Role for simple event format")
     item_id: Optional[str] = Field(None, description="Item ID for simple event format")
+    agent_name: Optional[str] = Field(None, description="Name of the agent")
 
 
 class MessageEvent(BaseModel):

@@ -132,6 +132,7 @@ class SQLiteConversationStore(ConversationStore):
                         conversation_id TEXT PRIMARY KEY,
                         user_id TEXT NOT NULL,
                         title TEXT,
+                        agent_name TEXT,
                         created_at TEXT NOT NULL,
                         updated_at TEXT NOT NULL,
                         status TEXT NOT NULL DEFAULT 'active'
@@ -149,6 +150,7 @@ class SQLiteConversationStore(ConversationStore):
             conversation_id=row["conversation_id"],
             user_id=row["user_id"],
             title=row["title"],
+            agent_name=row["agent_name"],
             created_at=datetime.fromisoformat(row["created_at"]),
             updated_at=datetime.fromisoformat(row["updated_at"]),
             status=row["status"],
@@ -161,13 +163,14 @@ class SQLiteConversationStore(ConversationStore):
             await db.execute(
                 """
                 INSERT OR REPLACE INTO conversations (
-                    conversation_id, user_id, title, created_at, updated_at, status
-                ) VALUES (?, ?, ?, ?, ?, ?)
+                    conversation_id, user_id, title, agent_name, created_at, updated_at, status
+                ) VALUES (?, ?, ?, ?, ?,?, ?)
                 """,
                 (
                     conversation.conversation_id,
                     conversation.user_id,
                     conversation.title,
+                    conversation.agent_name,
                     conversation.created_at.isoformat(),
                     conversation.updated_at.isoformat(),
                     conversation.status.value

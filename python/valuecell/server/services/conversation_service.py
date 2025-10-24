@@ -13,7 +13,6 @@ from valuecell.server.api.schemas.conversation import (
     ConversationHistoryData,
     ConversationHistoryItem,
     ConversationListData,
-    ConversationListItem,
     MessageData,
 )
 from valuecell.utils import resolve_db_path
@@ -42,44 +41,11 @@ class ConversationService:
             user_id=user_id
         )
 
-        # Apply pagination
-        total = len(conversations)
-        paginated_conversations = conversations[offset : offset + limit]
-
         # Convert to response format
-        conversation_items = []
-        for conv in paginated_conversations:
-            # Get the latest item to extract agent_name
-            latest_items = await self.item_store.get_items(
-                conversation_id=conv.conversation_id, limit=1
-            )
 
-            agent_name = "unknown"
-            if latest_items:
-                # Try to extract agent_name from the latest item's metadata
-                latest_item = latest_items[0]
-                if hasattr(latest_item, "metadata") and latest_item.metadata:
-                    extracted_name = latest_item.metadata.get("agent_name")
-                    if extracted_name:
-                        agent_name = extracted_name
-                elif hasattr(latest_item, "agent_name") and latest_item.agent_name:
-                    agent_name = latest_item.agent_name
-
-            # Ensure agent_name is never None or empty
-            if not agent_name or agent_name is None:
-                agent_name = "unknown"
-
-            conversation_item = ConversationListItem(
-                conversation_id=conv.conversation_id,
-                title=conv.title or f"Conversation {conv.conversation_id}",
-                agent_name=agent_name,
-                update_time=conv.updated_at.isoformat()
-                if conv.updated_at
-                else conv.created_at.isoformat(),
-            )
-            conversation_items.append(conversation_item)
-
-        return ConversationListData(conversations=conversation_items, total=total)
+        return ConversationListData(
+            conversations=conversations, total=conversations.__len__()
+        )
 
     async def get_conversation_history(
         self, conversation_id: str
@@ -116,6 +82,30 @@ class ConversationService:
             event_str = self._normalize_event_name(str(response.event))
             role_str = self._normalize_role_name(str(data.role))
 
+            # Get agent_name from item metadata or attributes
+            agent_name = "unknown"
+            if data.item_id:
+                # Try to get the item to extract agent_name
+                try:
+                    items = await self.item_store.get_items(
+                        conversation_id=conversation_id, item_ids=[data.item_id]
+                    )
+                    if items:
+                        item = items[0]
+                        if hasattr(item, "metadata") and item.metadata:
+                            extracted_name = item.metadata.get("agent_name")
+                            if extracted_name:
+                                agent_name = extracted_name
+                        elif hasattr(item, "agent_name") and item.agent_name:
+                            agent_name = item.agent_name
+                except Exception:
+                    # If we can't get the item, keep default "unknown"
+                    pass
+
+            # Ensure agent_name is never None or empty
+            if not agent_name or agent_name is None:
+                agent_name = "unknown"
+
             # Create unified format: event and data at top level
             message_data_with_meta = MessageData(
                 conversation_id=data.conversation_id,
@@ -124,6 +114,7 @@ class ConversationService:
                 payload=payload_data,
                 role=role_str,
                 item_id=data.item_id,
+                agent_name=agent_name,
             )
 
             history_item = ConversationHistoryItem(
