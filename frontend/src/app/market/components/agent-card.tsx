@@ -41,7 +41,7 @@ export const AgentCard: FC<AgentCardProps> = ({
       </div>
 
       {/* Description */}
-      <p className="w-full font-normal text-gray-600 text-sm leading-5">
+      <p className="line-clamp-3 w-full font-normal text-gray-600 text-sm leading-5">
         {agent.description}
       </p>
     </div>
