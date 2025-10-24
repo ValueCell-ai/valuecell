@@ -15,7 +15,7 @@ export default function HomeLayout() {
           <Outlet />
         </ScrollContainer>
 
-        <aside className="flex min-w-62 flex-col justify-between rounded-xl bg-white">
+        <aside className="flex min-w-62 max-w-80 flex-col justify-between rounded-xl bg-white">
           <StockList />
 
           <StockSearchModal>

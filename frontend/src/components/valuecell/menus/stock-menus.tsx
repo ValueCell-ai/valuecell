@@ -129,7 +129,7 @@ function StockMenuListItem({
       )}
       {...props}
     >
-      <div className="flex flex-1 items-center gap-2.5">
+      <div className="flex flex-1 items-center gap-2.5 truncate">
         {/* icon */}
         {/* <StockIcon stock={stock} /> */}
 
@@ -138,7 +138,7 @@ function StockMenuListItem({
           <p className="font-semibold text-foreground text-sm leading-tight">
             {stock.symbol}
           </p>
-          <p className="truncate text-muted-foreground/80 text-xs leading-none">
+          <p className="text-muted-foreground/80 text-xs leading-none">
             {stock.companyName}
           </p>
         </div>
