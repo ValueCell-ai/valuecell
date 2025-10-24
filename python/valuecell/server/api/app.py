@@ -134,6 +134,7 @@ def _add_routes(app: FastAPI, settings) -> None:
 
     # Include watchlist router
     app.include_router(create_watchlist_router(), prefix=API_PREFIX)
+
     # Include conversation router
     app.include_router(create_conversation_router(), prefix=API_PREFIX)
 
@@ -142,6 +143,7 @@ def _add_routes(app: FastAPI, settings) -> None:
 
     # Include agent stream router
     app.include_router(create_agent_stream_router(), prefix=API_PREFIX)
+    
     # Include agent router
     app.include_router(create_agent_router(), prefix=API_PREFIX)
 

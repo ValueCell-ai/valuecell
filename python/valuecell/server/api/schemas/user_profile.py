@@ -13,6 +13,7 @@ class ProfileCategoryEnum(str, enum.Enum):
     PRODUCT_BEHAVIOR = "product_behavior"
     RISK_PREFERENCE = "risk_preference"
     READING_PREFERENCE = "reading_preference"
+    NORMAL = "normal"
 
 
 class UserProfileData(BaseModel):
