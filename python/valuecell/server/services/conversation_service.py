@@ -58,7 +58,7 @@ class ConversationService:
             )
             conversation_items.append(conversation_item)
 
-        return ConversationListData(conversations=conversations, total=total)
+        return ConversationListData(conversations=conversation_items, total=total)
 
     async def get_conversation_history(
         self, conversation_id: str
