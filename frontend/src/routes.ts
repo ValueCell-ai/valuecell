@@ -8,17 +8,22 @@ import {
 
 export default [
   index("app/redirect-to-home.tsx"),
+
   ...prefix("/home", [
     layout("app/home/_layout.tsx", [
       index("app/home/home.tsx"),
       route("/stock/:stockId", "app/home/stock.tsx"),
     ]),
   ]),
+
   route("/market", "app/market/agents.tsx"),
+
   ...prefix("/agent", [
     route("/:agentName", "app/agent/chat.tsx"),
     route("/:agentName/config", "app/agent/config.tsx"),
   ]),
+
+  ...prefix("/setting", [index("app/setting/memory.tsx")]),
 
   // router for test components
   route("/test", "app/test.tsx"),

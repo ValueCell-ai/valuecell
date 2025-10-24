@@ -7,7 +7,7 @@ import {
 } from "react";
 import { NavLink, useLocation } from "react-router";
 import { useGetAgentList } from "@/api/agent";
-import { BookOpen, ChartBarVertical, Logo, Setting, User } from "@/assets/svg";
+import { ChartBarVertical, Logo, Setting } from "@/assets/svg";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
@@ -73,7 +73,9 @@ const SidebarContent: FC<SidebarContentProps> = ({ children, className }) => {
 };
 
 const SidebarFooter: FC<SidebarFooterProps> = ({ children, className }) => {
-  return <div className={cn("flex flex-col gap-3", className)}>{children}</div>;
+  return (
+    <div className={cn("flex flex-col gap-3 pb-4", className)}>{children}</div>
+  );
 };
 
 const SidebarMenu: FC<SidebarMenuProps> = ({ children, className }) => {
@@ -147,14 +149,12 @@ const AppSidebar: FC = () => {
         },
       ],
       config: [
-        { id: "book", icon: BookOpen, label: "Book", to: "book" },
         {
-          id: "settings",
+          id: "setting",
           icon: Setting,
-          label: "Settings",
-          to: "settings",
+          label: "Setting",
+          to: "setting",
         },
-        { id: "user", icon: User, label: "User", to: "user" },
       ],
     };
   }, []);
@@ -218,7 +218,7 @@ const AppSidebar: FC = () => {
         </ScrollContainer>
       </SidebarContent>
 
-      {/* <SidebarFooter className="mt-auto">
+      <SidebarFooter className="mt-auto">
         <SidebarMenu>
           {navItems.config.map((item) => {
             return (
@@ -226,6 +226,7 @@ const AppSidebar: FC = () => {
                 <SidebarMenuItem
                   aria-label={item.label}
                   data-active={verifyActive(item.to)}
+                  className="p-2"
                 >
                   <SvgIcon name={item.icon} />
                 </SidebarMenuItem>
@@ -233,7 +234,7 @@ const AppSidebar: FC = () => {
             );
           })}
         </SidebarMenu>
-      </SidebarFooter> */}
+      </SidebarFooter>
     </Sidebar>
   );
 };
