@@ -25,10 +25,15 @@ export const CONVERSATION_QUERY_KEYS = {
   conversationHistory: queryKeyFn(["conversation", "history"]),
 } as const;
 
+export const SETTING_QUERY_KEYS = {
+  memoryList: ["memory"],
+} as const;
+
 export const API_QUERY_KEYS = {
   STOCK: STOCK_QUERY_KEYS,
   AGENT: AGENT_QUERY_KEYS,
   CONVERSATION: CONVERSATION_QUERY_KEYS,
+  SETTING: SETTING_QUERY_KEYS,
 } as const;
 
 /**

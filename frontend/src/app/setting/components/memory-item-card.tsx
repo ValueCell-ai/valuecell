@@ -12,15 +12,11 @@ import {
   ItemContent,
   ItemDescription,
 } from "@/components/ui/item";
-
-export interface MemoryItem {
-  id: string;
-  content: string;
-}
+import type { MemoryItem } from "@/types/setting";
 
 interface MemoryItemCardProps {
   item: MemoryItem;
-  onDelete?: (id: string) => void;
+  onDelete?: (id: MemoryItem["id"]) => void;
 }
 
 export function MemoryItemCard({ item, onDelete }: MemoryItemCardProps) {

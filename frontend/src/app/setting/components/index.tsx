@@ -1,1 +1,1 @@
-export { type MemoryItem, MemoryItemCard } from "./memory-item-card";
+export { MemoryItemCard } from "./memory-item-card";
