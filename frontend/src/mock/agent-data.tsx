@@ -6,10 +6,10 @@ import SvgIcon from "@/components/valuecell/svg-icon";
 export const agentSuggestions: AgentSuggestion[] = [
   {
     id: "ResearchAgent",
-    title: "Research Report",
+    title: "Deep Research",
     icon: <SvgIcon name={ResearchReport} />,
     description:
-      "analyzes SEC filings and internal knowledge to produce sourceable",
+      "Analyze SEC filings to generate in-depth stock interpretation reports.",
     bgColor:
       "bg-gradient-to-r from-[#FFFFFF]/70 from-[5.05%] to-[#E7EFFF]/70 to-[100%]",
     decorativeGraphics: <img src={TrendPng} alt="Trend" />,

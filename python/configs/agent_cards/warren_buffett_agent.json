@@ -2,7 +2,7 @@
     "name": "WarrenBuffettAgent",
     "display_name": "Warren Buffett Agent",
     "url": "http://localhost:10021/",
-    "description": "Long-term value investing with emphasis on durable businesses, simple economics, and shareholder-friendly management. **CAUTION**: Only stock symbols in {AAPL, GOOGL, MSFT, NVDA, TSLA} is/are supported and the agent will refuse to answer for other symbols. The input should contain one or more stock symbol(s) from this list. ",
+    "description": "Long-term value investing with emphasis on durable businesses, simple economics, and shareholder-friendly management.",
     "skills": [
         {
             "id": "warren_buffett_agent",

@@ -2,7 +2,7 @@
     "name": "StanleyDruckenmillerAgent",
     "display_name": "Stanley Druckenmiller Agent",
     "url": "http://localhost:10020/",
-    "description": "Macro-driven allocation and tactical trading insights combining top-down macro views with security selection. **CAUTION**: Only stock symbols in {AAPL, GOOGL, MSFT, NVDA, TSLA} is/are supported and the agent will refuse to answer for other symbols. The input should contain one or more stock symbol(s) from this list. ",
+    "description": "Macro-driven allocation and tactical trading insights combining top-down macro views with security selection.",
     "skills": [
         {
             "id": "stanley_druckenmiller_agent",

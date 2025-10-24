@@ -1,4 +1,6 @@
 import {
+  ResearchAgentPng,
+  AutoTradingAgentPng,
   AswathDamodaranPng,
   BenGrahamPng,
   BillAckmanPng,
@@ -17,6 +19,7 @@ import {
   TechnicalAgencyPng,
   ValuationAgencyPng,
   WarrenBuffettPng,
+  ValueCellAgentPng,
 } from "@/assets/png";
 import {
   ChatConversationRenderer,
@@ -66,6 +69,8 @@ export const COMPONENT_RENDERER_MAP: {
 
 export const AGENT_AVATAR_MAP: Record<string, string> = {
   // Investment Masters
+  ResearchAgent: ResearchAgentPng,
+  AutoTradingAgent: AutoTradingAgentPng,
   AswathDamodaranAgent: AswathDamodaranPng,
   BenGrahamAgent: BenGrahamPng,
   BillAckmanAgent: BillAckmanPng,
@@ -78,6 +83,7 @@ export const AGENT_AVATAR_MAP: Record<string, string> = {
   RakeshJhunjhunwalaAgent: RakeshJhunjhunwalaPng,
   StanleyDruckenmillerAgent: StanleyDruckenmillerPng,
   WarrenBuffettAgent: WarrenBuffettPng,
+  ValueCellAgent: ValueCellAgentPng,
 
   // Analyst Agents
   FundamentalsAnalystAgent: FundamentalProxyPng,

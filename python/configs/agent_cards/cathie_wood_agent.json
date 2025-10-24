@@ -2,7 +2,7 @@
     "name": "CathieWoodAgent",
     "display_name": "Cathie Wood Agent",
     "url": "http://localhost:10013/",
-    "description": "High-conviction growth and disruptive-innovation oriented analysis with long-term thematic views. **CAUTION**: Only stock symbols in {AAPL, GOOGL, MSFT, NVDA, TSLA} is/are supported and the agent will refuse to answer for other symbols. The input should contain one or more stock symbol(s) from this list. ",
+    "description": "High-conviction growth and disruptive-innovation oriented analysis with long-term thematic views.",
     "skills": [
         {
             "id": "cathie_wood_agent",
