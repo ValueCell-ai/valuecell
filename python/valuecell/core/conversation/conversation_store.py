@@ -164,7 +164,7 @@ class SQLiteConversationStore(ConversationStore):
                 """
                 INSERT OR REPLACE INTO conversations (
                     conversation_id, user_id, title, agent_name, created_at, updated_at, status
-                ) VALUES (?, ?, ?, ?, ?,?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     conversation.conversation_id,
