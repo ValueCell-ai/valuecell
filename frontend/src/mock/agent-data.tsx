@@ -1,12 +1,13 @@
-import { BarChart3, TrendingUp } from "lucide-react";
 import type { AgentSuggestion } from "@/app/home/components/agent-suggestions-list";
 import { IconGroupPng, TrendPng } from "@/assets/png";
+import { AutoTrade, ResearchReport } from "@/assets/svg";
+import SvgIcon from "@/components/valuecell/svg-icon";
 
 export const agentSuggestions: AgentSuggestion[] = [
   {
     id: "ResearchAgent",
     title: "Research Report",
-    icon: <TrendingUp size={16} className="text-gray-500" />,
+    icon: <SvgIcon name={ResearchReport} />,
     description:
       "analyzes SEC filings and internal knowledge to produce sourceable",
     bgColor:
@@ -16,7 +17,7 @@ export const agentSuggestions: AgentSuggestion[] = [
   {
     id: "AutoTradingAgent",
     title: "Auto Trading",
-    icon: <BarChart3 size={16} className="text-gray-500" />,
+    icon: <SvgIcon name={AutoTrade} />,
     description: "multiple crypto assets and AI-powered trading strategies",
     bgColor:
       "bg-gradient-to-r from-[#FFFFFF]/70 from-[5.05%] to-[#EAE8FF]/70 to-[100%]",
