@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import AgentAvatar from "./agent-avatar";
+import AppConversationSheet from "./app-conversation-sheet";
 import ScrollContainer from "./scroll/scroll-container";
 import SvgIcon from "./svg-icon";
 
@@ -188,6 +189,10 @@ const AppSidebar: FC = () => {
               </NavLink>
             );
           })}
+
+          <SidebarMenuItem className="bg-white p-2 hover:bg-neutral-200">
+            <AppConversationSheet />
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
 

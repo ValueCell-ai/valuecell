@@ -3,7 +3,6 @@ import { type FC, memo } from "react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import AgentAvatar from "@/components/valuecell/agent-avatar";
-import AppConversationSheet from "@/components/valuecell/app-conversation-sheet";
 import type { AgentInfo } from "@/types/agent";
 
 interface ChatConversationHeaderProps {
@@ -14,8 +13,6 @@ const ChatConversationHeader: FC<ChatConversationHeaderProps> = ({ agent }) => {
   return (
     <header className="flex w-full items-center justify-between p-6">
       <div className="flex items-center gap-2">
-        <AppConversationSheet />
-
         {/* Agent Avatar */}
         <AgentAvatar agentName={agent.agent_name} className="size-14" />
 

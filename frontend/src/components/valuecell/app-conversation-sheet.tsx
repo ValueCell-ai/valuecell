@@ -16,7 +16,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
-import { Button } from "../ui/button";
 import AgentAvatar from "./agent-avatar";
 import ScrollContainer from "./scroll/scroll-container";
 import SvgIcon from "./svg-icon";
@@ -31,9 +30,9 @@ const AppConversationSheet: FC = () => {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button size="icon" variant="ghost">
+        <button type="button" className="cursor-pointer text-black">
           <SvgIcon name={Conversation} className="size-5" />
-        </Button>
+        </button>
       </SheetTrigger>
 
       <SheetContent side="left" className="w-[300px]">
