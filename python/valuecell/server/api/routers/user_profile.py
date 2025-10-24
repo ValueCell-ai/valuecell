@@ -21,7 +21,7 @@ DEFAULT_USER_ID = "default_user"
 
 def create_user_profile_router() -> APIRouter:
     """Create user profile related routes."""
-    router = APIRouter(prefix="/api/v1/user/profile", tags=["User Profile"])
+    router = APIRouter(prefix="/user/profile", tags=["User Profile"])
 
     # Get service dependency
     profile_service = get_user_profile_service()

@@ -10,7 +10,7 @@ from ..schemas import AppInfoData, HealthCheckData, SuccessResponse
 
 def create_system_router() -> APIRouter:
     """Create system related routes."""
-    router = APIRouter(prefix="/api/v1/system", tags=["System"])
+    router = APIRouter(prefix="/system", tags=["System"])
     settings = get_settings()
 
     @router.get(

@@ -108,6 +108,8 @@ def _add_exception_handlers(app: FastAPI):
 def _add_routes(app: FastAPI, settings) -> None:
     """Add routes to the application."""
 
+    API_PREFIX = "/api/v1"
+
     @app.get(
         "/",
         response_model=SuccessResponse[AppInfoData],
@@ -125,23 +127,23 @@ def _add_routes(app: FastAPI, settings) -> None:
         return SuccessResponse.create(data=app_info, msg="Welcome to ValueCell API")
 
     # Include i18n router
-    app.include_router(create_i18n_router())
+    app.include_router(create_i18n_router(), prefix=API_PREFIX)
 
     # Include system router
-    app.include_router(create_system_router())
+    app.include_router(create_system_router(), prefix=API_PREFIX)
 
     # Include watchlist router
-    app.include_router(create_watchlist_router())
+    app.include_router(create_watchlist_router(), prefix=API_PREFIX)
     # Include conversation router
-    app.include_router(create_conversation_router(), prefix="/api/v1")
+    app.include_router(create_conversation_router(), prefix=API_PREFIX)
 
     # Include user profile router
-    app.include_router(create_user_profile_router())
+    app.include_router(create_user_profile_router(), prefix=API_PREFIX)
 
     # Include agent stream router
-    app.include_router(create_agent_stream_router(), prefix="/api/v1")
+    app.include_router(create_agent_stream_router(), prefix=API_PREFIX)
     # Include agent router
-    app.include_router(create_agent_router(), prefix="/api/v1")
+    app.include_router(create_agent_router(), prefix=API_PREFIX)
 
 
 # For uvicorn
