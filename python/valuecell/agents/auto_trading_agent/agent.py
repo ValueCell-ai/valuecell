@@ -823,14 +823,14 @@ class AutoTradingAgent(BaseAgent):
 
             # Handle stop commands
             if any(
-                cmd in query_lower for cmd in ["stop", "pause", "halt", "停止", "暂停"]
+                cmd in query_lower.split() for cmd in ["stop", "pause", "halt", "停止", "暂停"]
             ):
                 async for response in self._handle_stop_command(session_id, query):
                     yield response
                 return
 
             # Handle status query commands
-            if any(cmd in query_lower for cmd in ["status", "summary", "状态", "摘要"]):
+            if any(cmd in query_lower.split() for cmd in ["status", "summary", "状态", "摘要"]):
                 async for response in self._handle_status_command(session_id):
                     yield response
                 return
