@@ -20,11 +20,11 @@ export default function AgentMarket() {
 
       {/* Agent Cards Grid */}
       <ScrollContainer>
-        <div className="mx-auto w-3/4 columns-3 gap-4 space-y-4 pb-8">
+        <div className="mx-auto grid w-3/4 grid-cols-3 gap-4 space-y-4 pb-8">
           {agents.map((agent) => (
             <div key={agent.agent_name} className="break-inside-avoid">
               <Link to={`/agent/${agent.agent_name}/config`}>
-                <AgentCard agent={agent} />
+                <AgentCard agent={agent} className="h-full" />
               </Link>
             </div>
           ))}

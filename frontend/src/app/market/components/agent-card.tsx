@@ -15,33 +15,29 @@ export const AgentCard: FC<AgentCardProps> = ({
   return (
     <div
       className={cn(
-        "box-border flex w-full cursor-pointer flex-col items-center gap-4 p-4",
-        "rounded-xl border border-gray-100 bg-neutral-50",
-        "transition-all duration-200",
-        "hover:border-gray-200 hover:bg-neutral-100 hover:shadow-sm",
+        "box-border flex w-full cursor-pointer flex-col gap-5 p-6",
+        "rounded-2xl border border-gray-200 bg-white shadow-sm",
+        "transition-all duration-300",
+        "hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md",
         className,
       )}
       {...props}
     >
       {/* Avatar and Name Section */}
-      <div className="flex w-full flex-col items-start gap-2">
-        <div className="flex w-full items-center gap-2">
-          {/* Avatar */}
-          <div className="flex shrink-0 items-center gap-2.5">
-            <div className="size-8 shrink-0">
-              <AgentAvatar agentName={agent.agent_name} />
-            </div>
-          </div>
-
-          {/* Name */}
-          <p className="shrink-0 whitespace-nowrap font-semibold text-base text-gray-950 leading-[22px]">
-            {agent.display_name}
-          </p>
+      <div className="flex w-full items-center gap-3">
+        {/* Avatar */}
+        <div className="size-12 shrink-0">
+          <AgentAvatar agentName={agent.agent_name} />
         </div>
+
+        {/* Name */}
+        <h3 className="line-clamp-1 font-semibold text-gray-900 text-lg leading-6">
+          {agent.display_name}
+        </h3>
       </div>
 
       {/* Description */}
-      <p className="line-clamp-3 w-full font-normal text-gray-600 text-sm leading-5">
+      <p className="line-clamp-3 w-full text-gray-600 text-sm leading-6">
         {agent.description}
       </p>
     </div>
