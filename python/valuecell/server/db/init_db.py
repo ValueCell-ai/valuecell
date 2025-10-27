@@ -466,12 +466,17 @@ class DatabaseInitializer:
             logger.error("Failed to create tables")
             return False
 
-        # Step 3: Initialize basic data
+        # Step 3: Initialize basic data (agents)
         if not self.initialize_basic_data():
             logger.error("Failed to initialize basic data")
             return False
 
-        # Step 4: Verify initialization
+        # Step 4: Initialize assets with service
+        if not self.initialize_assets_with_service():
+            logger.error("Failed to initialize assets")
+            return False
+
+        # Step 5: Verify initialization
         if not self.verify_initialization():
             logger.error("Database initialization verification failed")
             return False
