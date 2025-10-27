@@ -7,8 +7,6 @@ from typing import Iterable, List, Optional, Sequence
 import aiofiles
 import aiohttp
 from agno.agent import Agent
-from agno.models.google import Gemini
-from agno.models.openrouter import OpenRouter
 from edgar import Company
 from edgar.entity.filings import EntityFilings
 
@@ -230,19 +228,32 @@ async def fetch_event_sec_filings(
 async def web_search(query: str) -> str:
     """Search web for the given query and return a summary of the top results.
 
+    This function uses the centralized configuration system to create model instances.
+    It supports multiple search providers:
+    - Google (Gemini with search enabled) - when WEB_SEARCH_PROVIDER=google and GOOGLE_API_KEY is set
+    - Perplexity (via OpenRouter) - default fallback
+
     Args:
         query: The search query string.
 
     Returns:
         A summary of the top search results.
     """
+    from valuecell.utils.model import create_model_with_provider
 
+    # Check which provider to use based on environment configuration
     if os.getenv("WEB_SEARCH_PROVIDER", "google").lower() == "google" and os.getenv(
         "GOOGLE_API_KEY"
     ):
         return await _web_search_google(query)
 
-    model = OpenRouter(id="perplexity/sonar", max_tokens=None)
+    # Use Perplexity Sonar via OpenRouter for web search
+    # Perplexity models are optimized for web search and real-time information
+    model = create_model_with_provider(
+        provider="openrouter",
+        model_id="perplexity/sonar",
+        max_tokens=None,
+    )
     response = await Agent(model=model).arun(query)
     return response.content
 
@@ -250,13 +261,23 @@ async def web_search(query: str) -> str:
 async def _web_search_google(query: str) -> str:
     """Search Google for the given query and return a summary of the top results.
 
+    Uses Google Gemini with search grounding enabled for real-time web information.
+
     Args:
         query: The search query string.
 
     Returns:
         A summary of the top search results.
     """
-    model = Gemini(id="gemini-2.5-flash", search=True)
+    from valuecell.utils.model import create_model_with_provider
+
+    # Use Google Gemini with search enabled
+    # The search=True parameter enables Google Search grounding for real-time information
+    model = create_model_with_provider(
+        provider="google",
+        model_id="gemini-2.5-flash",
+        search=True,  # Enable Google Search grounding
+    )
     response = await Agent(model=model).arun(query)
     return response.content
 
