@@ -101,7 +101,7 @@ export class SSEClient {
       const response = await fetch(this.options.url, {
         method: "POST",
         body: this.currentBody,
-        // signal: this.abortController?.signal,
+        signal: this.abortController?.signal,
         ...this.options.fetchOptions,
         headers: {
           Accept: "text/event-stream",

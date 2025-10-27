@@ -65,7 +65,7 @@ function addOrUpdateItem(
   newItem: ChatItem,
   event: "append" | "replace",
 ): void {
-  if (newItem.metadata.task_title)
+  if (newItem.metadata?.task_title)
     task.task_title = newItem.metadata.task_title;
 
   const existingIndex = task.items.findIndex(
