@@ -1,7 +1,6 @@
 import {
-  ResearchAgentPng,
-  AutoTradingAgentPng,
   AswathDamodaranPng,
+  AutoTradingAgentPng,
   BenGrahamPng,
   BillAckmanPng,
   CathieWoodPng,
@@ -14,12 +13,13 @@ import {
   PhilFisherPng,
   PortfolioManagerPng,
   RakeshJhunjhunwalaPng,
+  ResearchAgentPng,
   SecAgentPng,
   StanleyDruckenmillerPng,
   TechnicalAgencyPng,
   ValuationAgencyPng,
-  WarrenBuffettPng,
   ValueCellAgentPng,
+  WarrenBuffettPng,
 } from "@/assets/png";
 import {
   ChatConversationRenderer,
