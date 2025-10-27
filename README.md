@@ -53,6 +53,7 @@ It provides a team of TOP investment Agents to help manage your portfolio.
 <p align="center">
   <img src="assets/product/AutoTradingAgent.png" style="width: 100%; height: auto;">
 </p>
+
 # Key Features
 
 <p align="center">
