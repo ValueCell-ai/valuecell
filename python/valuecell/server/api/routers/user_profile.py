@@ -4,11 +4,11 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Path, Query
 
+from ...db.models.user_profile import ProfileCategory
 from ...services.user_profile_service import get_user_profile_service
 from ..schemas import SuccessResponse
 from ..schemas.user_profile import (
     CreateUserProfileRequest,
-    ProfileCategoryEnum,
     UpdateUserProfileRequest,
     UserProfileData,
     UserProfileListData,
@@ -39,7 +39,7 @@ def create_user_profile_router() -> APIRouter:
             user_id = DEFAULT_USER_ID
 
             # Validate category
-            valid_categories = [e.value for e in ProfileCategoryEnum]
+            valid_categories = [e.value for e in ProfileCategory]
             if request.category not in valid_categories:
                 raise HTTPException(
                     status_code=400,
@@ -77,7 +77,7 @@ def create_user_profile_router() -> APIRouter:
     async def get_profiles(
         category: Optional[str] = Query(
             None,
-            description=f"Filter by category ({', '.join([e.value for e in ProfileCategoryEnum])})",
+            description=f"Filter by category ({', '.join([e.value for e in ProfileCategory])})",
         ),
     ):
         """Get all user profiles."""
@@ -87,7 +87,7 @@ def create_user_profile_router() -> APIRouter:
 
             # Validate category if provided
             if category:
-                valid_categories = [e.value for e in ProfileCategoryEnum]
+                valid_categories = [e.value for e in ProfileCategory]
                 if category not in valid_categories:
                     raise HTTPException(
                         status_code=400,

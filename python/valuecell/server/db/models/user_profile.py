@@ -15,6 +15,7 @@ class ProfileCategory(str, enum.Enum):
     PRODUCT_BEHAVIOR = "product_behavior"  # User's behavior on products
     RISK_PREFERENCE = "risk_preference"  # User's risk preference
     READING_PREFERENCE = "reading_preference"  # User's reading preference
+    NORMAL = "normal"  # User's normal profile
 
 
 class UserProfile(Base):

@@ -1,19 +1,11 @@
 """API schemas for user profile operations."""
 
-import enum
 from datetime import datetime
 from typing import List
 
 from pydantic import BaseModel, Field
 
-
-class ProfileCategoryEnum(str, enum.Enum):
-    """Profile category enum for API."""
-
-    PRODUCT_BEHAVIOR = "product_behavior"
-    RISK_PREFERENCE = "risk_preference"
-    READING_PREFERENCE = "reading_preference"
-    NORMAL = "normal"
+from ...db.models.user_profile import ProfileCategory
 
 
 class UserProfileData(BaseModel):
@@ -32,7 +24,7 @@ class CreateUserProfileRequest(BaseModel):
 
     category: str = Field(
         ...,
-        description=f"Profile category: {', '.join([e.value for e in ProfileCategoryEnum])}",
+        description=f"Profile category: {', '.join([e.value for e in ProfileCategory])}",
     )
     content: str = Field(
         ..., description="Profile content", min_length=1, max_length=10000
