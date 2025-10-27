@@ -91,12 +91,12 @@ export function useSparklineStocks(
 
         // Extract current price (remove currency symbols and formatting)
         const currentPrice = parseFloat(
-          priceData.price_formatted.replace(/[^0-9.-]/g, ""),
+          priceData.price_formatted?.replace(/[^0-9.-]/g, "") || "N/A",
         );
 
         // Extract change percentage (remove % symbol)
         const changePercent = parseFloat(
-          priceData.change_percent_formatted.replace(/[^0-9.-]/g, ""),
+          priceData.change_percent_formatted?.replace(/[^0-9.-]/g, "") || "N/A",
         );
 
         result.push({
