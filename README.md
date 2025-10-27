@@ -43,14 +43,15 @@ It provides a team of TOP investment Agents to help manage your portfolio.
 </p>
 
 <p align="center">
-  <img src="assets/product/agent_welcome.png" style="width: 100%; height: auto;">
+  <img src="assets/product/agent_market.png" style="width: 100%; height: auto;">
 </p>
 
 <p align="center">
   <img src="assets/product/superagent.png" style="width: 100%; height: auto;">
 </p>
+
 <p align="center">
-  <img src="assets/product/Auto Trading Agent.png" style="width: 100%; height: auto;">
+  <img src="assets/product/AutoTradingAgent.png" style="width: 100%; height: auto;">
 </p>
 # Key Features
 
