@@ -46,6 +46,12 @@ It provides a team of TOP investment Agents to help manage your portfolio.
   <img src="assets/product/agent_welcome.png" style="width: 100%; height: auto;">
 </p>
 
+<p align="center">
+  <img src="assets/product/superagent.png" style="width: 100%; height: auto;">
+</p>
+<p align="center">
+  <img src="assets/product/Auto Trading Agent.png" style="width: 100%; height: auto;">
+</p>
 # Key Features
 
 <p align="center">
@@ -54,9 +60,10 @@ It provides a team of TOP investment Agents to help manage your portfolio.
 
 
 ## Multi-Agent System
+- **DeepResearch Agent**: Automatically retrieve and analyze SEC filings to generate accurate data insights and interpretable summaries
+- **Auto Trading Agent**: multiple crypto assets and AI-powered trading strategies
 - **Trading Agents**: Agents work for market analysis, sentiment analysis, news analysis, and fundamentals analysis 
 - **AI-Hedge-Fund**: Agents collaborate to provide comprehensive financial insights
-- **SEC Agent**: Provides real-time updates from SEC 
 - **Others**: More agents are in planning...
 
 ## Flexible Integrations
