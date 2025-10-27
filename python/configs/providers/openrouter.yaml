@@ -1,0 +1,41 @@
+# ============================================
+# OpenRouter Provider Configuration
+# ============================================
+name: "OpenRouter"
+provider_type: "openrouter"
+
+# Connection Configuration
+connection:
+  base_url: "https://openrouter.ai/api/v1"
+  api_key_env: "OPENROUTER_API_KEY"
+
+# Default model if none specified
+default_model: "google/gemini-2.5-flash"
+
+# Model Parameters Defaults
+defaults:
+  temperature: 0.7
+  max_tokens: 4096
+
+# Extra headers for OpenRouter API
+extra_headers:
+  HTTP-Referer: "https://valuecell.ai"
+  X-Title: "ValueCell"
+
+# Available Models (commonly used)
+models:
+  - id: "google/gemini-2.5-flash"
+    name: "Gemini 2.5 Flash"
+
+  - id: "google/gemini-2.5-pro"
+    name: "Gemini 2.5 Pro"
+
+  - id: "deepseek/deepseek-chat-v3-0324"
+    name: "DeepSeek Chat V3 0324"
+
+  - id: "anthropic/claude-haiku-4.5"
+    name: "Claude Haiku 4.5"
+
+  - id: "openai/gpt-4o-mini"
+    name: "GPT-4o Mini"
+

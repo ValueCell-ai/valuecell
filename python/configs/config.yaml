@@ -1,0 +1,32 @@
+# ============================================
+# ValueCell Configuration System
+# ============================================
+# Configuration Priority (highest to lowest):
+# 1. Environment Variables (highest priority)
+# 2. .env file 
+# 3. YAML files (lowest priority, system defaults)
+# ============================================
+
+# Model Provider Configuration
+models:
+  # Primary provider
+  primary_provider: "openrouter"
+  
+  # Global default settings
+  defaults:
+    # temperature: 0.7
+    # max_tokens: 4096
+  
+  # Provider registry
+  providers:
+    openrouter:
+      enabled: true
+      config_file: "providers/openrouter.yaml"
+      api_key_env: "OPENROUTER_API_KEY"
+    
+# Agent Configuration
+agents:
+  research_agent:
+    enabled: true
+    config_file: "agents/research_agent.yaml"
+

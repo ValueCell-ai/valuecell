@@ -1,0 +1,24 @@
+# ============================================
+# Research Agent Configuration
+# ============================================
+name: "Research Agent"
+enabled: true
+
+# Model Configuration
+# Priority: Environment Variables > .env > YAML
+models:
+  primary:
+    model_id: "google/gemini-2.5-flash"
+    provider: "openrouter"
+    parameters:
+      # temperature: 0.7
+      # max_tokens: 8192
+
+# Environment Variable Overrides
+# Format: ENV_VAR_NAME -> config.path
+env_overrides:
+  RESEARCH_AGENT_MODEL_ID: "models.primary.model_id"
+  RESEARCH_AGENT_PROVIDER: "models.primary.provider"
+  RESEARCH_AGENT_TEMPERATURE: "models.primary.parameters.temperature"
+  RESEARCH_AGENT_MAX_TOKENS: "models.primary.parameters.max_tokens"
+

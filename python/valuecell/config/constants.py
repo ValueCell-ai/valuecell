@@ -1,6 +1,14 @@
 """Core constants for ValueCell application."""
 
+from pathlib import Path
 from typing import Dict, List, Tuple
+
+# Project Root Directory
+# This points to the python/ directory
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+
+# Configuration Directory
+CONFIG_DIR = PROJECT_ROOT / "configs"
 
 # Supported Languages Configuration
 SUPPORTED_LANGUAGES: List[Tuple[str, str]] = [
