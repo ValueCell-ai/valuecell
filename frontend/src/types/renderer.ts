@@ -10,6 +10,7 @@ export type ReportRendererProps = BaseRendererProps & {
   isActive?: boolean;
 };
 export type ScheduledTaskRendererProps = BaseRendererProps;
+export type ScheduledTaskControllerRendererProps = BaseRendererProps;
 export type MarkdownRendererProps = BaseRendererProps;
 export type ToolCallRendererProps = BaseRendererProps;
 export type ModelTradeRendererProps = BaseRendererProps;
@@ -22,6 +23,7 @@ export type ChatConversationRendererProps = BaseRendererProps;
  */
 export type RendererPropsMap = {
   scheduled_task_result: ScheduledTaskRendererProps;
+  scheduled_task_controller: ScheduledTaskControllerRendererProps;
   report: ReportRendererProps;
   markdown: MarkdownRendererProps;
   tool_call: ToolCallRendererProps;

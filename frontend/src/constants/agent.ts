@@ -27,6 +27,7 @@ import {
   ModelTradeRenderer,
   ModelTradeTableRenderer,
   ReportRenderer,
+  ScheduledTaskControllerRenderer,
   ScheduledTaskRenderer,
   ToolCallRenderer,
 } from "@/components/valuecell/renderer";
@@ -49,6 +50,7 @@ export const AGENT_COMPONENT_TYPE = [
   "markdown",
   "tool_call",
   "subagent_conversation",
+  "scheduled_task_controller",
   ...AGENT_SECTION_COMPONENT_TYPE,
   ...AGENT_MULTI_SECTION_COMPONENT_TYPE,
 ] as const;
@@ -60,6 +62,7 @@ export const COMPONENT_RENDERER_MAP: {
   [K in AgentComponentType]: RendererComponent<K>;
 } = {
   scheduled_task_result: ScheduledTaskRenderer,
+  scheduled_task_controller: ScheduledTaskControllerRenderer,
   filtered_line_chart: ModelTradeRenderer,
   filtered_card_push_notification: ModelTradeTableRenderer,
   report: ReportRenderer,
