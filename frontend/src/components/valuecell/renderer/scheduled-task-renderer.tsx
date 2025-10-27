@@ -2,11 +2,14 @@ import { parse } from "best-effort-json-parser";
 import { type FC, memo } from "react";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import { cn } from "@/lib/utils";
-import type { SecFeedRendererProps } from "@/types/renderer";
+import type { ScheduledTaskRendererProps } from "@/types/renderer";
 import styles from "./index.module.css";
 import MarkdownRenderer from "./markdown-renderer";
 
-const SecFeedRenderer: FC<SecFeedRendererProps> = ({ content, onOpen }) => {
+const ScheduledTaskRenderer: FC<ScheduledTaskRendererProps> = ({
+  content,
+  onOpen,
+}) => {
   const { ticker, data, source, create_time } = parse(content);
 
   return (
@@ -38,4 +41,4 @@ const SecFeedRenderer: FC<SecFeedRendererProps> = ({ content, onOpen }) => {
   );
 };
 
-export default memo(SecFeedRenderer);
+export default memo(ScheduledTaskRenderer);

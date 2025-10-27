@@ -23,30 +23,33 @@ function ensurePath(
   thread: ThreadView;
   task: TaskView;
 } {
-  // Ensure conversation
-  if (!draft[data.conversation_id]) {
-    draft[data.conversation_id] = { threads: {} };
-  }
+  // Ensure conversation with sections initialized
+  draft[data.conversation_id] ??= {
+    threads: {},
+    sections: {} as Record<SectionComponentType, ThreadView>,
+  };
   const conversation = draft[data.conversation_id];
 
   // Ensure thread
-  if (!conversation.threads[data.thread_id]) {
-    conversation.threads[data.thread_id] = { tasks: {} };
-  }
+  conversation.threads[data.thread_id] ??= { tasks: {} };
   const thread = conversation.threads[data.thread_id];
 
   // Ensure task
-  if (!thread.tasks[data.task_id]) {
-    thread.tasks[data.task_id] = { items: [] };
-  }
+  thread.tasks[data.task_id] ??= { items: [] };
   const task = thread.tasks[data.task_id];
 
   return { conversation, thread, task };
 }
 
-// Helper function: find existing item by item_id in task
-function findExistingItem(task: TaskView, itemId: string): number {
-  return task.items.findIndex((item) => item.item_id === itemId);
+// Helper to ensure section->task path exists
+function ensureSection(
+  conversation: ConversationView,
+  componentType: SectionComponentType,
+  taskId: string,
+): TaskView {
+  conversation.sections[componentType] ??= { tasks: {} };
+  conversation.sections[componentType].tasks[taskId] ??= { items: [] };
+  return conversation.sections[componentType].tasks[taskId];
 }
 
 // Check if item has mergeable content
@@ -62,18 +65,24 @@ function addOrUpdateItem(
   newItem: ChatItem,
   event: "append" | "replace",
 ): void {
-  const existingIndex = findExistingItem(task, newItem.item_id);
+  if (newItem.metadata.task_title)
+    task.task_title = newItem.metadata.task_title;
 
-  if (existingIndex >= 0) {
-    const existingItem = task.items[existingIndex];
-    // Merge content for streaming events, replace for others
-    if (event === "append" && hasContent(existingItem) && hasContent(newItem)) {
-      existingItem.payload.content += newItem.payload.content;
-    } else {
-      task.items[existingIndex] = newItem;
-    }
-  } else {
+  const existingIndex = task.items.findIndex(
+    (item) => item.item_id === newItem.item_id,
+  );
+
+  if (existingIndex < 0) {
     task.items.push(newItem);
+    return;
+  }
+
+  const existingItem = task.items[existingIndex];
+  // Merge content for streaming events, replace for others
+  if (event === "append" && hasContent(existingItem) && hasContent(newItem)) {
+    existingItem.payload.content += newItem.payload.content;
+  } else {
+    task.items[existingIndex] = newItem;
   }
 }
 
@@ -89,27 +98,14 @@ function handleChatItemEvent(
   const componentType = data.component_type;
   if (
     componentType &&
-    // TODO: componentType as type assertion is not safe, find a better way to do this
     AGENT_SECTION_COMPONENT_TYPE.includes(componentType as SectionComponentType)
   ) {
-    // Ensure sections object exists
-    if (!conversation.sections) {
-      conversation.sections = {} as Record<SectionComponentType, ChatItem[]>;
-    }
-
-    // Ensure section exists for this component type
-    if (!conversation.sections[componentType as SectionComponentType]) {
-      conversation.sections[componentType as SectionComponentType] = [];
-    }
-
-    if (event === "replace") {
-      conversation.sections[componentType as SectionComponentType] = [data];
-    }
-    if (event === "append") {
-      // Add item to corresponding section (components are complete, no merging)
-      conversation.sections[componentType as SectionComponentType].push(data);
-    }
-
+    const sectionTask = ensureSection(
+      conversation,
+      componentType as SectionComponentType,
+      data.task_id,
+    );
+    addOrUpdateItem(sectionTask, data, event);
     return;
   }
 

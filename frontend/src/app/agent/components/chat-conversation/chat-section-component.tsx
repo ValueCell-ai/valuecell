@@ -4,12 +4,17 @@ import { MarkdownRenderer } from "@/components/valuecell/renderer";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { COMPONENT_RENDERER_MAP } from "@/constants/agent";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
-import type { ChatItem, SectionComponentType } from "@/types/agent";
+import type { SectionComponentType, TaskView, ThreadView } from "@/types/agent";
 
 // define different component types and their specific rendering components
-const SecFeedComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
+const ScheduledTaskResultComponent: FC<{ tasks: Record<string, TaskView> }> = ({
+  tasks,
+}) => {
   const [selectedItemContent, setSelectedItemContent] = useState<string>("");
-  const Component = COMPONENT_RENDERER_MAP.sec_feed;
+  const Component = COMPONENT_RENDERER_MAP.scheduled_task_result;
+
+  // Flatten all tasks' items into a single array
+  const items = Object.values(tasks).flatMap((task) => task.items);
 
   return selectedItemContent ? (
     <section className="flex flex-1 flex-col">
@@ -43,8 +48,14 @@ const SecFeedComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
   );
 };
 
-const ModelTradeComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
+const ModelTradeComponent: FC<{ tasks: Record<string, TaskView> }> = ({
+  tasks,
+}) => {
   const Component = COMPONENT_RENDERER_MAP.filtered_line_chart;
+
+  // Flatten all tasks' items into a single array
+  const items = Object.values(tasks).flatMap((task) => task.items);
+
   return (
     <ScrollContainer className="min-w-[540px] flex-1 px-4">
       {items.length > 0 && (
@@ -61,8 +72,14 @@ const ModelTradeComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
   );
 };
 
-const ModelTradeTableComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
+const ModelTradeTableComponent: FC<{ tasks: Record<string, TaskView> }> = ({
+  tasks,
+}) => {
   const Component = COMPONENT_RENDERER_MAP.filtered_card_push_notification;
+
+  // Flatten all tasks' items into a single array
+  const items = Object.values(tasks).flatMap((task) => task.items);
+
   return (
     <ScrollContainer className="w-[404px] shrink-0 overflow-hidden px-4">
       {items.length > 0 && (
@@ -82,16 +99,16 @@ const ModelTradeTableComponent: FC<{ items: ChatItem[] }> = ({ items }) => {
 // component mapping table
 const SECTION_COMPONENT_MAP: Record<
   SectionComponentType,
-  FC<{ items: ChatItem[] }>
+  FC<{ tasks: Record<string, TaskView> }>
 > = {
-  sec_feed: SecFeedComponent,
+  scheduled_task_result: ScheduledTaskResultComponent,
   filtered_line_chart: ModelTradeComponent,
   filtered_card_push_notification: ModelTradeTableComponent,
 };
 
 interface ChatSectionComponentProps {
   componentType: SectionComponentType;
-  items: ChatItem[];
+  threadView: ThreadView;
 }
 
 /**
@@ -100,11 +117,11 @@ interface ChatSectionComponentProps {
  */
 const ChatSectionComponent: FC<ChatSectionComponentProps> = ({
   componentType,
-  items,
+  threadView,
 }) => {
   const Component = SECTION_COMPONENT_MAP[componentType];
 
-  return <Component items={items} />;
+  return <Component tasks={threadView.tasks} />;
 };
 
 export default memo(ChatSectionComponent);

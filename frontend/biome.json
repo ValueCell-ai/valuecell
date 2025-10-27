@@ -53,7 +53,7 @@
         "useExhaustiveDependencies": "warn"
       },
       "nursery": {
-        "noImportCycles": "warn",
+        "noImportCycles": "off",
         "useSortedClasses": {
           "fix": "safe",
           "level": "error",

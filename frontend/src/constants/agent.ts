@@ -27,7 +27,7 @@ import {
   ModelTradeRenderer,
   ModelTradeTableRenderer,
   ReportRenderer,
-  SecFeedRenderer,
+  ScheduledTaskRenderer,
   ToolCallRenderer,
 } from "@/components/valuecell/renderer";
 import { TimeUtils } from "@/lib/time";
@@ -36,7 +36,7 @@ import type { RendererComponent } from "@/types/renderer";
 
 // component_type to section type
 export const AGENT_SECTION_COMPONENT_TYPE = [
-  "sec_feed",
+  "scheduled_task_result",
   "filtered_line_chart",
   "filtered_card_push_notification",
 ] as const;
@@ -59,7 +59,7 @@ export const AGENT_COMPONENT_TYPE = [
 export const COMPONENT_RENDERER_MAP: {
   [K in AgentComponentType]: RendererComponent<K>;
 } = {
-  sec_feed: SecFeedRenderer,
+  scheduled_task_result: ScheduledTaskRenderer,
   filtered_line_chart: ModelTradeRenderer,
   filtered_card_push_notification: ModelTradeTableRenderer,
   report: ReportRenderer,
