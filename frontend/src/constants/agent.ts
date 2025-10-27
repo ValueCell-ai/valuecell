@@ -30,6 +30,7 @@ import {
   SecFeedRenderer,
   ToolCallRenderer,
 } from "@/components/valuecell/renderer";
+import { TimeUtils } from "@/lib/time";
 import type { AgentComponentType, AgentInfo } from "@/types/agent";
 import type { RendererComponent } from "@/types/renderer";
 
@@ -102,8 +103,8 @@ export const VALUECELL_AGENT: AgentInfo = {
   enabled: true,
   description:
     "ValueCell Agent is a super-agent that can help you manage different agents and tasks",
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
+  created_at: TimeUtils.nowUTC().toISOString(),
+  updated_at: TimeUtils.nowUTC().toISOString(),
   agent_metadata: {
     version: "1.0.0",
     author: "ValueCell",
