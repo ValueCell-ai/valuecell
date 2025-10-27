@@ -49,6 +49,7 @@ else
 fi
 highlight_command "uv sync --group dev"
 uv sync --group dev
+uvx playwright install --with-deps chromium
 echo -e "${GREEN}Main environment setup complete.${NC}"
 
 echo -e "${BLUE}==========================================${NC}"

@@ -64,6 +64,7 @@ Highlight-Command "uv sync --group dev"
 uv sync --group dev
 # https://stackoverflow.com/questions/74267313/how-to-use-tzdata-file-with-pyarrow-compute-assume-timezone/74292266
 uv run -s "python -c 'import pyarrow.util; pyarrow.util.download_tzdata_on_windows()'"
+uvx playwright install --with-deps chromium
 Write-Success "Main environment setup complete."
 
 Write-Highlight "=========================================="
