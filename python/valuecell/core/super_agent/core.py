@@ -4,7 +4,6 @@ from typing import Optional
 
 from agno.agent import Agent
 from agno.db.in_memory import InMemoryDb
-from agno.tools.crawl4ai import Crawl4aiTools
 from pydantic import BaseModel, Field
 
 from valuecell.core.super_agent.prompts import (
@@ -46,7 +45,8 @@ class SuperAgent:
     def __init__(self) -> None:
         self.agent = Agent(
             model=get_model("PLANNER_MODEL_ID"),
-            tools=[Crawl4aiTools()],
+            # TODO: enable tools when needed
+            # tools=[Crawl4aiTools()],
             markdown=False,
             debug_mode=agent_debug_mode_enabled(),
             instructions=[SUPER_AGENT_INSTRUCTION],
