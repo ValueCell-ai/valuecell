@@ -2,6 +2,15 @@
 
 Thank you for your interest in contributing to ValueCell! We appreciate your help in making this multi-agent financial platform better. This guide will help you get started with contributing.
 
+## Table of Contents
+
+- [Code of Conduct](#code-of-conduct)
+- [How Can I Contribute?](#how-can-i-contribute)
+- [Development Setup](#development-setup)
+- [Testing](#testing)
+- [Commit Guidelines](#commit-guidelines)
+- [Pull Request Process](#pull-request-process)
+
 ## Code of Conduct
 
 By participating in this project, you agree to abide by our [Code of Conduct](./CODE_OF_CONDUCT.md). Please read it before contributing.
@@ -267,7 +276,7 @@ We use **Ruff** for linting and formatting, and **isort** for import sorting.
 ```bash
 make format
 ```
-
+contri
 **Run linting:**
 
 ```bash
