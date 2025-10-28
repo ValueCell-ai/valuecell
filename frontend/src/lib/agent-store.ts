@@ -49,6 +49,7 @@ function ensureSection(
 ): TaskView {
   conversation.sections[componentType] ??= { tasks: {} };
   conversation.sections[componentType].tasks[taskId] ??= { items: [] };
+
   return conversation.sections[componentType].tasks[taskId];
 }
 
@@ -65,9 +66,6 @@ function addOrUpdateItem(
   newItem: ChatItem,
   event: "append" | "replace",
 ): void {
-  if (newItem.metadata?.task_title)
-    task.task_title = newItem.metadata.task_title;
-
   const existingIndex = task.items.findIndex(
     (item) => item.item_id === newItem.item_id,
   );
@@ -122,6 +120,7 @@ function processSSEEvent(draft: AgentConversationsStore, sseData: SSEData) {
       const component_type = data.payload.component_type;
 
       switch (component_type) {
+        case "scheduled_task_result":
         case "filtered_line_chart":
         case "filtered_card_push_notification":
         case "subagent_conversation":
@@ -202,11 +201,12 @@ export function batchUpdateAgentConversationsStore(
   store: AgentConversationsStore,
   conversationId: string,
   sseDataList: SSEData[],
+  clearHistory = false,
 ) {
   // Process all events in a single mutative transaction for better performance
   return create(store, (draft) => {
     // Clear existing data for this conversation
-    if (draft[conversationId]) {
+    if (clearHistory && draft[conversationId]) {
       delete draft[conversationId];
     }
 

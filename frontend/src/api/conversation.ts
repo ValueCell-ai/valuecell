@@ -34,7 +34,7 @@ export const usePollTaskList = (conversationId: string) => {
     ]),
     queryFn: () =>
       apiClient.get<ApiResponse<ConversationHistory>>(
-        `/conversations/${conversationId}/scheduled_task_result`,
+        `/conversations/${conversationId}/scheduled-task-results`,
       ),
     select: (data) => data.data.items,
     refetchInterval: 30 * 1000,

@@ -85,7 +85,6 @@ export interface AgentEventMap {
 }
 
 export interface TaskView {
-  task_title?: string;
   items: ChatItem[];
 }
 

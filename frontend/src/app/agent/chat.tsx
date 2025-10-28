@@ -43,22 +43,24 @@ export default function AgentChat() {
     useGetConversationHistory(conversationId);
   const { data: taskList } = usePollTaskList(conversationId);
 
+  // Load conversation history (only once when conversation changes)
   useEffect(() => {
-    if (!conversationId) return;
+    if (
+      !conversationId ||
+      !conversationHistory ||
+      conversationHistory.length === 0
+    )
+      return;
 
-    if (taskList && taskList.length > 0) {
-      dispatchAgentStoreHistory(conversationId, taskList);
-    }
+    dispatchAgentStoreHistory(conversationId, conversationHistory, true);
+  }, [conversationId, conversationHistory, dispatchAgentStoreHistory]);
 
-    if (conversationHistory && conversationHistory.length > 0) {
-      dispatchAgentStoreHistory(conversationId, conversationHistory);
-    }
-  }, [
-    taskList,
-    conversationHistory,
-    conversationId,
-    dispatchAgentStoreHistory,
-  ]);
+  // Update task list (polls every 30s)
+  useEffect(() => {
+    if (!conversationId || !taskList || taskList.length === 0) return;
+
+    dispatchAgentStoreHistory(conversationId, taskList);
+  }, [conversationId, taskList, dispatchAgentStoreHistory]);
 
   // Handle SSE data events using agent store
   // biome-ignore lint/correctness/useExhaustiveDependencies: close is no need to be in dependencies

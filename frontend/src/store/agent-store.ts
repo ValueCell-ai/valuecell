@@ -14,6 +14,7 @@ interface AgentStoreState {
   dispatchAgentStoreHistory: (
     conversationId: string,
     history: SSEData[],
+    clearHistory?: boolean,
   ) => void;
   setCurConversationId: (conversationId: string) => void;
   resetStore: () => void;
@@ -34,12 +35,17 @@ export const useAgentStore = create<AgentStoreState>()(
           agentStore: updateAgentConversationsStore(s.agentStore, action),
         })),
 
-      dispatchAgentStoreHistory: (conversationId, history) =>
+      dispatchAgentStoreHistory: (
+        conversationId,
+        history,
+        clearHistory = false,
+      ) =>
         set((s) => ({
           agentStore: batchUpdateAgentConversationsStore(
             s.agentStore,
             conversationId,
             history,
+            clearHistory,
           ),
         })),
     }),
