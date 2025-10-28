@@ -22,7 +22,7 @@ const ChatConversationRenderer: FC<ChatConversationRendererProps> = ({
   if (!currentConversation) return null;
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-neutral-100 [&_#chat-item]:max-w-none">
+    <div className="overflow-hidden rounded-lg border border-gray-100 bg-neutral-100 [&_#chat-item]:max-w-none">
       {/* Header section */}
       <div className="flex items-center justify-between bg-white p-4">
         <div className="flex min-w-40 items-center gap-2 rounded-full border border-gray-200 bg-gray-50 py-1 pr-5 pl-1.5">
