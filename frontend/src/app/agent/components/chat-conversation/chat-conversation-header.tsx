@@ -3,6 +3,7 @@ import { type FC, memo } from "react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import AgentAvatar from "@/components/valuecell/agent-avatar";
+import TagGroups from "@/components/valuecell/button/tag-groups";
 import type { AgentInfo } from "@/types/agent";
 
 interface ChatConversationHeaderProps {
@@ -21,16 +22,7 @@ const ChatConversationHeader: FC<ChatConversationHeaderProps> = ({ agent }) => {
           <h1 className="font-semibold text-gray-950 text-lg">
             {agent.display_name}
           </h1>
-          <div className="flex items-center gap-1">
-            {agent.agent_metadata.tags.map((tag) => (
-              <span
-                key={tag}
-                className="text-nowrap rounded-md bg-gray-100 px-3 py-1 font-normal text-gray-700 text-xs"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
+          <TagGroups tags={agent.agent_metadata.tags} />
         </div>
       </div>
 

@@ -110,7 +110,7 @@
 
 @layer utilities {
   .main-chat-area {
-    @apply w-4/5 min-w-[600px] max-w-[1024px];
+    @apply w-4/5 max-w-[1024px];
   }
 }
 
