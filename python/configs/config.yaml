@@ -29,4 +29,8 @@ agents:
   research_agent:
     enabled: true
     config_file: "agents/research_agent.yaml"
+  
+  auto_trading_agent:
+    enabled: true
+    config_file: "agents/auto_trading_agent.yaml"
 
