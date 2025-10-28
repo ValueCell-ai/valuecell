@@ -82,7 +82,7 @@ ValueCellは包括的なWebインターフェースを備えたPythonベース�
 
 最適なパフォーマンスと効率的な開発のために、以下のツールのインストールを推奨します:
 
-**[uv](https://docs.astral.sh/uv/getting-started/installation/)** - Rustで構築された超高速Pythonパッケージおよびプロジェクトマネージャー
+**[uv](https://docs.astral.sh/uv/getting-started/installation/)** - Rustで構築された超高速Pythonパッケージおよびプロジェクトマネージャー  
 **[bun](https://github.com/oven-sh/bun#install)** - 高性能JavaScript/TypeScriptツールキット(ランタイム、バンドラー、テストランナー、パッケージマネージャーを含む)
 
 ## インストール
