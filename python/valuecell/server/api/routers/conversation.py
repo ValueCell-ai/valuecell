@@ -64,6 +64,32 @@ def create_conversation_router() -> APIRouter:
                 status_code=500, detail=f"Internal server error: {str(e)}"
             )
 
+    @router.get(
+        "/{conversation_id}/scheduled-task-results",
+        response_model=ConversationHistoryResponse,
+        summary="Get conversation scheduled task results",
+        description="Get scheduled task results for a specific conversation",
+    )
+    async def get_conversation_scheduled_task_results(
+        conversation_id: str = Path(..., description="The conversation ID"),
+    ) -> ConversationHistoryResponse:
+        """Get conversation scheduled task results."""
+        try:
+            service = get_conversation_service()
+            data = await service.get_conversation_scheduled_task_results(
+                conversation_id=conversation_id
+            )
+            return ConversationHistoryResponse.create(
+                data=data,
+                msg="Conversation scheduled task results retrieved successfully",
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
     @router.delete(
         "/{conversation_id}",
         response_model=ConversationDeleteResponse,
