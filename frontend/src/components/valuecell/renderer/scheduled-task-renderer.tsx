@@ -10,7 +10,7 @@ const ScheduledTaskRenderer: FC<ScheduledTaskRendererProps> = ({
   content,
   onOpen,
 }) => {
-  const { ticker, data, source, create_time } = parse(content);
+  const { result, create_time } = parse(content);
 
   return (
     <div
@@ -18,25 +18,16 @@ const ScheduledTaskRenderer: FC<ScheduledTaskRendererProps> = ({
         "group relative flex h-full cursor-pointer flex-col gap-3 rounded-2xl bg-gray-50 p-4 transition-all",
         styles["border-gradient"],
       )}
-      onClick={() => onOpen?.(data)}
+      onClick={() => onOpen?.(result)}
     >
       {/* content */}
       <div className="relative z-10 max-h-24 w-full overflow-hidden">
-        <MarkdownRenderer content={data} />
+        <MarkdownRenderer content={result} />
       </div>
 
-      {/* footer info */}
-      <div className="relative z-10 flex w-full items-center justify-between text-gray-400 text-xs">
-        <div className="flex items-center gap-3">
-          <span className="font-semibold text-base text-gray-950">
-            {ticker}
-          </span>
-          <span className="whitespace-nowrap">Source: {source}</span>
-        </div>
-        <span className="whitespace-nowrap">
-          {TimeUtils.fromUTC(create_time).format(TIME_FORMATS.DATETIME_SHORT)}
-        </span>
-      </div>
+      <p className="whitespace-nowrap text-right text-gray-400 text-xs">
+        {TimeUtils.fromUTC(create_time).format(TIME_FORMATS.DATETIME_SHORT)}
+      </p>
     </div>
   );
 };
