@@ -101,7 +101,7 @@ ValueCell 是一个基于Python的应用程序，且有完备的前端操作页�
    cp .env.example .env
    ```
    
-   使用您的API密钥和偏好设置编辑`.env`文件。此配置文件在所有智能体之间共享。
+   使用您的API密钥和偏好设置编辑`.env`文件。此配置文件在所有智能体之间共享。详见 [配置指南](docs/CONFIGURATION_GUIDE.md)。
 
 ## 配置
 

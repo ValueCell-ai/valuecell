@@ -100,7 +100,7 @@ ValueCell 是以 Python 為基礎的應用，並具備完整的前端操作介�
    cp .env.example .env
    ```
 
-   使用您的 API 密鑰與偏好設定編輯 `.env` 檔案。此設定檔會在所有智能體間共用。
+   使用您的 API 密鑰與偏好設定編輯 `.env` 檔案。此設定檔會在所有智能體間共用。詳見 [配置指南](docs/CONFIGURATION_GUIDE.md)。
 
 ## 設定
 

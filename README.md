@@ -100,7 +100,7 @@ For optimal performance and streamlined development, we recommend installing the
    cp .env.example .env
    ```
    
-   Edit the `.env` file with your API keys and preferences. This configuration file is shared across all agents.
+   Edit the `.env` file with your API keys and preferences. This configuration file is shared across all agents. See [Configuration Guide](docs/CONFIGURATION_GUIDE.md) for details.
 
 ## Configuration
 
