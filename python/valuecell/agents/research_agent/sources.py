@@ -313,6 +313,57 @@ async def _write_and_ingest_ashare(
     return results
 
 
+async def _get_correct_orgid(
+    stock_code: str, session: aiohttp.ClientSession
+) -> Optional[str]:
+    """Get correct orgId for a stock code from CNINFO search API
+
+    Args:
+        stock_code: Stock code (e.g., "002460")
+        session: aiohttp session
+
+    Returns:
+        Optional[str]: The correct orgId, or None if not found
+    """
+    search_url = "http://www.cninfo.com.cn/new/information/topSearch/query"
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate",
+        "Accept-Language": "zh-CN,zh;q=0.9",
+        "Connection": "keep-alive",
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "Host": "www.cninfo.com.cn",
+        "Origin": "http://www.cninfo.com.cn",
+        "Referer": "http://www.cninfo.com.cn/new/commonUrl/pageOfSearch?url=disclosure/list/search&lastPage=index",
+        "X-Requested-With": "XMLHttpRequest",
+    }
+
+    search_data = {"keyWord": stock_code}
+
+    try:
+        async with session.post(
+            search_url, headers=headers, data=search_data
+        ) as response:
+            if response.status == 200:
+                result = await response.json()
+
+                if result and len(result) > 0:
+                    # Find the exact match for the stock code
+                    for company_info in result:
+                        if company_info.get("code") == stock_code:
+                            return company_info.get("orgId")
+
+                    # If no exact match, return the first result's orgId
+                    return result[0].get("orgId")
+
+    except Exception as e:
+        print(f"Error getting orgId for {stock_code}: {e}")
+
+    return None
+
+
 async def _fetch_cninfo_data(
     stock_code: str,
     report_types: List[str],
@@ -367,6 +418,18 @@ async def _fetch_cninfo_data(
     )
 
     async with aiohttp.ClientSession() as session:
+        # Get correct orgId first
+        org_id = await _get_correct_orgid(stock_code, session)
+        if not org_id:
+            print(f"Warning: Could not get orgId for stock {stock_code}")
+            return []
+
+        # Determine plate based on stock code
+        if stock_code.startswith(("000", "002", "300")):
+            plate = "sz"
+        else:
+            plate = "sh"
+
         for report_type in report_types:
             if len(filings_data) >= limit:
                 break
@@ -382,17 +445,6 @@ async def _fetch_cninfo_data(
                 start_date = f"{target_year}-01-01"
                 end_date = f"{target_year + 1}-01-01"
                 se_date = f"{start_date}~{end_date}"
-
-                # Build request parameters
-                # Build orgId based on stock code
-                if stock_code.startswith(("000", "002", "300")):
-                    # SZSE stocks
-                    org_id = f"gssz{stock_code.zfill(7)}"  # Pad to 7 digits
-                    plate = "sz"
-                else:
-                    # SSE stocks
-                    org_id = f"gssh{stock_code.zfill(7)}"  # Pad to 7 digits
-                    plate = "sh"
 
                 form_data = {
                     "pageNum": "1",
