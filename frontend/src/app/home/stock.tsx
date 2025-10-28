@@ -71,7 +71,7 @@ function Stock() {
     error: historyError,
   } = useGetStockHistory({
     ticker,
-    interval: "d",
+    interval: "1d",
     start_date: dateRange.startDate,
     end_date: dateRange.endDate,
   });

@@ -120,11 +120,9 @@ class ConfigManager:
             enabled_providers = self.get_enabled_providers()
             if enabled_providers:
                 # Priority order for auto-selection
-                # Azure first (for enterprise), then OpenRouter (unified API), then direct providers
                 preferred_order = [
                     "openrouter",
                     "siliconflow",
-                    "azure",
                     "google",
                 ]
 

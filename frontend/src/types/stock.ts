@@ -23,9 +23,25 @@ export interface StockPrice {
   source: string;
 }
 
+/**
+ * Standard interval format for historical data
+ * Format: <number><unit>
+ * Examples: "1m", "5m", "15m", "30m", "60m", "1h", "1d", "1w", "1mo"
+ */
+export type StockInterval =
+  | "1m"   // 1 minute
+  | "5m"   // 5 minutes
+  | "15m"  // 15 minutes
+  | "30m"  // 30 minutes
+  | "60m"  // 60 minutes
+  | "1h"   // 1 hour
+  | "1d"   // 1 day (default)
+  | "1w"   // 1 week
+  | "1mo"; // 1 month
+
 export interface StockHistory {
   ticker: string;
-  interval: "m" | "h" | "d" | "w" | "mo" | "y";
+  interval: StockInterval;
   prices: {
     ticker: string;
     price: number;

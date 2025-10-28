@@ -6,12 +6,13 @@ and routing requests to the appropriate providers based on asset types and avail
 
 import json
 import logging
-import os
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Dict, List, Optional
+
 from valuecell.utils.model import get_model
+
 from .akshare_adapter import AKShareAdapter
 from .base import BaseDataAdapter
 from .types import (
@@ -360,7 +361,7 @@ class AdapterManager:
         try:
             # Use configuration system to create model
 
-            model = get_model("PRODUCT_MODEL_ID") 
+            model = get_model("PRODUCT_MODEL_ID")
 
             # Create prompt to generate possible ticker formats
             system_prompt = (
