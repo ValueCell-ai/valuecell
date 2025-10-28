@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from typing import List, Optional
 
@@ -119,12 +120,13 @@ class ConversationManager:
                     payload_str = None
 
         # Serialize metadata to JSON string
-        metadata_str = "{}"
+        metadata_str = None
         if metadata is not None:
             try:
-                metadata_str = metadata.model_dump_json(exclude_none=True)
+                metadata_str = json.dumps(metadata, default=str)
             except Exception:
-                pass
+                metadata_str = "{}"
+        metadata_str = metadata_str or "{}"
 
         item = ConversationItem(
             item_id=item_id or generate_item_id(),
