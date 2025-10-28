@@ -3,6 +3,7 @@ Unit tests for valuecell.core.conversation.manager module
 """
 
 from datetime import datetime
+import json
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -341,6 +342,67 @@ class TestConversationManager:
 
         assert result is not None
         assert result.payload == "string payload"
+
+    @pytest.mark.asyncio
+    async def test_add_item_with_metadata_serialization_success(self):
+        """Test adding item with serializable metadata produces JSON string."""
+        manager = ConversationManager()
+
+        conversation = Conversation(conversation_id="conv-123", user_id="user-123")
+
+        # Mock stores
+        manager.conversation_store.load_conversation = AsyncMock(
+            return_value=conversation
+        )
+        manager.item_store.save_item = AsyncMock()
+        manager.conversation_store.save_conversation = AsyncMock()
+
+        metadata = {"score": 1, "note": "ok", "ts": 123.4}
+
+        result = await manager.add_item(
+            role=Role.USER,
+            event=NotifyResponseEvent.MESSAGE,
+            conversation_id="conv-123",
+            payload="hello",
+            metadata=metadata,
+        )
+
+        assert result is not None
+        # Verify metadata is JSON-dumped with default=str
+        expected_metadata = json.dumps(metadata, default=str)
+        saved_item = manager.item_store.save_item.call_args.args[0]
+        assert saved_item.metadata == expected_metadata
+
+    @pytest.mark.asyncio
+    async def test_add_item_with_metadata_serialization_exception_fallback(self):
+        """Test adding item with circular metadata falls back to empty JSON object."""
+        manager = ConversationManager()
+
+        conversation = Conversation(conversation_id="conv-123", user_id="user-123")
+
+        # Mock stores
+        manager.conversation_store.load_conversation = AsyncMock(
+            return_value=conversation
+        )
+        manager.item_store.save_item = AsyncMock()
+        manager.conversation_store.save_conversation = AsyncMock()
+
+        # Create circular dict to trigger json.dumps exception
+        metadata = {}
+        metadata["self"] = metadata
+
+        result = await manager.add_item(
+            role=Role.USER,
+            event=NotifyResponseEvent.MESSAGE,
+            conversation_id="conv-123",
+            payload="hello",
+            metadata=metadata,
+        )
+
+        assert result is not None
+        saved_item = manager.item_store.save_item.call_args.args[0]
+        # Fallback path sets metadata to "{}"
+        assert saved_item.metadata == "{}"
 
     @pytest.mark.asyncio
     async def test_get_conversation_items(self):
