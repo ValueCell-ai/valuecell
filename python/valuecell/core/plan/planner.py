@@ -99,7 +99,6 @@ class ExecutionPlanner:
             instructions=[PLANNER_INSTRUCTION],
             # output format
             markdown=False,
-            use_json_mode=True,
             output_schema=PlannerResponse,
             expected_output=PLANNER_EXPECTED_OUTPUT,
             # context
