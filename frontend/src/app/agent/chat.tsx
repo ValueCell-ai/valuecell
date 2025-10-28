@@ -9,7 +9,7 @@ import {
 } from "react-router";
 import { toast } from "sonner";
 import { useGetAgentInfo } from "@/api/agent";
-import { useGetConversationHistory } from "@/api/conversation";
+import { useGetConversationHistory, usePollTaskList } from "@/api/conversation";
 import { API_QUERY_KEYS } from "@/constants/api";
 import { useSSE } from "@/hooks/use-sse";
 import { getServerUrl } from "@/lib/api-client";
@@ -26,13 +26,6 @@ export default function AgentChat() {
   const conversationId = useSearchParams()[0].get("id") ?? "";
   const navigate = useNavigate();
   const inputValue = useLocation().state?.inputValue;
-  const queryClient = useQueryClient();
-  const { refetch: fetchConversationHistory } =
-    useGetConversationHistory(conversationId);
-
-  const { data: agent, isLoading: isLoadingAgent } = useGetAgentInfo({
-    agentName: agentName ?? "",
-  });
 
   // Use optimized hooks with built-in shallow comparison
   const { curConversation, curConversationId } = useCurrentConversation();
@@ -41,6 +34,31 @@ export default function AgentChat() {
     setCurConversationId,
     dispatchAgentStoreHistory,
   } = useAgentStoreActions();
+
+  const queryClient = useQueryClient();
+  const { data: agent, isLoading: isLoadingAgent } = useGetAgentInfo({
+    agentName: agentName ?? "",
+  });
+  const { data: conversationHistory } =
+    useGetConversationHistory(conversationId);
+  const { data: taskList } = usePollTaskList(conversationId);
+
+  useEffect(() => {
+    if (!conversationId) return;
+
+    if (taskList && taskList.length > 0) {
+      dispatchAgentStoreHistory(conversationId, taskList);
+    }
+
+    if (conversationHistory && conversationHistory.length > 0) {
+      dispatchAgentStoreHistory(conversationId, conversationHistory);
+    }
+  }, [
+    taskList,
+    conversationHistory,
+    conversationId,
+    dispatchAgentStoreHistory,
+  ]);
 
   // Handle SSE data events using agent store
   // biome-ignore lint/correctness/useExhaustiveDependencies: close is no need to be in dependencies
@@ -123,17 +141,9 @@ export default function AgentChat() {
     [agentName, conversationId],
   );
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: setCurConversationId and navigate are no need to be in dependencies
   useEffect(() => {
     if (curConversationId !== conversationId) {
       setCurConversationId(conversationId);
-      if (conversationId)
-        fetchConversationHistory().then((res) => {
-          return dispatchAgentStoreHistory(
-            conversationId,
-            res.data as SSEData[],
-          );
-        });
     }
 
     if (inputValue) {
@@ -141,7 +151,14 @@ export default function AgentChat() {
       // Clear the state after using it once to prevent re-triggering on page refresh
       navigate(".", { replace: true, state: {} });
     }
-  }, [conversationId, inputValue, sendMessage]);
+  }, [
+    conversationId,
+    inputValue,
+    sendMessage,
+    setCurConversationId,
+    curConversationId,
+    navigate,
+  ]);
 
   if (isLoadingAgent) return null;
   if (!agent) return <Navigate to="/" replace />;
