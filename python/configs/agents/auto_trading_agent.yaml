@@ -15,7 +15,7 @@ enabled: true
 models:
   primary:
     model_id: "deepseek/deepseek-v3.1-terminus"
-    provider: null  # null = use system primary_provider from config.yaml
+    provider: openrouter
     parameters:
       temperature: 0.5
       max_tokens: 2048

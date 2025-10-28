@@ -138,7 +138,33 @@ class GoogleProvider(ModelProvider):
             id=model_id,
             api_key=self.config.api_key,
             temperature=params.get("temperature"),
-            max_tokens=params.get("max_tokens"),
+        )
+
+    def create_embedder(self, model_id: Optional[str] = None, **kwargs):
+        """Create embedder via Google Gemini"""
+        try:
+            from agno.knowledge.embedder.google import GeminiEmbedder
+        except ImportError:
+            raise ImportError("agno package not installed")
+
+        # Use provided model_id or default embedding model
+        model_id = model_id or self.config.default_embedding_model
+
+        if not model_id:
+            raise ValueError(
+                f"No embedding model specified for provider '{self.config.name}'"
+            )
+
+        # Merge parameters: provider embedding defaults < kwargs
+        params = {**self.config.embedding_parameters, **kwargs}
+
+        logger.info(f"Creating Google Gemini embedder: {model_id}")
+
+        return GeminiEmbedder(
+            id=model_id,
+            api_key=self.config.api_key,
+            dimensions=params.get("dimensions", 3072),
+            task_type=params.get("task_type", "RETRIEVAL_DOCUMENT"),
         )
 
 

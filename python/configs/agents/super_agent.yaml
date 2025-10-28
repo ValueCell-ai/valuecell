@@ -20,7 +20,7 @@ enabled: true
 models:
   # Primary model for triage, reasoning, and query enrichment
   primary:
-    model_id: "google/gemini-2.5-flash"
+    model_id: "anthropic/claude-haiku-4.5"
     provider: "openrouter"  # Can be: openrouter, siliconflow, or null (uses system primary_provider)
 
 
