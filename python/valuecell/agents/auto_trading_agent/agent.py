@@ -9,7 +9,6 @@ from datetime import datetime, timezone
 from typing import Any, AsyncGenerator, Deque, Dict, List, Optional
 
 from agno.agent import Agent
-from agno.models.openrouter import OpenRouter
 
 from valuecell.core.agent.responses import streaming
 from valuecell.core.types import (
@@ -69,8 +68,16 @@ class AutoTradingAgent(BaseAgent):
 
         try:
             # Parser agent for natural language query parsing
+            # Uses configuration system for flexible model selection
+            from valuecell.utils.model import create_model_with_provider
+
+            parser_model = create_model_with_provider(
+                provider="openrouter",
+                model_id=self.parser_model_id,
+            )
+
             self.parser_agent = Agent(
-                model=OpenRouter(id=self.parser_model_id),
+                model=parser_model,
                 output_schema=TradingRequest,
                 markdown=True,
             )
@@ -466,24 +473,37 @@ class AutoTradingAgent(BaseAgent):
     def _initialize_ai_signal_generator(
         self, config: AutoTradingConfig
     ) -> Optional[AISignalGenerator]:
-        """Initialize AI signal generator if configured"""
+        """Initialize AI signal generator if configured.
+
+        Uses the centralized configuration system to create model instances.
+        API key validation is handled automatically by the config system.
+
+        Args:
+            config: AutoTradingConfig with use_ai_signals and agent_model settings
+
+        Returns:
+            AISignalGenerator instance or None if AI signals are disabled or creation fails
+        """
         if not config.use_ai_signals:
             return None
 
         try:
-            api_key = config.openrouter_api_key or os.getenv("OPENROUTER_API_KEY")
-            if not api_key:
-                logger.warning("OpenRouter API key not provided, AI signals disabled")
-                return None
+            # Use configuration system for model creation
+            # API key validation is handled automatically by ConfigManager
+            from valuecell.utils.model import create_model_with_provider
 
-            llm_client = OpenRouter(
-                id=config.agent_model,
-                api_key=api_key,
+            llm_client = create_model_with_provider(
+                provider="openrouter",
+                model_id=config.agent_model,
             )
             return AISignalGenerator(llm_client)
 
         except Exception as e:
             logger.error(f"Failed to initialize AI signal generator: {e}")
+            logger.info(
+                "Hint: Make sure OPENROUTER_API_KEY is set in .env file. "
+                "AI signals will be disabled for this trading instance."
+            )
             return None
 
     def _get_instance_status_component_data(

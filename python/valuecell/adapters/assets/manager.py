@@ -12,8 +12,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from openai import OpenAI
-
 from .akshare_adapter import AKShareAdapter
 from .base import BaseDataAdapter
 from .types import (
@@ -349,8 +347,9 @@ class AdapterManager:
     ) -> List[AssetSearchResult]:
         """Fallback search assets if no results are found using LLM-based ticker generation.
 
-        This method uses an OpenAI-like API to intelligently generate possible ticker formats
-        based on the user's search query, then validates each generated ticker.
+        This method uses the centralized configuration system to create model instances
+        for intelligently generating possible ticker formats based on the user's search query,
+        then validates each generated ticker.
 
         Args:
             query: Search query parameters
@@ -358,22 +357,25 @@ class AdapterManager:
         Returns:
             List of validated search results
         """
-        # Get environment variables
-        api_key = os.getenv("OPENROUTER_API_KEY")
-        model_id = os.getenv("PRODUCT_MODEL_ID", "anthropic/claude-haiku-4.5")
-
-        if not api_key or not model_id:
-            logger.warning(
-                "OPENROUTER_API_KEY is not configured, skipping fallback search"
-            )
-            return []
-
         try:
-            # Initialize OpenAI client with OpenRouter
-            client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
+            # Use configuration system to create model
+            # Model can be overridden with PRODUCT_MODEL_ID environment variable
+            from valuecell.utils.model import create_model_with_provider
+
+            model_id = os.getenv("PRODUCT_MODEL_ID", "anthropic/claude-haiku-4.5")
+
+            model = create_model_with_provider(
+                provider="openrouter",
+                model_id=model_id,
+            )
 
             # Create prompt to generate possible ticker formats
-            prompt = f"""Given the user search query: "{query.query}"
+            system_prompt = (
+                "You are a financial data expert that helps map search queries to "
+                "standardized ticker formats. Always respond with valid JSON arrays only."
+            )
+
+            user_prompt = f"""Given the user search query: "{query.query}"
 
 Generate a list of possible internal ticker IDs that match this query. The internal ticker format is: EXCHANGE:SYMBOL
 
@@ -399,22 +401,20 @@ Return ONLY a JSON array of ticker strings, like:
 
 Generate up to at least 1 possible ticker candidate up to 10. Be creative but realistic."""
 
-            # Call LLM API
-            response = client.chat.completions.create(
-                model=model_id,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a financial data expert that helps map search queries to standardized ticker formats. Always respond with valid JSON arrays only.",
-                    },
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=0.7,
-                max_tokens=500,
+            # Use agno Agent for structured communication
+            from agno.agent import Agent
+
+            agent = Agent(
+                model=model,
+                instructions=[system_prompt],
+                markdown=False,
             )
 
+            # Call LLM API
+            response = agent.run(user_prompt)
+
             # Parse response
-            response_text = response.choices[0].message.content.strip()
+            response_text = response.content.strip()
             logger.debug(f"LLM response for query '{query.query}': {response_text}")
 
             # Extract JSON array from response (handle cases where LLM adds markdown formatting)
