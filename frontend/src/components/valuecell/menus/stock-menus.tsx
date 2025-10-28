@@ -122,7 +122,7 @@ function StockMenuListItem({
   return (
     <Link
       className={cn(
-        "flex items-center justify-between gap-4 rounded-xl p-2",
+        "flex items-center justify-between gap-4 rounded-lg p-2",
         "cursor-pointer transition-colors hover:bg-accent/80",
         className,
         { "bg-accent/80": isActive },

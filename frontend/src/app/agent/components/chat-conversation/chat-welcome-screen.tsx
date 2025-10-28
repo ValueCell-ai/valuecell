@@ -22,7 +22,7 @@ const ChatWelcomeScreen: FC<ChatWelcomeScreenProps> = ({
       <ChatBackground />
 
       {/* Welcome content */}
-      <div className="flex flex-1 flex-col items-center justify-center gap-4">
+      <div className="flex flex-1 flex-col items-center justify-center gap-12">
         <h1 className="text-center font-semibold text-3xl text-gray-950 leading-12">
           {title}
         </h1>

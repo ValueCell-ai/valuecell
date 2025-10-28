@@ -118,7 +118,7 @@ function AgentMenuDescription({
   return (
     <p
       className={cn(
-        "max-w-2/3 text-left text-gray-500 text-sm leading-4.5",
+        "line-clamp-2 max-w-2/3 text-left text-gray-500 text-sm leading-4.5",
         className,
       )}
       {...props}

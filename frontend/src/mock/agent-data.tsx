@@ -12,7 +12,7 @@ export const agentSuggestions: AgentSuggestion[] = [
       "Analyze SEC filings to generate in-depth stock interpretation reports.",
     bgColor:
       "bg-gradient-to-r from-[#FFFFFF]/70 from-[5.05%] to-[#E7EFFF]/70 to-[100%]",
-    decorativeGraphics: <img src={TrendPng} alt="Trend" />,
+    decorativeGraphics: <img src={IconGroupPng} alt="IconGroup" />,
   },
   {
     id: "AutoTradingAgent",
@@ -21,7 +21,7 @@ export const agentSuggestions: AgentSuggestion[] = [
     description: "multiple crypto assets and AI-powered trading strategies",
     bgColor:
       "bg-gradient-to-r from-[#FFFFFF]/70 from-[5.05%] to-[#EAE8FF]/70 to-[100%]",
-    decorativeGraphics: <img src={IconGroupPng} alt="IconGroup" />,
+    decorativeGraphics: <img src={TrendPng} alt="Trend" />,
   },
   // {
   //   id: "SECAgent",
