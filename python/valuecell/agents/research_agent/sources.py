@@ -31,6 +31,33 @@ def _ensure_list(value: str | Sequence[str] | None) -> List[str]:
     return list(value)
 
 
+def _extract_quarter_from_title(title: str) -> Optional[int]:
+    """Extract quarter number from announcement title
+
+    Args:
+        title: Announcement title string
+
+    Returns:
+        Quarter number (1-4) if found, None otherwise
+    """
+    if not title:
+        return None
+
+    # Common patterns for quarterly reports in Chinese titles
+    quarter_patterns = [
+        (r"第一季度|一季度|1季度|Q1", 1),
+        (r"第二季度|二季度|2季度|Q2|半年度|中期", 2),  # Semi-annual is often Q2
+        (r"第三季度|三季度|3季度|Q3", 3),
+        (r"第四季度|四季度|4季度|Q4|年度报告|年报", 4),  # Annual is often Q4
+    ]
+
+    for pattern, quarter in quarter_patterns:
+        if re.search(pattern, title, re.IGNORECASE):
+            return quarter
+
+    return None
+
+
 def _parse_date(d: str | date | None) -> Optional[date]:
     if d is None:
         return None
@@ -272,10 +299,12 @@ async def _write_and_ingest_ashare(
             market=filing_data["market"],
             period_of_report=period,
             filing_date=filing_data["filing_date"],
+            announcement_title=filing_data.get("announcement_title", ""),
         )
 
         # Create result object
-        result = AShareFilingResult(url=pdf_url, metadata=metadata)
+        file_name = f"{stock_code}_{doc_type}_{period}.pdf"
+        result = AShareFilingResult(name=file_name, path=pdf_url, metadata=metadata)
         results.append(result)
 
         # Import to knowledge base - use PDF URL if available
@@ -285,7 +314,11 @@ async def _write_and_ingest_ashare(
 
 
 async def _fetch_cninfo_data(
-    stock_code: str, report_types: List[str], years: List[int], limit: int
+    stock_code: str,
+    report_types: List[str],
+    years: List[int],
+    quarters: List[int],
+    limit: int,
 ) -> List[dict]:
     """Fetch real A-share filing data from CNINFO API
 
@@ -293,6 +326,7 @@ async def _fetch_cninfo_data(
         stock_code: Normalized stock code
         report_types: List of report types
         years: List of years
+        quarters: List of quarters (1-4), empty list means all quarters
         limit: Maximum number of records to fetch
 
     Returns:
@@ -392,6 +426,22 @@ async def _fetch_cninfo_data(
                                 if len(filings_data) >= limit:
                                     break
 
+                                announcement_title = announcement.get(
+                                    "announcementTitle", ""
+                                )
+
+                                # Apply quarter filtering for quarterly reports
+                                if report_type == "quarterly" and quarters:
+                                    # Extract quarter from announcement title
+                                    quarter_from_title = _extract_quarter_from_title(
+                                        announcement_title
+                                    )
+                                    if (
+                                        quarter_from_title
+                                        and quarter_from_title not in quarters
+                                    ):
+                                        continue  # Skip this announcement if quarter doesn't match
+
                                 # Extract filing information
                                 filing_info = {
                                     "stock_code": announcement.get(
@@ -409,9 +459,7 @@ async def _fetch_cninfo_data(
                                     "announcement_id": announcement.get(
                                         "announcementId", ""
                                     ),
-                                    "announcement_title": announcement.get(
-                                        "announcementTitle", ""
-                                    ),
+                                    "announcement_title": announcement_title,
                                     "org_id": announcement.get("orgId", ""),
                                     "content": "",  # Will fetch detailed content in subsequent steps
                                 }
@@ -485,25 +533,42 @@ async def fetch_ashare_filings(
     stock_code: str,
     report_types: List[str] | str = "annual",
     year: Optional[int | List[int]] = None,
+    quarter: Optional[int | List[int]] = None,
     limit: int = 10,
 ) -> List[AShareFilingResult]:
     """Fetch A-share filing data from CNINFO and import to knowledge base
 
     Args:
         stock_code: Stock code (e.g.: 000001, 600036, etc.)
-        report_types: Report types, options: "annual", "semi-annual", "quarterly". Default is "annual"
+        report_types: Report types (ENGLISH ONLY). Supported values: "annual", "semi-annual", "quarterly".
+                     Default is "annual". Chinese parameters are NOT supported.
         year: Year filter, can be a single year or list of years. If not provided, fetch latest reports
+        quarter: Quarter filter (1-4), can be a single quarter or list of quarters.
+                Only applicable when report_types includes "quarterly". Requires year to be provided.
         limit: Maximum number of records to fetch, default 10
 
     Returns:
         List[AShareFilingResult]: List of A-share filing results
 
+    Raises:
+        ValueError: If report_types contains Chinese parameters or invalid values,
+                   or if quarter is provided without year
+
     Examples:
         # Fetch latest annual report of Ping An Bank
         await fetch_ashare_filings("000001", "annual", limit=1)
 
-        # Fetch 2025 annual and semi-annual reports of Kweichow Moutai
-        await fetch_ashare_filings("600519", ["annual", "semi-annual"], year=2025)
+        # Fetch 2024 annual and semi-annual reports of Kweichow Moutai
+        await fetch_ashare_filings("600519", ["annual", "semi-annual"], year=2024)
+
+        # Fetch 2024 Q3 quarterly report of Kweichow Moutai
+        await fetch_ashare_filings("600519", "quarterly", year=2024, quarter=3)
+
+        # Fetch 2024 Q1 and Q3 quarterly reports of Kweichow Moutai
+        await fetch_ashare_filings("600519", "quarterly", year=2024, quarter=[1, 3])
+
+        # This will raise ValueError (Chinese parameters not supported):
+        # await fetch_ashare_filings("600519", "年报")  # DON'T DO THIS
     """
 
     # Normalize stock code
@@ -514,6 +579,15 @@ async def fetch_ashare_filings(
     if not report_types_list:
         report_types_list = ["annual"]
 
+    # Validate quarter parameter
+    if quarter is not None:
+        if year is None:
+            raise ValueError("Quarter parameter requires year to be provided")
+        if "quarterly" not in report_types_list:
+            raise ValueError(
+                "Quarter parameter is only applicable when report_types includes 'quarterly'"
+            )
+
     # Normalize years
     years_list = []
     if year is not None:
@@ -522,9 +596,22 @@ async def fetch_ashare_filings(
         else:
             years_list = list(year)
 
+    # Normalize quarters
+    quarters_list = []
+    if quarter is not None:
+        if isinstance(quarter, int):
+            quarters_list = [quarter]
+        else:
+            quarters_list = list(quarter)
+
+        # Validate quarter values
+        for q in quarters_list:
+            if not isinstance(q, int) or q < 1 or q > 4:
+                raise ValueError(f"Quarter must be between 1 and 4, got: {q}")
+
     # Fetch real data from CNINFO
     filings_data = await _fetch_cninfo_data(
-        normalized_code, report_types_list, years_list, limit
+        normalized_code, report_types_list, years_list, quarters_list, limit
     )
 
     # Write to files and import to knowledge base

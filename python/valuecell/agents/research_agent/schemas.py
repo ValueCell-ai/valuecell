@@ -29,11 +29,13 @@ class AShareFilingMetadata:
     market: str  # Market: SZSE, SSE
     period_of_report: str  # Report period
     filing_date: str  # Filing date
+    announcement_title: str = ""  # Announcement title for quarter filtering
 
 
 @dataclass
 class AShareFilingResult:
     """A-share filing result"""
 
-    url: str
+    name: str
+    path: Path
     metadata: AShareFilingMetadata
