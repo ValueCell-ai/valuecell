@@ -36,14 +36,3 @@ trading:
   max_symbols: 10
   max_concurrent_instances: 10
 
-# Example .env configuration:
-# # Use different providers
-# OPENROUTER_API_KEY=sk-or-v1-xxxxx
-# GOOGLE_API_KEY=AIzaSyXXXXXXXXXXXXXXXX
-# ANTHROPIC_API_KEY=sk-ant-xxxxx
-#
-# # Override specific models
-# AUTO_TRADING_AGENT_MODEL_ID=gemini-2.5-flash
-# AUTO_TRADING_PARSER_MODEL_ID=anthropic/claude-3.5-sonnet
-# AUTO_TRADING_SIGNAL_MODEL_ID=x-ai/grok-4
-

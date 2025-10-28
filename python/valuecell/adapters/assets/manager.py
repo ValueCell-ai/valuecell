@@ -11,7 +11,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import Dict, List, Optional
-
+from valuecell.utils.model import get_model
 from .akshare_adapter import AKShareAdapter
 from .base import BaseDataAdapter
 from .types import (
@@ -359,15 +359,8 @@ class AdapterManager:
         """
         try:
             # Use configuration system to create model
-            # Model can be overridden with PRODUCT_MODEL_ID environment variable
-            from valuecell.utils.model import create_model_with_provider
 
-            model_id = os.getenv("PRODUCT_MODEL_ID", "anthropic/claude-haiku-4.5")
-
-            model = create_model_with_provider(
-                provider="openrouter",
-                model_id=model_id,
-            )
+            model = get_model("PRODUCT_MODEL_ID") 
 
             # Create prompt to generate possible ticker formats
             system_prompt = (
