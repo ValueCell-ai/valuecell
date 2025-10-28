@@ -52,7 +52,6 @@ class SuperAgent:
             instructions=[SUPER_AGENT_INSTRUCTION],
             # output format
             expected_output=SUPER_AGENT_EXPECTED_OUTPUT,
-            use_json_mode=True,
             output_schema=SuperAgentOutcome,
             # context
             db=InMemoryDb(),
