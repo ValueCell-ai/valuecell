@@ -276,7 +276,7 @@ We use **Ruff** for linting and formatting, and **isort** for import sorting.
 ```bash
 make format
 ```
-contri
+
 **Run linting:**
 
 ```bash
