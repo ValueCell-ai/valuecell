@@ -80,7 +80,7 @@ const ChatBackground = () => (
         style={{ left: blur.left, top: blur.top }}
       >
         <div
-          className={`h-full w-full rounded-full bg-gradient-to-br ${blur.colors} blur-[100px]`}
+          className={`h-full w-full rounded-full bg-linear-to-br ${blur.colors} blur-[100px]`}
         />
       </div>
     ))}

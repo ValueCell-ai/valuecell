@@ -23,6 +23,21 @@ export const useGetConversationHistory = (conversationId: string) => {
         `/conversations/${conversationId}/history`,
       ),
     select: (data) => data.data.items,
-    enabled: false,
+    enabled: !!conversationId,
+  });
+};
+
+export const usePollTaskList = (conversationId: string) => {
+  return useQuery({
+    queryKey: API_QUERY_KEYS.CONVERSATION.conversationTaskList([
+      conversationId,
+    ]),
+    queryFn: () =>
+      apiClient.get<ApiResponse<ConversationHistory>>(
+        `/conversations/${conversationId}/scheduled-task-results`,
+      ),
+    select: (data) => data.data.items,
+    refetchInterval: 30 * 1000,
+    enabled: !!conversationId,
   });
 };

@@ -1,7 +1,6 @@
-import type { FC } from "react";
+import type { FC, ReactNode } from "react";
 import { NavLink, useSearchParams } from "react-router";
 import { useGetConversationList } from "@/api/conversation";
-import { Conversation } from "@/assets/svg";
 import {
   Sheet,
   SheetContent,
@@ -18,9 +17,8 @@ import {
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import AgentAvatar from "./agent-avatar";
 import ScrollContainer from "./scroll/scroll-container";
-import SvgIcon from "./svg-icon";
 
-const AppConversationSheet: FC = () => {
+const AppConversationSheet: FC<{ children: ReactNode }> = ({ children }) => {
   const [searchParams] = useSearchParams();
   const currentConversationId = searchParams.get("id") ?? "";
 
@@ -29,11 +27,7 @@ const AppConversationSheet: FC = () => {
 
   return (
     <Sheet>
-      <SheetTrigger asChild>
-        <button type="button" className="cursor-pointer text-black">
-          <SvgIcon name={Conversation} className="size-5" />
-        </button>
-      </SheetTrigger>
+      <SheetTrigger asChild>{children}</SheetTrigger>
 
       <SheetContent side="left" className="w-[300px]">
         <SheetHeader>

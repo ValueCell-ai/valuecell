@@ -23,6 +23,7 @@ const AGENT_QUERY_KEYS = {
 export const CONVERSATION_QUERY_KEYS = {
   conversationList: ["conversation"],
   conversationHistory: queryKeyFn(["conversation", "history"]),
+  conversationTaskList: queryKeyFn(["conversation", "task"]),
 } as const;
 
 export const SETTING_QUERY_KEYS = {

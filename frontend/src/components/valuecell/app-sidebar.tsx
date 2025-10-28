@@ -7,7 +7,7 @@ import {
 } from "react";
 import { NavLink, useLocation } from "react-router";
 import { useGetAgentList } from "@/api/agent";
-import { ChartBarVertical, Logo, Setting } from "@/assets/svg";
+import { ChartBarVertical, Conversation, Logo, Setting } from "@/assets/svg";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
@@ -190,9 +190,11 @@ const AppSidebar: FC = () => {
             );
           })}
 
-          <SidebarMenuItem className="bg-white p-2 hover:bg-neutral-200">
-            <AppConversationSheet />
-          </SidebarMenuItem>
+          <AppConversationSheet>
+            <SidebarMenuItem className="cursor-pointer bg-white p-2 text-black hover:bg-neutral-200">
+              <SvgIcon name={Conversation} className="size-5" />
+            </SidebarMenuItem>
+          </AppConversationSheet>
         </SidebarMenu>
       </SidebarHeader>
 

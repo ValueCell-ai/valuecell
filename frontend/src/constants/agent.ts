@@ -27,15 +27,17 @@ import {
   ModelTradeRenderer,
   ModelTradeTableRenderer,
   ReportRenderer,
-  SecFeedRenderer,
+  ScheduledTaskControllerRenderer,
+  ScheduledTaskRenderer,
   ToolCallRenderer,
 } from "@/components/valuecell/renderer";
+import { TimeUtils } from "@/lib/time";
 import type { AgentComponentType, AgentInfo } from "@/types/agent";
 import type { RendererComponent } from "@/types/renderer";
 
 // component_type to section type
 export const AGENT_SECTION_COMPONENT_TYPE = [
-  "sec_feed",
+  "scheduled_task_result",
   "filtered_line_chart",
   "filtered_card_push_notification",
 ] as const;
@@ -48,6 +50,7 @@ export const AGENT_COMPONENT_TYPE = [
   "markdown",
   "tool_call",
   "subagent_conversation",
+  "scheduled_task_controller",
   ...AGENT_SECTION_COMPONENT_TYPE,
   ...AGENT_MULTI_SECTION_COMPONENT_TYPE,
 ] as const;
@@ -58,7 +61,8 @@ export const AGENT_COMPONENT_TYPE = [
 export const COMPONENT_RENDERER_MAP: {
   [K in AgentComponentType]: RendererComponent<K>;
 } = {
-  sec_feed: SecFeedRenderer,
+  scheduled_task_result: ScheduledTaskRenderer,
+  scheduled_task_controller: ScheduledTaskControllerRenderer,
   filtered_line_chart: ModelTradeRenderer,
   filtered_card_push_notification: ModelTradeTableRenderer,
   report: ReportRenderer,
@@ -102,8 +106,8 @@ export const VALUECELL_AGENT: AgentInfo = {
   enabled: true,
   description:
     "ValueCell Agent is a super-agent that can help you manage different agents and tasks",
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
+  created_at: TimeUtils.nowUTC().toISOString(),
+  updated_at: TimeUtils.nowUTC().toISOString(),
   agent_metadata: {
     version: "1.0.0",
     author: "ValueCell",

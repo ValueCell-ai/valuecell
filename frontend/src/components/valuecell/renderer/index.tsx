@@ -3,6 +3,7 @@ export { default as MarkdownRenderer } from "./markdown-renderer";
 export { default as ModelTradeRenderer } from "./model-trade-renderer";
 export { default as ModelTradeTableRenderer } from "./model-trade-table-renderer";
 export { default as ReportRenderer } from "./report-renderer";
-export { default as SecFeedRenderer } from "./sec-feed-renderer";
+export { default as ScheduledTaskControllerRenderer } from "./scheduled-task-controller-renderer";
+export { default as ScheduledTaskRenderer } from "./scheduled-task-renderer";
 export { default as ToolCallRenderer } from "./tool-call-renderer";
 export { default as UnknownRenderer } from "./unknown-renderer";
