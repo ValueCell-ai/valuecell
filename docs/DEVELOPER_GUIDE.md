@@ -20,6 +20,7 @@ python -m valuecell.agents.research_agent
 
 > [!TIP]
 > Set your environment first. At minimum, configure `OPENROUTER_API_KEY` (or `GOOGLE_API_KEY`) and `SEC_EMAIL`. See `docs/CONFIGURATION_GUIDE.md`.
+> Optional: set `AGENT_DEBUG_MODE=true` to trace model behavior locally.
 
 ## Architecture at a glance
 
@@ -38,17 +39,17 @@ from valuecell.core.types import BaseAgent, StreamResponse
 from valuecell.core.agent.responses import streaming
 
 class HelloAgent(BaseAgent):
-	async def stream(
-		self,
-		query: str,
-		conversation_id: str,
-		task_id: str,
-		dependencies: Optional[Dict] = None,
-	) -> AsyncGenerator[StreamResponse, None]:
-		# Send a few chunks, then finish
-		yield streaming.message_chunk("Thinking…")
-		yield streaming.message_chunk(f"You said: {query}")
-		yield streaming.done()
+  async def stream(
+    self,
+    query: str,
+    conversation_id: str,
+    task_id: str,
+    dependencies: Optional[Dict] = None,
+  ) -> AsyncGenerator[StreamResponse, None]:
+    # Send a few chunks, then finish
+    yield streaming.message_chunk("Thinking…")
+    yield streaming.message_chunk(f"You said: {query}")
+    yield streaming.done()
 ```
 
 1. Wrap and serve (optional standalone service)
@@ -60,8 +61,8 @@ from valuecell.core.agent.decorator import create_wrapped_agent
 from .core import HelloAgent
 
 if __name__ == "__main__":
-	agent = create_wrapped_agent(HelloAgent)
-	asyncio.run(agent.serve())
+  agent = create_wrapped_agent(HelloAgent)
+  asyncio.run(agent.serve())
 ```
 
 Run it:
@@ -162,6 +163,22 @@ Defined in `valuecell.core.types`:
 - System: `CONVERSATION_STARTED`, `THREAD_STARTED`, `PLAN_REQUIRE_USER_INPUT`, `DONE`
 
 Emit events via `streaming.*` helpers and the UI will render progress, tool calls, and results in real time.
+
+## Debugging model behavior
+
+Use `AGENT_DEBUG_MODE` to enable verbose traces from agents and planners:
+
+- Logs prompts, tool calls, intermediate steps, and provider response metadata
+- Helpful to investigate planning decisions and tool routing during development
+
+Enable in your `.env`:
+
+```bash
+AGENT_DEBUG_MODE=true
+```
+
+> [!CAUTION]
+> Debug mode can log sensitive inputs/outputs and increases log volume/latency. Enable only in local/dev environments; keep it off in production.
 
 ## Code Style
 

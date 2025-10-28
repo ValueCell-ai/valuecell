@@ -11,6 +11,27 @@ cp .env.example .env
 
 ## Configuration Reference
 
+### Agent settings
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `AGENT_DEBUG_MODE` | false | Enables verbose debugging for agents and planners: logs prompts, tool calls, intermediate steps, and provider response metadata. Useful for diagnosing model behavior; disable in production. |
+
+Typical use cases:
+
+- Investigate unexpected model output or planning decisions
+- Verify tool-call routing and inputs/outputs
+- Capture detailed traces during local development
+
+Enable it in your `.env`:
+
+```bash
+AGENT_DEBUG_MODE=true
+```
+
+> [!CAUTION]
+> Debug mode may log raw prompts and tool payloads (potentially sensitive). It can also increase latency and log volume. Prefer enabling only on local/dev environments.
+
 ### Localization
 
 | Variable | Default | Description |
