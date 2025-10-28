@@ -39,3 +39,6 @@ models:
   - id: "openai/gpt-4o-mini"
     name: "GPT-4o Mini"
 
+# Note: OpenRouter does not support embedding models
+# For embedding, use other providers like OpenAI or SiliconFlow etc
+

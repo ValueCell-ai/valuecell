@@ -12,7 +12,7 @@ from valuecell.core.super_agent.prompts import (
 )
 from valuecell.core.types import UserInput
 from valuecell.utils.env import agent_debug_mode_enabled
-from valuecell.utils.model import get_model
+from valuecell.utils.model import get_model, get_model_for_agent
 
 
 class SuperAgentDecision(str, Enum):
@@ -43,8 +43,16 @@ class SuperAgent:
     name: str = "ValueCellAgent"
 
     def __init__(self) -> None:
+        # Try to use super_agent specific configuration first,
+        # fallback to PLANNER_MODEL_ID for backward compatibility
+        try:
+            model = get_model_for_agent("super_agent")
+        except Exception:
+            # Fallback to old behavior for backward compatibility
+            model = get_model("PLANNER_MODEL_ID")
+
         self.agent = Agent(
-            model=get_model("PLANNER_MODEL_ID"),
+            model=model,
             # TODO: enable tools when needed
             # tools=[Crawl4aiTools()],
             markdown=False,

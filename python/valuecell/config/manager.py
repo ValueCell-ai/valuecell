@@ -29,7 +29,20 @@ class ProviderConfig:
     default_model: str
     models: List[Dict[str, Any]]
     parameters: Dict[str, Any]
-    extra_config: Dict[str, Any]
+    # Embedding support
+    default_embedding_model: Optional[str] = None
+    embedding_models: List[Dict[str, Any]] = None
+    embedding_parameters: Dict[str, Any] = None
+    extra_config: Dict[str, Any] = None
+
+    def __post_init__(self):
+        """Initialize default values for optional fields"""
+        if self.embedding_models is None:
+            self.embedding_models = []
+        if self.embedding_parameters is None:
+            self.embedding_parameters = {}
+        if self.extra_config is None:
+            self.extra_config = {}
 
 
 @dataclass
@@ -109,11 +122,10 @@ class ConfigManager:
                 # Priority order for auto-selection
                 # Azure first (for enterprise), then OpenRouter (unified API), then direct providers
                 preferred_order = [
-                    "azure",
                     "openrouter",
-                    "anthropic",
+                    "siliconflow",
+                    "azure",
                     "google",
-                    "deepseek",
                 ]
 
                 for preferred in preferred_order:
@@ -192,6 +204,12 @@ class ConfigManager:
         # Check if enabled
         enabled = provider_data.get("enabled", True)
 
+        # Get embedding configuration
+        embedding_config = provider_data.get("embedding", {})
+        default_embedding_model = embedding_config.get("default_model")
+        embedding_models = embedding_config.get("models", [])
+        embedding_defaults = embedding_config.get("defaults", {})
+
         return ProviderConfig(
             name=provider_name,
             enabled=enabled,
@@ -200,11 +218,21 @@ class ConfigManager:
             default_model=default_model,
             models=models,
             parameters=defaults,
+            default_embedding_model=default_embedding_model,
+            embedding_models=embedding_models,
+            embedding_parameters=embedding_defaults,
             extra_config={
                 k: v
                 for k, v in provider_data.items()
                 if k
-                not in ["connection", "default_model", "models", "defaults", "enabled"]
+                not in [
+                    "connection",
+                    "default_model",
+                    "models",
+                    "defaults",
+                    "enabled",
+                    "embedding",
+                ]
             },
         )
 

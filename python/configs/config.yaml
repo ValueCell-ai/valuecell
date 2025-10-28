@@ -24,8 +24,17 @@ models:
       config_file: "providers/openrouter.yaml"
       api_key_env: "OPENROUTER_API_KEY"
     
+    siliconflow:
+      enabled: true
+      config_file: "providers/siliconflow.yaml"
+      api_key_env: "SILICONFLOW_API_KEY"
+
 # Agent Configuration
 agents:
+  super_agent:
+    enabled: true
+    config_file: "agents/super_agent.yaml"
+  
   research_agent:
     enabled: true
     config_file: "agents/research_agent.yaml"

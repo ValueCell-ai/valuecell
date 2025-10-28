@@ -20,13 +20,12 @@ Usage:
 """
 
 from valuecell.adapters.models.factory import (
-    AnthropicProvider,
     AzureProvider,
-    DeepSeekProvider,
     GoogleProvider,
     ModelFactory,
     ModelProvider,
     OpenRouterProvider,
+    SiliconFlowProvider,
     create_model,
     create_model_for_agent,
     get_model_factory,
@@ -41,8 +40,7 @@ __all__ = [
     "OpenRouterProvider",
     "GoogleProvider",
     "AzureProvider",
-    "AnthropicProvider",
-    "DeepSeekProvider",
+    "SiliconFlowProvider",
     # Convenience functions
     "create_model",
     "create_model_for_agent",

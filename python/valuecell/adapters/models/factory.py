@@ -43,6 +43,24 @@ class ModelProvider(ABC):
         """
         pass
 
+    def create_embedder(self, model_id: Optional[str] = None, **kwargs):
+        """
+        Create an embedder instance (optional, not all providers support it)
+
+        Args:
+            model_id: Embedding model identifier (uses default if None)
+            **kwargs: Additional embedder parameters (dimensions, etc.)
+
+        Returns:
+            Embedder instance
+
+        Raises:
+            NotImplementedError: If provider doesn't support embeddings
+        """
+        raise NotImplementedError(
+            f"Provider '{self.config.name}' does not support embedding models"
+        )
+
     def is_available(self) -> bool:
         """
         Check if provider credentials are available
@@ -52,6 +70,15 @@ class ModelProvider(ABC):
         """
         # Default implementation: check API key
         return bool(self.config.api_key)
+
+    def has_embedding_support(self) -> bool:
+        """
+        Check if provider supports embedding models
+
+        Returns:
+            True if provider has embedding configuration
+        """
+        return bool(self.config.default_embedding_model)
 
 
 class OpenRouterProvider(ModelProvider):
@@ -124,11 +151,7 @@ class AzureProvider(ModelProvider):
             # Try to import from agno first
             from agno.models.azure import AzureOpenAI
         except ImportError:
-            try:
-                # Fallback to langchain
-                from langchain_openai import AzureChatOpenAI as AzureOpenAI
-            except ImportError:
-                raise ImportError("No Azure OpenAI library found")
+            raise ImportError("No Azure OpenAI library found")
 
         model_id = model_id or self.config.default_model
         params = {**self.config.parameters, **kwargs}
@@ -151,51 +174,55 @@ class AzureProvider(ModelProvider):
         return bool(self.config.api_key and self.config.base_url)
 
 
-class AnthropicProvider(ModelProvider):
-    """Anthropic Claude model provider"""
+class SiliconFlowProvider(ModelProvider):
+    """SiliconFlow model provider"""
 
     def create_model(self, model_id: Optional[str] = None, **kwargs):
-        """Create Anthropic Claude model"""
+        """Create SiliconFlow model"""
         try:
-            from agno.models.anthropic import Claude
+            from agno.models.siliconflow import Siliconflow
         except ImportError:
             raise ImportError("agno package not installed")
 
         model_id = model_id or self.config.default_model
         params = {**self.config.parameters, **kwargs}
 
-        logger.info(f"Creating Anthropic Claude model: {model_id}")
+        logger.info(f"Creating SiliconFlow model: {model_id}")
 
-        return Claude(
-            id=model_id,
-            api_key=self.config.api_key,
-            temperature=params.get("temperature"),
-            max_tokens=params.get("max_tokens"),
-        )
-
-
-class DeepSeekProvider(ModelProvider):
-    """DeepSeek model provider (via OpenAI-compatible API)"""
-
-    def create_model(self, model_id: Optional[str] = None, **kwargs):
-        """Create DeepSeek model"""
-        try:
-            from agno.models.openrouter import OpenRouter
-        except ImportError:
-            raise ImportError("agno package not installed")
-
-        model_id = model_id or self.config.default_model
-        params = {**self.config.parameters, **kwargs}
-
-        logger.info(f"Creating DeepSeek model: {model_id}")
-
-        # DeepSeek uses OpenAI-compatible API
-        return OpenRouter(
+        return Siliconflow(
             id=model_id,
             api_key=self.config.api_key,
             base_url=self.config.base_url,
             temperature=params.get("temperature"),
             max_tokens=params.get("max_tokens"),
+        )
+
+    def create_embedder(self, model_id: Optional[str] = None, **kwargs):
+        """Create embedder via SiliconFlow (OpenAI-compatible)"""
+        try:
+            from agno.knowledge.embedder.openai import OpenAIEmbedder
+        except ImportError:
+            raise ImportError("agno package not installed")
+
+        # Use provided model_id or default embedding model
+        model_id = model_id or self.config.default_embedding_model
+
+        if not model_id:
+            raise ValueError(
+                f"No embedding model specified for provider '{self.config.name}'"
+            )
+
+        # Merge parameters: provider embedding defaults < kwargs
+        params = {**self.config.embedding_parameters, **kwargs}
+
+        logger.info(f"Creating SiliconFlow embedder: {model_id}")
+
+        return OpenAIEmbedder(
+            id=model_id,
+            api_key=self.config.api_key,
+            base_url=self.config.base_url,
+            dimensions=params.get("dimensions", 1024),
+            encoding_format=params.get("encoding_format"),
         )
 
 
@@ -215,8 +242,7 @@ class ModelFactory:
         "openrouter": OpenRouterProvider,
         "google": GoogleProvider,
         "azure": AzureProvider,
-        "anthropic": AnthropicProvider,
-        "deepseek": DeepSeekProvider,
+        "siliconflow": SiliconFlowProvider,
     }
 
     def __init__(self, config_manager: Optional[ConfigManager] = None):
@@ -414,6 +440,179 @@ class ModelFactory:
         """
         return self.config_manager.get_available_models(provider)
 
+    def create_embedder(
+        self,
+        model_id: Optional[str] = None,
+        provider: Optional[str] = None,
+        use_fallback: bool = True,
+        **kwargs,
+    ):
+        """
+        Create an embedder instance with automatic provider selection
+
+        This method:
+        1. Automatically selects a provider with embedding support
+        2. Falls back to other providers if the primary doesn't work
+        3. Uses configuration from YAML + .env + environment variables
+
+        Args:
+            model_id: Embedding model ID (optional, uses provider default)
+            provider: Provider name (optional, auto-detects from available providers)
+            use_fallback: Try fallback providers if primary fails
+            **kwargs: Additional embedder parameters (dimensions, encoding_format, etc.)
+
+        Returns:
+            Embedder instance
+
+        Raises:
+            ValueError: If no provider with embedding support is available
+
+        Examples:
+            >>> factory = ModelFactory()
+            >>> # Auto-select provider with embedding support
+            >>> embedder = factory.create_embedder()
+            >>> # Use specific provider
+            >>> embedder = factory.create_embedder(provider="openrouter")
+            >>> # Override dimensions
+            >>> embedder = factory.create_embedder(dimensions=3072)
+        """
+        # If no provider specified, find one with embedding support
+        if provider is None:
+            provider = self._find_embedding_provider()
+            if not provider:
+                raise ValueError(
+                    "No provider with embedding support found. "
+                    "Please configure at least one provider with embedding models."
+                )
+
+        # Try primary provider
+        try:
+            return self._create_embedder_internal(model_id, provider, **kwargs)
+        except Exception as e:
+            logger.warning(f"Failed to create embedder with provider {provider}: {e}")
+
+            if not use_fallback:
+                raise
+
+            # Try other providers with embedding support
+            available_providers = self._get_embedding_providers()
+            for fallback_provider in available_providers:
+                if fallback_provider == provider:
+                    continue  # Skip already tried provider
+
+                try:
+                    logger.info(f"Trying fallback provider: {fallback_provider}")
+                    return self._create_embedder_internal(
+                        model_id, fallback_provider, **kwargs
+                    )
+                except Exception as fallback_error:
+                    logger.warning(
+                        f"Fallback provider {fallback_provider} also failed: {fallback_error}"
+                    )
+                    continue
+
+            # All providers failed
+            raise ValueError(
+                f"Failed to create embedder. Primary provider ({provider}) "
+                f"and all fallback providers failed. Original error: {e}"
+            )
+
+    def _find_embedding_provider(self) -> Optional[str]:
+        """
+        Find the best available provider with embedding support
+
+        Priority:
+        1. Primary provider (if it has embedding support)
+        2. First enabled provider with embedding support
+
+        Returns:
+            Provider name or None
+        """
+        # Check primary provider first
+        primary = self.config_manager.primary_provider
+        primary_config = self.config_manager.get_provider_config(primary)
+        if primary_config and primary_config.default_embedding_model:
+            logger.debug(f"Using primary provider for embeddings: {primary}")
+            return primary
+
+        # Find first available provider with embedding support
+        for provider_name in self.config_manager.get_enabled_providers():
+            provider_config = self.config_manager.get_provider_config(provider_name)
+            if provider_config and provider_config.default_embedding_model:
+                logger.info(
+                    f"Auto-selected provider with embedding support: {provider_name}"
+                )
+                return provider_name
+
+        return None
+
+    def _get_embedding_providers(self) -> list[str]:
+        """
+        Get list of providers with embedding support
+
+        Note: This checks all configured providers, not just enabled ones,
+        because a provider might be configured with embedding support but
+        the API key might not be set yet.
+
+        Returns:
+            List of provider names that have embedding configuration
+        """
+        providers = []
+
+        # Check all available provider configs (not just enabled ones)
+        for provider_name in self.config_manager.loader.list_providers():
+            provider_config = self.config_manager.get_provider_config(provider_name)
+
+            # Check if provider has embedding configuration
+            if provider_config and provider_config.default_embedding_model:
+                # Only include if API key is available
+                if provider_config.api_key:
+                    providers.append(provider_name)
+
+        return providers
+
+    def _create_embedder_internal(
+        self, model_id: Optional[str], provider: str, **kwargs
+    ):
+        """
+        Internal method to create embedder without fallback logic
+
+        Args:
+            model_id: Embedding model ID
+            provider: Provider name
+            **kwargs: Embedder parameters
+
+        Returns:
+            Embedder instance
+        """
+        # Check if provider is registered
+        if provider not in self._providers:
+            raise ValueError(f"Unsupported provider: {provider}")
+
+        # Get provider configuration
+        provider_config = self.config_manager.get_provider_config(provider)
+        if not provider_config:
+            raise ValueError(f"Provider configuration not found: {provider}")
+
+        # Check if provider supports embeddings
+        if not provider_config.default_embedding_model:
+            raise ValueError(
+                f"Provider '{provider}' does not support embedding models. "
+                f"Please configure embedding models in providers/{provider}.yaml"
+            )
+
+        # Validate provider
+        is_valid, error_msg = self.config_manager.validate_provider(provider)
+        if not is_valid:
+            raise ValueError(f"Provider validation failed: {error_msg}")
+
+        # Create provider instance
+        provider_class = self._providers[provider]
+        provider_instance = provider_class(provider_config)
+
+        # Create embedder
+        return provider_instance.create_embedder(model_id, **kwargs)
+
 
 # ============================================
 # Singleton and Convenience Functions
@@ -483,3 +682,47 @@ def create_model_for_agent(agent_name: str, **kwargs):
     """
     factory = get_model_factory()
     return factory.create_model_for_agent(agent_name, **kwargs)
+
+
+def create_embedder(
+    model_id: Optional[str] = None, provider: Optional[str] = None, **kwargs
+):
+    """
+    Convenience function to create an embedder instance
+
+    This function automatically:
+    1. Selects a provider with embedding support (if not specified)
+    2. Uses the provider's default embedding model (if model_id not specified)
+    3. Falls back to other providers if the primary fails
+    4. Applies configuration from YAML + .env + environment variables
+
+    Args:
+        model_id: Embedding model identifier (optional)
+        provider: Provider name (optional, auto-detects)
+        **kwargs: Embedder parameters (dimensions, encoding_format, etc.)
+
+    Returns:
+        Embedder instance
+
+    Examples:
+        >>> # Auto-select provider and use default embedding model
+        >>> embedder = create_embedder()
+
+        >>> # Use specific provider (auto-selects default model)
+        >>> embedder = create_embedder(provider="openrouter")
+
+        >>> # Use specific model
+        >>> embedder = create_embedder(model_id="openai/text-embedding-3-large")
+
+        >>> # Override dimensions
+        >>> embedder = create_embedder(dimensions=3072)
+
+        >>> # Combine parameters
+        >>> embedder = create_embedder(
+        ...     provider="openrouter",
+        ...     model_id="openai/text-embedding-3-small",
+        ...     dimensions=1536
+        ... )
+    """
+    factory = get_model_factory()
+    return factory.create_embedder(model_id, provider, **kwargs)
