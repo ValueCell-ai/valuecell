@@ -29,7 +29,6 @@ const ScheduledTaskResultComponent: FC<{ tasks: Record<string, TaskView> }> = ({
       };
     });
   }, [tasks]);
-  console.log("🚀 ~ ScheduledTaskResultComponent ~ taskList:", taskList);
 
   // Select the first task by default
   const [selectedTaskId, setSelectedTaskId] = useState<string>(
