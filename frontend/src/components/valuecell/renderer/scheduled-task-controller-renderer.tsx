@@ -1,18 +1,21 @@
 import { parse } from "best-effort-json-parser";
 import { Clock } from "lucide-react";
 import { type FC, memo, useState } from "react";
+import { useCancelTask } from "@/api/conversation";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { ScheduledTaskControllerRendererProps } from "@/types/renderer";
 
 const ScheduledTaskControllerRenderer: FC<
   ScheduledTaskControllerRendererProps
 > = ({ content }) => {
-  const { task_title, task_id } = parse(content);
-  const [isRunning, setIsRunning] = useState(false);
+  const { task_title, task_id, task_status } = parse(content);
+  const [isRunning, setIsRunning] = useState(task_status !== "cancelled");
+  const { mutateAsync: cancelTask } = useCancelTask();
 
-  const handleToggle = () => {
-    // TODO: Implement actual task control logic with task_id
-    console.log(`Toggling task ${task_id}:`, isRunning ? "pause" : "start");
-    setIsRunning(!isRunning);
+  const handleCancel = async () => {
+    const res = await cancelTask(task_id);
+    res.code === 0 && setIsRunning(false);
   };
 
   return (
@@ -27,12 +30,17 @@ const ScheduledTaskControllerRenderer: FC<
       </div>
 
       {/* Right: Control Text Button */}
-      <p
-        onClick={handleToggle}
-        className="cursor-pointer text-base text-blue-500 transition-colors hover:text-blue-500/80"
+      <Button
+        onClick={handleCancel}
+        variant="ghost"
+        size="sm"
+        disabled={!isRunning}
+        className={cn(
+          "cursor-pointer text-base text-blue-500 transition-colors hover:text-blue-500/80",
+        )}
       >
-        Pause
-      </p>
+        {isRunning ? "Cancel" : "Cancelled"}
+      </Button>
     </div>
   );
 };

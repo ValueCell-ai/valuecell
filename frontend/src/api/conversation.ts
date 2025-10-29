@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { API_QUERY_KEYS } from "@/constants/api";
 import { type ApiResponse, apiClient } from "@/lib/api-client";
 import type {
@@ -52,5 +52,12 @@ export const useAllPollTaskList = () => {
       ),
     select: (data) => data.data.agents,
     refetchInterval: 60 * 1000,
+  });
+};
+
+export const useCancelTask = () => {
+  return useMutation({
+    mutationFn: (task_id: string) =>
+      apiClient.post<ApiResponse<null>>(`/tasks/${task_id}/cancel`),
   });
 };
