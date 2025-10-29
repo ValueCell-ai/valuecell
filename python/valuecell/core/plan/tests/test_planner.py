@@ -68,7 +68,9 @@ async def test_create_plan_handles_paused_run(monkeypatch: pytest.MonkeyPatch):
             return final_response
 
     monkeypatch.setattr(planner_mod, "Agent", FakeAgent)
-    monkeypatch.setattr(factory_mod, "create_model", lambda *args, **kwargs: "stub-model")
+    monkeypatch.setattr(
+        factory_mod, "create_model", lambda *args, **kwargs: "stub-model"
+    )
     monkeypatch.setattr(planner_mod, "agent_debug_mode_enabled", lambda: False)
 
     planner = ExecutionPlanner(StubConnections())
@@ -117,7 +119,9 @@ async def test_create_plan_raises_on_inadequate_plan(monkeypatch: pytest.MonkeyP
             )
 
     monkeypatch.setattr(planner_mod, "Agent", FakeAgent)
-    monkeypatch.setattr(factory_mod, "create_model", lambda *args, **kwargs: "stub-model")
+    monkeypatch.setattr(
+        factory_mod, "create_model", lambda *args, **kwargs: "stub-model"
+    )
     monkeypatch.setattr(planner_mod, "agent_debug_mode_enabled", lambda: False)
 
     planner = ExecutionPlanner(StubConnections())
@@ -137,9 +141,11 @@ async def test_create_plan_raises_on_inadequate_plan(monkeypatch: pytest.MonkeyP
 
 def test_tool_get_enabled_agents_formats_cards(monkeypatch: pytest.MonkeyPatch):
     # Mock create_model to avoid API key validation in CI
-    monkeypatch.setattr(factory_mod, "create_model", lambda *args, **kwargs: "stub-model")
+    monkeypatch.setattr(
+        factory_mod, "create_model", lambda *args, **kwargs: "stub-model"
+    )
     monkeypatch.setattr(planner_mod, "agent_debug_mode_enabled", lambda: False)
-    
+
     skill = SimpleNamespace(
         name="Lookup",
         id="lookup",

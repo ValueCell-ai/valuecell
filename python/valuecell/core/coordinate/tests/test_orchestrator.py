@@ -193,8 +193,12 @@ def _orchestrator(
     # Mock create_model at factory level to avoid API key validation in CI
     import valuecell.adapters.models.factory as factory_mod
 
-    monkeypatch.setattr(factory_mod, "create_model", lambda *args, **kwargs: "stub-model")
-    monkeypatch.setattr(factory_mod, "create_embedder", lambda *args, **kwargs: "stub-embedder")
+    monkeypatch.setattr(
+        factory_mod, "create_model", lambda *args, **kwargs: "stub-model"
+    )
+    monkeypatch.setattr(
+        factory_mod, "create_embedder", lambda *args, **kwargs: "stub-embedder"
+    )
 
     agent_connections = Mock(spec=RemoteConnections)
     agent_connections.get_client = AsyncMock()

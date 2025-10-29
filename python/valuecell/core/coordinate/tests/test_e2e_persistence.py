@@ -10,11 +10,16 @@ from valuecell.core.types import UserInput, UserInputMetadata
 async def test_orchestrator_buffer_store_e2e(tmp_path, monkeypatch):
     db_path = tmp_path / "e2e_valuecell.db"
     monkeypatch.setenv("VALUECELL_SQLITE_DB", str(db_path))
-    
+
     # Mock create_model at the factory level to avoid API key validation in CI
     import valuecell.adapters.models.factory as factory_mod
-    monkeypatch.setattr(factory_mod, "create_model", lambda *args, **kwargs: "stub-model")
-    monkeypatch.setattr(factory_mod, "create_embedder", lambda *args, **kwargs: "stub-embedder")
+
+    monkeypatch.setattr(
+        factory_mod, "create_model", lambda *args, **kwargs: "stub-model"
+    )
+    monkeypatch.setattr(
+        factory_mod, "create_embedder", lambda *args, **kwargs: "stub-embedder"
+    )
 
     orch = AgentOrchestrator()
 
