@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from typing import Dict
 
@@ -14,11 +15,21 @@ class TaskManager:
     def __init__(self):
         # In-memory store keyed by task_id
         self._tasks: Dict[str, Task] = {}
+        # Process-local concurrency guard; protects in-memory state
+        self._lock = asyncio.Lock()
 
     # ---- basic registration ----
 
     async def update_task(self, task: Task) -> None:
         """Update task"""
+        async with self._lock:
+            self._update_task_no_lock(task)
+
+    def _update_task_no_lock(self, task: Task) -> None:
+        """Internal helper to write task to store without acquiring lock.
+
+        Callers must hold `_lock` before invoking this method.
+        """
         task.updated_at = datetime.now()
         self._tasks[task.task_id] = task
 
@@ -29,56 +40,61 @@ class TaskManager:
     # Task status management
     async def start_task(self, task_id: str) -> bool:
         """Start task execution"""
-        task = self._get_task(task_id)
-        if not task or task.status != TaskStatus.PENDING:
-            return False
+        async with self._lock:
+            task = self._get_task(task_id)
+            if not task or task.status != TaskStatus.PENDING:
+                return False
 
-        task.start()
-        await self.update_task(task)
-        return True
+            task.start()
+            self._update_task_no_lock(task)
+            return True
 
     async def complete_task(self, task_id: str) -> bool:
         """Complete task"""
-        task = self._get_task(task_id)
-        if not task or task.is_finished():
-            return False
+        async with self._lock:
+            task = self._get_task(task_id)
+            if not task or task.is_finished():
+                return False
 
-        task.complete()
-        await self.update_task(task)
-        return True
+            task.complete()
+            self._update_task_no_lock(task)
+            return True
 
     async def fail_task(self, task_id: str, error_message: str) -> bool:
         """Mark task as failed"""
-        task = self._get_task(task_id)
-        if not task or task.is_finished():
-            return False
+        async with self._lock:
+            task = self._get_task(task_id)
+            if not task or task.is_finished():
+                return False
 
-        task.fail(error_message)
-        await self.update_task(task)
-        return True
+            task.fail(error_message)
+            self._update_task_no_lock(task)
+            return True
 
     async def cancel_task(self, task_id: str) -> bool:
         """Cancel task"""
-        task = self._get_task(task_id)
-        if not task or task.is_finished():
-            return False
+        async with self._lock:
+            task = self._get_task(task_id)
+            if not task or task.is_finished():
+                return False
 
-        task.cancel()
-        await self.update_task(task)
-        return True
+            task.cancel()
+            self._update_task_no_lock(task)
+            return True
 
     # Batch operations
     async def cancel_conversation_tasks(self, conversation_id: str) -> int:
         """Cancel all unfinished tasks in a conversation"""
-        tasks = [
-            t for t in self._tasks.values() if t.conversation_id == conversation_id
-        ]
-        cancelled_count = 0
+        async with self._lock:
+            tasks = [
+                t for t in self._tasks.values() if t.conversation_id == conversation_id
+            ]
+            cancelled_count = 0
 
-        for task in tasks:
-            if not task.is_finished():
-                task.cancel()
-                await self.update_task(task)
-                cancelled_count += 1
+            for task in tasks:
+                if not task.is_finished():
+                    task.cancel()
+                    self._update_task_no_lock(task)
+                    cancelled_count += 1
 
-        return cancelled_count
+            return cancelled_count

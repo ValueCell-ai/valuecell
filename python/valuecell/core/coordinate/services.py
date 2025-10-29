@@ -16,6 +16,7 @@ from valuecell.core.event.service import EventResponseService
 from valuecell.core.plan.service import PlanService
 from valuecell.core.super_agent import SuperAgentService
 from valuecell.core.task.executor import TaskExecutor
+from valuecell.core.task.locator import get_task_service
 from valuecell.core.task.service import TaskService
 from valuecell.utils import resolve_db_path
 
@@ -67,7 +68,8 @@ class AgentServiceBundle:
         event_service = event_service or EventResponseService(
             conversation_service=conv_service
         )
-        t_service = TaskService()
+        # Prefer the process-local singleton for task service
+        t_service = get_task_service()
         p_service = plan_service or PlanService(connections)
         sa_service = super_agent_service or SuperAgentService()
         executor = task_executor or TaskExecutor(
