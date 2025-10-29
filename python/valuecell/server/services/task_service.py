@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from typing import List
+
 from valuecell.core.task.locator import get_task_service
 from valuecell.core.types import CommonResponseEvent, ComponentType
 from valuecell.server.api.schemas.task import TaskCancelData
@@ -15,9 +16,7 @@ class TaskApiService:
 
     def __init__(self) -> None:
         # Use core conversation service instead of direct store access
-        self.conversation_service = (
-            get_conversation_service().core_conversation_service
-        )
+        self.conversation_service = get_conversation_service().core_conversation_service
         self.task_service = get_task_service()
 
     async def cancel_and_update_component(self, task_id: str) -> TaskCancelData:
@@ -71,7 +70,9 @@ class TaskApiService:
                     # Save back via core conversation service using same item_id
                     # Preserve metadata by parsing original string into dict
                     try:
-                        metadata_dict = json.loads(item.metadata) if item.metadata else None
+                        metadata_dict = (
+                            json.loads(item.metadata) if item.metadata else None
+                        )
                     except Exception:
                         metadata_dict = None
 
