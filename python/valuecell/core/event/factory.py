@@ -558,6 +558,7 @@ class ResponseFactory:
             content=ScheduledTaskComponentContent(
                 task_id=task.task_id,
                 task_title=task.title,
+                task_status=task.status.value,
             ).model_dump_json(exclude_none=True),
             component_type=ComponentType.SCHEDULED_TASK_CONTROLLER.value,
             agent_name=task.agent_name,

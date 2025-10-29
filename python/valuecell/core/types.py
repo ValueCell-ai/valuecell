@@ -163,6 +163,7 @@ class ScheduledTaskComponentContent(BaseModel):
 
     task_id: Optional[str] = Field(None, description="The scheduled task ID")
     task_title: Optional[str] = Field(None, description="The scheduled task title")
+    task_status: Optional[str] = Field(None, description="The scheduled task status")
     result: Optional[str] = Field(None, description="The scheduled task result")
     create_time: Optional[str] = Field(
         None, description="The scheduled task created time"
