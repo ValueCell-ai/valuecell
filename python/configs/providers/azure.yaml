@@ -1,0 +1,215 @@
+# ============================================
+# Azure OpenAI Provider Configuration
+# ============================================
+name: "Azure OpenAI"
+provider_type: "azure"
+
+enabled: true # Default is true if not specified
+
+# Connection Configuration
+connection:
+  base_url: "https://<resource-name>.openai.azure.com"
+  api_key_env: "AZURE_OPENAI_API_KEY"
+
+# Default model if none specified
+default_model: "gpt-5"
+
+# Model Parameters Defaults
+defaults:
+  temperature: 0.7
+  max_tokens: 4096
+
+# Available Models
+models:
+  # GPT-5 Series - Latest flagship models
+  - id: "gpt-5"
+    name: "GPT-5"
+    context_length: 400000
+    max_output_tokens: 128000
+    description: "Most powerful reasoning model for complex tasks, analytics and code generation"
+    supported_inputs: ["text", "images"]
+    supported_outputs: ["text"]
+
+  - id: "gpt-5-mini"
+    name: "GPT-5 Mini"
+    context_length: 400000
+    max_output_tokens: 128000
+    description: "Lightweight reasoning model for real-time applications and agents"
+    supported_inputs: ["text", "images"]
+    supported_outputs: ["text"]
+
+  - id: "gpt-5-nano"
+    name: "GPT-5 Nano"
+    context_length: 400000
+    max_output_tokens: 128000
+    description: "Ultra-low latency reasoning model optimized for speed"
+    supported_inputs: ["text", "images"]
+    supported_outputs: ["text"]
+
+  - id: "gpt-5-chat"
+    name: "GPT-5 Chat"
+    context_length: 128000
+    max_output_tokens: 16384
+    description: "Natural, multimodal conversations with enhanced emotional intelligence"
+    supported_inputs: ["text", "images"]
+    supported_outputs: ["text"]
+
+  - id: "gpt-5-codex"
+    name: "GPT-5 Codex"
+    context_length: 400000
+    max_output_tokens: 128000
+    description: "Specialized coding model for software development tasks"
+    supported_inputs: ["text"]
+    supported_outputs: ["text"]
+
+  - id: "gpt-5-pro"
+    name: "GPT-5 Pro"
+    context_length: 400000
+    max_output_tokens: 128000
+    description: "Premium model with enhanced capabilities for enterprise use"
+    supported_inputs: ["text", "images"]
+    supported_outputs: ["text"]
+
+  # GPT-4.1 Series
+  - id: "gpt-4.1"
+    name: "GPT-4.1"
+    context_length: 128000
+    max_output_tokens: 4096
+    description: "Enhanced GPT-4 with improved reasoning and capabilities"
+    supported_inputs: ["text", "images"]
+    supported_outputs: ["text"]
+
+  - id: "gpt-4.1-mini"
+    name: "GPT-4.1 Mini"
+    context_length: 128000
+    max_output_tokens: 4096
+    description: "Compact version of GPT-4.1 for cost-effective applications"
+    supported_inputs: ["text", "images"]
+    supported_outputs: ["text"]
+
+  - id: "gpt-4.1-nano"
+    name: "GPT-4.1 Nano"
+    context_length: 128000
+    max_output_tokens: 4096
+    description: "Ultra-fast GPT-4.1 variant for low-latency use cases"
+    supported_inputs: ["text", "images"]
+    supported_outputs: ["text"]
+
+  # GPT-4o Series - Multimodal models
+  - id: "gpt-4o"
+    name: "GPT-4o"
+    context_length: 128000
+    max_output_tokens: 4096
+    description: "Multimodal model integrating text and images in a single model"
+    supported_inputs: ["text", "images"]
+    supported_outputs: ["text"]
+
+  - id: "gpt-4o-mini"
+    name: "GPT-4o Mini"
+    context_length: 128000
+    max_output_tokens: 4096
+    description: "Compact multimodal model for efficient processing"
+    supported_inputs: ["text", "images"]
+    supported_outputs: ["text"]
+
+  # GPT-4 Turbo
+  - id: "gpt-4-turbo"
+    name: "GPT-4 Turbo"
+    context_length: 128000
+    max_output_tokens: 4096
+    description: "High-performance GPT-4 with extended context window"
+    supported_inputs: ["text", "images"]
+    supported_outputs: ["text"]
+
+  - id: "gpt-4-turbo-preview"
+    name: "GPT-4 Turbo Preview"
+    context_length: 128000
+    max_output_tokens: 4096
+    description: "Preview version of GPT-4 Turbo with latest features"
+    supported_inputs: ["text", "images"]
+    supported_outputs: ["text"]
+
+  # GPT-4 Standard
+  - id: "gpt-4"
+    name: "GPT-4"
+    context_length: 8192
+    max_output_tokens: 4096
+    description: "Standard GPT-4 model for general-purpose tasks"
+    supported_inputs: ["text"]
+    supported_outputs: ["text"]
+
+  - id: "gpt-4-32k"
+    name: "GPT-4 32K"
+    context_length: 32768
+    max_output_tokens: 4096
+    description: "GPT-4 with extended 32K context window"
+    supported_inputs: ["text"]
+    supported_outputs: ["text"]
+
+  # GPT-3.5 Series
+  - id: "gpt-35-turbo"
+    name: "GPT-3.5 Turbo"
+    context_length: 4096
+    max_output_tokens: 4096
+    description: "Fast and efficient model for most conversational tasks"
+    supported_inputs: ["text"]
+    supported_outputs: ["text"]
+
+  - id: "gpt-35-turbo-16k"
+    name: "GPT-3.5 Turbo 16K"
+    context_length: 16384
+    max_output_tokens: 4096
+    description: "GPT-3.5 Turbo with extended context window"
+    supported_inputs: ["text"]
+    supported_outputs: ["text"]
+
+  # O-Series Reasoning Models
+  - id: "o1-preview"
+    name: "O1 Preview"
+    context_length: 128000
+    max_output_tokens: 32768
+    description: "Advanced reasoning model for complex problem-solving"
+    supported_inputs: ["text"]
+    supported_outputs: ["text"]
+
+  - id: "o1-mini"
+    name: "O1 Mini"
+    context_length: 128000
+    max_output_tokens: 65536
+    description: "Compact reasoning model for faster inference"
+    supported_inputs: ["text"]
+    supported_outputs: ["text"]
+
+# ============================================
+# Embedding Models Configuration
+# ============================================
+embedding:
+  # Default embedding model
+  default_model: "text-embedding-3-large"
+  
+  # Default parameters
+  defaults:
+    dimensions: 3072
+    encoding_format: "float"
+  
+  # Available embedding models
+  models:
+    - id: "text-embedding-3-large"
+      name: "Text Embedding 3 Large"
+      dimensions: 3072
+      max_input: 8191
+      supported_dimensions: [256, 1024, 3072]
+      description: "Most capable embedding model with flexible dimensions"
+
+    - id: "text-embedding-3-small"
+      name: "Text Embedding 3 Small"
+      dimensions: 1536
+      max_input: 8191
+      supported_dimensions: [512, 1536]
+      description: "Efficient embedding model with good performance"
+
+    - id: "text-embedding-ada-002"
+      name: "Text Embedding Ada 002"
+      dimensions: 1536
+      max_input: 8191
+      description: "Previous generation embedding model, still widely used"
