@@ -4,6 +4,8 @@
 name: "OpenRouter"
 provider_type: "openrouter"
 
+enabled: true # Default is true if not specified
+
 # Connection Configuration
 connection:
   base_url: "https://openrouter.ai/api/v1"

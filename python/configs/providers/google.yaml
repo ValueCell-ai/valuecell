@@ -4,6 +4,8 @@
 name: "Google"
 provider_type: "google"
 
+enabled: true # Default is true if not specified
+
 # Connection Configuration
 connection:
   base_url: "https://generativelanguage.googleapis.com/v1beta"

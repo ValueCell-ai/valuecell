@@ -4,6 +4,8 @@
 name: "SiliconFlow"
 provider_type: "siliconflow"
 
+enabled: true # Default is true if not specified
+
 # Connection Configuration
 connection:
   base_url: "https://api.siliconflow.cn/v1" # China domestic server
