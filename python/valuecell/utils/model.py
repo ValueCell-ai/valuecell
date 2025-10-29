@@ -57,7 +57,6 @@ def get_model(env_key: str, **kwargs):
     Raises:
         ValueError: If no provider is available or model creation fails
     """
-    from valuecell.adapters.models.factory import create_model
 
     # Check if environment variable specifies a model
     model_id = os.getenv(env_key)
