@@ -296,6 +296,7 @@ class ModelFactory:
         model_id: Optional[str] = None,
         provider: Optional[str] = None,
         use_fallback: bool = True,
+        provider_models: Optional[dict] = None,
         **kwargs,
     ):
         """
@@ -310,6 +311,8 @@ class ModelFactory:
             model_id: Specific model ID (optional, uses provider default)
             provider: Provider name (optional, uses primary_provider)
             use_fallback: Try fallback providers if primary fails
+            provider_models: Dict mapping provider names to model IDs for fallback
+                           e.g., {"siliconflow": "deepseek-ai/DeepSeek-V3.1-Terminus"}
             **kwargs: Additional arguments for model creation
 
         Returns:
@@ -323,8 +326,16 @@ class ModelFactory:
             >>> model = factory.create_model()  # Uses primary provider + default model
             >>> model = factory.create_model(provider="google")  # Specific provider
             >>> model = factory.create_model(model_id="gpt-4", provider="openrouter")
+            >>> # With provider-specific models
+            >>> model = factory.create_model(
+            ...     model_id="anthropic/claude-3.5-sonnet",
+            ...     provider="openrouter",
+            ...     provider_models={"siliconflow": "deepseek-ai/DeepSeek-V3.1-Terminus"}
+            ... )
         """
         provider = provider or self.config_manager.primary_provider
+        if provider_models is None:
+            provider_models = {}
 
         # Try primary provider
         try:
@@ -341,9 +352,29 @@ class ModelFactory:
                     continue  # Skip already tried provider
 
                 try:
+                    # Determine model ID for fallback provider
+                    fallback_model_id = model_id
+
+                    # Priority: provider_models > default_model
+                    if fallback_provider in provider_models:
+                        fallback_model_id = provider_models[fallback_provider]
+                        logger.info(
+                            f"Using provider-specific model for {fallback_provider}: {fallback_model_id}"
+                        )
+                    else:
+                        # Use provider's default model
+                        fallback_provider_config = (
+                            self.config_manager.get_provider_config(fallback_provider)
+                        )
+                        if fallback_provider_config:
+                            fallback_model_id = fallback_provider_config.default_model
+                            logger.info(
+                                f"Using default model for {fallback_provider}: {fallback_model_id}"
+                            )
+
                     logger.info(f"Trying fallback provider: {fallback_provider}")
                     return self._create_model_internal(
-                        model_id, fallback_provider, **kwargs
+                        fallback_model_id, fallback_provider, **kwargs
                     )
                 except Exception as fallback_error:
                     logger.warning(
@@ -435,11 +466,44 @@ class ModelFactory:
             f"model_id={model_config.model_id}, provider={model_config.provider}"
         )
 
+        # Check if specified provider is available (has API key)
+        provider = model_config.provider
+        model_id = model_config.model_id
+        is_valid, error_msg = self.config_manager.validate_provider(provider)
+
+        if not is_valid:
+            # If configured provider is not available, use primary provider instead
+            fallback_provider = self.config_manager.primary_provider
+            logger.warning(
+                f"Configured provider '{provider}' for agent '{agent_name}' is not available: {error_msg}. "
+                f"Falling back to primary provider: {fallback_provider}"
+            )
+            provider = fallback_provider
+
+            # Update model_id for the fallback provider
+            # Priority: provider_models[fallback_provider] > provider's default_model
+            if fallback_provider in model_config.provider_models:
+                model_id = model_config.provider_models[fallback_provider]
+                logger.info(
+                    f"Using provider-specific model for fallback: {fallback_provider} -> {model_id}"
+                )
+            else:
+                # Use provider's default model
+                provider_config = self.config_manager.get_provider_config(
+                    fallback_provider
+                )
+                if provider_config:
+                    model_id = provider_config.default_model
+                    logger.info(
+                        f"Using default model for fallback provider '{fallback_provider}': {model_id}"
+                    )
+
         # Create model
         return self.create_model(
-            model_id=model_config.model_id,
-            provider=model_config.provider,
+            model_id=model_id,
+            provider=provider,
             use_fallback=use_fallback,
+            provider_models=model_config.provider_models,
             **merged_params,
         )
 
@@ -470,9 +534,42 @@ class ModelFactory:
             logger.info(
                 f"Creating embedder for agent '{agent_name}': model_id={emb.model_id}, provider={emb.provider}, params={merged_params}"
             )
+
+            # Check if specified provider is available (has API key)
+            provider = emb.provider
+            model_id = emb.model_id
+            is_valid, error_msg = self.config_manager.validate_provider(provider)
+
+            if not is_valid:
+                # If configured provider is not available, use primary provider instead
+                fallback_provider = self.config_manager.primary_provider
+                logger.warning(
+                    f"Configured embedding provider '{provider}' for agent '{agent_name}' is not available: {error_msg}. "
+                    f"Falling back to primary provider: {fallback_provider}"
+                )
+                provider = fallback_provider
+
+                # Update model_id for the fallback provider
+                # Priority: provider_models[fallback_provider] > provider's default_embedding_model
+                if fallback_provider in emb.provider_models:
+                    model_id = emb.provider_models[fallback_provider]
+                    logger.info(
+                        f"Using provider-specific embedding model for fallback: {fallback_provider} -> {model_id}"
+                    )
+                else:
+                    # Use provider's default embedding model
+                    provider_config = self.config_manager.get_provider_config(
+                        fallback_provider
+                    )
+                    if provider_config and provider_config.default_embedding_model:
+                        model_id = provider_config.default_embedding_model
+                        logger.info(
+                            f"Using default embedding model for fallback provider '{fallback_provider}': {model_id}"
+                        )
+
             return self.create_embedder(
-                model_id=emb.model_id or None,
-                provider=emb.provider,
+                model_id=model_id or None,
+                provider=provider,
                 use_fallback=use_fallback,
                 **merged_params,
             )
@@ -483,9 +580,21 @@ class ModelFactory:
         logger.info(
             f"Creating embedder for agent '{agent_name}' using primary provider: {primary.provider}"
         )
+
+        # Check if primary provider is available
+        provider = primary.provider
+        is_valid, error_msg = self.config_manager.validate_provider(provider)
+
+        if not is_valid:
+            logger.warning(
+                f"Primary provider '{provider}' for agent '{agent_name}' is not available: {error_msg}. "
+                f"Using system primary provider: {self.config_manager.primary_provider}"
+            )
+            provider = self.config_manager.primary_provider
+
         return self.create_embedder(
             model_id=None,
-            provider=primary.provider,
+            provider=provider,
             use_fallback=use_fallback,
             **merged_params,
         )

@@ -11,6 +11,10 @@ models:
   primary:
     model_id: "google/gemini-2.5-flash"
     provider: "openrouter"
+    # Provider-specific model mappings for fallback
+    provider_models:
+      siliconflow: "Qwen/Qwen3-235B-A22B-Thinking-2507"
+      google: "gemini-2.5-flash"
     parameters:
       # temperature: 0.7
       # max_tokens: 8192
@@ -19,7 +23,10 @@ models:
   # Note: If not specified, will auto-select from available providers
   embedding:
     model_id: "Qwen/Qwen3-Embedding-4B"  # Optional, uses provider default
-    provider: "siliconflow"  # Optional, auto-detects if not specified
+    provider: "siliconflow"  # Must explicitly specify provider
+    # Provider-specific embedding model mappings for fallback
+    provider_models:
+      google: "gemini-embedding-001"
     parameters:
       dimensions: ${EMBEDDER_DIMENSION:2560}
       # encoding_format: "float"

@@ -47,11 +47,19 @@ class ProviderConfig:
 
 @dataclass
 class AgentModelConfig:
-    """Agent model configuration"""
+    """Agent model configuration with provider-specific model mappings"""
 
     model_id: str
     provider: str
     parameters: Dict[str, Any]
+    # Provider-specific model mappings for fallback
+    # e.g., {"siliconflow": "deepseek-ai/DeepSeek-V3.1-Terminus", "google": "gemini-2.0-flash"}
+    provider_models: Optional[Dict[str, str]] = None
+
+    def __post_init__(self):
+        """Initialize default values for optional fields"""
+        if self.provider_models is None:
+            self.provider_models = {}
 
 
 @dataclass
@@ -149,12 +157,33 @@ class ConfigManager:
 
     @property
     def fallback_providers(self) -> List[str]:
-        """Get fallback provider chain"""
-        # Can be overridden by FALLBACK_PROVIDERS env var (comma-separated)
+        """Get fallback provider chain
+
+        Returns all enabled providers with valid API keys except the primary provider.
+        Can be overridden by FALLBACK_PROVIDERS env var (comma-separated).
+
+        Priority:
+        1. FALLBACK_PROVIDERS env var (explicit override)
+        2. All enabled providers with valid API keys except primary (auto-detected)
+        """
+        # 1. Can be overridden by FALLBACK_PROVIDERS env var (comma-separated)
         env_fallbacks = os.getenv("FALLBACK_PROVIDERS")
         if env_fallbacks:
+            logger.debug(f"Using fallback providers from env: {env_fallbacks}")
             return [p.strip() for p in env_fallbacks.split(",")]
-        return self._config.get("models", {}).get("fallback_providers", [])
+
+        # 2. Auto-load enabled providers (with valid API keys) except primary
+        primary = self.primary_provider
+        enabled_providers = self.get_enabled_providers()
+
+        # Filter out the primary provider and return others
+        fallbacks = [p for p in enabled_providers if p != primary]
+
+        logger.debug(
+            f"Auto-loaded fallback providers: {fallbacks} "
+            f"(enabled: {enabled_providers}, primary: {primary})"
+        )
+        return fallbacks
 
     def get_provider_config(
         self, provider_name: Optional[str] = None
@@ -278,18 +307,26 @@ class ConfigManager:
         global_defaults = global_models.get("defaults") or {}
         merged_params = {**global_defaults, **parameters}
 
+        # Get provider-specific model mappings
+        provider_models = primary.get("provider_models", {})
+
         primary_model = AgentModelConfig(
-            model_id=model_id or "", provider=provider, parameters=merged_params
+            model_id=model_id or "",
+            provider=provider,
+            parameters=merged_params,
+            provider_models=provider_models,
         )
 
         # Extract embedding model config if present
         embedding_model = None
         embedding_data = models.get("embedding")
         if embedding_data:
+            embedding_provider_models = embedding_data.get("provider_models", {})
             embedding_model = AgentModelConfig(
                 model_id=embedding_data.get("model_id", ""),
                 provider=embedding_data.get("provider", "openai"),
                 parameters=embedding_data.get("parameters", {}),
+                provider_models=embedding_provider_models,
             )
 
         # Extract API keys

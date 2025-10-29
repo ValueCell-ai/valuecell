@@ -15,10 +15,14 @@ enabled: true
 models:
   primary:
     model_id: "deepseek/deepseek-v3.1-terminus"
-    provider: openrouter
+    provider: "openrouter"  # Must explicitly specify provider (not null)
+    # Provider-specific model mappings for fallback
+    provider_models:
+      openrouter: "anthropic/claude-haiku-4.5"  # Fast and reasoning capable
+      google: "gemini-2.5-flash"  # Fast and efficient
     parameters:
-      temperature: 0.5
-      max_tokens: 2048
+      # temperature: 0.5
+      # max_tokens: 2048
 
 # Environment Variable Overrides
 # Format: ENV_VAR_NAME -> config.path
