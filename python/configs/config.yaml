@@ -30,6 +30,10 @@ models:
     google:
       config_file: "providers/google.yaml"
       api_key_env: "GOOGLE_API_KEY"
+    
+    openai:
+      config_file: "providers/openai.yaml"
+      api_key_env: "OPENAI_API_KEY"
 
 # Agent Configuration
 agents:

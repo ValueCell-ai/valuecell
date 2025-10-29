@@ -252,6 +252,61 @@ class SiliconFlowProvider(ModelProvider):
         )
 
 
+class OpenAIProvider(ModelProvider):
+    """OpenAI model provider"""
+
+    def create_model(self, model_id: Optional[str] = None, **kwargs):
+        """Create OpenAI model via agno"""
+        try:
+            from agno.models.openai import OpenAIChat
+        except ImportError:
+            raise ImportError(
+                "agno package not installed. Install with: pip install agno"
+            )
+
+        model_id = model_id or self.config.default_model
+        params = {**self.config.parameters, **kwargs}
+
+        logger.info(f"Creating OpenAI model: {model_id}")
+
+        return OpenAIChat(
+            id=model_id,
+            api_key=self.config.api_key,
+            temperature=params.get("temperature"),
+            max_tokens=params.get("max_tokens"),
+            top_p=params.get("top_p"),
+            frequency_penalty=params.get("frequency_penalty"),
+            presence_penalty=params.get("presence_penalty"),
+        )
+
+    def create_embedder(self, model_id: Optional[str] = None, **kwargs):
+        """Create embedder via OpenAI"""
+        try:
+            from agno.knowledge.embedder.openai import OpenAIEmbedder
+        except ImportError:
+            raise ImportError("agno package not installed")
+
+        # Use provided model_id or default embedding model
+        model_id = model_id or self.config.default_embedding_model
+
+        if not model_id:
+            raise ValueError(
+                f"No embedding model specified for provider '{self.config.name}'"
+            )
+
+        # Merge parameters: provider embedding defaults < kwargs
+        params = {**self.config.embedding_parameters, **kwargs}
+
+        logger.info(f"Creating OpenAI embedder: {model_id}")
+
+        return OpenAIEmbedder(
+            id=model_id,
+            api_key=self.config.api_key,
+            dimensions=params.get("dimensions"),
+            encoding_format=params.get("encoding_format", "float"),
+        )
+
+
 class ModelFactory:
     """
     Factory for creating model instances with provider abstraction
@@ -269,6 +324,7 @@ class ModelFactory:
         "google": GoogleProvider,
         "azure": AzureProvider,
         "siliconflow": SiliconFlowProvider,
+        "openai": OpenAIProvider,
     }
 
     def __init__(self, config_manager: Optional[ConfigManager] = None):

@@ -132,6 +132,7 @@ class ConfigManager:
                     "openrouter",
                     "siliconflow",
                     "google",
+                    "openai",
                 ]
 
                 for preferred in preferred_order:
