@@ -49,5 +49,6 @@ Rules:
 - When decision == "answer": include a short `answer_content` and skip `enriched_query`.
 - When decision == "handoff_to_planner": prefer including `enriched_query` that preserves the user intent.
 - Keep `reason` short and helpful.
+- Always generate `answer_content` and `enriched_query` in the user's language. Detect language from the user's query if no explicit locale is provided.
 </response_requirements>
 """
