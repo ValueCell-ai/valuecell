@@ -337,7 +337,6 @@ class TestTaskManager:
                 task4.status == TaskStatus.RUNNING
             )  # Different conversation, unchanged
 
-
     @pytest.mark.asyncio
     async def test_cancel_conversation_tasks_no_tasks(self):
         """Test cancel_conversation_tasks with no tasks in conversation."""
