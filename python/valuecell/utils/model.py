@@ -26,11 +26,14 @@ logger = logging.getLogger(__name__)
 
 
 def model_should_use_json_mode(model: AgnoModel) -> bool:
-    if (
-        model.provider == AgnoGeminiModel.provider
-        and model.name == AgnoGeminiModel.name
-    ):
-        return True
+    try:
+        provider = getattr(model, "provider", None)
+        name = getattr(model, "name", None)
+        if provider == AgnoGeminiModel.provider and name == AgnoGeminiModel.name:
+            return True
+    except Exception:
+        # Any unexpected condition falls back to standard (non-JSON) mode
+        return False
     return False
 
 
