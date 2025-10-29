@@ -13,6 +13,12 @@ import logging
 import os
 from typing import Optional
 
+from valuecell.adapters.models.factory import (
+    create_embedder,
+    create_model,
+    create_model_for_agent,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -108,7 +114,6 @@ def get_model_for_agent(agent_name: str, **kwargs):
     Raises:
         ValueError: If agent configuration not found or model creation fails
     """
-    from valuecell.adapters.models.factory import create_model_for_agent
 
     try:
         return create_model_for_agent(agent_name, **kwargs)
@@ -146,7 +151,6 @@ def create_model_with_provider(provider: str, model_id: Optional[str] = None, **
     Raises:
         ValueError: If provider not found or not configured
     """
-    from valuecell.adapters.models.factory import create_model
 
     return create_model(
         model_id=model_id,
@@ -202,8 +206,6 @@ def get_embedder(env_key: str = "EMBEDDER_MODEL_ID", **kwargs):
     Raises:
         ValueError: If no provider with embedding support is available
     """
-    from valuecell.adapters.models.factory import create_embedder
-
     # Check if environment variable specifies a model
     model_id = os.getenv(env_key)
 
@@ -260,7 +262,6 @@ def create_embedder_with_provider(
     Raises:
         ValueError: If provider not found or doesn't support embeddings
     """
-    from valuecell.adapters.models.factory import create_embedder
 
     return create_embedder(
         model_id=model_id,
