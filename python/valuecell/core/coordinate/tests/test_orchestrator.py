@@ -190,6 +190,12 @@ def _orchestrator(
     mock_planner: Mock,
     monkeypatch: pytest.MonkeyPatch,
 ) -> AgentOrchestrator:
+    # Mock get_model to avoid API key validation in CI - must be done first
+    import valuecell.utils.model as model_mod
+
+    monkeypatch.setattr(model_mod, "get_model", lambda _: "stub-model")
+    monkeypatch.setattr(model_mod, "get_model_for_agent", lambda _: "stub-model")
+
     agent_connections = Mock(spec=RemoteConnections)
     agent_connections.get_client = AsyncMock()
     agent_connections.start_agent = AsyncMock()
@@ -200,7 +206,13 @@ def _orchestrator(
     plan_service = PlanService(
         agent_connections=agent_connections, execution_planner=mock_planner
     )
-    super_agent_service = SuperAgentService()
+
+    # Create mock SuperAgent to avoid real model initialization
+    mock_super_agent = Mock()
+    mock_super_agent.name = "ValueCellAgent"
+    mock_super_agent.run = AsyncMock()
+    super_agent_service = SuperAgentService(super_agent=mock_super_agent)
+
     task_executor = TaskExecutor(
         agent_connections=agent_connections,
         task_service=task_service,

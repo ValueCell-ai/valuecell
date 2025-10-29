@@ -134,7 +134,11 @@ async def test_create_plan_raises_on_inadequate_plan(monkeypatch: pytest.MonkeyP
     assert plan.guidance_message
 
 
-def test_tool_get_enabled_agents_formats_cards():
+def test_tool_get_enabled_agents_formats_cards(monkeypatch: pytest.MonkeyPatch):
+    # Mock get_model to avoid API key validation in CI
+    monkeypatch.setattr(planner_mod, "get_model", lambda _: "stub-model")
+    monkeypatch.setattr(planner_mod, "agent_debug_mode_enabled", lambda: False)
+
     skill = SimpleNamespace(
         name="Lookup",
         id="lookup",
