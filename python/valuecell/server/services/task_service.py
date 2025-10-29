@@ -4,20 +4,20 @@ from __future__ import annotations
 
 import json
 from typing import List
-
-from valuecell.core.conversation import SQLiteItemStore
 from valuecell.core.task.locator import get_task_service
-from valuecell.core.types import CommonResponseEvent, ComponentType, ConversationItem
+from valuecell.core.types import CommonResponseEvent, ComponentType
 from valuecell.server.api.schemas.task import TaskCancelData
-from valuecell.utils import resolve_db_path
+from valuecell.server.services.conversation_service import get_conversation_service
 
 
 class TaskApiService:
     """Orchestrates task cancellation and related conversation component updates."""
 
     def __init__(self) -> None:
-        db_path = resolve_db_path()
-        self.item_store = SQLiteItemStore(db_path=db_path)
+        # Use core conversation service instead of direct store access
+        self.conversation_service = (
+            get_conversation_service().core_conversation_service
+        )
         self.task_service = get_task_service()
 
     async def cancel_and_update_component(self, task_id: str) -> TaskCancelData:
@@ -34,7 +34,7 @@ class TaskApiService:
         updated_ids: List[str] = []
         if cancelled:
             # Fetch all controller components, filter by task_id, update payload
-            items = await self.item_store.get_items(
+            items = await self.conversation_service.get_conversation_items(
                 event=CommonResponseEvent.COMPONENT_GENERATOR.value,
                 component_type=ComponentType.SCHEDULED_TASK_CONTROLLER.value,
             )
@@ -68,19 +68,24 @@ class TaskApiService:
                     content_obj["task_status"] = "cancelled"
                     payload_obj["content"] = json.dumps(content_obj, ensure_ascii=False)
 
-                    # Save back to store using same item_id (INSERT OR REPLACE)
-                    updated_item = ConversationItem(
-                        item_id=item.item_id,
+                    # Save back via core conversation service using same item_id
+                    # Preserve metadata by parsing original string into dict
+                    try:
+                        metadata_dict = json.loads(item.metadata) if item.metadata else None
+                    except Exception:
+                        metadata_dict = None
+
+                    await self.conversation_service.add_item(
                         role=item.role,
                         event=item.event,
                         conversation_id=item.conversation_id,
                         thread_id=item.thread_id,
                         task_id=item.task_id,
                         payload=json.dumps(payload_obj, ensure_ascii=False),
+                        item_id=item.item_id,
                         agent_name=item.agent_name,
-                        metadata=item.metadata,
+                        metadata=metadata_dict,
                     )
-                    await self.item_store.save_item(updated_item)
                     updated_ids.append(item.item_id)
                 except Exception:
                     # Skip broken payloads; continue updating others
