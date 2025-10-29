@@ -25,7 +25,7 @@ def create_task_router() -> APIRouter:
         try:
             service = TaskApiService()
             data = await service.cancel_and_update_component(task_id=task_id)
-            if not data.cancelled:
+            if not data.success:
                 # If the task could not be cancelled, return 400 with reason
                 raise HTTPException(
                     status_code=400, detail="Task is not cancellable or not found"
