@@ -52,9 +52,8 @@ capabilities:
 advanced:
   # Debug mode (can be overridden by AGENT_DEBUG_MODE env var)
   debug_mode: false
-  
+
   # Output format
-  use_json_mode: true
   markdown: false
   
   # Context settings
