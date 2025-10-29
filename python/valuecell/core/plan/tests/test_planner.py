@@ -69,7 +69,7 @@ async def test_create_plan_handles_paused_run(monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(planner_mod, "Agent", FakeAgent)
     monkeypatch.setattr(
-        model_utils_mod, "create_model", lambda *args, **kwargs: "stub-model"
+        model_utils_mod, "get_model_for_agent", lambda *args, **kwargs: "stub-model"
     )
     monkeypatch.setattr(planner_mod, "agent_debug_mode_enabled", lambda: False)
 
@@ -120,7 +120,7 @@ async def test_create_plan_raises_on_inadequate_plan(monkeypatch: pytest.MonkeyP
 
     monkeypatch.setattr(planner_mod, "Agent", FakeAgent)
     monkeypatch.setattr(
-        model_utils_mod, "create_model", lambda *args, **kwargs: "stub-model"
+        model_utils_mod, "get_model_for_agent", lambda *args, **kwargs: "stub-model"
     )
     monkeypatch.setattr(planner_mod, "agent_debug_mode_enabled", lambda: False)
 
@@ -142,7 +142,7 @@ async def test_create_plan_raises_on_inadequate_plan(monkeypatch: pytest.MonkeyP
 def test_tool_get_enabled_agents_formats_cards(monkeypatch: pytest.MonkeyPatch):
     # Mock create_model to avoid API key validation in CI
     monkeypatch.setattr(
-        model_utils_mod, "create_model", lambda *args, **kwargs: "stub-model"
+        model_utils_mod, "get_model_for_agent", lambda *args, **kwargs: "stub-model"
     )
     monkeypatch.setattr(planner_mod, "agent_debug_mode_enabled", lambda: False)
 

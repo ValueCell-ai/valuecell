@@ -17,8 +17,8 @@ Configuration Priority (highest to lowest):
 from agno.vectordb.lancedb import LanceDb
 from agno.vectordb.search import SearchType
 
+import valuecell.utils.model as model_utils_mod
 from valuecell.utils.db import resolve_lancedb_uri
-from valuecell.utils.model import get_embedder
 
 # Create embedder using the configuration system
 # This will:
@@ -26,7 +26,7 @@ from valuecell.utils.model import get_embedder
 # - Auto-select provider with embedding support (e.g., SiliconFlow if SILICONFLOW_API_KEY is set)
 # - Use provider's default embedding model if not specified
 # - Fall back to other providers if primary fails
-embedder = get_embedder("EMBEDDER_MODEL_ID")
+embedder = model_utils_mod.get_embedder_for_agent("research_agent")
 
 # Alternative usage examples:
 # embedder = get_embedder()  # Use default env key

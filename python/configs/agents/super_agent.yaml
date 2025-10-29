@@ -23,10 +23,6 @@ models:
     model_id: "anthropic/claude-haiku-4.5"
     provider: "openrouter"  # Can be: openrouter, siliconflow, or null (uses system primary_provider)
 
-
-
-  
-
 # Environment Variable Overrides
 # Format: ENV_VAR_NAME -> config.path
 # These allow runtime configuration through environment variables
@@ -56,9 +52,8 @@ capabilities:
 advanced:
   # Debug mode (can be overridden by AGENT_DEBUG_MODE env var)
   debug_mode: false
-  
+
   # Output format
-  use_json_mode: true
   markdown: false
   
   # Context settings

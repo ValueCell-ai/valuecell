@@ -20,7 +20,7 @@ async def test_orchestrator_buffer_store_e2e(tmp_path, monkeypatch):
         factory_mod, "create_embedder", lambda *args, **kwargs: "stub-embedder"
     )
     monkeypatch.setattr(
-        model_utils_mod, "create_model", lambda *args, **kwargs: "stub-model"
+        model_utils_mod, "get_model_for_agent", lambda *args, **kwargs: "stub-model"
     )
     monkeypatch.setattr(
         model_utils_mod, "create_embedder", lambda *args, **kwargs: "stub-embedder"

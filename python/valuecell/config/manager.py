@@ -271,10 +271,11 @@ class ConfigManager:
                 model_id = provider_config.default_model
 
         # Get parameters
-        parameters = primary.get("parameters", {})
+        parameters = primary.get("parameters") or {}
 
         # Merge with global defaults
-        global_defaults = self._config.get("models", {}).get("defaults", {})
+        global_models = self._config.get("models") or {}
+        global_defaults = global_models.get("defaults") or {}
         merged_params = {**global_defaults, **parameters}
 
         primary_model = AgentModelConfig(

@@ -19,12 +19,12 @@ from a2a.types import AgentCard
 from agno.agent import Agent
 from agno.db.in_memory import InMemoryDb
 
+import valuecell.utils.model as model_utils_mod
 from valuecell.core.agent.connect import RemoteConnections
 from valuecell.core.task.models import Task, TaskStatus
 from valuecell.core.types import UserInput
 from valuecell.utils import generate_uuid
 from valuecell.utils.env import agent_debug_mode_enabled
-from valuecell.utils.model import get_model
 from valuecell.utils.uuid import generate_conversation_id
 
 from .models import ExecutionPlan, PlannerInput, PlannerResponse
@@ -88,8 +88,10 @@ class ExecutionPlanner:
         agent_connections: RemoteConnections,
     ):
         self.agent_connections = agent_connections
+        # Fetch model via utils module reference so tests can monkeypatch it reliably
+        model = model_utils_mod.get_model_for_agent("super_agent")
         self.planner_agent = Agent(
-            model=get_model("PLANNER_MODEL_ID"),
+            model=model,
             tools=[
                 # TODO: enable UserControlFlowTools when stable
                 # UserControlFlowTools(),
@@ -101,6 +103,7 @@ class ExecutionPlanner:
             markdown=False,
             output_schema=PlannerResponse,
             expected_output=PLANNER_EXPECTED_OUTPUT,
+            use_json_mode=model_utils_mod.model_should_use_json_mode(model),
             # context
             db=InMemoryDb(),
             add_datetime_to_context=True,
