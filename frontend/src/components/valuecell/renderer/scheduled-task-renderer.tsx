@@ -4,7 +4,6 @@ import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import type { ScheduledTaskRendererProps } from "@/types/renderer";
 import styles from "./index.module.css";
-import MarkdownRenderer from "./markdown-renderer";
 
 const ScheduledTaskRenderer: FC<ScheduledTaskRendererProps> = ({
   content,
@@ -21,9 +20,7 @@ const ScheduledTaskRenderer: FC<ScheduledTaskRendererProps> = ({
       onClick={() => onOpen?.(result)}
     >
       {/* content */}
-      <div className="relative z-10 max-h-24 w-full overflow-hidden">
-        <MarkdownRenderer content={result} />
-      </div>
+      <div className="relative z-10 line-clamp-2 w-full">{result}</div>
 
       <p className="whitespace-nowrap text-right text-gray-400 text-xs">
         {TimeUtils.fromUTC(create_time).format(TIME_FORMATS.DATETIME_SHORT)}
