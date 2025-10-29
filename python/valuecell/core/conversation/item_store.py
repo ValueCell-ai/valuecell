@@ -215,7 +215,7 @@ class SQLiteItemStore(ItemStore):
 
         where = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
 
-        sql = f"SELECT * FROM conversation_items {where} ORDER BY datetime(created_at) DESC"
+        sql = f"SELECT * FROM conversation_items {where} ORDER BY datetime(created_at) ASC"
         if limit is not None:
             sql += " LIMIT ?"
             params.append(int(limit))
