@@ -186,7 +186,10 @@ async def test_create_plan_handles_malformed_response(monkeypatch: pytest.Monkey
             )
 
     monkeypatch.setattr(planner_mod, "Agent", FakeAgent)
-    monkeypatch.setattr(planner_mod, "get_model", lambda _: "stub-model")
+    # Use utils module API for model stubbing per planner implementation
+    monkeypatch.setattr(
+        model_utils_mod, "get_model_for_agent", lambda *args, **kwargs: "stub-model"
+    )
     monkeypatch.setattr(planner_mod, "agent_debug_mode_enabled", lambda: False)
 
     planner = ExecutionPlanner(StubConnections())
@@ -209,12 +212,18 @@ async def test_create_plan_handles_malformed_response(monkeypatch: pytest.Monkey
     assert malformed_content in plan.guidance_message
 
 
-def test_tool_get_agent_description_dict_and_missing():
+def test_tool_get_agent_description_dict_and_missing(monkeypatch: pytest.MonkeyPatch):
     """Cover dict formatting branch and not-found fallback in agent description."""
 
     class Conn(StubConnections):
         def __init__(self):
             super().__init__({"DictAgent": {"name": "DictAgent", "desc": "d"}})
+
+    # Avoid real model creation in planner __init__
+    monkeypatch.setattr(
+        model_utils_mod, "get_model_for_agent", lambda *args, **kwargs: "stub-model"
+    )
+    monkeypatch.setattr(planner_mod, "agent_debug_mode_enabled", lambda: False)
 
     planner = ExecutionPlanner(Conn())
 
