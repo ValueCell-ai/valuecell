@@ -213,6 +213,14 @@ class ExecutionPlanner:
 
         # Parse planning result and create tasks
         plan_raw = run_response.content
+        if not isinstance(plan_raw, PlannerResponse):
+            return (
+                [],
+                (
+                    f"Planner produced a malformed response: `{plan_raw}`. "
+                    "Please check your model capabilities and try again later."
+                ),
+            )
         logger.info(f"Planner produced plan: {plan_raw}")
 
         # Check if plan is inadequate or has no tasks
