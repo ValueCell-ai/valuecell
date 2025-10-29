@@ -13,6 +13,8 @@ from valuecell.core.conversation.service import (
 from valuecell.core.event.factory import ResponseFactory
 from valuecell.core.types import CommonResponseEvent, ComponentType
 from valuecell.server.api.schemas.conversation import (
+    AgentScheduledTaskResults,
+    AllConversationsScheduledTaskData,
     ConversationDeleteData,
     ConversationHistoryData,
     ConversationHistoryItem,
@@ -179,6 +181,81 @@ class ConversationService:
         return ConversationHistoryData(
             conversation_id=conversation_id, items=history_items
         )
+
+    async def get_all_conversations_scheduled_task_results(
+        self, user_id: Optional[str] = None
+    ) -> AllConversationsScheduledTaskData:
+        """Get scheduled task results from all conversations, grouped by agent name."""
+        # Get all conversations
+        conversations = await self.conversation_manager.list_user_conversations(
+            user_id=user_id
+        )
+
+        # Dictionary to group results by agent name and track latest message times
+        agent_results = {}
+        agent_latest_times = {}
+
+        # Process each conversation
+        for conversation in conversations:
+            # Get conversation items
+            conversation_items = await self.conversation_manager.get_conversation_items(
+                conversation.conversation_id
+            )
+
+            # Filter for scheduled task results
+            # Note: ConversationItem.payload is a JSON string, not an object
+            scheduled_task_items = []
+            for item in conversation_items:
+                if (
+                    hasattr(item, "event")
+                    and item.event == CommonResponseEvent.COMPONENT_GENERATOR
+                ):
+                    # Parse the payload JSON string to check component_type
+                    try:
+                        import json
+
+                        payload_data = json.loads(item.payload)
+                        if (
+                            payload_data.get("component_type")
+                            == ComponentType.SCHEDULED_TASK_RESULT
+                        ):
+                            scheduled_task_items.append(item)
+                    except (json.JSONDecodeError, AttributeError):
+                        # Skip items with invalid payload
+                        continue
+
+            # Convert to history items and group by agent
+            for item in scheduled_task_items:
+                # Convert ConversationItem to BaseResponse first
+                response = self.response_factory.from_conversation_item(item)
+                history_item = self._convert_response_to_history_item(response)
+                agent_name = conversation.agent_name or "Unknown Agent"
+
+                if agent_name not in agent_results:
+                    agent_results[agent_name] = []
+                    agent_latest_times[agent_name] = None
+
+                agent_results[agent_name].append(history_item)
+
+                # Get the latest message time for this agent from the conversation
+                # We'll use the conversation's updated_at as a proxy for the latest message time
+                if (
+                    agent_latest_times[agent_name] is None
+                    or conversation.updated_at > agent_latest_times[agent_name]
+                ):
+                    agent_latest_times[agent_name] = conversation.updated_at
+
+        # Convert to response format with latest message times
+        agents = [
+            AgentScheduledTaskResults(
+                agent_name=agent_name,
+                results=results,
+                update_time=agent_latest_times[agent_name],
+            )
+            for agent_name, results in agent_results.items()
+        ]
+
+        return AllConversationsScheduledTaskData(agents=agents)
 
     async def delete_conversation(self, conversation_id: str) -> ConversationDeleteData:
         """Delete a conversation and all its associated data."""
