@@ -96,10 +96,10 @@ function Stock() {
     if (!stockPriceData) return null;
 
     const currentPrice = parseFloat(
-      stockPriceData.price_formatted.replace(/[^0-9.-]/g, ""),
+      stockPriceData.price_formatted?.replace(/[^0-9.-]/g, ""),
     );
     const changePercent = parseFloat(
-      stockPriceData.change_percent_formatted.replace(/[^0-9.-]/g, ""),
+      stockPriceData.change_percent_formatted?.replace(/[^0-9.-]/g, ""),
     );
 
     // Use display name from detail data if available, otherwise use ticker
