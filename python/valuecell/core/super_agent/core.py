@@ -4,7 +4,6 @@ from typing import Optional
 
 from agno.agent import Agent
 from agno.db.in_memory import InMemoryDb
-from loguru import logger
 from pydantic import BaseModel, Field
 
 from valuecell.core.super_agent.prompts import (
@@ -13,7 +12,7 @@ from valuecell.core.super_agent.prompts import (
 )
 from valuecell.core.types import UserInput
 from valuecell.utils.env import agent_debug_mode_enabled
-from valuecell.utils.model import get_model, get_model_for_agent
+from valuecell.utils.model import get_model_for_agent, model_should_use_json_mode
 
 
 class SuperAgentDecision(str, Enum):
@@ -46,15 +45,7 @@ class SuperAgent:
     def __init__(self) -> None:
         # Try to use super_agent specific configuration first,
         # fallback to PLANNER_MODEL_ID for backward compatibility
-        try:
-            model = get_model_for_agent("super_agent")
-        except Exception:
-            # Fallback to old behavior for backward compatibility
-            logger.exception(
-                "Failed to create model for super_agent, falling back to PLANNER_MODEL_ID"
-            )
-            model = get_model("PLANNER_MODEL_ID")
-
+        model = get_model_for_agent("super_agent")
         self.agent = Agent(
             model=model,
             # TODO: enable tools when needed
@@ -65,6 +56,7 @@ class SuperAgent:
             # output format
             expected_output=SUPER_AGENT_EXPECTED_OUTPUT,
             output_schema=SuperAgentOutcome,
+            use_json_mode=model_should_use_json_mode(model),
             # context
             db=InMemoryDb(),
             add_datetime_to_context=True,

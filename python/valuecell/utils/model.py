@@ -13,6 +13,9 @@ import logging
 import os
 from typing import Optional
 
+from agno.models.base import Model as AgnoModel
+from agno.models.google import Gemini as AgnoGeminiModel
+
 from valuecell.adapters.models.factory import (
     create_embedder,
     create_model,
@@ -20,6 +23,15 @@ from valuecell.adapters.models.factory import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def model_should_use_json_mode(model: AgnoModel) -> bool:
+    if (
+        model.provider == AgnoGeminiModel.provider
+        and model.name == AgnoGeminiModel.name
+    ):
+        return True
+    return False
 
 
 def get_model(env_key: str, **kwargs):
