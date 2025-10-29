@@ -23,14 +23,15 @@ class TaskManager:
     async def update_task(self, task: Task) -> None:
         """Update task"""
         async with self._lock:
+            # Explicit updates should refresh updated_at
+            task.updated_at = datetime.now()
             self._update_task_no_lock(task)
 
     def _update_task_no_lock(self, task: Task) -> None:
-        """Internal helper to write task to store without acquiring lock.
+        """Write task to store without modifying timestamps.
 
         Callers must hold `_lock` before invoking this method.
         """
-        task.updated_at = datetime.now()
         self._tasks[task.task_id] = task
 
     # ---- internal helpers ----
