@@ -1,10 +1,10 @@
 import asyncio
-import logging
 from enum import Enum
 from typing import Optional
 
 from agno.agent import Agent
 from agno.db.in_memory import InMemoryDb
+from loguru import logger
 from pydantic import BaseModel, Field
 
 from valuecell.core.super_agent.prompts import (
@@ -14,8 +14,6 @@ from valuecell.core.super_agent.prompts import (
 from valuecell.core.types import UserInput
 from valuecell.utils.env import agent_debug_mode_enabled
 from valuecell.utils.model import get_model, get_model_for_agent
-
-logger = logging.getLogger(__name__)
 
 
 class SuperAgentDecision(str, Enum):
@@ -52,7 +50,7 @@ class SuperAgent:
             model = get_model_for_agent("super_agent")
         except Exception:
             # Fallback to old behavior for backward compatibility
-            logger.warning(
+            logger.exception(
                 "Failed to create model for super_agent, falling back to PLANNER_MODEL_ID"
             )
             model = get_model("PLANNER_MODEL_ID")
