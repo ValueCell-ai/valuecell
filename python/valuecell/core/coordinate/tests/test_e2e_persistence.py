@@ -2,7 +2,6 @@ import asyncio
 
 import pytest
 
-import valuecell.utils.model as model_mod
 from valuecell.core.coordinate.orchestrator import AgentOrchestrator
 from valuecell.core.types import UserInput, UserInputMetadata
 
@@ -11,9 +10,11 @@ from valuecell.core.types import UserInput, UserInputMetadata
 async def test_orchestrator_buffer_store_e2e(tmp_path, monkeypatch):
     db_path = tmp_path / "e2e_valuecell.db"
     monkeypatch.setenv("VALUECELL_SQLITE_DB", str(db_path))
-
-    # Mock get_model to avoid API key validation in CI
-    monkeypatch.setattr(model_mod, "get_model", lambda _: "stub-model")
+    
+    # Mock create_model at the factory level to avoid API key validation in CI
+    import valuecell.adapters.models.factory as factory_mod
+    monkeypatch.setattr(factory_mod, "create_model", lambda *args, **kwargs: "stub-model")
+    monkeypatch.setattr(factory_mod, "create_embedder", lambda *args, **kwargs: "stub-embedder")
 
     orch = AgentOrchestrator()
 
