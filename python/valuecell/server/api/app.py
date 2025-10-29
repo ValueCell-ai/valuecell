@@ -19,6 +19,7 @@ from .routers.agent_stream import create_agent_stream_router
 from .routers.conversation import create_conversation_router
 from .routers.i18n import create_i18n_router
 from .routers.system import create_system_router
+from .routers.task import create_task_router
 from .routers.user_profile import create_user_profile_router
 from .routers.watchlist import create_watchlist_router
 from .schemas import AppInfoData, SuccessResponse
@@ -146,6 +147,9 @@ def _add_routes(app: FastAPI, settings) -> None:
 
     # Include agent router
     app.include_router(create_agent_router(), prefix=API_PREFIX)
+
+    # Include task router
+    app.include_router(create_task_router(), prefix=API_PREFIX)
 
 
 # For uvicorn

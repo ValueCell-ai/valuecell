@@ -264,6 +264,7 @@ class TaskExecutor:
                 await self._sleep_with_cancellation(task, delay)
 
                 if task.is_finished():
+                    logger.info(f"Task `{task.title}` ({task_id}) is finished.")
                     break
 
             await self._task_service.complete_task(task_id)

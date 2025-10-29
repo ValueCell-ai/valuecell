@@ -35,6 +35,7 @@ from .i18n import (
     UserI18nSettingsData,
     UserI18nSettingsRequest,
 )
+from .task import TaskCancelData
 from .user_profile import (
     CreateUserProfileRequest,
     UpdateUserProfileRequest,
@@ -111,4 +112,6 @@ __all__ = [
     "UpdateUserProfileRequest",
     "UserProfileListData",
     "UserProfileSummaryData",
+    # Task schemas
+    "TaskCancelData",
 ]
