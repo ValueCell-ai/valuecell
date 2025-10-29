@@ -443,6 +443,53 @@ class ModelFactory:
             **merged_params,
         )
 
+    def create_embedder_for_agent(
+        self, agent_name: str, use_fallback: bool = True, **kwargs
+    ):
+        """
+        Create an embedder for a specific agent using its configuration.
+
+        This method will use the agent's `embedding_model` configuration when
+        present. If no embedding config is provided for the agent it will
+        attempt to use the agent's primary model provider and select the
+        provider's default embedding model.
+        """
+        # Get agent configuration
+        agent_config = self.config_manager.get_agent_config(agent_name)
+
+        if not agent_config:
+            raise ValueError(f"Agent configuration not found: {agent_name}")
+
+        if not agent_config.enabled:
+            raise ValueError(f"Agent is disabled: {agent_name}")
+
+        # If agent specifies an embedding_model, use it
+        if agent_config.embedding_model:
+            emb = agent_config.embedding_model
+            merged_params = {**emb.parameters, **kwargs}
+            logger.info(
+                f"Creating embedder for agent '{agent_name}': model_id={emb.model_id}, provider={emb.provider}, params={merged_params}"
+            )
+            return self.create_embedder(
+                model_id=emb.model_id or None,
+                provider=emb.provider,
+                use_fallback=use_fallback,
+                **merged_params,
+            )
+
+        # Fallback: use primary model's provider and let factory pick provider default
+        primary = agent_config.primary_model
+        merged_params = {**primary.parameters, **kwargs}
+        logger.info(
+            f"Creating embedder for agent '{agent_name}' using primary provider: {primary.provider}"
+        )
+        return self.create_embedder(
+            model_id=None,
+            provider=primary.provider,
+            use_fallback=use_fallback,
+            **merged_params,
+        )
+
     def get_available_providers(self) -> list[str]:
         """
         Get list of available providers (with valid credentials)
@@ -752,3 +799,18 @@ def create_embedder(
     """
     factory = get_model_factory()
     return factory.create_embedder(model_id, provider, **kwargs)
+
+
+def create_embedder_for_agent(agent_name: str, **kwargs):
+    """
+    Convenience function to create an embedder configured for a specific agent.
+
+    Args:
+        agent_name: Agent name
+        **kwargs: Override parameters
+
+    Returns:
+        Embedder instance
+    """
+    factory = get_model_factory()
+    return factory.create_embedder_for_agent(agent_name, **kwargs)

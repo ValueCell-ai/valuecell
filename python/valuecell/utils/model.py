@@ -18,6 +18,7 @@ from agno.models.google import Gemini as AgnoGeminiModel
 
 from valuecell.adapters.models.factory import (
     create_embedder,
+    create_embedder_for_agent,
     create_model,
     create_model_for_agent,
 )
@@ -242,6 +243,32 @@ def get_embedder(env_key: str = "EMBEDDER_MODEL_ID", **kwargs):
                 "Hint: Make sure to set API keys in .env file and configure "
                 "embedding models in providers/*.yaml files."
             )
+        raise
+
+
+def get_embedder_for_agent(agent_name: str, **kwargs):
+    """
+    Get an embedder instance configured specifically for an agent.
+
+    This mirrors `get_model_for_agent` but for embedders. It delegates to
+    the adapters/models factory which will resolve the agent's embedding
+    configuration and provider using the three-tier configuration system.
+
+    Args:
+        agent_name: Agent name matching the config file
+        **kwargs: Override parameters for this specific call
+
+    Returns:
+        Embedder instance configured for the agent
+
+    Raises:
+        ValueError: If agent configuration not found or embedder creation fails
+    """
+
+    try:
+        return create_embedder_for_agent(agent_name, **kwargs)
+    except Exception as e:
+        logger.error(f"Failed to create embedder for agent '{agent_name}': {e}")
         raise
 
 

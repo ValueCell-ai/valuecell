@@ -18,10 +18,10 @@ models:
   # Embedding model for knowledge base
   # Note: If not specified, will auto-select from available providers
   embedding:
-    # model_id: "openai/text-embedding-3-small"  # Optional, uses provider default
-    # provider: "openrouter"  # Optional, auto-detects if not specified
+    model_id: "Qwen/Qwen3-Embedding-4B"  # Optional, uses provider default
+    provider: "siliconflow"  # Optional, auto-detects if not specified
     parameters:
-      dimensions: ${EMBEDDER_DIMENSION:1536}
+      dimensions: ${EMBEDDER_DIMENSION:2560}
       # encoding_format: "float"
 
 # Environment Variable Overrides
@@ -35,5 +35,6 @@ env_overrides:
   
   # Embedding model overrides (backward compatible with existing env vars)
   EMBEDDER_MODEL_ID: "models.embedding.model_id"
+  EMBEDDER_MODEL_PROVIDER: "models.embedding.provider"
   EMBEDDER_DIMENSION: "models.embedding.parameters.dimensions"
 
