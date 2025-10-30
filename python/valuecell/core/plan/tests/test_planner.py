@@ -59,7 +59,8 @@ async def test_create_plan_handles_paused_run(monkeypatch: pytest.MonkeyPatch):
 
     class FakeAgent:
         def __init__(self, *args, **kwargs):
-            pass
+            # Provide minimal model info for error formatting paths
+            self.model = SimpleNamespace(id="fake-model", provider="fake-provider")
 
         def run(self, *args, **kwargs):
             return paused_response
@@ -175,7 +176,8 @@ async def test_create_plan_handles_malformed_response(monkeypatch: pytest.Monkey
 
     class FakeAgent:
         def __init__(self, *args, **kwargs):
-            pass
+            # Provide minimal model attributes for error formatting
+            self.model = SimpleNamespace(id="fake-model", provider="fake-provider")
 
         def run(self, *args, **kwargs):
             return SimpleNamespace(
@@ -193,6 +195,8 @@ async def test_create_plan_handles_malformed_response(monkeypatch: pytest.Monkey
     monkeypatch.setattr(planner_mod, "agent_debug_mode_enabled", lambda: False)
 
     planner = ExecutionPlanner(StubConnections())
+    # Ensure planner has an agent set even if __init__ path changes in future
+    planner.agent = FakeAgent()
 
     user_input = UserInput(
         query="malformed please",

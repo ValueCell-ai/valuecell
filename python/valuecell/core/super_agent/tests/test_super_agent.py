@@ -6,7 +6,11 @@ from unittest.mock import AsyncMock
 import pytest
 
 from valuecell.core.super_agent import core as super_agent_mod
-from valuecell.core.super_agent.core import SuperAgent, SuperAgentDecision
+from valuecell.core.super_agent.core import (
+    SuperAgent,
+    SuperAgentDecision,
+    SuperAgentOutcome,
+)
 from valuecell.core.super_agent.service import SuperAgentService
 from valuecell.core.types import UserInput, UserInputMetadata
 
@@ -14,7 +18,7 @@ from valuecell.core.types import UserInput, UserInputMetadata
 @pytest.mark.asyncio
 async def test_super_agent_run_uses_underlying_agent(monkeypatch: pytest.MonkeyPatch):
     fake_response = SimpleNamespace(
-        content=SimpleNamespace(
+        content=SuperAgentOutcome(
             decision=SuperAgentDecision.ANSWER,
             answer_content="Here is a quick reply",
             enriched_query=None,
@@ -26,10 +30,17 @@ async def test_super_agent_run_uses_underlying_agent(monkeypatch: pytest.MonkeyP
     class FakeAgent:
         def __init__(self, *args, **kwargs):
             self.arun = AsyncMock(return_value=fake_response)
+            # Provide minimal model info for error formatting paths
+            self.model = SimpleNamespace(id="fake-model", provider="fake-provider")
             agent_instance_holder["instance"] = self
 
     monkeypatch.setattr(super_agent_mod, "Agent", FakeAgent)
-    monkeypatch.setattr(super_agent_mod, "get_model", lambda _: "stub-model")
+    # Patch model creation to avoid real provider/model access
+    monkeypatch.setattr(
+        super_agent_mod.model_utils_mod,
+        "get_model_for_agent",
+        lambda *args, **kwargs: "stub-model",
+    )
     monkeypatch.setattr(super_agent_mod, "agent_debug_mode_enabled", lambda: False)
 
     sa = SuperAgent()

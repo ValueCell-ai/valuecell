@@ -6,7 +6,7 @@ import pytest
 
 from valuecell.core.event.factory import ResponseFactory
 from valuecell.core.task.executor import ScheduledTaskResultAccumulator, TaskExecutor
-from valuecell.core.task.models import ScheduleConfig, Task
+from valuecell.core.task.models import ScheduleConfig, Task, TaskPattern
 from valuecell.core.task.service import TaskService
 from valuecell.core.types import (
     CommonResponseEvent,
@@ -84,7 +84,7 @@ def test_accumulator_passthrough_when_disabled():
 
 def test_accumulator_collects_and_finalizes_content():
     schedule = ScheduleConfig(interval_minutes=10)
-    task = _make_task(schedule=schedule)
+    task = _make_task(schedule=schedule, pattern=TaskPattern.RECURRING)
     accumulator = ScheduledTaskResultAccumulator(task)
     factory = ResponseFactory()
 
@@ -124,7 +124,7 @@ def test_accumulator_collects_and_finalizes_content():
 
 def test_accumulator_finalize_default_message():
     schedule = ScheduleConfig(interval_minutes=5)
-    task = _make_task(schedule=schedule)
+    task = _make_task(schedule=schedule, pattern=TaskPattern.RECURRING)
     accumulator = ScheduledTaskResultAccumulator(task)
     factory = ResponseFactory()
 

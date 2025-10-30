@@ -90,7 +90,7 @@ class ExecutionPlanner:
         self.agent_connections = agent_connections
         # Fetch model via utils module reference so tests can monkeypatch it reliably
         model = model_utils_mod.get_model_for_agent("super_agent")
-        self.planner_agent = Agent(
+        self.agent = Agent(
             model=model,
             tools=[
                 # TODO: enable UserControlFlowTools when stable
@@ -182,7 +182,7 @@ class ExecutionPlanner:
             If plan is inadequate, returns empty list with guidance message.
         """
         # Execute planning with the agent
-        run_response = self.planner_agent.run(
+        run_response = self.agent.run(
             PlannerInput(
                 target_agent_name=user_input.target_agent_name,
                 query=user_input.query,
@@ -205,7 +205,7 @@ class ExecutionPlanner:
                     field.value = user_value
 
             # Continue agent execution with updated inputs
-            run_response = self.planner_agent.continue_run(
+            run_response = self.agent.continue_run(
                 # TODO: rollback to `run_id=run_response.run_id` when bug fixed by Agno
                 run_response=run_response,
                 updated_tools=run_response.tools,
