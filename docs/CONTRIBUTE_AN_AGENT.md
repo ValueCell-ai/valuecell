@@ -2,6 +2,22 @@
 
 This guide explains how to build, integrate, and contribute new agents to ValueCell's multi-agent financial platform.
 
+## Kickstart 🚀
+
+Want to quickly create a new agent? You can use an AI coding assistant like GitHub Copilot, Cursor, or other Agent Coders to bootstrap your agent automatically!
+
+Simply share this guide with your AI assistant and ask:
+
+> "Please create a HelloAgent following this guide."
+
+The AI will read through this documentation and generate all necessary files:
+
+- Agent module (`core.py`, `__main__.py`, `__init__.py`)
+- Configuration files (YAML and JSON)
+- Launch script registration
+
+This is the fastest way to get started and learn the agent structure hands-on!
+
 ## Table of Contents
 
 - [Architecture Overview](#architecture-overview)
