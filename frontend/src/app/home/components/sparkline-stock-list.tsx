@@ -2,7 +2,7 @@ import MiniSparkline from "@valuecell/charts/mini-sparkline";
 import { memo } from "react";
 import { SparklineStockListSkeleton } from "@/components/valuecell/skeleton";
 import { STOCK_COLORS } from "@/constants/stock";
-import { cn, formatChange, formatPrice, getChangeType } from "@/lib/utils";
+import { cn, formatChange, getChangeType } from "@/lib/utils";
 import type { SparklineData } from "@/types/chart";
 import type { StockCurrency } from "@/types/stock";
 
@@ -47,7 +47,7 @@ function SparklineStockItem({
             color: STOCK_COLORS[changeType],
           }}
         >
-          {formatPrice(stock.price, stock.currency)}
+          {stock.price.toFixed(2)}
         </p>
         <div
           className="flex gap-1 font-normal text-xs"

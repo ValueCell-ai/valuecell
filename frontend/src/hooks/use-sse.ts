@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import SSEClient, {
   type SSEEventHandlers,
   type SSEOptions,
@@ -33,6 +33,13 @@ export function useSSE({
 }: UseSSEOptions): UseSSEReturn {
   const clientRef = useRef<SSEClient | null>(null);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
+  // Keep a ref to the latest handlers to avoid stale closures
+  const handlersRef = useRef(handlers);
+
+  // Update handlers ref when handlers change
+  useEffect(() => {
+    handlersRef.current = handlers;
+  }, [handlers]);
 
   // Handle state changes from SSE client
   const handleStateChange = useCallback((state: SSEReadyState) => {
@@ -41,15 +48,20 @@ export function useSSE({
     );
   }, []);
 
-  // Initialize client once
+  // Initialize client once with wrapper handlers that always use the latest handlers
   if (!clientRef.current) {
     clientRef.current = new SSEClient(sseOptions, {
-      ...handlers,
+      onData: (data) => {
+        handlersRef.current?.onData?.(data);
+      },
       onError: (err: Error) => {
-        handlers?.onError?.(err);
+        handlersRef.current?.onError?.(err);
       },
       onOpen: () => {
-        handlers?.onOpen?.();
+        handlersRef.current?.onOpen?.();
+      },
+      onClose: () => {
+        handlersRef.current?.onClose?.();
       },
       onStateChange: handleStateChange,
     });

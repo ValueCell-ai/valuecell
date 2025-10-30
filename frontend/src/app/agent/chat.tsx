@@ -62,55 +62,51 @@ export default function AgentChat() {
     dispatchAgentStoreHistory(conversationId, taskList);
   }, [conversationId, taskList, dispatchAgentStoreHistory]);
 
-  // Handle SSE data events using agent store
-  // biome-ignore lint/correctness/useExhaustiveDependencies: close is no need to be in dependencies
-  const handleSSEData = useCallback((sseData: SSEData) => {
-    // Update agent store using the reducer
-    dispatchAgentStore(sseData);
-
-    // Handle specific UI state updates
-    const { event, data } = sseData;
-    switch (event) {
-      case "conversation_started":
-        navigate(`/agent/${agentName}?id=${data.conversation_id}`, {
-          replace: true,
-        });
-        queryClient.invalidateQueries({
-          queryKey: API_QUERY_KEYS.CONVERSATION.conversationList,
-        });
-        break;
-
-      case "component_generator":
-        if (data.payload.component_type === "subagent_conversation") {
-          queryClient.invalidateQueries({
-            queryKey: API_QUERY_KEYS.CONVERSATION.conversationList,
-          });
-        }
-        break;
-
-      case "system_failed":
-        // Handle system errors in UI layer
-        toast.error(data.payload.content, {
-          closeButton: true,
-          duration: 30 * 1000,
-        });
-        break;
-
-      case "done":
-        close();
-        break;
-
-      // All message-related events are handled by the store
-      default:
-        break;
-    }
-  }, []);
-
   // Initialize SSE connection using the useSSE hook
   const { connect, close, isStreaming } = useSSE({
     url: getServerUrl("/agents/stream"),
     handlers: {
-      onData: handleSSEData,
+      onData: (sseData: SSEData) => {
+        // Update agent store using the reducer
+        dispatchAgentStore(sseData);
+
+        // Handle specific UI state updates
+        const { event, data } = sseData;
+        switch (event) {
+          case "conversation_started":
+            navigate(`/agent/${agentName}?id=${data.conversation_id}`, {
+              replace: true,
+            });
+            queryClient.invalidateQueries({
+              queryKey: API_QUERY_KEYS.CONVERSATION.conversationList,
+            });
+            break;
+
+          case "component_generator":
+            if (data.payload.component_type === "subagent_conversation") {
+              queryClient.invalidateQueries({
+                queryKey: API_QUERY_KEYS.CONVERSATION.conversationList,
+              });
+            }
+            break;
+
+          case "system_failed":
+            // Handle system errors in UI layer
+            toast.error(data.payload.content, {
+              closeButton: true,
+              duration: 30 * 1000,
+            });
+            break;
+
+          case "done":
+            close();
+            break;
+
+          // All message-related events are handled by the store
+          default:
+            break;
+        }
+      },
       onOpen: () => {
         console.log("✅ SSE connection opened");
       },
