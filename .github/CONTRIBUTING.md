@@ -425,6 +425,17 @@ docs: update installation instructions
 - Address any requested changes
 - Once approved, your PR will be merged
 
+## 🔥 ValueCell Dev Program
+
+Build with us & get rewarded. Land 3 commits in the last month, and we will contact you via our official email (public@valuecell.ai).
+
+You will get:
+
+**💰 $100 Cash for API Keys and AI Coding Subscription**
+
+**🚀 Become a core contributor and participate in the project's future profits**
+
+
 ## Questions?
 
 If you have questions:
@@ -437,4 +448,3 @@ If you have questions:
 
 Thank you for contributing to ValueCell! 🚀🚀🚀
 
-We will be launching a reward program for active contributors soon!🔥🔥🔥
