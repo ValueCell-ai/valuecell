@@ -16,7 +16,10 @@ export const useGetConversationList = () => {
   });
 };
 
-export const useGetConversationHistory = (conversationId: string) => {
+export const useGetConversationHistory = (
+  conversationId: string,
+  deps: boolean[] = [],
+) => {
   return useQuery({
     queryKey: API_QUERY_KEYS.CONVERSATION.conversationHistory([conversationId]),
     queryFn: () =>
@@ -24,7 +27,7 @@ export const useGetConversationHistory = (conversationId: string) => {
         `/conversations/${conversationId}/history`,
       ),
     select: (data) => data.data.items,
-    enabled: !!conversationId,
+    enabled: !!conversationId && deps.every((dep) => dep),
     staleTime: 0,
   });
 };

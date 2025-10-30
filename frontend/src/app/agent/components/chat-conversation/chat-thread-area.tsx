@@ -1,18 +1,24 @@
 import { type FC, Fragment, memo } from "react";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
+import { cn } from "@/lib/utils";
 import type { ConversationView } from "@/types/agent";
 import ChatItemArea from "./chat-item-area";
 import ChatStreamingIndicator from "./chat-streaming-indicator";
 
 interface ChatThreadAreaProps {
+  className?: string;
   threads: ConversationView["threads"];
   isStreaming: boolean;
 }
 
-const ChatThreadArea: FC<ChatThreadAreaProps> = ({ threads, isStreaming }) => {
+const ChatThreadArea: FC<ChatThreadAreaProps> = ({
+  className,
+  threads,
+  isStreaming,
+}) => {
   return (
     <ScrollContainer
-      className="w-full flex-1 space-y-6 py-6"
+      className={cn("w-full flex-1 space-y-6 py-6", className)}
       autoScrollToBottom
     >
       <main className="main-chat-area mx-auto space-y-6">
