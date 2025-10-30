@@ -131,30 +131,20 @@ enabled: true
 
 # Model configuration
 models:
-  # Primary reasoning model
+  # Primary model
   primary:
     model_id: "anthropic/claude-haiku-4.5"
     provider: "openrouter"
-    
-    # Fallback models for different providers
-    provider_models:
-      siliconflow: "Qwen/Qwen3-235B-A22B-Thinking-2507"
-      google: "gemini-2.5-flash"
-    
-    # Model parameters
-    parameters:
-      temperature: 0.7
-      max_tokens: 4096
 
 # Environment variable overrides
 env_overrides:
   HELLO_AGENT_MODEL_ID: "models.primary.model_id"
   HELLO_AGENT_PROVIDER: "models.primary.provider"
-  HELLO_AGENT_TEMPERATURE: "models.primary.parameters.temperature"
 ```
 
 > [!TIP]
 > The YAML filename should match your agent's module name (e.g., `hello_agent.yaml` for `hello_agent` module). This naming convention helps maintain consistency across the codebase.
+> For detailed configuration options including embedding models, fallback providers, and advanced patterns, see [CONFIGURATION_GUIDE](./CONFIGURATION_GUIDE.md).
 
 ### Using Configuration in Your Agent
 
