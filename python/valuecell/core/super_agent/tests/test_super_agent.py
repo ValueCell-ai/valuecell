@@ -90,3 +90,39 @@ async def test_super_agent_service_delegates_to_underlying_agent():
 
     assert outcome == "result"
     fake_agent.run.assert_awaited_once_with(user_input)
+
+
+@pytest.mark.asyncio
+async def test_super_agent_run_handles_malformed_response(monkeypatch: pytest.MonkeyPatch):
+    """When underlying agent returns non-SuperAgentOutcome, SuperAgent falls back to ANSWER with explanatory text."""
+
+    # Return a malformed content (not a SuperAgentOutcome instance)
+    fake_response = SimpleNamespace(content=SimpleNamespace(raw="oops"))
+
+    class FakeAgent:
+        def __init__(self, *args, **kwargs):
+            self.arun = AsyncMock(return_value=fake_response)
+            # Minimal model attributes used in error formatting
+            self.model = SimpleNamespace(id="fake-model", provider="fake-provider")
+
+    monkeypatch.setattr(super_agent_mod, "Agent", FakeAgent)
+    monkeypatch.setattr(
+        super_agent_mod.model_utils_mod,
+        "get_model_for_agent",
+        lambda *args, **kwargs: "stub-model",
+    )
+    monkeypatch.setattr(super_agent_mod, "agent_debug_mode_enabled", lambda: False)
+
+    sa = SuperAgent()
+    user_input = UserInput(
+        query="give answer",
+        target_agent_name=sa.name,
+        meta=UserInputMetadata(conversation_id="conv", user_id="user"),
+    )
+
+    outcome = await sa.run(user_input)
+
+    # Fallback path should return an ANSWER decision with helpful message
+    assert outcome.decision == SuperAgentDecision.ANSWER
+    assert "malformed response" in outcome.answer_content
+    assert "fake-model (via fake-provider)" in outcome.answer_content

@@ -10,6 +10,7 @@ from valuecell.core.task.models import ScheduleConfig, Task, TaskPattern
 from valuecell.core.task.service import TaskService
 from valuecell.core.types import (
     CommonResponseEvent,
+    ComponentType,
     NotifyResponseEvent,
     StreamResponseEvent,
     SubagentConversationPhase,
@@ -216,3 +217,153 @@ async def test_sleep_with_cancellation(
     await executor._sleep_with_cancellation(DummyTask(), delay=0.2)
 
     assert sleeps
+
+
+@pytest.mark.asyncio
+async def test_execute_plan_emits_end_once_when_on_before_done_used(
+    monkeypatch: pytest.MonkeyPatch, task_service: TaskService
+):
+    """If _execute_task emits END via on_before_done, execute_plan should not duplicate it in finally."""
+    event_service = StubEventService()
+    executor = TaskExecutor(
+        agent_connections=SimpleNamespace(),
+        task_service=task_service,
+        event_service=event_service,
+        conversation_service=StubConversationService(),
+    )
+
+    # Patch _execute_task to invoke on_before_done and yield its response
+    async def fake_execute_task(task, thread_id, metadata, on_before_done=None):
+        if on_before_done is not None:
+            maybe = await on_before_done()
+            if maybe is not None:
+                yield maybe
+        return
+
+    monkeypatch.setattr(executor, "_execute_task", fake_execute_task)
+
+    # Create a plan with a single subagent handoff task
+    task = _make_task(handoff_from_super_agent=True)
+    plan = SimpleNamespace(
+        plan_id="plan",
+        conversation_id="super-conv",
+        user_id="user",
+        guidance_message=None,
+        tasks=[task],
+    )
+
+    responses = [
+        resp async for resp in executor.execute_plan(plan, thread_id="thread")
+    ]
+
+    # Count END-phase subagent components; should be exactly one
+    import json as _json
+
+    end_components = []
+    for r in responses:
+        if r.event == CommonResponseEvent.COMPONENT_GENERATOR:
+            payload = _json.loads(r.data.payload.content)  # type: ignore[attr-defined]
+            if payload.get("phase") == SubagentConversationPhase.END.value:
+                end_components.append(r)
+
+    assert len(end_components) == 1
+
+
+@pytest.mark.asyncio
+async def test_execute_task_scheduled_emits_controller_and_done(
+    monkeypatch: pytest.MonkeyPatch, task_service: TaskService
+):
+    """_execute_task should emit controller component, await on_before_done, then done for scheduled tasks."""
+    event_service = StubEventService()
+    executor = TaskExecutor(
+        agent_connections=SimpleNamespace(),
+        task_service=task_service,
+        event_service=event_service,
+        conversation_service=StubConversationService(),
+    )
+
+    # Avoid real remote execution in the loop
+    async def fake_single_run(task, thread_id, metadata):
+        if False:
+            yield  # pragma: no cover
+        return
+
+    monkeypatch.setattr(executor, "_execute_single_task_run", fake_single_run)
+    # Short-circuit scheduling loop
+    monkeypatch.setattr(
+        "valuecell.core.task.executor.calculate_next_execution_delay",
+        lambda *_args, **_kwargs: 0,
+    )
+
+    schedule = ScheduleConfig(interval_minutes=1)
+    task = _make_task(schedule=schedule, pattern=TaskPattern.RECURRING)
+
+    async def on_before_done_cb():
+        # Emit a simple component via the factory to simulate END-like callback
+        return event_service.factory.component_generator(
+            conversation_id=task.conversation_id,
+            thread_id="thread",
+            task_id=task.task_id,
+            content="{}",
+            component_type=ComponentType.SUBAGENT_CONVERSATION.value,
+        )
+
+    emitted = [
+        resp
+        async for resp in executor._execute_task(
+            task, thread_id="thread", metadata=None, on_before_done=on_before_done_cb
+        )
+    ]
+
+    # First emission is the controller component
+    assert emitted[0].data.payload.component_type == ComponentType.SCHEDULED_TASK_CONTROLLER.value  # type: ignore[attr-defined]
+    # Callback emission should be present
+    assert any(
+        getattr(r.data.payload, "component_type", None)
+        == ComponentType.SUBAGENT_CONVERSATION.value
+        for r in emitted
+    )
+    # A TaskCompletedResponse should also be emitted later
+    assert any(r.__class__.__name__ == "TaskCompletedResponse" for r in emitted)
+
+
+@pytest.mark.asyncio
+async def test_execute_single_task_run_emits_result_component_when_no_events(
+    monkeypatch: pytest.MonkeyPatch, task_service: TaskService
+):
+    """For scheduled tasks with no streamed events, finalize emits a result component."""
+    class FakeClient:
+        async def send_message(self, *args, **kwargs):
+            async def _empty():
+                if False:
+                    yield  # pragma: no cover
+                return
+
+            return _empty()
+
+    class FakeConnections:
+        async def get_client(self, *_args, **_kwargs):
+            return FakeClient()
+
+    event_service = StubEventService()
+    executor = TaskExecutor(
+        agent_connections=FakeConnections(),
+        task_service=task_service,
+        event_service=event_service,
+        conversation_service=StubConversationService(),
+    )
+
+    schedule = ScheduleConfig(interval_minutes=5)
+    task = _make_task(schedule=schedule, pattern=TaskPattern.RECURRING)
+
+    emitted = [
+        resp
+        async for resp in executor._execute_single_task_run(task, thread_id="thread", metadata={})
+    ]
+
+    # The final emitted item should be a SCHEDULED_TASK_RESULT component
+    assert any(
+        getattr(r.data.payload, "component_type", None)
+        == ComponentType.SCHEDULED_TASK_RESULT.value
+        for r in emitted
+    )
