@@ -1,7 +1,7 @@
 import asyncio
 import json
 from datetime import datetime, timezone
-from typing import AsyncGenerator, Iterable, Optional, Callable, Awaitable
+from typing import AsyncGenerator, Awaitable, Callable, Iterable, Optional
 
 from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
 from loguru import logger
