@@ -548,35 +548,31 @@ class AutoTradingAgent(BaseAgent):
         output = []
 
         # Header
-        output.append(f"📊 **Trading Portfolio Status** - {instance_id}")
-        output.append("\n**Instance Configuration**")
+        output.append("📊 **Instance Configuration**\n")
         output.append(f"- Model: `{config.agent_model}`")
         output.append(f"- Symbols: {', '.join(config.crypto_symbols)}")
         output.append(
-            f"- Status: {'🟢 Active' if instance['active'] else '🔴 Stopped'}"
+            f"- Status: {'🟢 Active' if instance['active'] else '🔴 Stopped'}\n"
         )
 
         # Portfolio Summary Section
-        output.append("\n💰 **Portfolio Summary**")
-        output.append("\n**Overall Performance**")
-        output.append(f"- Initial Capital: `${config.initial_capital:,.2f}`")
-        output.append(f"- Current Value: `${portfolio_value:,.2f}`")
+        output.append("💰 **Portfolio Summary**\n")
+        output.append("**Overall Performance**\n")
+        output.append(f"- Current Value: `${portfolio_value:,.2f}`\n")
 
         pnl_emoji = "🟢" if total_pnl >= 0 else "🔴"
         pnl_sign = "+" if total_pnl >= 0 else ""
         output.append(
-            f"- Total P&L: {pnl_emoji} **{pnl_sign}${total_pnl:,.2f}** ({pnl_sign}{pnl_pct:.2f}%)"
+            f"- Total P&L: {pnl_emoji} **{pnl_sign}${total_pnl:,.2f}** ({pnl_sign}{pnl_pct:.2f}%)\n"
         )
-
-        output.append("\n**Cash Position**")
-        output.append(f"- Available Cash: `${available_cash:,.2f}`")
+        output.append(f"- Available Cash: `${available_cash:,.2f}`\n")
 
         # Current Positions Section
-        output.append(f"\n📈 **Current Positions ({len(executor.positions)})**")
+        output.append(f"📈 **Current Positions ({len(executor.positions)})**")
 
         if executor.positions:
             output.append(
-                "\n| Symbol | Type | Quantity | Avg Price | Current Price | Position Value | Unrealized P&L |"
+                "\n| Symbol | Type | Quantity | Avg | Current | Position | P&L |"
             )
             output.append(
                 "|--------|------|----------|-----------|---------------|----------------|----------------|"

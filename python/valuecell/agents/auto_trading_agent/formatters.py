@@ -35,11 +35,11 @@ class MessageFormatter:
 
             if action == "opened":
                 message = (
-                    f"{agent_name} opened a {trade_type} position on {symbol}!\n"
-                    f"{timestamp.strftime('%m/%d, %I:%M %p')}\n"
-                    f"Price: ${trade_details['entry_price']:,.2f}\n"
-                    f"Quantity: {trade_details['quantity']:.4f}\n"
-                    f"Notional: ${trade_details['notional']:,.2f}"
+                    f"**{agent_name}** opened a **{trade_type}** position on **{symbol}**!\n\n"
+                    f"📅 {timestamp.strftime('%m/%d, %I:%M %p')}\n"
+                    f"**Price:** `${trade_details['entry_price']:,.2f}`\n"
+                    f"**Quantity:** `{trade_details['quantity']:.4f}`\n"
+                    f"**Notional:** `${trade_details['notional']:,.2f}`"
                 )
             else:  # closed
                 hours = int(trade_details["holding_time"].total_seconds() // 3600)
@@ -48,15 +48,16 @@ class MessageFormatter:
                 )
                 pnl = trade_details["pnl"]
                 pnl_sign = "+" if pnl >= 0 else ""
+                pnl_emoji = "🟢" if pnl >= 0 else "🔴"
 
                 message = (
-                    f"{agent_name} completed a {trade_type} trade on {symbol}!\n"
-                    f"{timestamp.strftime('%m/%d, %I:%M %p')}\n"
-                    f"Price: ${trade_details['entry_price']:,.2f} → ${trade_details['exit_price']:,.2f}\n"
-                    f"Quantity: {trade_details['quantity']:.4f}\n"
-                    f"Notional: ${trade_details['entry_notional']:,.2f} → ${trade_details['exit_notional']:,.2f}\n"
-                    f"Holding time: {hours}H {minutes}M\n"
-                    f"Net P&L: {pnl_sign}${pnl:,.2f}"
+                    f"**{agent_name}** completed a **{trade_type}** trade on **{symbol}**!\n\n"
+                    f"📅 {timestamp.strftime('%m/%d, %I:%M %p')}\n"
+                    f"**Price:** `${trade_details['entry_price']:,.2f}` → `${trade_details['exit_price']:,.2f}`\n"
+                    f"**Quantity:** `{trade_details['quantity']:.4f}`\n"
+                    f"**Notional:** `${trade_details['entry_notional']:,.2f}` → `${trade_details['exit_notional']:,.2f}`\n"
+                    f"**Holding time:** `{hours}H {minutes}M`\n"
+                    f"**Net P&L:** {pnl_emoji} **{pnl_sign}${pnl:,.2f}**"
                 )
 
             return message
