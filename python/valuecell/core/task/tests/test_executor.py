@@ -252,9 +252,7 @@ async def test_execute_plan_emits_end_once_when_on_before_done_used(
         tasks=[task],
     )
 
-    responses = [
-        resp async for resp in executor.execute_plan(plan, thread_id="thread")
-    ]
+    responses = [resp async for resp in executor.execute_plan(plan, thread_id="thread")]
 
     # Count END-phase subagent components; should be exactly one
     import json as _json
@@ -316,7 +314,10 @@ async def test_execute_task_scheduled_emits_controller_and_done(
     ]
 
     # First emission is the controller component
-    assert emitted[0].data.payload.component_type == ComponentType.SCHEDULED_TASK_CONTROLLER.value  # type: ignore[attr-defined]
+    assert (
+        emitted[0].data.payload.component_type
+        == ComponentType.SCHEDULED_TASK_CONTROLLER.value
+    )  # type: ignore[attr-defined]
     # Callback emission should be present
     assert any(
         getattr(r.data.payload, "component_type", None)
@@ -332,6 +333,7 @@ async def test_execute_single_task_run_emits_result_component_when_no_events(
     monkeypatch: pytest.MonkeyPatch, task_service: TaskService
 ):
     """For scheduled tasks with no streamed events, finalize emits a result component."""
+
     class FakeClient:
         async def send_message(self, *args, **kwargs):
             async def _empty():
@@ -358,7 +360,9 @@ async def test_execute_single_task_run_emits_result_component_when_no_events(
 
     emitted = [
         resp
-        async for resp in executor._execute_single_task_run(task, thread_id="thread", metadata={})
+        async for resp in executor._execute_single_task_run(
+            task, thread_id="thread", metadata={}
+        )
     ]
 
     # The final emitted item should be a SCHEDULED_TASK_RESULT component

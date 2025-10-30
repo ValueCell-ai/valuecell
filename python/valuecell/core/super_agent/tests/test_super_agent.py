@@ -93,7 +93,9 @@ async def test_super_agent_service_delegates_to_underlying_agent():
 
 
 @pytest.mark.asyncio
-async def test_super_agent_run_handles_malformed_response(monkeypatch: pytest.MonkeyPatch):
+async def test_super_agent_run_handles_malformed_response(
+    monkeypatch: pytest.MonkeyPatch,
+):
     """When underlying agent returns non-SuperAgentOutcome, SuperAgent falls back to ANSWER with explanatory text."""
 
     # Return a malformed content (not a SuperAgentOutcome instance)
