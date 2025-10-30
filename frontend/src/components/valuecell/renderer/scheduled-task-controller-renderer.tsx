@@ -1,6 +1,6 @@
 import { parse } from "best-effort-json-parser";
 import { Clock } from "lucide-react";
-import { type FC, memo, useState } from "react";
+import { type FC, memo, useEffect, useState } from "react";
 import { useCancelTask } from "@/api/conversation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,10 @@ const ScheduledTaskControllerRenderer: FC<
   const { task_title, task_id, task_status } = parse(content);
   const [isRunning, setIsRunning] = useState(task_status !== "cancelled");
   const { mutateAsync: cancelTask } = useCancelTask();
+
+  useEffect(() => {
+    setIsRunning(task_status !== "cancelled");
+  }, [task_status]);
 
   const handleCancel = async () => {
     const res = await cancelTask(task_id);
