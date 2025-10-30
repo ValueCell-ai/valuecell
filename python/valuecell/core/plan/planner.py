@@ -217,11 +217,13 @@ class ExecutionPlanner:
         # Parse planning result and create tasks
         plan_raw = run_response.content
         if not isinstance(plan_raw, PlannerResponse):
+            model = self.agent.model
+            model_description = f"{model.id} (via {model.provider})"
             return (
                 [],
                 (
                     f"Planner produced a malformed response: `{plan_raw}`. "
-                    "Please check your model capabilities and try again later."
+                    f"Please check the capabilities of your model `{model_description}` and try again later."
                 ),
             )
         logger.info(f"Planner produced plan: {plan_raw}")

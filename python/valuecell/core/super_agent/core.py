@@ -15,16 +15,6 @@ from valuecell.core.types import UserInput
 from valuecell.utils.env import agent_debug_mode_enabled
 
 
-# Backward-compatible helper so tests can monkeypatch `get_model` on this module
-def get_model(agent_name: str):
-    """Return a model for the given agent via the centralized utils module.
-
-    Exposed at module-level to support test monkeypatching without touching
-    global provider configuration.
-    """
-    return model_utils_mod.get_model_for_agent(agent_name)
-
-
 class SuperAgentDecision(str, Enum):
     ANSWER = "answer"
     HANDOFF_TO_PLANNER = "handoff_to_planner"
@@ -53,10 +43,7 @@ class SuperAgent:
     name: str = "ValueCellAgent"
 
     def __init__(self) -> None:
-        # Try to use super_agent specific configuration first,
-        # fallback to PLANNER_MODEL_ID for backward compatibility
-        # Use module-level get_model indirection so tests can stub it easily
-        model = get_model("super_agent")
+        model = model_utils_mod.get_model_for_agent("super_agent")
         self.agent = Agent(
             model=model,
             # TODO: enable tools when needed
@@ -87,4 +74,16 @@ class SuperAgent:
             user_id=user_input.meta.user_id,
             add_history_to_context=True,
         )
-        return response.content
+        outcome = response.content
+        if not isinstance(outcome, SuperAgentOutcome):
+            model = self.agent.model
+            model_description = f"{model.id} (via {model.provider})"
+            answer_content = (
+                f"SuperAgent produced a malformed response: `{outcome}`. "
+                f"Please check the capabilities of your model `{model_description}` and try again later."
+            )
+            outcome = SuperAgentOutcome(
+                decision=SuperAgentDecision.ANSWER,
+                answer_content=answer_content,
+            )
+        return outcome
