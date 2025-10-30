@@ -39,6 +39,12 @@ Feature requests are welcome! Please:
 
 We welcome code contributions! See the [Development Setup](#development-setup) section below to get started.
 
+***Reference Doc***
+
+> Multi-agent system architecture: [CORE_ARCHITECTURE](../docs/CORE_ARCHITECTURE.md)  
+> Configuration documentation: [CONFIGURATION_GUIDE](../docs/CONFIGURATION_GUIDE.md)
+
+
 ## Development Setup
 
 ### Prerequisites
@@ -68,6 +74,8 @@ Refer to [Configuration Guide](../docs/CONFIGURATION_GUIDE.md) for details.
 **Install backend dependencies:**
 
 ```bash
+# Install pytest dependencies for testing
+
 # Method 1: Using sync (recommended)
 cd python
 uv sync --extra dev
@@ -360,6 +368,9 @@ docs: update installation instructions
 ## Pull Request Process
 
 1. **Create a feature branch**
+   
+   Fork the project and use the `git clone` command to download it
+
 
    ```bash
    git checkout -b feat/your-feature-name
@@ -424,4 +435,6 @@ If you have questions:
 
 ---
 
-Thank you for contributing to ValueCell! 🚀
+Thank you for contributing to ValueCell! 🚀🚀🚀
+
+We will be launching a reward program for active contributors soon!🔥🔥🔥
