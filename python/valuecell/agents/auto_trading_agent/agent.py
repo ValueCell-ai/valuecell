@@ -572,10 +572,10 @@ class AutoTradingAgent(BaseAgent):
 
         if executor.positions:
             output.append(
-                "\n| Symbol | Type | Quantity | Avg | Current | Position | P&L |"
+                "\n| Symbol | Type | **Position**/Quantity | **Current**/Avg | **P&L** |"
             )
             output.append(
-                "|--------|------|----------|-----------|---------------|----------------|----------------|"
+                "|--------|------|---------|--------|--------|"
             )
 
             for symbol, pos in executor.positions.items():
@@ -599,15 +599,14 @@ class AutoTradingAgent(BaseAgent):
                         )
                         position_value = pos.notional + unrealized_pnl
 
-                    # Format row
-                    pnl_emoji = "🟢" if unrealized_pnl >= 0 else "🔴"
+                    # Format row with merged columns
                     pnl_sign = "+" if unrealized_pnl >= 0 else ""
 
                     output.append(
                         f"| **{symbol}** | {pos.trade_type.value.upper()} | "
-                        f"{abs(pos.quantity):.4f} | ${pos.entry_price:,.2f} | "
-                        f"${current_price:,.2f} | ${position_value:,.2f} | "
-                        f"{pnl_emoji} {pnl_sign}${unrealized_pnl:,.2f} |"
+                        f"**${position_value:,.2f}** <br> {abs(pos.quantity):.4f} | "
+                        f"**${current_price:,.2f}** <br> ${pos.entry_price:,.2f} | "
+                        f"**{pnl_sign}${unrealized_pnl:,.2f}** |"
                     )
 
                 except Exception as e:
@@ -615,8 +614,9 @@ class AutoTradingAgent(BaseAgent):
                     # Fallback display with entry price only
                     output.append(
                         f"| **{symbol}** | {pos.trade_type.value.upper()} | "
-                        f"{abs(pos.quantity):.4f} | ${pos.entry_price:,.2f} | "
-                        f"N/A | ${pos.notional:,.2f} | N/A |"
+                        f"**${pos.notional:,.2f}** <br> {abs(pos.quantity):.4f} | "
+                        f"**${pos.entry_price:,.2f}** <br> ${pos.entry_price:,.2f} | "
+                        f"**N/A** |"
                     )
         else:
             output.append("\n*No open positions*")
