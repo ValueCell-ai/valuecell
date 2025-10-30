@@ -6,6 +6,7 @@ from agno.db.in_memory import InMemoryDb
 from edgar import set_identity
 from loguru import logger
 
+import valuecell.utils.model as model_utils_mod
 from valuecell.agents.research_agent.knowledge import knowledge
 from valuecell.agents.research_agent.prompts import (
     KNOWLEDGE_AGENT_EXPECTED_OUTPUT,
@@ -21,7 +22,6 @@ from valuecell.agents.utils.context import build_ctx_from_dep
 from valuecell.core.agent.responses import streaming
 from valuecell.core.types import BaseAgent, StreamResponse
 from valuecell.utils.env import agent_debug_mode_enabled
-from valuecell.utils.model import get_model
 
 
 class ResearchAgent(BaseAgent):
@@ -34,7 +34,7 @@ class ResearchAgent(BaseAgent):
             web_search,
         ]
         self.knowledge_research_agent = Agent(
-            model=get_model("RESEARCH_AGENT_MODEL_ID"),
+            model=model_utils_mod.get_model_for_agent("research_agent"),
             instructions=[KNOWLEDGE_AGENT_INSTRUCTION],
             expected_output=KNOWLEDGE_AGENT_EXPECTED_OUTPUT,
             tools=tools,
