@@ -37,6 +37,10 @@ class ScheduleConfig(BaseModel):
         description="Daily execution time in HH:MM format (e.g., '09:00' for 9 AM)",
     )
 
+    def is_valid(self) -> bool:
+        """Check if the schedule configuration is valid"""
+        return self.interval_minutes is not None or self.daily_time is not None
+
 
 class Task(BaseModel):
     """Task data model"""
@@ -134,3 +138,11 @@ class Task(BaseModel):
     def is_waiting_input(self) -> bool:
         """Check if task is waiting for user input"""
         return self.status == TaskStatus.WAITING_INPUT
+
+    def is_scheduled(self) -> bool:
+        """Check if task is scheduled for recurring execution"""
+        return (
+            self.pattern == TaskPattern.RECURRING
+            and self.schedule_config is not None
+            and self.schedule_config.is_valid()
+        )

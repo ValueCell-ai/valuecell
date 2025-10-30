@@ -45,7 +45,7 @@ class ScheduledTaskResultAccumulator:
 
     @property
     def enabled(self) -> bool:
-        return self._task.schedule_config is not None
+        return self._task.is_scheduled()
 
     def consume(self, responses: Iterable[BaseResponse]) -> list[BaseResponse]:
         if not self.enabled:
@@ -227,7 +227,7 @@ class TaskExecutor:
             },
         )
 
-        if task.schedule_config:
+        if task.is_scheduled():
             yield await self._event_service.emit(
                 self._event_service.factory.schedule_task_controller_component(
                     conversation_id=conversation_id,
@@ -242,16 +242,16 @@ class TaskExecutor:
                 )
             )
 
-        accumulator = ScheduledTaskResultAccumulator(task)
-
         try:
             while True:
                 async for response in self._execute_single_task_run(
-                    task, thread_id, exec_metadata, accumulator
+                    task,
+                    thread_id,
+                    exec_metadata,
                 ):
                     yield response
 
-                if not task.schedule_config:
+                if not task.is_scheduled():
                     break
 
                 delay = calculate_next_execution_delay(task.schedule_config)
@@ -290,7 +290,6 @@ class TaskExecutor:
         task: Task,
         thread_id: str,
         metadata: dict,
-        accumulator: ScheduledTaskResultAccumulator,
     ) -> AsyncGenerator[BaseResponse, None]:
         agent_name = task.agent_name
         client = await self._agent_connections.get_client(agent_name)
@@ -303,6 +302,7 @@ class TaskExecutor:
             metadata=metadata,
         )
 
+        accumulator = ScheduledTaskResultAccumulator(task)
         async for remote_task, event in remote_response:
             if event is None and remote_task.status.state == TaskState.submitted:
                 task.remote_task_ids.append(remote_task.id)
