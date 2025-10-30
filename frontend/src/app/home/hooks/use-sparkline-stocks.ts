@@ -103,7 +103,7 @@ export function useSparklineStocks(
         result.push({
           symbol: stock.symbol,
           price: currentPrice,
-          currency: "$", // Default USD, can be adjusted as needed
+          currency: priceData.currency || "USD", // Use actual currency from API
           changeAmount: priceData.change,
           changePercent: changePercent,
           sparklineData: sparklineData,

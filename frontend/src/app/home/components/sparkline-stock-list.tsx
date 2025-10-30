@@ -4,11 +4,12 @@ import { SparklineStockListSkeleton } from "@/components/valuecell/skeleton";
 import { STOCK_COLORS } from "@/constants/stock";
 import { cn, formatChange, formatPrice, getChangeType } from "@/lib/utils";
 import type { SparklineData } from "@/types/chart";
+import type { StockCurrency } from "@/types/stock";
 
 export interface SparklineStock {
-  symbol: string;
+  symbol: string; // Stock symbol (e.g., "NASDAQ", "HSI", "SSE")
   price: number;
-  currency: string;
+  currency: StockCurrency;
   changeAmount: number;
   changePercent: number;
   sparklineData: SparklineData;
@@ -28,7 +29,7 @@ function SparklineStockItem({
   stock,
   ...props
 }: SparklineStockItemProps) {
-  const changeType = getChangeType(stock.changePercent);
+  const changeType = getChangeType(stock.changePercent, stock.currency);
 
   return (
     <div

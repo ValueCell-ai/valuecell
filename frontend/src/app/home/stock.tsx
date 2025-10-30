@@ -104,14 +104,13 @@ function Stock() {
 
     // Use display name from detail data if available, otherwise use ticker
     const companyName = stockDetailData?.display_name || ticker;
-    const currency = stockDetailData?.market_info?.currency || "USD";
 
     return {
       symbol: ticker,
       companyName,
       price: stockPriceData.price_formatted,
       changePercent: stockPriceData.change_percent_formatted,
-      currency: currency === "USD" ? "$" : currency,
+      currency: stockPriceData.currency,
       changeAmount: stockPriceData.change,
       changePercentNumeric: changePercent,
       priceNumeric: currentPrice,
@@ -156,7 +155,10 @@ function Stock() {
     );
   }
 
-  const changeType = getChangeType(stockInfo.changePercentNumeric);
+  const changeType = getChangeType(
+    stockInfo.changePercentNumeric,
+    stockInfo.currency,
+  );
 
   return (
     <div className="flex flex-col gap-8 bg-white px-8 py-6">

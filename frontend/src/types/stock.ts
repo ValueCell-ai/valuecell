@@ -13,6 +13,8 @@ export interface Stock {
   exchange: string;
 }
 
+export type StockCurrency = "USD" | "CNY" | "HKD";
+
 export interface StockPrice {
   ticker: string;
   price_formatted: string;
@@ -21,6 +23,7 @@ export interface StockPrice {
   change_percent_formatted: string;
   market_cap_formatted: string;
   source: string;
+  currency: StockCurrency;
 }
 
 /**
@@ -53,7 +56,7 @@ export interface StockHistory {
     volume: number;
     change: number;
     change_percent: number;
-    currency: string;
+    currency: StockCurrency;
     source: string;
   }[];
 }
@@ -73,7 +76,7 @@ export interface StockDetail {
   market_info: {
     exchange: string;
     country: string;
-    currency: string;
+    currency: StockCurrency;
     timezone: string;
     trading_hours: string | null;
     market_status: string;

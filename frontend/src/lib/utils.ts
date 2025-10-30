@@ -7,19 +7,39 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
+ * Converts currency code to symbol
+ * @param currencyCode - Currency code (e.g., "USD", "CNY", "HKD") - NOT currency symbols
+ * @returns Currency symbol (e.g., "$", "¥", "HK$")
+ */
+function getCurrencySymbol(currencyCode: string): string {
+  const currencyMap: Record<string, string> = {
+    USD: "$",
+    CNY: "¥",
+    HKD: "HK$",
+    EUR: "€",
+    GBP: "£",
+    JPY: "¥",
+    KRW: "₩",
+  };
+  return currencyMap[currencyCode] || currencyCode;
+}
+
+/**
  * Formats a numeric price with currency symbol
  * @param price - The numeric price value
- * @param currency - Currency symbol (e.g., "$", "¥", "€")
+ * @param currency - Currency code (e.g., "USD", "CNY", "HKD")
  * @param decimals - Number of decimal places (default: 2)
  * @returns Formatted price string with currency symbol
- * @example formatPrice(1234.567, "$") // "$1234.57"
+ * @example formatPrice(1234.567, "USD") // "$1234.57"
+ * @example formatPrice(1234.567, "CNY") // "¥1234.57"
  */
 export function formatPrice(
   price: number,
   currency: string,
   decimals: number = 2,
 ): string {
-  return `${currency}${price.toFixed(decimals)}`;
+  const symbol = getCurrencySymbol(currency);
+  return `${symbol}${price.toFixed(decimals)}`;
 }
 
 /**
@@ -44,14 +64,34 @@ export function formatChange(
 }
 
 /**
- * Determines the type of change based on percentage value
- * @param changePercent - The percentage change value
- * @returns Change type: "positive", "negative", or "neutral"
+ * Get stock change type based on change percentage and currency
+ * @param changePercent - The percentage change
+ * @param currency - The currency code (e.g., "USD", "CNY", "HKD") - NOT currency symbols
+ * @returns The change type (positive/negative/neutral)
+ *
+ * Note: Chinese stock markets (CNY) use inverted colors:
+ * - Positive change (up) -> Red
+ * - Negative change (down) -> Green
+ *
+ * Western stock markets (USD, EUR, etc.) use standard colors:
+ * - Positive change (up) -> Green
+ * - Negative change (down) -> Red
  */
-export function getChangeType(changePercent: number): StockChangeType {
-  return changePercent > 0
-    ? "positive"
-    : changePercent < 0
-      ? "negative"
-      : "neutral";
+export function getChangeType(
+  changePercent: number,
+  currency = "USD",
+): StockChangeType {
+  const isChinese = currency.toUpperCase() === "CNY";
+
+  if (changePercent === 0) {
+    return "neutral";
+  }
+
+  // For Chinese markets, invert the color logic
+  if (isChinese) {
+    return changePercent > 0 ? "negative" : "positive";
+  }
+
+  // For other markets, use standard logic
+  return changePercent > 0 ? "positive" : "negative";
 }
