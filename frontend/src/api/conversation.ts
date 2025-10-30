@@ -25,6 +25,7 @@ export const useGetConversationHistory = (conversationId: string) => {
       ),
     select: (data) => data.data.items,
     enabled: !!conversationId,
+    staleTime: 0,
   });
 };
 
