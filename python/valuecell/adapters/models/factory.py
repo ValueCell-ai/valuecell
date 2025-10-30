@@ -163,7 +163,7 @@ class GoogleProvider(ModelProvider):
         return GeminiEmbedder(
             id=model_id,
             api_key=self.config.api_key,
-            dimensions=params.get("dimensions", 3072),
+            dimensions=int(params.get("dimensions", 3072)),
             task_type=params.get("task_type", "RETRIEVAL_DOCUMENT"),
         )
 
@@ -247,7 +247,7 @@ class SiliconFlowProvider(ModelProvider):
             id=model_id,
             api_key=self.config.api_key,
             base_url=self.config.base_url,
-            dimensions=params.get("dimensions", 1024),
+            dimensions=int(params.get("dimensions", 1024)),
             encoding_format=params.get("encoding_format"),
         )
 
