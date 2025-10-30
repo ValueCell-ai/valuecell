@@ -36,9 +36,9 @@ class MessageFormatter:
             if action == "opened":
                 message = (
                     f"**{agent_name}** opened a **{trade_type}** position on **{symbol}**!\n\n"
-                    f"📅 {timestamp.strftime('%m/%d, %I:%M %p')}\n"
-                    f"**Price:** `${trade_details['entry_price']:,.2f}`\n"
-                    f"**Quantity:** `{trade_details['quantity']:.4f}`\n"
+                    f"📅 {timestamp.strftime('%m/%d, %I:%M %p')}\n\n"
+                    f"**Price:** `${trade_details['entry_price']:,.2f}`\n\n"
+                    f"**Quantity:** `{trade_details['quantity']:.4f}`\n\n"
                     f"**Notional:** `${trade_details['notional']:,.2f}`"
                 )
             else:  # closed
@@ -52,11 +52,11 @@ class MessageFormatter:
 
                 message = (
                     f"**{agent_name}** completed a **{trade_type}** trade on **{symbol}**!\n\n"
-                    f"📅 {timestamp.strftime('%m/%d, %I:%M %p')}\n"
-                    f"**Price:** `${trade_details['entry_price']:,.2f}` → `${trade_details['exit_price']:,.2f}`\n"
-                    f"**Quantity:** `{trade_details['quantity']:.4f}`\n"
-                    f"**Notional:** `${trade_details['entry_notional']:,.2f}` → `${trade_details['exit_notional']:,.2f}`\n"
-                    f"**Holding time:** `{hours}H {minutes}M`\n"
+                    f"📅 {timestamp.strftime('%m/%d, %I:%M %p')}\n\n"
+                    f"**Price:** `${trade_details['entry_price']:,.2f}` → `${trade_details['exit_price']:,.2f}`\n\n"
+                    f"**Quantity:** `{trade_details['quantity']:.4f}`\n\n"
+                    f"**Notional:** `${trade_details['entry_notional']:,.2f}` → `${trade_details['exit_notional']:,.2f}`\n\n"
+                    f"**Holding time:** `{hours}H {minutes}M`\n\n"
                     f"**Net P&L:** {pnl_emoji} **{pnl_sign}${pnl:,.2f}**"
                 )
 

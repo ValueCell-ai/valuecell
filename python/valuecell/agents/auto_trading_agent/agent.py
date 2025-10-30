@@ -267,7 +267,7 @@ class AutoTradingAgent(BaseAgent):
                             )
                             trade_message = FilteredCardPushNotificationComponentData(
                                 title=f"{config.agent_model} Trade",
-                                data=f"💰 **Trade Executed:**\n{trade_message_text}\n",
+                                data=f"💰 **Trade Executed**\n\n{trade_message_text}\n",
                                 filters=[config.agent_model],
                                 table_title="Trade Detail",
                                 create_time=datetime.now(timezone.utc).strftime(
@@ -574,9 +574,7 @@ class AutoTradingAgent(BaseAgent):
             output.append(
                 "\n| Symbol | Type | **Position**/Quantity | **Current**/Avg | **P&L** |"
             )
-            output.append(
-                "|--------|------|---------|--------|--------|"
-            )
+            output.append("|--------|------|---------|--------|--------|")
 
             for symbol, pos in executor.positions.items():
                 try:
