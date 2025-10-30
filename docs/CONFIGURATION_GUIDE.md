@@ -305,27 +305,6 @@ env_overrides:
   AGENT_EMBEDDER_MODEL: "models.embedding.model_id"
   AGENT_EMBEDDER_PROVIDER: "models.embedding.provider"
 
-# API keys required by this agent
-api_keys:
-  news_api:
-    key_env: "NEWS_API_KEY"
-    required: false
-    description: "Optional: For enhanced news searching"
-
-# Agent capabilities
-capabilities:
-  web_search: true
-  web_crawl: true
-  session_management:
-    enabled: true
-    max_history_runs: 5
-  
-# Advanced settings
-advanced:
-  debug_mode: false
-  markdown_output: false
-  add_datetime_to_context: true
-  read_chat_history: true
 ```
 
 ---
