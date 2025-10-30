@@ -1,6 +1,6 @@
 import { Link, type LinkProps } from "react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn, getChangeType } from "@/lib/utils";
+import { cn, formatChange, getChangeType } from "@/lib/utils";
 import type { StockCurrency } from "@/types/stock";
 
 interface Stock {
@@ -8,7 +8,7 @@ interface Stock {
   companyName: string;
   currency: StockCurrency;
   price: string;
-  changePercent: string;
+  changePercent: number | null;
   icon?: string;
   iconBgColor?: string;
 }
@@ -154,21 +154,17 @@ function StockMenuListItem({
             "font-semibold text-xs leading-relaxed",
             {
               "text-green-700":
-                getChangeType(
-                  parseFloat(stock.changePercent),
-                  stock.currency,
-                ) === "positive",
+                getChangeType(stock.changePercent, stock.currency) ===
+                "positive",
             },
             {
               "text-red-700":
-                getChangeType(
-                  parseFloat(stock.changePercent),
-                  stock.currency,
-                ) === "negative",
+                getChangeType(stock.changePercent, stock.currency) ===
+                "negative",
             },
           )}
         >
-          {stock.changePercent}
+          {formatChange(stock.changePercent, "%")}
         </p>
       </div>
     </Link>

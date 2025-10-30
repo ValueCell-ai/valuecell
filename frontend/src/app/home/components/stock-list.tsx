@@ -35,8 +35,9 @@ function StockList() {
         symbol: stock.symbol,
         companyName: stock.display_name,
         price: stockPrice?.price_formatted ?? "N/A",
-        changePercent: stockPrice?.change_percent_formatted ?? "N/A",
         currency: stockPrice?.currency ?? "USD",
+        changeAmount: stockPrice?.change ?? 0,
+        changePercent: stockPrice?.change_percent ?? 0,
       }),
       [stock, stockPrice],
     );

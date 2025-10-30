@@ -6,6 +6,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const isNullOrUndefined = (value: unknown): value is undefined | null =>
+  value === undefined || value === null;
+
 /**
  * Converts currency code to symbol
  * @param currencyCode - Currency code (e.g., "USD", "CNY", "HKD") - NOT currency symbols
@@ -50,13 +53,13 @@ export function formatPrice(
  * @returns Formatted percentage string with sign
  */
 export function formatChange(
-  changePercent: number,
+  changePercent: number | null,
   suffix: string = "",
   decimals: number = 2,
 ): string {
-  if (changePercent === 0) {
-    return `${changePercent.toFixed(decimals)}${suffix}`;
-  }
+  if (isNullOrUndefined(changePercent)) return "N/A";
+
+  if (changePercent === 0) return `${changePercent.toFixed(decimals)}${suffix}`;
 
   const sign = changePercent > 0 ? "+" : "-";
   const value = Math.abs(changePercent).toFixed(decimals);
@@ -78,20 +81,12 @@ export function formatChange(
  * - Negative change (down) -> Red
  */
 export function getChangeType(
-  changePercent: number,
+  changePercent: number | null,
   currency = "USD",
 ): StockChangeType {
-  const isChinese = currency.toUpperCase() === "CNY";
-
-  if (changePercent === 0) {
+  if (isNullOrUndefined(changePercent) || changePercent === 0) {
     return "neutral";
   }
-
-  // For Chinese markets, invert the color logic
-  if (isChinese) {
-    return changePercent > 0 ? "negative" : "positive";
-  }
-
-  // For other markets, use standard logic
-  return changePercent > 0 ? "positive" : "negative";
+  const isChinese = currency.toUpperCase() === "CNY";
+  return changePercent > 0 ? (isChinese ? "negative" : "positive") : "negative";
 }

@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { STOCK_BADGE_COLORS } from "@/constants/stock";
 import { TimeUtils } from "@/lib/time";
-import { formatChange, formatPrice, getChangeType } from "@/lib/utils";
+import { formatChange, getChangeType } from "@/lib/utils";
 import type { SparklineData } from "@/types/chart";
 import type { Route } from "./+types/stock";
 
@@ -95,13 +95,6 @@ function Stock() {
   const stockInfo = useMemo(() => {
     if (!stockPriceData) return null;
 
-    const currentPrice = parseFloat(
-      stockPriceData.price_formatted?.replace(/[^0-9.-]/g, ""),
-    );
-    const changePercent = parseFloat(
-      stockPriceData.change_percent_formatted?.replace(/[^0-9.-]/g, ""),
-    );
-
     // Use display name from detail data if available, otherwise use ticker
     const companyName = stockDetailData?.display_name || ticker;
 
@@ -109,11 +102,9 @@ function Stock() {
       symbol: ticker,
       companyName,
       price: stockPriceData.price_formatted,
-      changePercent: stockPriceData.change_percent_formatted,
+      changePercent: stockPriceData.change_percent,
       currency: stockPriceData.currency,
       changeAmount: stockPriceData.change,
-      changePercentNumeric: changePercent,
-      priceNumeric: currentPrice,
     };
   }, [stockPriceData, stockDetailData, ticker]);
 
@@ -155,10 +146,7 @@ function Stock() {
     );
   }
 
-  const changeType = getChangeType(
-    stockInfo.changePercentNumeric,
-    stockInfo.currency,
-  );
+  const changeType = getChangeType(stockInfo.changePercent, stockInfo.currency);
 
   return (
     <div className="flex flex-col gap-8 bg-white px-8 py-6">
@@ -182,9 +170,7 @@ function Stock() {
 
         <div>
           <div className="mb-3 flex items-center gap-3">
-            <span className="font-bold text-2xl">
-              {formatPrice(stockInfo.priceNumeric, stockInfo.currency)}
-            </span>
+            <span className="font-bold text-2xl">{stockInfo.price}</span>
             <span
               className="rounded-lg p-2 font-bold text-xs"
               style={{
@@ -192,7 +178,7 @@ function Stock() {
                 color: STOCK_BADGE_COLORS[changeType].text,
               }}
             >
-              {formatChange(stockInfo.changePercentNumeric, "%")}
+              {formatChange(stockInfo.changePercent, "%")}
             </span>
           </div>
           <p className="font-medium text-muted-foreground text-xs">
