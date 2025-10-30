@@ -3,6 +3,9 @@
     "display_name": "News Agent",
     "url": "http://localhost:10005/",
     "description": "Professional news agent specialized in gathering, analyzing, and presenting current events, breaking news, and financial market information from reliable sources with real-time web search capabilities.",
+    "capabilities": {
+        "streaming": true
+    },
     "skills": [
         {
             "id": "web_search",
