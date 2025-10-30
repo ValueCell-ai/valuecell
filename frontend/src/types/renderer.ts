@@ -3,6 +3,7 @@ import type { AgentComponentType } from "./agent";
 
 export type BaseRendererProps = {
   content: string;
+  className?: string;
   onOpen?: (data: string) => void;
 };
 

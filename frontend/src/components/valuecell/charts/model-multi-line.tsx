@@ -91,9 +91,9 @@ function ModelMultiLine({
         },
       },
       grid: {
-        left: 50,
-        right: 30,
-        top: 30,
+        left: 0,
+        right: 20,
+        top: 0,
         bottom: 80,
         containLabel: true,
       },

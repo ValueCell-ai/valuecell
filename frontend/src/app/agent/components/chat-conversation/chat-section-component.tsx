@@ -96,9 +96,9 @@ const ModelTradeComponent: FC<{ tasks: Record<string, TaskView> }> = ({
   const items = Object.values(tasks).flatMap((task) => task.items);
 
   return (
-    <ScrollContainer className="min-w-[540px] flex-1 px-4">
+    <ScrollContainer className="min-w-[540px] flex-2 px-1">
       {items.length > 0 && (
-        <div className="h-full space-y-3 p-4">
+        <div className="h-full space-y-3">
           {items.map(
             (item) =>
               item.payload && (
@@ -120,7 +120,7 @@ const ModelTradeTableComponent: FC<{ tasks: Record<string, TaskView> }> = ({
   const items = Object.values(tasks).flatMap((task) => task.items);
 
   return (
-    <ScrollContainer className="w-[404px] shrink-0 overflow-hidden px-4">
+    <ScrollContainer className="w-[364px] shrink-0 overflow-hidden">
       {items.length > 0 && (
         <div className="space-y-3">
           {items.map(
