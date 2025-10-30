@@ -1,7 +1,7 @@
 import asyncio
 import json
 from datetime import datetime, timezone
-from typing import AsyncGenerator, Iterable, Optional
+from typing import AsyncGenerator, Iterable, Optional, Callable, Awaitable
 
 from a2a.types import TaskArtifactUpdateEvent, TaskState, TaskStatusUpdateEvent
 from loguru import logger
@@ -128,6 +128,24 @@ class TaskExecutor:
 
         for task in plan.tasks:
             subagent_component_id = generate_item_id()
+            # Define a one-time emitter for subagent END component (used in two places)
+            end_component_emitted = False
+
+            async def emit_subagent_end_once() -> Optional[BaseResponse]:
+                nonlocal end_component_emitted
+                if not task.handoff_from_super_agent:
+                    return None
+                if end_component_emitted:
+                    return None
+                end_component_emitted = True
+                return await self._emit_subagent_conversation_component(
+                    plan.conversation_id,
+                    thread_id,
+                    task,
+                    subagent_component_id,
+                    SubagentConversationPhase.END,
+                )
+
             if task.handoff_from_super_agent:
                 await self._conversation_service.ensure_conversation(
                     user_id=plan.user_id,
@@ -153,7 +171,16 @@ class TaskExecutor:
 
             try:
                 await self._task_service.update_task(task)
-                async for response in self._execute_task(task, thread_id, metadata):
+                async for response in self._execute_task(
+                    task,
+                    thread_id,
+                    metadata,
+                    on_before_done=(
+                        emit_subagent_end_once
+                        if task.handoff_from_super_agent
+                        else None
+                    ),
+                ):
                     yield response
             except Exception as exc:  # pragma: no cover - defensive logging
                 error_msg = f"(Error) Error executing {task.task_id}: {exc}"
@@ -168,14 +195,10 @@ class TaskExecutor:
                 yield await self._event_service.emit(failure)
             finally:
                 if task.handoff_from_super_agent:
-                    # Emit subagent conversation end component
-                    yield await self._emit_subagent_conversation_component(
-                        plan.conversation_id,
-                        thread_id,
-                        task,
-                        subagent_component_id,
-                        SubagentConversationPhase.END,
-                    )
+                    # Emit subagent conversation end component (only if not already emitted)
+                    end_resp = await emit_subagent_end_once()
+                    if end_resp is not None:
+                        yield end_resp
 
     async def _emit_subagent_conversation_component(
         self,
@@ -209,6 +232,10 @@ class TaskExecutor:
         task: Task,
         thread_id: str,
         metadata: Optional[dict] = None,
+        *,
+        on_before_done: Optional[
+            Callable[[], Awaitable[Optional[BaseResponse]]]
+        ] = None,
     ) -> AsyncGenerator[BaseResponse, None]:
         task_id = task.task_id
         conversation_id = task.conversation_id
@@ -235,6 +262,11 @@ class TaskExecutor:
                     task=task,
                 )
             )
+            # Optionally emit a one-time subagent END before sending done
+            if on_before_done is not None:
+                maybe_resp = await on_before_done()
+                if maybe_resp is not None:
+                    yield maybe_resp
             yield await self._event_service.emit(
                 self._event_service.factory.done(
                     conversation_id=conversation_id,
