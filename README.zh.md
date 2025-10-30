@@ -26,16 +26,20 @@
 
 <div align="center">
   <a href="README.md" style="color: gray;">English</a>
-  <a href="README.zh.md" style="color: gray;">中文（简体）</a>
-  <a href="README.zh_Hant.md" style="color: auto;">中文（繁體）</a>
+  <a href="README.zh.md" style="color: auto;">中文（简体）</a>
+  <a href="README.zh_Hant.md" style="color: gray;">中文（繁體）</a>
   <a href="README.ja.md" style="color: gray;">日本語</a>
 </div>
 
 
 # ValueCell
-ValueCell 是一个社区驱动的多智能体金融应用平台。
+ValueCell 是一个社区驱动的多智能体金融应用产品，我们的计划是打造全球最大的去中心化金融智能体社区
 
-它将为您提供顶级的投资智能体团队，帮助您管理投资组合。
+它将为您提供顶级的投资智能体团队，帮助您完成选股，调研，跟踪和交易
+
+欢迎大家加入Discord社区反馈使用中遇到的问题，以及更多开发者参与共建🔥🔥🔥
+
+>注意：ValueCell团队人员不会主动私信社区参与者，项目仅为技术交流使用，投资有风险。⚠️
 
 # 产品截图
 
@@ -64,16 +68,16 @@ ValueCell 是一个社区驱动的多智能体金融应用平台。
 
 
 ## 多智能体系统
-- **DeepResearch Agent**: 获取并分析股票的SEC文件，输出准确的数据、可解释性的总结
-- **Auto Trading Agent**: 支持多种加密资产和AI自动交易策略
+- **DeepResearch Agent**: 获取并分析股票的基本面文件，输出准确的数据、可解释性的总结
+- **Auto Trading Agent**: 支持多种加密资产和AI自动交易策略，依据技术指标创建自动化交易
 - **Trading Agents**：专门负责市场分析、情绪分析、新闻分析和基本面分析的智能体协同工作
 - **AI-Hedge-Fund**：智能体协作提供全面的金融洞察
 - **其他智能体**：更多智能体正在规划中...
 
 ## 灵活集成
-- **多种大语言模型提供商**：支持 OpenRouter、OpenAI、Anthropic、Google 和 Ollama
+- **多种大语言模型提供商**：支持 OpenRouter、SiliconFlow、Google 和 OpenAI
 - **热门市场数据**：覆盖美国市场、加密货币市场、香港市场、中国市场等
-- **多智能体框架兼容**：通过 A2A 协议，支持 Langchain、Agno 等主流Agent框架
+- **多智能体框架兼容**：通过 A2A 协议，支持 Langchain、Agno 等主流Agent框架，进行研发集成
 
 # 快速开始
 
@@ -101,25 +105,34 @@ ValueCell 是一个基于Python的应用程序，且有完备的前端操作页�
    cp .env.example .env
    ```
    
-   使用您的API密钥和偏好设置编辑`.env`文件。此配置文件在所有智能体之间共享。详见 [配置指南](docs/CONFIGURATION_GUIDE.md)。
+   使用您的API密钥和偏好设置编辑`.env`文件。此配置文件在所有智能体之间共享。详见 [配置指南](docs/CONFIGURATION_GUIDE.md)
 
 ## 配置
+
+更多系统配置详情说明可以参考[CONFIGURATION_GUIDE](./docs/CONFIGURATION_GUIDE.md)
 
 ### 模型提供商
 通过编辑`.env`文件配置您首选的模型提供商：
 
-- **主要支持**：[OpenRouter](https://openrouter.ai) - 目前大多数智能体的主要支持提供商
-- **TradingAgents** 集成了Memory功能。如果您使用OpenRouter作为API密钥，需要配置嵌入模型参数（因为OpenRouter不支持嵌入模型）。请参考TradingAgents/.env.example文件，并将其配置复制到根目录的.env文件中。
-  
+- **简易配置**：仅需配置模型厂商API Key即可
 
-根据您的需求和使用模式选择首选的模型和提供商。
+- **其他配置**：对于调研类型的Agent来说，需要配置更多环境变量，可以仔细阅读`.env.example`中的说明
+
+- **官方推荐**：配置OpenRouter + 任意提供嵌入模型的供应商。原因：可以快速实现多厂商模型切换，以及RAG+Memory的AI能力
+  
 
 ## 运行应用程序
 
-启动完整的应用程序堆栈（前端、后端和智能体）：
+启动完整的应用程序（前端、后端和智能体）：
 
+### Linux / Macos
 ```bash
 bash start.sh
+```
+
+### Windows (PowerShell)
+```powershell
+.\start.ps1
 ```
 
 ## 访问界面
@@ -127,21 +140,28 @@ bash start.sh
 - **Web UI**：在浏览器中导航到 [http://localhost:1420](http://localhost:1420)
 - **日志**：在 `logs/{timestamp}/*.log` 监控应用程序日志，获取后端服务和各个智能体的详细运行时信息
 
-## 最后
+## 注意
 
-应用程序运行后，您可以通过Web界面使用ValueCell中集成的Agents。
+运行应用程序前，请确保所有前提条件已安装且环境变量已正确配置
+如长时间没有更新可以删除项目中数据库文件`lancedb/`,`valuecell.db`, `.knowledgebase/`再进行启动
 
----
 
-**注意**：运行应用程序前，请确保所有前提条件已安装且环境变量已正确配置。
+# 开发者
 
+诚挚邀请每位开发者加入Discord讨论组，我们会定期交流社区RoadMap以及未来社区贡献者权益规划
+
+开发流程及标准详见:[CONTRIBUTING.md](.github/CONTRIBUTING.md)
 
 # Roadmap
 
 ## 🤖 增强智能体能力
+### 交易能力
+- **加密货币**：支持更多交易所
+- **证券**：逐步支持AI证券交易
+
 ### 市场扩展
 - **欧洲市场**：增加对富时指数、DAX、CAC 40和其他欧洲交易所的支持
-- **亚洲市场**：扩展对日经指数、恒生指数、上证综指和新兴亚洲市场的覆盖
+- **亚洲市场**：扩展对日经指数和新兴亚洲市场的覆盖
 - **大宗商品市场**：石油、黄金、白银、农产品分析
 - **外汇市场**：主要货币对和交叉货币分析
 
@@ -155,9 +175,13 @@ bash start.sh
 - **定期报告**：每日/每周/每月投资组合摘要
 - **事件驱动通知**：财报发布、股息公告、监管变化
 - **自定义触发器**：用户定义的条件和阈值
-- **多渠道推送**：邮件、短信、Slack、Discord和webhook集成
+- **多渠道推送**：Discord和webhook集成
 
 ## ⚙️ 产品配置与个性化
+### 多端产品化
+-- **客户端支持**：逐步支持桌面端、客户端能力
+-- **数据库热更新**：逐步支持兼容性升级
+
 ### 国际化 (i18n)
 - **多语言支持**：英语、中文（简体/繁体）、日语、韩语、西班牙语、法语
 - **本地化市场数据**：特定地区的金融术语和格式
@@ -167,8 +191,6 @@ bash start.sh
 ### 令牌和身份验证管理
 - **API密钥管理**：第三方API密钥的安全存储和轮换
 - **OAuth集成**：支持主要金融数据提供商
-- **速率限制**：智能请求节流和配额管理
-- **多租户架构**：企业级用户隔离和安全
 
 ### 用户偏好和自定义
 - **投资档案**：风险承受能力、投资期限和策略偏好
@@ -185,14 +207,11 @@ bash start.sh
 ## 🔧 ValueCell SDK开发
 ### 核心SDK功能
 - **Python SDK**：用于智能体集成和自定义的核心代码，衔接前后端
-- **REST API包装器**：具有自动身份验证的简化HTTP客户端
 - **WebSocket支持**：实时数据流和双向通信
 
 ### 智能体集成框架
 - **插件架构**：轻松集成第三方智能体和工具
 - **智能体注册表**：社区贡献智能体的市场
-- **自定义智能体构建器**：低代码/无代码智能体创建工具
-- **智能体编排**：工作流管理和智能体协调
 
 ### 开发者工具和文档
 - **交互式API浏览器**：带有实时测试的Swagger/OpenAPI文档
