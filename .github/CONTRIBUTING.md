@@ -42,7 +42,8 @@ We welcome code contributions! See the [Development Setup](#development-setup) s
 ***Reference Doc***
 
 > Multi-agent system architecture: [CORE_ARCHITECTURE](../docs/CORE_ARCHITECTURE.md)  
-> Configuration documentation: [CONFIGURATION_GUIDE](../docs/CONFIGURATION_GUIDE.md)
+> Configuration documentation: [CONFIGURATION_GUIDE](../docs/CONFIGURATION_GUIDE.md)  
+> Agent development guide: [CONTRIBUTING_AN_AGENT](../docs/CONTRIBUTING_AN_AGENT.md)
 
 
 ## Development Setup
@@ -90,6 +91,31 @@ uv pip install --editable ".[dev]"
 cd frontend
 bun install
 ```
+
+### Backend and Agents
+
+For detailed information on building and contributing agents, see the [Agent Development Guide](../docs/CONTRIBUTING_AN_AGENT.md).
+
+Quick start:
+
+**Run the API server:**
+
+```bash
+cd python
+python -m valuecell.server.main
+```
+
+**Run the Research Agent:**
+
+```bash
+cd python
+python -m valuecell.agents.research_agent
+```
+
+> [!TIP]
+> Set your environment first. At minimum, configure `OPENROUTER_API_KEY` (or `GOOGLE_API_KEY`) and `SEC_EMAIL`. See [Configuration Guide](../docs/CONFIGURATION_GUIDE.md).
+
+### Code Style
 
 ### Backend and Agents
 

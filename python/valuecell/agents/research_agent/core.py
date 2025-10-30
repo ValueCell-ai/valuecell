@@ -18,7 +18,7 @@ from valuecell.agents.research_agent.sources import (
     web_search,
 )
 from valuecell.agents.utils.context import build_ctx_from_dep
-from valuecell.core.agent.responses import streaming
+from valuecell.core.agent import streaming
 from valuecell.core.types import BaseAgent, StreamResponse
 from valuecell.utils.env import agent_debug_mode_enabled
 from valuecell.utils.model import get_model
