@@ -85,6 +85,13 @@ class HelloAgent(BaseAgent):
       yield streaming.done()
 ```
 
+**Agent Processing Flow Essentials:**
+
+1. **Return Text Content**: Use `streaming.message_chunk()` to return text responses. You can send complete messages or split them into smaller chunks for better streaming UX.
+2. **Signal Completion**: Always end with `streaming.done()` to indicate the agent has finished processing.
+
+This simple flow enables real-time communication with the UI, displaying responses as they're generated.
+
 ### Step 3: Add Agent Entry Point
 
 In `__main__.py`, wrap your agent for standalone execution. This file enables launching your agent with `uv run -m`:
