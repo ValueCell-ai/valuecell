@@ -31,14 +31,17 @@ const AgentTaskCard: FC<TaskCardItem> = ({
       </div>
 
       <div className="flex w-full flex-col gap-2">
-        {results.slice(0, 3).map((result) => (
-          <NavLink
-            key={result.data.item_id}
-            to={`/agent/${agent_name}?id=${result.data.conversation_id}`}
-          >
-            <Component content={result.data.payload.content} />
-          </NavLink>
-        ))}
+        {results
+          .reverse()
+          .slice(0, 3)
+          .map((result) => (
+            <NavLink
+              key={result.data.item_id}
+              to={`/agent/${agent_name}?id=${result.data.conversation_id}`}
+            >
+              <Component content={result.data.payload.content} />
+            </NavLink>
+          ))}
       </div>
     </div>
   );
