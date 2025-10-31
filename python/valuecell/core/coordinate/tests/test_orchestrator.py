@@ -82,6 +82,7 @@ def _sample_task(conversation_id: str, user_id: str, sample_query: str) -> Task:
         user_id=user_id,
         agent_name="TestAgent",
         query=sample_query,
+        title="Auto Title",
         status=CoreTaskStatus.PENDING,
         remote_task_ids=[],
     )
@@ -101,9 +102,11 @@ def _sample_plan(
     )
 
 
-def _stub_conversation(status: Any = ConversationStatus.ACTIVE):
+def _stub_conversation(
+    status: Any = ConversationStatus.ACTIVE, title: str | None = None
+):
     # Minimal conversation stub with status and basic methods used by orchestrator
-    s = SimpleNamespace(status=status)
+    s = SimpleNamespace(status=status, title=title)
 
     def activate():
         s.status = ConversationStatus.ACTIVE
@@ -329,6 +332,103 @@ async def test_happy_path_streaming(
     mock_agent_client.send_message.assert_called_once()
     # Should at least yield something (content or final)
     assert len(out) >= 1
+
+
+@pytest.mark.asyncio
+async def test_sets_conversation_title_on_first_plan(
+    orchestrator: AgentOrchestrator,
+    mock_agent_client: Mock,
+    mock_agent_card_non_streaming: AgentCard,
+    sample_user_input: UserInput,
+    mock_conversation_manager: Mock,
+):
+    # Non-streaming to complete quickly
+    bundle = orchestrator._testing_bundle  # type: ignore[attr-defined]
+    bundle.agent_connections.start_agent.return_value = mock_agent_card_non_streaming
+    bundle.agent_connections.get_client.return_value = mock_agent_client
+
+    # Agent returns a quick completion
+    mock_agent_client.send_message.return_value = _make_non_streaming_response()
+
+    # Ensure conversation initially has no title
+    conv = _stub_conversation(title=None)
+    mock_conversation_manager.get_conversation.return_value = conv
+
+    # Run once
+    out = []
+    async for chunk in orchestrator.process_user_input(sample_user_input):
+        out.append(chunk)
+
+    # After planning, title should be set from first task title (fixture: "Auto Title")
+    called_with_titles = [
+        getattr(c.args[0], "title", None)
+        for c in mock_conversation_manager.update_conversation.call_args_list
+        if c.args
+    ]
+    assert any(t == "Auto Title" for t in called_with_titles)
+
+
+@pytest.mark.asyncio
+async def test_does_not_override_existing_title(
+    orchestrator: AgentOrchestrator,
+    mock_agent_client: Mock,
+    mock_agent_card_non_streaming: AgentCard,
+    sample_user_input: UserInput,
+    mock_conversation_manager: Mock,
+):
+    bundle = orchestrator._testing_bundle  # type: ignore[attr-defined]
+    bundle.agent_connections.start_agent.return_value = mock_agent_card_non_streaming
+    bundle.agent_connections.get_client.return_value = mock_agent_client
+    mock_agent_client.send_message.return_value = _make_non_streaming_response()
+
+    # Existing title should remain unchanged
+    conv = _stub_conversation(title="Existing Title")
+    mock_conversation_manager.get_conversation.return_value = conv
+
+    out = []
+    async for chunk in orchestrator.process_user_input(sample_user_input):
+        out.append(chunk)
+
+    # Conversation object must still have existing title
+    assert conv.title == "Existing Title"
+
+
+@pytest.mark.asyncio
+async def test_no_title_set_when_no_tasks(
+    orchestrator: AgentOrchestrator,
+    mock_agent_client: Mock,
+    mock_agent_card_non_streaming: AgentCard,
+    sample_user_input: UserInput,
+    mock_conversation_manager: Mock,
+    monkeypatch: pytest.MonkeyPatch,
+    conversation_id: str,
+    user_id: str,
+):
+    bundle = orchestrator._testing_bundle  # type: ignore[attr-defined]
+    bundle.agent_connections.start_agent.return_value = mock_agent_card_non_streaming
+    bundle.agent_connections.get_client.return_value = mock_agent_client
+    mock_agent_client.send_message.return_value = _make_non_streaming_response()
+
+    # Planner returns a plan with no tasks
+    empty_plan = ExecutionPlan(
+        plan_id="plan-empty",
+        conversation_id=conversation_id,
+        user_id=user_id,
+        orig_query="q",
+        tasks=[],
+        created_at="2025-09-16T10:00:00",
+    )
+    orchestrator.plan_service.planner.create_plan = AsyncMock(return_value=empty_plan)
+
+    conv = _stub_conversation(title=None)
+    mock_conversation_manager.get_conversation.return_value = conv
+
+    out = []
+    async for chunk in orchestrator.process_user_input(sample_user_input):
+        out.append(chunk)
+
+    # Title should remain None
+    assert conv.title is None
 
 
 @pytest.mark.asyncio
