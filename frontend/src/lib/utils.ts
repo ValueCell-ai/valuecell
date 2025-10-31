@@ -9,11 +9,6 @@ export function cn(...inputs: ClassValue[]) {
 export const isNullOrUndefined = (value: unknown): value is undefined | null =>
   value === undefined || value === null;
 
-/**
- * Converts currency code to symbol
- * @param currencyCode - Currency code (e.g., "USD", "CNY", "HKD") - NOT currency symbols
- * @returns Currency symbol (e.g., "$", "¥", "HK$")
- */
 function getCurrencySymbol(currencyCode: string): string {
   const currencyMap: Record<string, string> = {
     USD: "$",
@@ -28,37 +23,26 @@ function getCurrencySymbol(currencyCode: string): string {
 }
 
 /**
- * Formats a numeric price with currency symbol
- * @param price - The numeric price value
- * @param currency - Currency code (e.g., "USD", "CNY", "HKD")
- * @param decimals - Number of decimal places (default: 2)
- * @returns Formatted price string with currency symbol
- * @example formatPrice(1234.567, "USD") // "$1234.57"
- * @example formatPrice(1234.567, "CNY") // "¥1234.57"
+ * Format price with currency symbol
  */
 export function formatPrice(
   price: number,
   currency: string,
-  decimals: number = 2,
+  decimals = 2,
 ): string {
   const symbol = getCurrencySymbol(currency);
   return `${symbol}${price.toFixed(decimals)}`;
 }
 
 /**
- * Formats a percentage change with appropriate sign and styling
- * @param changePercent - The percentage change value (can be positive, negative, or zero)
- * @param decimals - Number of decimal places (default: 2)
- * @param suffix - Suffix to add to the percentage string (default: "")
- * @returns Formatted percentage string with sign
+ * Format percentage change with sign
  */
 export function formatChange(
   changePercent: number | null,
-  suffix: string = "",
-  decimals: number = 2,
+  suffix = "",
+  decimals = 2,
 ): string {
   if (isNullOrUndefined(changePercent)) return "N/A";
-
   if (changePercent === 0) return `${changePercent.toFixed(decimals)}${suffix}`;
 
   const sign = changePercent > 0 ? "+" : "-";
@@ -67,26 +51,11 @@ export function formatChange(
 }
 
 /**
- * Get stock change type based on change percentage and currency
- * @param changePercent - The percentage change
- * @param currency - The currency code (e.g., "USD", "CNY", "HKD") - NOT currency symbols
- * @returns The change type (positive/negative/neutral)
- *
- * Note: Chinese stock markets (CNY) use inverted colors:
- * - Positive change (up) -> Red
- * - Negative change (down) -> Green
- *
- * Western stock markets (USD, EUR, etc.) use standard colors:
- * - Positive change (up) -> Green
- * - Negative change (down) -> Red
+ * Get stock change type: "positive" (up), "negative" (down), or "neutral" (no change)
  */
-export function getChangeType(
-  changePercent: number | null,
-  currency = "USD",
-): StockChangeType {
+export function getChangeType(changePercent: number | null): StockChangeType {
   if (isNullOrUndefined(changePercent) || changePercent === 0) {
     return "neutral";
   }
-  const isChinese = currency.toUpperCase() === "CNY";
-  return changePercent > 0 ? (isChinese ? "negative" : "positive") : "negative";
+  return changePercent > 0 ? "positive" : "negative";
 }
