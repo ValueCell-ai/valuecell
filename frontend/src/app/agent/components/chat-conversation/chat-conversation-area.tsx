@@ -69,7 +69,7 @@ const ChatConversationAreaContent: FC<ChatConversationAreaProps> = ({
   }
 
   return (
-    <div className="flex flex-1 gap-2 overflow-hidden">
+    <div className="flex flex-1 overflow-hidden">
       {/* main section */}
       <section className="flex flex-1 flex-col items-center">
         <ChatConversationHeader agent={agent} />

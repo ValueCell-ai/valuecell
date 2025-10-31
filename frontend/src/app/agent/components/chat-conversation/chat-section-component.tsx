@@ -43,14 +43,14 @@ const ScheduledTaskResultComponent: FC<{ tasks: Record<string, TaskView> }> = ({
   }, [taskList, selectedTaskId]);
 
   return selectedItemContent ? (
-    <section className="flex flex-1 flex-col py-6 pr-5">
+    <section className="flex flex-1 flex-col border-gray-200 border-l px-5 py-6">
       <BackButton className="mb-3" onClick={() => setSelectedItemContent("")} />
       <ScrollContainer className="flex-1">
         <MarkdownRenderer content={selectedItemContent} />
       </ScrollContainer>
     </section>
   ) : (
-    <section className="flex flex-1 flex-col gap-5 py-6 pr-5">
+    <section className="flex flex-1 flex-col gap-5 border-gray-200 border-l px-5 py-6">
       {/* Task Selector */}
       {taskList.length > 0 && (
         <Select value={selectedTaskId} onValueChange={setSelectedTaskId}>
@@ -97,7 +97,7 @@ const ModelTradeComponent: FC<{ tasks: Record<string, TaskView> }> = ({
   const items = Object.values(tasks).flatMap((task) => task.items);
 
   return (
-    <ScrollContainer className="min-w-[540px] flex-2 px-1">
+    <ScrollContainer className="min-w-[540px] flex-2 border-gray-200 border-l px-1">
       {items.length > 0 && (
         <div className="h-full space-y-3">
           {items.map(
@@ -121,7 +121,7 @@ const ModelTradeTableComponent: FC<{ tasks: Record<string, TaskView> }> = ({
   const items = Object.values(tasks).flatMap((task) => task.items);
 
   return (
-    <ScrollContainer className="w-[364px] shrink-0 overflow-hidden">
+    <ScrollContainer className="w-[364px] shrink-0 overflow-hidden border-gray-200 border-l px-2">
       {items.length > 0 && (
         <div className="space-y-3">
           {items.map(
