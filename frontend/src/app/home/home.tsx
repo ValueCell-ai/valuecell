@@ -29,7 +29,7 @@ function Home() {
 
       {allPollTaskList && allPollTaskList.length > 0 ? (
         <section className="flex flex-1 flex-col items-center justify-between gap-4 overflow-hidden">
-          <ScrollContainer>
+          <ScrollContainer className="w-full">
             <AgentTaskCards tasks={allPollTaskList} />
           </ScrollContainer>
 

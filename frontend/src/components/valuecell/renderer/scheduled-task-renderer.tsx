@@ -14,17 +14,16 @@ const ScheduledTaskRenderer: FC<ScheduledTaskRendererProps> = ({
   return (
     <div
       className={cn(
-        "group relative flex h-full cursor-pointer flex-col gap-3 rounded-2xl bg-gray-50 p-4 transition-all",
+        "group relative flex h-full cursor-pointer flex-col gap-3 rounded-lg bg-gray-50 p-4 text-gray-950 transition-all",
         styles["border-gradient"],
       )}
       onClick={() => onOpen?.(result)}
     >
-      {/* content */}
-      <div className="relative z-10 line-clamp-2 w-full">{result}</div>
-
-      <p className="whitespace-nowrap text-right text-gray-400 text-xs">
+      <p className="whitespace-nowrap text-gray-400 text-sm">
         {TimeUtils.fromUTC(create_time).format(TIME_FORMATS.DATETIME_SHORT)}
       </p>
+      {/* content */}
+      <div className="relative z-10 line-clamp-2 w-full">{result}</div>
     </div>
   );
 };
