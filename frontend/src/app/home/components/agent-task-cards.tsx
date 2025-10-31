@@ -31,7 +31,7 @@ const AgentTaskCard: FC<TaskCardItem> = ({
       </div>
 
       <div className="flex w-full flex-col gap-2">
-        {results
+        {[...results]
           .reverse()
           .slice(0, 3)
           .map((result) => (

@@ -35,10 +35,11 @@ const ScheduledTaskResultComponent: FC<{ tasks: Record<string, TaskView> }> = ({
     taskList[0]?.id || "",
   );
 
-  // Get items for the selected task
+  // Get items for the selected task and reverse them
   const selectedItems = useMemo(() => {
     const selectedTask = taskList.find((task) => task.id === selectedTaskId);
-    return selectedTask?.items.reverse() || [];
+    const items = selectedTask?.items || [];
+    return [...items].reverse();
   }, [taskList, selectedTaskId]);
 
   return selectedItemContent ? (
