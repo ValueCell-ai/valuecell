@@ -86,10 +86,11 @@ class ExecutionPlanner:
     def __init__(
         self,
         agent_connections: RemoteConnections,
+        agent_name: str = "super_agent",
     ):
         self.agent_connections = agent_connections
         # Fetch model via utils module reference so tests can monkeypatch it reliably
-        model = model_utils_mod.get_model_for_agent("super_agent")
+        model = model_utils_mod.get_model_for_agent(agent_name)
         self.agent = Agent(
             model=model,
             tools=[

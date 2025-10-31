@@ -48,8 +48,11 @@ class PlanService:
         agent_connections: RemoteConnections,
         execution_planner: ExecutionPlanner | None = None,
         user_input_registry: UserInputRegistry | None = None,
+        agent_name: str = "super_agent",
     ) -> None:
-        self._planner = execution_planner or ExecutionPlanner(agent_connections)
+        self._planner = execution_planner or ExecutionPlanner(
+            agent_connections, agent_name=agent_name
+        )
         self._input_registry = user_input_registry or UserInputRegistry()
 
     @property

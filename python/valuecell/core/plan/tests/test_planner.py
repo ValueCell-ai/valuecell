@@ -239,3 +239,44 @@ def test_tool_get_agent_description_dict_and_missing(monkeypatch: pytest.MonkeyP
     # Not found branch
     missing = planner.tool_get_agent_description("MissingAgent")
     assert "could not be found" in missing
+
+def test_execution_planner_uses_custom_agent_name(monkeypatch: pytest.MonkeyPatch):
+    """ExecutionPlanner uses the agent_name passed to its constructor."""
+    
+    agent_name = "custom_agent"
+    
+    class FakeAgent:
+        def __init__(self, *args, **kwargs):
+            self.model = SimpleNamespace(id="fake-model", provider="fake-provider")
+
+        def run(self, *args, **kwargs):
+            return SimpleNamespace(
+                is_paused=False,
+                tools_requiring_user_input=[],
+                tools=[],
+                content=PlannerResponse.model_validate(
+                    {
+                        "adequate": True,
+                        "reason": "ok",
+                        "tasks": [],
+                        "guidance_message": None,
+                    }
+                ),
+            )
+
+    monkeypatch.setattr(planner_mod, "Agent", FakeAgent)
+    
+    called_with_agent_name = None
+    def fake_get_model_for_agent(name):
+        nonlocal called_with_agent_name
+        called_with_agent_name = name
+        return "stub-model"
+    
+    monkeypatch.setattr(
+        model_utils_mod, "get_model_for_agent", fake_get_model_for_agent
+    )
+    monkeypatch.setattr(planner_mod, "agent_debug_mode_enabled", lambda: False)
+
+    planner = ExecutionPlanner(StubConnections(), agent_name=agent_name)
+
+    assert called_with_agent_name == agent_name
