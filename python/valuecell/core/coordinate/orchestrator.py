@@ -298,7 +298,7 @@ class AgentOrchestrator:
             super_outcome: SuperAgentOutcome = await self.super_agent_service.run(
                 user_input
             )
-            if super_outcome.decision == SuperAgentDecision.ANSWER:
+            if super_outcome.answer_content:
                 ans = self.event_service.factory.message_response_general(
                     StreamResponseEvent.MESSAGE_CHUNK,
                     conversation_id,
@@ -308,6 +308,7 @@ class AgentOrchestrator:
                     agent_name=self.super_agent_service.name,
                 )
                 yield await self.event_service.emit(ans)
+            if super_outcome.decision == SuperAgentDecision.ANSWER:
                 return
 
             if super_outcome.decision == SuperAgentDecision.HANDOFF_TO_PLANNER:
