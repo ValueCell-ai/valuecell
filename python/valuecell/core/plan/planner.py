@@ -95,6 +95,7 @@ class ExecutionPlanner:
             tools=[
                 # TODO: enable UserControlFlowTools when stable
                 # UserControlFlowTools(),
+                self.tool_get_agent_description,
                 self.tool_get_enabled_agents,
             ],
             debug_mode=agent_debug_mode_enabled(),

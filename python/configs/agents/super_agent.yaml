@@ -26,7 +26,7 @@ models:
     # Provider-specific model mappings for fallback
     # Used when primary provider fails and fallback is attempted
     provider_models:
-      siliconflow: "zai-org/GLM-4.6"  # Similar capability to Claude Haiku
+      siliconflow: "deepseek-ai/DeepSeek-V3.1-Terminus"  # Similar capability to Claude Haiku
       google: "gemini-2.5-flash"  # Fast and efficient like Claude Haiku
 
 # Environment Variable Overrides
