@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { API_QUERY_KEYS } from "@/constants/api";
 import { type ApiResponse, apiClient } from "@/lib/api-client";
 import type {
@@ -29,6 +29,20 @@ export const useGetConversationHistory = (
     select: (data) => data.data.items,
     enabled: !!conversationId && deps.every((dep) => dep),
     staleTime: 0,
+  });
+};
+
+export const useDeleteConversation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (conversationId: string) =>
+      apiClient.delete<ApiResponse<null>>(`/conversations/${conversationId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: API_QUERY_KEYS.CONVERSATION.conversationList,
+      });
+    },
   });
 };
 
