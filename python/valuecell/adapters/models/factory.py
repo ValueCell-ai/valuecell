@@ -347,7 +347,6 @@ class OpenAICompatibleProvider(ModelProvider):
             presence_penalty=params.get("presence_penalty"),
         )
 
-
     def create_embedder(self, model_id: Optional[str] = None, **kwargs):
         """Create embedder via OpenAI-compatible API"""
         try:
