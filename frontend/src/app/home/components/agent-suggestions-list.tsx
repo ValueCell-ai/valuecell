@@ -74,7 +74,7 @@ function AgentSuggestionItem({
 }: AgentSuggestionItemProps) {
   return (
     <AgentMenuCard
-      className={cn("h-36 w-80 cursor-pointer", className)}
+      className={cn("h-36 w-60 cursor-pointer", className)}
       onClick={suggestion.onClick}
       bgColor={suggestion.bgColor}
       {...props}
@@ -110,7 +110,7 @@ function AgentSuggestionItem({
       </div>
 
       {/* Right decorative graphics area */}
-      <div className="absolute right-4 bottom-0 h-[110px] w-[140px]">
+      <div className="absolute right-4 bottom-0 h-[100px] w-[120px]">
         {suggestion.decorativeGraphics}
       </div>
     </AgentMenuCard>

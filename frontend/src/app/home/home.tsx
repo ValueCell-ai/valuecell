@@ -47,7 +47,7 @@ function Home() {
           />
         </section>
       ) : (
-        <section className="flex flex-1 flex-col items-center justify-center gap-8 rounded-lg bg-white py-8">
+        <section className="flex w-full flex-1 flex-col items-center justify-center gap-8 overflow-hidden rounded-lg bg-white py-8">
           <div className="space-y-4 text-center text-gray-950">
             <h1 className="font-medium text-3xl">👋 Hello Investor!</h1>
             <p>
