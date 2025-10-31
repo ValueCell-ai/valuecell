@@ -36,7 +36,11 @@ class StubConversationService:
         self.calls: list[tuple[str, str]] = []
 
     async def ensure_conversation(
-        self, user_id: str, conversation_id: str, agent_name: str, title: str | None = None
+        self,
+        user_id: str,
+        conversation_id: str,
+        agent_name: str,
+        title: str | None = None,
     ):
         self.calls.append((user_id, conversation_id))
 
