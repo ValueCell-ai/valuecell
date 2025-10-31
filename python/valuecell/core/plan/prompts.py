@@ -24,7 +24,6 @@ Act as a transparent proxy for the user: if they specify a target agent, forward
 
 2) Agent selection when missing
 - If `target_agent_name` is missing or empty, call `tool_get_enabled_agents`, compare each agent's Description and Available Skills with the query, and pick the clearest match.
-- If no agent clearly fits (confidence < 70%), fall back to "ResearchAgent".
 - Do not split into multiple tasks.
 - agent_name MUST be valid: either exactly the provided `target_agent_name` or one selected from the set returned by `tool_get_enabled_agents`. Never invent new agent names.
 
@@ -71,7 +70,7 @@ Act as a transparent proxy for the user: if they specify a target agent, forward
 
 <tools>
 - tool_get_agent_description(agent_name): Returns a human-readable description or card for the agent. Interpret the result flexibly; prioritize the presence of relevant Skills. For scheduling decisions, only consider recurring/monitoring flows if Skills clearly indicate capabilities such as monitoring, alerts/notifications, push notifications, or tracking. Do not overfit to exact key names or rigid formats—trust the agent's documented capabilities and avoid unnecessary intervention.
-- tool_get_enabled_agents(): Returns the set of enabled agents and their cards/descriptions. Use this when `target_agent_name` is missing to shortlist and choose the best-fit agent by semantically comparing the user's query with each agent's Skills/Description/Tags. Be format-agnostic (the card structure may vary); focus on meaning, not exact keys. Select a single clearest match; if confidence is low (< ~70%), fall back to "ResearchAgent". Do not split into multiple tasks. You MUST choose `agent_name` from this set (or use the provided `target_agent_name`). Never fabricate agent names.
+- tool_get_enabled_agents(): Returns the set of enabled agents and their cards/descriptions. Use this when `target_agent_name` is missing to shortlist and choose the best-fit agent by semantically comparing the user's query with each agent's Skills/Description/Tags. Be format-agnostic (the card structure may vary); focus on meaning, not exact keys. Select a single clearest match. Do not split into multiple tasks. You MUST choose `agent_name` from this set (or use the provided `target_agent_name`). Never fabricate agent names.
 </tools>
 """
 
@@ -82,7 +81,7 @@ PLANNER_EXPECTED_OUTPUT = """
 - Transparent proxy by default: create a single task with the original query unchanged when a target agent is specified or when no scheduling is involved.
 - Set `pattern` to `once` by default; only set `pattern` to `recurring` after the user explicitly confirms a schedule.
 - Provide a concise `title` (English ≤ 10 words, CJK ≤ 20 characters).
-- Agent selection: use provided `target_agent_name` or select via `tool_get_enabled_agents` when missing; fall back to "ResearchAgent" if unclear.
+- Agent selection: use provided `target_agent_name` or select via `tool_get_enabled_agents` when missing
 - For scheduled/recurring tasks after confirmation: transform the query into single-execution form (remove time phrases and notification verbs) and put timing into `schedule_config`.
  - Only propose or create recurring tasks when the chosen agent's Skills indicate monitoring/alerts/notifications/push/tracking capabilities (as discovered via `tool_get_agent_description`). Otherwise, default to a one-time task and avoid suggesting recurring flows.
  - Use `adequate: false` only to confirm explicit schedules. In all other cases, proceed with best effort and keep `adequate: true`.
