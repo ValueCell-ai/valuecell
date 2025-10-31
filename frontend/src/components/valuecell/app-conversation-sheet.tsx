@@ -1,6 +1,16 @@
+import { MoreVertical, Trash2 } from "lucide-react";
 import type { FC, ReactNode } from "react";
-import { NavLink, useSearchParams } from "react-router";
-import { useGetConversationList } from "@/api/conversation";
+import { NavLink, useNavigate, useSearchParams } from "react-router";
+import {
+  useDeleteConversation,
+  useGetConversationList,
+} from "@/api/conversation";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Sheet,
   SheetContent,
@@ -11,6 +21,7 @@ import {
 } from "@/components/ui/sheet";
 import {
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
@@ -21,9 +32,10 @@ import ScrollContainer from "./scroll/scroll-container";
 const AppConversationSheet: FC<{ children: ReactNode }> = ({ children }) => {
   const [searchParams] = useSearchParams();
   const currentConversationId = searchParams.get("id") ?? "";
+  const navigate = useNavigate();
 
-  // Fetch conversation list
   const { data: conversations = [], isLoading } = useGetConversationList();
+  const { mutateAsync: deleteConversation } = useDeleteConversation();
 
   return (
     <Sheet>
@@ -74,6 +86,35 @@ const AppConversationSheet: FC<{ children: ReactNode }> = ({ children }) => {
                         </span>
                       </NavLink>
                     </SidebarMenuButton>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <SidebarMenuAction showOnHover>
+                          <MoreVertical />
+                        </SidebarMenuAction>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent side="right" align="start">
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await deleteConversation(
+                              conversation.conversation_id,
+                            );
+
+                            if (
+                              conversation.conversation_id ===
+                              currentConversationId
+                            ) {
+                              navigate("/home");
+                            }
+                          }}
+                        >
+                          <Trash2 />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </SidebarMenuItem>
                 );
               })
