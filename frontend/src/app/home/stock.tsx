@@ -9,15 +9,16 @@ import {
   useRemoveStockFromWatchlist,
 } from "@/api/stock";
 import { Button } from "@/components/ui/button";
-import { STOCK_BADGE_COLORS } from "@/constants/stock";
 import { TimeUtils } from "@/lib/time";
 import { formatChange, getChangeType } from "@/lib/utils";
+import { useStockBadgeColors } from "@/store/settings-store";
 import type { SparklineData } from "@/types/chart";
 import type { Route } from "./+types/stock";
 
 function Stock() {
   const { stockId } = useParams<Route.LoaderArgs["params"]>();
   const navigate = useNavigate();
+  const badgeColors = useStockBadgeColors();
   // Use stockId as ticker to fetch real data from API
   const ticker = stockId || "";
 
@@ -146,7 +147,7 @@ function Stock() {
     );
   }
 
-  const changeType = getChangeType(stockInfo.changePercent, stockInfo.currency);
+  const changeType = getChangeType(stockInfo.changePercent);
 
   return (
     <div className="flex flex-col gap-8 bg-white px-8 py-6">
@@ -174,8 +175,8 @@ function Stock() {
             <span
               className="rounded-lg p-2 font-bold text-xs"
               style={{
-                backgroundColor: STOCK_BADGE_COLORS[changeType].bg,
-                color: STOCK_BADGE_COLORS[changeType].text,
+                backgroundColor: badgeColors[changeType].bg,
+                color: badgeColors[changeType].text,
               }}
             >
               {formatChange(stockInfo.changePercent, "%")}
