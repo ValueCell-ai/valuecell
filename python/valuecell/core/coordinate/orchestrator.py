@@ -390,6 +390,11 @@ class AgentOrchestrator:
 
         # Planning completed, execute plan
         plan = await planning_task
+
+        # Set conversation title once if not set yet and a task title is available
+        if getattr(plan, "tasks", None):
+            first_title = getattr(plan.tasks[0], "title", None)
+            await self._maybe_set_conversation_title(conversation_id, first_title)
         async for response in self.task_executor.execute_plan(plan, thread_id):
             yield response
 
@@ -454,8 +459,40 @@ class AgentOrchestrator:
         plan = await planning_task
         del self._execution_contexts[conversation_id]
 
+        # If this conversation was just created (tracked in context), set its title once.
+        if getattr(plan, "tasks", None):
+            first_title = getattr(plan.tasks[0], "title", None)
+            await self._maybe_set_conversation_title(conversation_id, first_title)
+
         async for response in self.task_executor.execute_plan(plan, thread_id):
             yield response
+
+    async def _maybe_set_conversation_title(
+        self, conversation_id: str, title: Optional[str]
+    ):
+        """Set conversation title once after creation when a task title is available.
+
+        Only sets the title if:
+        - title is provided and non-empty
+        - the conversation exists and currently has no title
+        """
+        try:
+            if not title or not str(title).strip():
+                return
+            conversation = await self.conversation_service.get_conversation(
+                conversation_id
+            )
+            if not conversation:
+                return
+            # Avoid overwriting any existing title
+            if conversation.title:
+                return
+            conversation.title = str(title).strip()
+            # Persist via manager to avoid expanding ConversationService API
+            await self.conversation_service.manager.update_conversation(conversation)
+        except Exception:
+            # Title setting is best-effort; failures shouldn't break flow
+            logger.exception(f"Failed to set conversation title for {conversation_id}")
 
     async def _cancel_execution(self, conversation_id: str):
         """Cancel and clean up any execution resources associated with a

@@ -152,6 +152,7 @@ class TaskExecutor:
                     user_id=plan.user_id,
                     conversation_id=task.conversation_id,
                     agent_name=task.agent_name,
+                    title=task.title,
                 )
 
                 # Emit subagent conversation start component
