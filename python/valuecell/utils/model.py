@@ -33,7 +33,10 @@ def model_should_use_json_mode(model: AgnoModel) -> bool:
         name = getattr(model, "name", None)
         if provider == AgnoGeminiModel.provider and name == AgnoGeminiModel.name:
             return True
-        if provider == AgnoOpenAIChatModel.provider and name == AgnoOpenAIChatModel.name:
+        if (
+            provider == AgnoOpenAIChatModel.provider
+            and name == AgnoOpenAIChatModel.name
+        ):
             return True
     except Exception:
         # Any unexpected condition falls back to standard (non-JSON) mode
