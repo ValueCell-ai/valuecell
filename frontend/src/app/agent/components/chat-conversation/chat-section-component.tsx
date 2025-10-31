@@ -42,14 +42,14 @@ const ScheduledTaskResultComponent: FC<{ tasks: Record<string, TaskView> }> = ({
   }, [taskList, selectedTaskId]);
 
   return selectedItemContent ? (
-    <section className="flex flex-1 flex-col py-6">
+    <section className="flex flex-1 flex-col py-6 pr-5">
       <BackButton className="mb-3" onClick={() => setSelectedItemContent("")} />
       <ScrollContainer className="flex-1">
         <MarkdownRenderer content={selectedItemContent} />
       </ScrollContainer>
     </section>
   ) : (
-    <section className="flex flex-1 flex-col gap-5 py-6">
+    <section className="flex flex-1 flex-col gap-5 py-6 pr-5">
       {/* Task Selector */}
       {taskList.length > 0 && (
         <Select value={selectedTaskId} onValueChange={setSelectedTaskId}>
