@@ -191,7 +191,7 @@ const AppSidebar: FC = () => {
           })}
 
           <AppConversationSheet>
-            <SidebarMenuItem className="cursor-pointer bg-white p-2 text-black hover:bg-neutral-200">
+            <SidebarMenuItem className="cursor-pointer bg-white p-2 text-gray-700 hover:bg-neutral-300">
               <SvgIcon name={Conversation} className="size-5" />
             </SidebarMenuItem>
           </AppConversationSheet>

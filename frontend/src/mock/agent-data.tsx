@@ -1,6 +1,6 @@
 import type { AgentSuggestion } from "@/app/home/components/agent-suggestions-list";
-import { IconGroupPng, TrendPng } from "@/assets/png";
-import { AutoTrade, ResearchReport } from "@/assets/svg";
+import { IconGroupPng, MessageGroupPng, TrendPng } from "@/assets/png";
+import { AutoTrade, NewsPush, ResearchReport } from "@/assets/svg";
 import SvgIcon from "@/components/valuecell/svg-icon";
 
 export const agentSuggestions: AgentSuggestion[] = [
@@ -18,20 +18,20 @@ export const agentSuggestions: AgentSuggestion[] = [
     id: "AutoTradingAgent",
     title: "Auto Trading",
     icon: <SvgIcon name={AutoTrade} />,
-    description: "multiple crypto assets and AI-powered trading strategies",
+    description: "Multiple crypto assets and AI-powered trading strategies",
     bgColor:
       "bg-gradient-to-r from-[#FFFFFF]/70 from-[5.05%] to-[#EAE8FF]/70 to-[100%]",
     decorativeGraphics: <img src={TrendPng} alt="Trend" />,
   },
-  // {
-  //   id: "SECAgent",
-  //   title: "Selection SEC",
-  //   icon: <Target size={16} className="text-gray-500" />,
-  //   description: "SEC Stock Information Query",
-  //   bgColor:
-  //     "bg-gradient-to-r from-[#FFFFFF]/70 from-[5.05%] to-[#FFE7FD]/70 to-[100%]",
-  //   decorativeGraphics: <img src={MessageGroupPng} alt="MessageGroup" />,
-  // },
+  {
+    id: "NewsAgent",
+    title: "Pushing News",
+    icon: <SvgIcon name={NewsPush} />,
+    description: "Personalized news updates on a custom schedule",
+    bgColor:
+      "bg-gradient-to-r from-[#FFFFFF]/70 from-[5.05%] to-[#FFE7FD]/70 to-[100%]",
+    decorativeGraphics: <img src={MessageGroupPng} alt="MessageGroup" />,
+  },
 ];
 
 /**
