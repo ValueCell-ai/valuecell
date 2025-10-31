@@ -75,7 +75,7 @@ export default defineConfig(async () => ({
   server: {
     port: 1420,
     strictPort: true,
-    host: host || false,
+    host: host || "0.0.0.0", // Allow LAN access
     hmr: host
       ? {
           protocol: "ws",
