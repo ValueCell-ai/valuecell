@@ -15,6 +15,7 @@ from typing import Optional
 
 from agno.models.base import Model as AgnoModel
 from agno.models.google import Gemini as AgnoGeminiModel
+from agno.models.openai import OpenAIChat as AgnoOpenAIChatModel
 
 from valuecell.adapters.models.factory import (
     create_embedder,
@@ -31,6 +32,8 @@ def model_should_use_json_mode(model: AgnoModel) -> bool:
         provider = getattr(model, "provider", None)
         name = getattr(model, "name", None)
         if provider == AgnoGeminiModel.provider and name == AgnoGeminiModel.name:
+            return True
+        if provider == AgnoOpenAIChatModel.provider and name == AgnoOpenAIChatModel.name:
             return True
     except Exception:
         # Any unexpected condition falls back to standard (non-JSON) mode

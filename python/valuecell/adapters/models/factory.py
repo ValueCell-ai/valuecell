@@ -302,7 +302,7 @@ class OpenAIProvider(ModelProvider):
         return OpenAIEmbedder(
             id=model_id,
             api_key=self.config.api_key,
-            dimensions=params.get("dimensions"),
+            dimensions=int(params.get("dimensions", 1536)) if params.get("dimensions") else None,
             encoding_format=params.get("encoding_format", "float"),
         )
 
