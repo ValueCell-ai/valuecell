@@ -122,6 +122,7 @@ class TaskExecutor:
                 thread_id=thread_id,
                 task_id=generate_task_id(),
                 content=plan.guidance_message,
+                agent_name="Planner"
             )
             yield await self._event_service.emit(response)
             return
