@@ -272,6 +272,7 @@ class OpenAIProvider(ModelProvider):
         return OpenAIChat(
             id=model_id,
             api_key=self.config.api_key,
+            base_url=self.config.base_url,
             temperature=params.get("temperature"),
             max_tokens=params.get("max_tokens"),
             top_p=params.get("top_p"),
@@ -302,11 +303,82 @@ class OpenAIProvider(ModelProvider):
         return OpenAIEmbedder(
             id=model_id,
             api_key=self.config.api_key,
+            base_url=self.config.base_url,
             dimensions=int(params.get("dimensions", 1536))
             if params.get("dimensions")
             else None,
             encoding_format=params.get("encoding_format", "float"),
         )
+
+
+class OpenAICompatibleProvider(ModelProvider):
+    """OpenAI-compatible model provider with role compatibility handling
+
+    This provider handles OpenAI-compatible APIs (like DashScope, vLLM, etc.) that may not
+    support newer OpenAI features like the 'developer' role. It wraps the OpenAIChat model
+    and converts incompatible roles to compatible ones.
+    """
+
+    def create_model(self, model_id: Optional[str] = None, **kwargs):
+        """Create OpenAI-compatible model via agno with role compatibility"""
+        try:
+            from agno.models.openai import OpenAILike
+        except ImportError:
+            raise ImportError(
+                "agno package not installed. Install with: pip install agno"
+            )
+
+        model_id = model_id or self.config.default_model
+        params = {**self.config.parameters, **kwargs}
+
+        logger.info(
+            f"Creating OpenAI-compatible model: {model_id} (base_url: {self.config.base_url})"
+        )
+
+        # Create the base OpenAILike model
+        return OpenAILike(
+            id=model_id,
+            api_key=self.config.api_key,
+            base_url=self.config.base_url,
+            temperature=params.get("temperature"),
+            max_tokens=params.get("max_tokens"),
+            top_p=params.get("top_p"),
+            frequency_penalty=params.get("frequency_penalty"),
+            presence_penalty=params.get("presence_penalty"),
+        )
+
+
+    def create_embedder(self, model_id: Optional[str] = None, **kwargs):
+        """Create embedder via OpenAI-compatible API"""
+        try:
+            from agno.knowledge.embedder.openai import OpenAIEmbedder
+        except ImportError:
+            raise ImportError("agno package not installed")
+
+        # Use provided model_id or default embedding model
+        model_id = model_id or self.config.default_embedding_model
+
+        if not model_id:
+            raise ValueError(
+                f"No embedding model specified for provider '{self.config.name}'"
+            )
+
+        # Merge parameters: provider embedding defaults < kwargs
+        params = {**self.config.embedding_parameters, **kwargs}
+
+        logger.info(f"Creating OpenAI-compatible embedder: {model_id}")
+
+        return OpenAIEmbedder(
+            id=model_id,
+            api_key=self.config.api_key,
+            base_url=self.config.base_url,
+            dimensions=int(params.get("dimensions", 1024)),
+            encoding_format=params.get("encoding_format"),
+        )
+
+    def is_available(self) -> bool:
+        """Check if provider is available (needs both API key and base URL)"""
+        return bool(self.config.api_key and self.config.base_url)
 
 
 class ModelFactory:
@@ -327,6 +399,7 @@ class ModelFactory:
         "azure": AzureProvider,
         "siliconflow": SiliconFlowProvider,
         "openai": OpenAIProvider,
+        "openai-compatible": OpenAICompatibleProvider,
     }
 
     def __init__(self, config_manager: Optional[ConfigManager] = None):

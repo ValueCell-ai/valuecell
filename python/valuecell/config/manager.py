@@ -133,6 +133,7 @@ class ConfigManager:
                     "siliconflow",
                     "google",
                     "openai",
+                    "openai-compatible",
                 ]
 
                 for preferred in preferred_order:
