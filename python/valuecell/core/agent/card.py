@@ -21,9 +21,10 @@ def parse_local_agent_card_dict(agent_card_dict: dict) -> Optional[AgentCard]:
     if not isinstance(agent_card_dict, dict):
         return None
     # Defined by us, remove fields that are not part of AgentCard
-    for field in FIELDS_UNDEFINED_IN_AGENT_CARD_MODEL:
-        if field in agent_card_dict:
-            del agent_card_dict[field]
+    for field in FIELDS_UNDEFINED_IN_AGENT_CARD_MODEL.intersection(
+        agent_card_dict.keys()
+    ):
+        del agent_card_dict[field]
 
     # Requested fields as per AgentCard model
     if "description" not in agent_card_dict:
@@ -73,14 +74,12 @@ def find_local_agent_card_by_agent_name(
             with open(json_file, "r", encoding="utf-8") as f:
                 agent_card_dict = json.load(f)
 
-            # Check if this agent config has the matching name
-            if not isinstance(agent_card_dict, dict):
-                continue
-            if agent_card_dict.get("name") != agent_name:
-                continue
-            if not agent_card_dict.get("enabled", True):
-                continue
-            return parse_local_agent_card_dict(agent_card_dict)
+            if (
+                isinstance(agent_card_dict, dict)
+                and agent_card_dict.get("name") == agent_name
+                and agent_card_dict.get("enabled", True)
+            ):
+                return parse_local_agent_card_dict(agent_card_dict)
 
         except (json.JSONDecodeError, IOError):
             # Skip files that can't be read or parsed
