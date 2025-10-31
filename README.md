@@ -48,16 +48,21 @@ Welcome to join our Discord community to share feedback and issues you encounter
 </p>
 
 <p align="center">
-  <img src="assets/product/agent_market.png" style="width: 100%; height: auto;">
-</p>
-
-<p align="center">
   <img src="assets/product/superagent.png" style="width: 100%; height: auto;">
 </p>
 
 <p align="center">
   <img src="assets/product/AutoTradingAgent.png" style="width: 100%; height: auto;">
 </p>
+
+<p align="center">
+  <img src="assets/product/NewPushAgent.png" style="width: 100%; height: auto;">
+</p>
+
+<p align="center">
+  <img src="assets/product/agent_market.png" style="width: 100%; height: auto;">
+</p>
+
 
 # Key Features
 
@@ -69,6 +74,7 @@ Welcome to join our Discord community to share feedback and issues you encounter
 ## Multi-Agent System
 - **DeepResearch Agent**: Automatically retrieve and analyze fundamental documents to generate accurate data insights and interpretable summaries
 - **Auto Trading Agent**: Support for multiple crypto assets and AI-powered trading strategies, creating automated trading based on technical indicators
+- **News Retrieval Agent**: Supports personalized scheduled news delivery to track key information in real time
 - **Trading Agents**: Agents work for market analysis, sentiment analysis, news analysis, and fundamentals analysis 
 - **AI-Hedge-Fund**: Agents collaborate to provide comprehensive financial insights
 - **Others**: More agents are in planning...

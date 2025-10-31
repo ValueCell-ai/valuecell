@@ -48,15 +48,19 @@ ValueCell 是一個社群驅動的多智能體金融應用產品，我們的計�
 </p>
 
 <p align="center">
-  <img src="assets/product/agent_market.png" style="width: 100%; height: auto;">
-</p>
-
-<p align="center">
   <img src="assets/product/superagent.png" style="width: 100%; height: auto;">
 </p>
 
 <p align="center">
   <img src="assets/product/AutoTradingAgent.png" style="width: 100%; height: auto;">
+</p>
+
+<p align="center">
+  <img src="assets/product/NewPushAgent.png" style="width: 100%; height: auto;">
+</p>
+
+<p align="center">
+  <img src="assets/product/agent_market.png" style="width: 100%; height: auto;">
 </p>
 
 # 核心功能
@@ -69,6 +73,7 @@ ValueCell 是一個社群驅動的多智能體金融應用產品，我們的計�
 ## 多智能體系統
 - **DeepResearch Agent**：獲取並分析股票的基本面文件，輸出準確的數據與可解釋的總結
 - **Auto Trading Agent**：支援多種加密資產與 AI 自動交易策略，依據技術指標建立自動化交易
+- **News Retrieval Agent**: 支援個人化定時任務的新聞推送，及時追蹤關鍵資訊
 - **Trading Agents**: 專責市場分析、情緒分析、新聞分析與基本面分析的智能體協同運作
 - **AI-Hedge-Fund**：智能體協作提供全面的金融洞見
 - **其他智能體**：更多智能體正在規劃中...

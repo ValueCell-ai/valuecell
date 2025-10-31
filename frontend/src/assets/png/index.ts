@@ -20,6 +20,7 @@ export { default as TechnicalAgencyPng } from "./agents/TechnicalAgency.png";
 export { default as ValuationAgencyPng } from "./agents/ValuationAgency.png";
 export { default as ValueCellAgentPng } from "./agents/ValueCellAgent.png";
 export { default as WarrenBuffettPng } from "./agents/WarrenBuffett.png";
+export { default as NewPushAgentPng } from "./agents/NewPushAgent.png";
 
 export { default as IconGroupPng } from "./icon-group.png";
 export { default as MessageGroupPng } from "./message-group.png";

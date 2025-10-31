@@ -9,6 +9,7 @@ import {
   FundamentalProxyPng,
   MichaelBurryPng,
   MohnishPabraiPng,
+  NewPushAgentPng,
   PeterLynchPng,
   PhilFisherPng,
   PortfolioManagerPng,
@@ -98,6 +99,7 @@ export const AGENT_AVATAR_MAP: Record<string, string> = {
   // System Agents
   TradingAgents: PortfolioManagerPng,
   SECAgent: SecAgentPng,
+  NewsAgent: NewPushAgentPng,
 };
 
 export const VALUECELL_AGENT: AgentInfo = {
