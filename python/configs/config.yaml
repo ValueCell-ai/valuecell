@@ -34,6 +34,10 @@ models:
     openai:
       config_file: "providers/openai.yaml"
       api_key_env: "OPENAI_API_KEY"
+    
+    openai-compatible:
+      config_file: "providers/openai-compatible.yaml"
+      api_key_env: "OPENAI_COMPATIBLE_API_KEY"
 
 # Agent Configuration
 agents:

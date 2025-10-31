@@ -1,0 +1,72 @@
+# ============================================
+# OpenAI Compatible API Provider Configuration
+# ============================================
+# This configuration supports any OpenAI-compatible API including:
+
+#
+# Usage:
+#   1. Set OPENAI_API_BASE environment variable to your API endpoint
+#   2. Set OPENAI_API_KEY if your service requires authentication
+#   3. Set PRIMARY_PROVIDER=openai-compatible
+#
+# Examples:
+#
+#   # vLLM on remote server
+#   export OPENAI_API_BASE=http://your-vllm-server:8000/v1
+#   export PRIMARY_PROVIDER=openai-compatible
+#
+#   # Together.ai
+#   export OPENAI_API_BASE=https://api.together.xyz/v1
+#   export OPENAI_API_KEY=your-together-api-key
+#   export PRIMARY_PROVIDER=openai-compatible
+
+name: "OpenAI-Compatible"
+provider_type: "openai-compatible"
+
+enabled: true
+
+# Connection Configuration
+connection:
+  # Use environment variable with fallback to local Ollama
+  base_url: "${OPENAI_COMPATIBLE_BASE_URL:http://localhost:11434/v1}"
+  api_key_env: "OPENAI_COMPATIBLE_API_KEY"
+
+# Default model if agents.yaml specified
+# Example: qwen3-max
+default_model: "qwen3-max"
+
+# Model Parameters Defaults
+defaults:
+  temperature: 0.7
+  max_tokens: 4096
+
+# Available Models (examples - adjust based on your provider model id)
+models:
+  - id: "qwen3-max"
+    name: "Qwen3 Max"
+    context_length: 256000
+    description: "Qwen3 Max model"
+  
+
+# ============================================
+# Embedding Models Configuration
+# ============================================
+# Note: Embedding support depends on your provider
+
+# Example: text-embedding-v4
+embedding:
+  # Default embedding model
+  default_model: "text-embedding-v4"
+  
+  # Default parameters
+  defaults:
+    dimensions: 2048
+    encoding_format: "float"
+  
+  # Available embedding models
+  models:
+    - id: "text-embedding-v4"
+      name: "Text Embedding V4"
+      dimensions: 2048
+      max_input: 8192
+      description: "Text Embedding V4 model"
