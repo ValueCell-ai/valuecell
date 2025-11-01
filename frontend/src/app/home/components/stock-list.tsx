@@ -52,7 +52,7 @@ function StockList() {
 
   return (
     <StockMenu>
-      <StockMenuHeader>My Stocks</StockMenuHeader>
+      <StockMenuHeader>My Watchlist</StockMenuHeader>
       <ScrollContainer>
         {stockData?.map((stock) => (
           <StockItem key={stock.symbol} stock={stock} />
