@@ -170,7 +170,6 @@ class YFinanceAdapter(BaseDataAdapter):
                 "en-GB": long_name or short_name,
             }
 
-
             # Create search result
             search_result = AssetSearchResult(
                 ticker=internal_ticker,
