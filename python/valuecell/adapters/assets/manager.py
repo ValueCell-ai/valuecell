@@ -443,6 +443,9 @@ Generate up to at least 1 possible ticker candidate up to 10. Be creative but re
                 if ":" not in ticker:
                     continue
 
+                if not self.get_adapter_for_ticker(ticker):
+                    continue
+
                 # Try to get asset info
                 try:
                     asset_info = self.get_asset_info(ticker)

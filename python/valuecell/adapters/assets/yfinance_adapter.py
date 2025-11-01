@@ -140,7 +140,7 @@ class YFinanceAdapter(BaseDataAdapter):
             )
 
             # Validate the ticker format
-            if not self._is_valid_internal_ticker(internal_ticker):
+            if not self.validate_ticker(internal_ticker):
                 logger.debug(
                     f"Invalid ticker format after conversion: {internal_ticker}"
                 )
@@ -170,11 +170,6 @@ class YFinanceAdapter(BaseDataAdapter):
                 "en-GB": long_name or short_name,
             }
 
-            # Calculate relevance score based on match quality
-            relevance_score = self._calculate_search_relevance(
-                quote, symbol, long_name or short_name
-            )
-
             # Create search result
             search_result = AssetSearchResult(
                 ticker=internal_ticker,
@@ -184,7 +179,6 @@ class YFinanceAdapter(BaseDataAdapter):
                 country=country,
                 currency=quote.get("currency", "USD"),
                 market_status=MarketStatus.UNKNOWN,
-                relevance_score=relevance_score,
             )
 
             # Save asset metadata to database for future lookups
@@ -234,6 +228,7 @@ class YFinanceAdapter(BaseDataAdapter):
             long_name = info.get("longName", info.get("shortName", ticker))
             names.set_name("en-US", long_name)
 
+            exchange = None
             if info.get("exchange"):
                 exchange = self.exchange_mapping.get(info.get("exchange"))
 
