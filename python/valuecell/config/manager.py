@@ -134,6 +134,7 @@ class ConfigManager:
                     "google",
                     "openai",
                     "openai-compatible",
+                    "azure",
                 ]
 
                 for preferred in preferred_order:

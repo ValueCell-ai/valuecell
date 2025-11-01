@@ -38,6 +38,11 @@ models:
     openai-compatible:
       config_file: "providers/openai-compatible.yaml"
       api_key_env: "OPENAI_COMPATIBLE_API_KEY"
+    
+    azure:
+      config_file: "providers/azure.yaml"
+      api_key_env: "AZURE_OPENAI_API_KEY"
+      endpoint_env: "AZURE_OPENAI_ENDPOINT"
 
 # Agent Configuration
 agents:
