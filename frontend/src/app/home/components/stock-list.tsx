@@ -16,10 +16,8 @@ function StockList() {
   const { data: stockList } = useGetWatchlist();
 
   const stockData = useMemo(() => {
-    return stockList?.map((group) => ({
-      title: group.name,
-      stocks: group.items,
-    }));
+    const allStocks = stockList?.flatMap((group) => group.items) ?? [];
+    return allStocks;
   }, [stockList]);
 
   // Extract stock symbol (e.g., AAPL) from path like /stock/AAPL
@@ -54,15 +52,10 @@ function StockList() {
 
   return (
     <StockMenu>
-      <StockMenuHeader>My Stocks</StockMenuHeader>
+      <StockMenuHeader>My Watchlist</StockMenuHeader>
       <ScrollContainer>
-        {stockData?.map((group) => (
-          <StockMenuGroup key={group.title}>
-            <StockMenuGroupHeader>{group.title}</StockMenuGroupHeader>
-            {group.stocks.map((stock) => (
-              <StockItem key={stock.symbol} stock={stock} />
-            ))}
-          </StockMenuGroup>
+        {stockData?.map((stock) => (
+          <StockItem key={stock.symbol} stock={stock} />
         ))}
       </ScrollContainer>
     </StockMenu>
