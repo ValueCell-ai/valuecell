@@ -30,9 +30,9 @@ const AppConversationSheet: FC = () => {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <button type="button" className="cursor-pointer text-black">
+        <div className="cursor-pointer text-black">
           <SvgIcon name={Conversation} className="size-5" />
-        </button>
+        </div>
       </SheetTrigger>
 
       <SheetContent side="left" className="w-[300px]">
