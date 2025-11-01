@@ -1,0 +1,91 @@
+# ============================================
+# Azure OpenAI Provider Configuration
+# ============================================
+name: "Azure OpenAI"
+provider_type: "azure"
+
+enabled: true # Default is true if not specified
+
+# Connection Configuration
+# Azure OpenAI requires:
+# - AZURE_OPENAI_API_KEY: API key from Azure Portal
+# - AZURE_OPENAI_ENDPOINT: Endpoint URL (e.g., https://{resource-name}.openai.azure.com/)
+connection:
+  api_key_env: "AZURE_OPENAI_API_KEY"
+  endpoint_env: "AZURE_OPENAI_ENDPOINT"
+  base_url: "AZURE_OPENAI_ENDPOINT"
+
+# API Version Configuration
+# Azure OpenAI uses versioned APIs
+# Supported api_version: 2024-10-21 (recommended), 2024-08-01, 2024-06-01, etc.
+api_version: "2024-10-21"
+
+# Default model (deployment name in Azure)
+# Note: Deployment names in Azure are NOT necessarily the same as model IDs
+# Update to match your Azure deployment names
+default_model: "gpt-5-2025-08-07"
+
+# Model Parameters Defaults
+defaults:
+  temperature: 0.7
+
+# Available Models
+# These are mapped from Azure deployment names to OpenAI model equivalents
+# In Azure, you create "deployments" with specific names - update these to match your Azure deployments
+models:
+  - id: "gpt-5-2025-08-07"
+    name: "GPT-5 2025-08-07"
+    deployment_name: "gpt-5-2025-08-07"  # Azure deployment name (can differ from id)
+    context_length: 400000
+    max_output_tokens: 128000
+    description: "Most capable GPT-5 model with 400K context window"
+    supported_inputs: ["text"]
+    supported_outputs: ["text"]
+
+  - id: "gpt-5-mini-2025-08-07"
+    name: "GPT-5 Mini 2025-08-07"
+    deployment_name: "gpt-5-mini-2025-08-07"
+    context_length: 400000
+    max_output_tokens: 128000
+    description: "Lightweight GPT-5 model optimized for efficiency"
+    supported_inputs: ["text"]
+    supported_outputs: ["text"]
+
+
+
+# ============================================
+# Embedding Models Configuration
+# ============================================
+embedding:
+  # Default embedding model
+  default_model: "text-embedding-3-small"
+  
+  # Default parameters
+  defaults:
+    encoding_format: "float"
+  
+  # Available embedding models
+  models:
+    - id: "text-embedding-3-small"
+      name: "Text Embedding 3 Small"
+      deployment_name: "text-embedding-3-small"
+      dimensions: 1536
+      max_input: 8192
+      performance_mteb: 62.3
+      description: "Small embedding model with good performance and efficiency"
+
+    - id: "text-embedding-3-large"
+      name: "Text Embedding 3 Large"
+      deployment_name: "text-embedding-3-large"
+      dimensions: 3072
+      max_input: 8192
+      performance_mteb: 64.6
+      description: "Large embedding model with higher performance"
+
+# ============================================
+# Environment Variable Overrides
+# ============================================
+# Map environment variable names to config paths
+env_overrides:
+  AZURE_OPENAI_API_VERSION: "api_version"
+  AZURE_OPENAI_DEFAULT_MODEL: "default_model"

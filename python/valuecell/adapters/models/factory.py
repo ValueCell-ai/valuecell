@@ -169,35 +169,126 @@ class GoogleProvider(ModelProvider):
 
 
 class AzureProvider(ModelProvider):
-    """Azure OpenAI model provider"""
+    """Azure OpenAI model provider
+
+    Azure OpenAI is a managed service providing OpenAI models deployed on Azure infrastructure.
+    It uses deployment names instead of model IDs, and requires both API key and endpoint.
+
+    Configuration:
+    - AZURE_OPENAI_API_KEY: API key from Azure Portal
+    - AZURE_OPENAI_ENDPOINT: Azure OpenAI endpoint URL
+    - api_version: API version for Azure OpenAI REST API (default: 2024-10-21)
+    """
 
     def create_model(self, model_id: Optional[str] = None, **kwargs):
-        """Create Azure OpenAI model"""
+        """Create Azure OpenAI model
+
+        Args:
+            model_id: Deployment name in Azure (uses default if None)
+            **kwargs: Additional model parameters
+
+        Returns:
+            AzureOpenAI model instance
+        """
         try:
-            # Try to import from agno first
             from agno.models.azure import AzureOpenAI
         except ImportError:
-            raise ImportError("No Azure OpenAI library found")
+            raise ImportError(
+                "agno package with Azure support not installed. "
+                "Install with: pip install agno[azure]"
+            )
 
-        model_id = model_id or self.config.default_model
+        # Use provided model_id or default
+        deployment_name = model_id or self.config.default_model
+
+        # Merge parameters: provider defaults < kwargs
         params = {**self.config.parameters, **kwargs}
 
+        # Get API version from config (can be overridden by env var)
+        # The api_version field in azure.yaml is handled by env_overrides
         api_version = self.config.extra_config.get("api_version", "2024-10-21")
 
-        logger.info(f"Creating Azure OpenAI model: {model_id}")
+        logger.info(
+            f"Creating Azure OpenAI model: deployment={deployment_name}, "
+            f"endpoint={self.config.base_url}, api_version={api_version}"
+        )
 
         return AzureOpenAI(
-            deployment_name=model_id,
+            deployment_name=deployment_name,
             api_key=self.config.api_key,
             azure_endpoint=self.config.base_url,
             api_version=api_version,
             temperature=params.get("temperature"),
             max_tokens=params.get("max_tokens"),
+            top_p=params.get("top_p"),
+            frequency_penalty=params.get("frequency_penalty"),
+            presence_penalty=params.get("presence_penalty"),
+        )
+
+    def create_embedder(self, model_id: Optional[str] = None, **kwargs):
+        """Create embedder via Azure OpenAI (OpenAI-compatible)
+
+        Args:
+            model_id: Embedding deployment name in Azure (uses default if None)
+            **kwargs: Additional embedder parameters
+
+        Returns:
+            OpenAIEmbedder instance configured for Azure
+        """
+        try:
+            from agno.knowledge.embedder.openai import OpenAIEmbedder
+        except ImportError:
+            raise ImportError("agno package not installed")
+
+        # Use provided model_id or default embedding model
+        deployment_name = model_id or self.config.default_embedding_model
+
+        if not deployment_name:
+            raise ValueError(
+                f"No embedding model specified for provider '{self.config.name}'. "
+                "Set 'embedding.default_model' in azure.yaml"
+            )
+
+        # Merge parameters: provider embedding defaults < kwargs
+        params = {**self.config.embedding_parameters, **kwargs}
+
+        logger.info(
+            f"Creating Azure OpenAI embedder: deployment={deployment_name}, "
+            f"endpoint={self.config.base_url}"
+        )
+
+        return OpenAIEmbedder(
+            id=deployment_name,
+            api_key=self.config.api_key,
+            base_url=self.config.base_url,
+            dimensions=int(params.get("dimensions", 1536))
+            if params.get("dimensions")
+            else None,
+            encoding_format=params.get("encoding_format", "float"),
         )
 
     def is_available(self) -> bool:
-        """Azure needs both API key and endpoint"""
-        return bool(self.config.api_key and self.config.base_url)
+        """Azure needs both API key and endpoint to be available
+
+        Returns:
+            True if both API key and endpoint are configured
+        """
+        has_key = bool(self.config.api_key)
+        has_endpoint = bool(self.config.base_url)
+
+        if not has_key:
+            logger.warning(
+                "Azure OpenAI API key not configured. "
+                "Set AZURE_OPENAI_API_KEY environment variable."
+            )
+
+        if not has_endpoint:
+            logger.warning(
+                "Azure OpenAI endpoint not configured. "
+                "Set AZURE_OPENAI_ENDPOINT environment variable."
+            )
+
+        return has_key and has_endpoint
 
 
 class SiliconFlowProvider(ModelProvider):
