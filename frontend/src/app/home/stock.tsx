@@ -9,15 +9,16 @@ import {
   useRemoveStockFromWatchlist,
 } from "@/api/stock";
 import { Button } from "@/components/ui/button";
-import { STOCK_BADGE_COLORS } from "@/constants/stock";
 import { TimeUtils } from "@/lib/time";
-import { formatChange, formatPrice, getChangeType } from "@/lib/utils";
+import { formatChange, getChangeType } from "@/lib/utils";
+import { useStockBadgeColors } from "@/store/settings-store";
 import type { SparklineData } from "@/types/chart";
 import type { Route } from "./+types/stock";
 
-const Stock = memo(function Stock() {
+function Stock() {
   const { stockId } = useParams<Route.LoaderArgs["params"]>();
   const navigate = useNavigate();
+  const badgeColors = useStockBadgeColors();
   // Use stockId as ticker to fetch real data from API
   const ticker = stockId || "";
 
@@ -71,7 +72,7 @@ const Stock = memo(function Stock() {
     error: historyError,
   } = useGetStockHistory({
     ticker,
-    interval: "d",
+    interval: "1d",
     start_date: dateRange.startDate,
     end_date: dateRange.endDate,
   });
@@ -95,26 +96,16 @@ const Stock = memo(function Stock() {
   const stockInfo = useMemo(() => {
     if (!stockPriceData) return null;
 
-    const currentPrice = parseFloat(
-      stockPriceData.price_formatted.replace(/[^0-9.-]/g, ""),
-    );
-    const changePercent = parseFloat(
-      stockPriceData.change_percent_formatted.replace(/[^0-9.-]/g, ""),
-    );
-
     // Use display name from detail data if available, otherwise use ticker
     const companyName = stockDetailData?.display_name || ticker;
-    const currency = stockDetailData?.market_info?.currency || "USD";
 
     return {
       symbol: ticker,
       companyName,
       price: stockPriceData.price_formatted,
-      changePercent: stockPriceData.change_percent_formatted,
-      currency: currency === "USD" ? "$" : currency,
+      changePercent: stockPriceData.change_percent,
+      currency: stockPriceData.currency,
       changeAmount: stockPriceData.change,
-      changePercentNumeric: changePercent,
-      priceNumeric: currentPrice,
     };
   }, [stockPriceData, stockDetailData, ticker]);
 
@@ -156,10 +147,10 @@ const Stock = memo(function Stock() {
     );
   }
 
-  const changeType = getChangeType(stockInfo.changePercentNumeric);
+  const changeType = getChangeType(stockInfo.changePercent);
 
   return (
-    <div className="flex flex-col gap-8 rounded-lg bg-white px-8 py-6">
+    <div className="flex flex-col gap-8 bg-white px-8 py-6">
       {/* Stock Main Info */}
       <div className="flex flex-col gap-4">
         <BackButton />
@@ -180,17 +171,15 @@ const Stock = memo(function Stock() {
 
         <div>
           <div className="mb-3 flex items-center gap-3">
-            <span className="font-bold text-2xl">
-              {formatPrice(stockInfo.priceNumeric, stockInfo.currency)}
-            </span>
+            <span className="font-bold text-2xl">{stockInfo.price}</span>
             <span
               className="rounded-lg p-2 font-bold text-xs"
               style={{
-                backgroundColor: STOCK_BADGE_COLORS[changeType].bg,
-                color: STOCK_BADGE_COLORS[changeType].text,
+                backgroundColor: badgeColors[changeType].bg,
+                color: badgeColors[changeType].text,
               }}
             >
-              {formatChange(stockInfo.changePercentNumeric, "%")}
+              {formatChange(stockInfo.changePercent, "%")}
             </span>
           </div>
           <p className="font-medium text-muted-foreground text-xs">
@@ -250,6 +239,6 @@ const Stock = memo(function Stock() {
       </div>
     </div>
   );
-});
+}
 
-export default Stock;
+export default memo(Stock);

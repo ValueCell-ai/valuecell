@@ -1,14 +1,14 @@
 import { parse } from "best-effort-json-parser";
-import { type FC, memo } from "react";
+import { type FC, memo, useEffect } from "react";
 import { NavLink } from "react-router";
 import { useGetAgentInfo } from "@/api/agent";
+import { useGetConversationHistory } from "@/api/conversation";
 import ChatThreadArea from "@/app/agent/components/chat-conversation/chat-thread-area";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import AgentAvatar from "@/components/valuecell/agent-avatar";
-import { useConversationById } from "@/store/agent-store";
+import { useAgentStoreActions, useConversationById } from "@/store/agent-store";
 import type { ChatConversationRendererProps } from "@/types/renderer";
-import ScrollContainer from "../scroll/scroll-container";
 
 const ChatConversationRenderer: FC<ChatConversationRendererProps> = ({
   content,
@@ -16,13 +16,28 @@ const ChatConversationRenderer: FC<ChatConversationRendererProps> = ({
   // phase => 'start' | 'end'
   const { conversation_id, agent_name, phase } = parse(content);
   const currentConversation = useConversationById(conversation_id);
+  const { dispatchAgentStoreHistory } = useAgentStoreActions();
 
   const { data: agent } = useGetAgentInfo({ agentName: agent_name });
+  const { data: conversationHistory } = useGetConversationHistory(
+    conversation_id,
+    [!currentConversation, phase === "end"],
+  );
+
+  useEffect(() => {
+    if (
+      conversationHistory &&
+      conversationHistory.length > 0 &&
+      phase === "end"
+    ) {
+      dispatchAgentStoreHistory(conversation_id, conversationHistory, true);
+    }
+  }, [conversationHistory, conversation_id, dispatchAgentStoreHistory, phase]);
 
   if (!currentConversation) return null;
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-neutral-100 [&_#chat-item]:max-w-none">
+    <div className="overflow-hidden rounded-lg border border-gray-100 bg-neutral-100 [&_#chat-item]:max-w-none">
       {/* Header section */}
       <div className="flex items-center justify-between bg-white p-4">
         <div className="flex min-w-40 items-center gap-2 rounded-full border border-gray-200 bg-gray-50 py-1 pr-5 pl-1.5">
@@ -53,13 +68,12 @@ const ChatConversationRenderer: FC<ChatConversationRendererProps> = ({
         )}
       </div>
 
-      <ScrollContainer className="max-h-[600px]" autoScrollToBottom>
-        {/* Content area */}
-        <ChatThreadArea
-          threads={currentConversation.threads}
-          isStreaming={false}
-        />
-      </ScrollContainer>
+      {/* Content area */}
+      <ChatThreadArea
+        className="max-h-[600px] min-w-[600px]"
+        threads={currentConversation.threads}
+        isStreaming={false}
+      />
     </div>
   );
 };

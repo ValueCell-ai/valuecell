@@ -5,6 +5,7 @@ import type {
   Stock,
   StockDetail,
   StockHistory,
+  StockInterval,
   StockPrice,
   Watchlist,
 } from "@/types/stock";
@@ -71,7 +72,7 @@ export const useGetStockPrice = (params: { ticker: string }) =>
 
 export const useGetStockHistory = (params: {
   ticker: string;
-  interval: "m" | "h" | "d" | "w" | "mo" | "y";
+  interval: StockInterval;
   start_date: string;
   end_date: string;
 }) =>

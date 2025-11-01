@@ -1,8 +1,14 @@
-import { Settings } from "lucide-react";
+import { MessageCircle, Settings } from "lucide-react";
 import { type FC, memo } from "react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import AgentAvatar from "@/components/valuecell/agent-avatar";
+import TagGroups from "@/components/valuecell/button/tag-groups";
 import type { AgentInfo } from "@/types/agent";
 
 interface ChatConversationHeaderProps {
@@ -21,37 +27,39 @@ const ChatConversationHeader: FC<ChatConversationHeaderProps> = ({ agent }) => {
           <h1 className="font-semibold text-gray-950 text-lg">
             {agent.display_name}
           </h1>
-          <div className="flex items-center gap-1">
-            {agent.agent_metadata.tags.map((tag) => (
-              <span
-                key={tag}
-                className="text-nowrap rounded-md bg-gray-100 px-3 py-1 font-normal text-gray-700 text-xs"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
+          <TagGroups tags={agent.agent_metadata.tags} />
         </div>
       </div>
 
       {/* Action buttons */}
       <div className="flex items-center gap-2.5">
-        {/* TODO: add new conversation button */}
-        {/* <Button
-          variant="secondary"
-          className="size-8 cursor-pointer rounded-lg"
-          size="icon"
-        >
-          <MessageCircle size={16} className="text-gray-700" />
-        </Button> */}
+        <Link to=".">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="secondary"
+                className="size-8 cursor-pointer rounded-lg hover:bg-gray-200"
+                size="icon"
+              >
+                <MessageCircle size={16} className="text-gray-700" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>New Conversation</TooltipContent>
+          </Tooltip>
+        </Link>
         <Link to="./config">
-          <Button
-            variant="secondary"
-            className="size-8 cursor-pointer rounded-lg hover:bg-gray-200"
-            size="icon"
-          >
-            <Settings size={16} className="text-gray-700" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="secondary"
+                className="size-8 cursor-pointer rounded-lg hover:bg-gray-200"
+                size="icon"
+              >
+                <Settings size={16} className="text-gray-700" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Settings</TooltipContent>
+          </Tooltip>
         </Link>
       </div>
     </header>

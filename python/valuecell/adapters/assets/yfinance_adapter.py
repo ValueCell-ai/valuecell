@@ -140,7 +140,7 @@ class YFinanceAdapter(BaseDataAdapter):
             )
 
             # Validate the ticker format
-            if not self._is_valid_internal_ticker(internal_ticker):
+            if not self.validate_ticker(internal_ticker):
                 logger.debug(
                     f"Invalid ticker format after conversion: {internal_ticker}"
                 )
@@ -170,11 +170,6 @@ class YFinanceAdapter(BaseDataAdapter):
                 "en-GB": long_name or short_name,
             }
 
-            # Calculate relevance score based on match quality
-            relevance_score = self._calculate_search_relevance(
-                quote, symbol, long_name or short_name
-            )
-
             # Create search result
             search_result = AssetSearchResult(
                 ticker=internal_ticker,
@@ -184,7 +179,6 @@ class YFinanceAdapter(BaseDataAdapter):
                 country=country,
                 currency=quote.get("currency", "USD"),
                 market_status=MarketStatus.UNKNOWN,
-                relevance_score=relevance_score,
             )
 
             # Save asset metadata to database for future lookups
@@ -234,6 +228,7 @@ class YFinanceAdapter(BaseDataAdapter):
             long_name = info.get("longName", info.get("shortName", ticker))
             names.set_name("en-US", long_name)
 
+            exchange = None
             if info.get("exchange"):
                 exchange = self.exchange_mapping.get(info.get("exchange"))
 
@@ -368,19 +363,19 @@ class YFinanceAdapter(BaseDataAdapter):
 
             # Map interval to Yahoo Finance format
             interval_mapping = {
-                f"1{Interval.MINUTE}": "1m",
-                f"2{Interval.MINUTE}": "2m",
-                f"5{Interval.MINUTE}": "5m",
-                f"15{Interval.MINUTE}": "15m",
-                f"30{Interval.MINUTE}": "30m",
-                f"60{Interval.MINUTE}": "60m",
-                f"90{Interval.MINUTE}": "90m",
-                f"1{Interval.HOUR}": "1h",
-                f"1{Interval.DAY}": "1d",
-                f"5{Interval.DAY}": "5d",
-                f"1{Interval.WEEK}": "1wk",
-                f"1{Interval.MONTH}": "1mo",
-                f"3{Interval.MONTH}": "3mo",
+                f"1{Interval.MINUTE.value}": "1m",
+                f"2{Interval.MINUTE.value}": "2m",
+                f"5{Interval.MINUTE.value}": "5m",
+                f"15{Interval.MINUTE.value}": "15m",
+                f"30{Interval.MINUTE.value}": "30m",
+                f"60{Interval.MINUTE.value}": "60m",
+                f"90{Interval.MINUTE.value}": "90m",
+                f"1{Interval.HOUR.value}": "1h",
+                f"1{Interval.DAY.value}": "1d",
+                f"5{Interval.DAY.value}": "5d",
+                f"1{Interval.WEEK.value}": "1wk",
+                f"1{Interval.MONTH.value}": "1mo",
+                f"3{Interval.MONTH.value}": "3mo",
             }
             yf_interval = interval_mapping.get(interval, "1d")
 

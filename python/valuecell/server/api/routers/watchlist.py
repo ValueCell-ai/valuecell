@@ -3,6 +3,7 @@
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Path, Query
+from starlette.concurrency import run_in_threadpool
 
 from ....utils.i18n_utils import parse_and_validate_utc_dates
 from ...db.repositories.watchlist_repository import get_watchlist_repository
@@ -60,7 +61,8 @@ def create_watchlist_router() -> APIRouter:
             countries_list = countries.split(",") if countries else None
 
             # Perform search using asset service
-            result = asset_service.search_assets(
+            result = await run_in_threadpool(
+                asset_service.search_assets,
                 query=q,
                 asset_types=asset_types_list,
                 exchanges=exchanges_list,
@@ -106,7 +108,9 @@ def create_watchlist_router() -> APIRouter:
     ):
         """Get detailed asset information."""
         try:
-            result = asset_service.get_asset_info(ticker, language=language)
+            result = await run_in_threadpool(
+                asset_service.get_asset_info, ticker, language=language
+            )
 
             if not result.get("success", False):
                 if "not found" in result.get("error", "").lower():
@@ -145,7 +149,9 @@ def create_watchlist_router() -> APIRouter:
     ):
         """Get current asset price."""
         try:
-            result = asset_service.get_asset_price(ticker, language=language)
+            result = await run_in_threadpool(
+                asset_service.get_asset_price, ticker, language=language
+            )
 
             if not result.get("success", False):
                 if "not available" in result.get("error", "").lower():
@@ -225,7 +231,8 @@ def create_watchlist_router() -> APIRouter:
         """Get a specific watchlist."""
         try:
             # Use asset service to get watchlist with prices
-            result = asset_service.get_watchlist(
+            result = await run_in_threadpool(
+                asset_service.get_watchlist,
                 user_id=DEFAULT_USER_ID,
                 watchlist_name=watchlist_name,
                 include_prices=include_prices,
@@ -517,8 +524,13 @@ def create_watchlist_router() -> APIRouter:
             start_dt, end_dt = parse_and_validate_utc_dates(start_date, end_date)
 
             # Get historical price data
-            result = asset_service.get_historical_prices(
-                ticker, start_dt, end_dt, interval, language
+            result = await run_in_threadpool(
+                asset_service.get_historical_prices,
+                ticker,
+                start_dt,
+                end_dt,
+                interval,
+                language,
             )
 
             if not result.get("success", False):

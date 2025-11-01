@@ -26,7 +26,7 @@ const ReportRenderer: FC<ReportRendererProps> = ({
       {/* Left side: Icon and text */}
       <div className="flex items-center gap-2">
         {/* Document icon with background */}
-        <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-5% from-[#3A88FF] to-80% to-[#FF6699]">
+        <div className="flex size-10 items-center justify-center rounded-xl bg-linear-to-br from-5% from-[#3A88FF] to-80% to-[#FF6699]">
           <FileText className="size-6 text-white" />
         </div>
 

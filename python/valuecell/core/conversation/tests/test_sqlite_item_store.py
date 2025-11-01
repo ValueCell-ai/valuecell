@@ -22,6 +22,7 @@ async def test_sqlite_item_store_basic_crud():
             thread_id="t1",
             task_id=None,
             payload='{"a":1}',
+            metadata="{}",
         )
         i2 = ConversationItem(
             item_id="i2",
@@ -31,6 +32,7 @@ async def test_sqlite_item_store_basic_crud():
             thread_id="t1",
             task_id=None,
             payload='{"a":1}',
+            metadata="{}",
         )
         await store.save_item(i1)
         await store.save_item(i2)
@@ -81,6 +83,7 @@ async def test_sqlite_item_store_get_items_all_conversations():
                 thread_id="t1",
                 task_id=None,
                 payload='{"msg": "conv1 item1"}',
+                metadata="{}",
             ),
             ConversationItem(
                 item_id="c1-i2",
@@ -91,6 +94,7 @@ async def test_sqlite_item_store_get_items_all_conversations():
                 task_id=None,
                 payload='{"msg": "conv1 item2"}',
                 agent_name="agent-alpha",
+                metadata="{}",
             ),
             ConversationItem(
                 item_id="c2-i1",
@@ -100,6 +104,7 @@ async def test_sqlite_item_store_get_items_all_conversations():
                 thread_id="t2",
                 task_id=None,
                 payload='{"msg": "conv2 item1"}',
+                metadata="{}",
             ),
         ]
 
@@ -142,6 +147,7 @@ async def test_sqlite_item_store_filters_and_pagination():
                 thread_id="t1",
                 task_id=None,
                 payload='{"a":1}',
+                metadata="{}",
             ),
             ConversationItem(
                 item_id="a2",
@@ -151,6 +157,7 @@ async def test_sqlite_item_store_filters_and_pagination():
                 thread_id="t1",
                 task_id=None,
                 payload='{"component_type":"card","a":2}',
+                metadata="{}",
             ),
             ConversationItem(
                 item_id="a3",
@@ -160,6 +167,7 @@ async def test_sqlite_item_store_filters_and_pagination():
                 thread_id="t2",
                 task_id=None,
                 payload='{"component_type":"chart","a":3}',
+                metadata="{}",
             ),
         ]
 

@@ -1,0 +1,59 @@
+# ============================================
+# Google Provider Configuration
+# ============================================
+name: "Google"
+provider_type: "google"
+
+enabled: true # Default is true if not specified
+
+# Connection Configuration
+connection:
+  base_url: "https://generativelanguage.googleapis.com/v1beta"
+  api_key_env: "GOOGLE_API_KEY"
+
+# Default model if none specified
+default_model: "gemini-2.5-flash"
+
+# Model Parameters Defaults
+defaults:
+  temperature: 0.7
+
+# Available Models
+models:
+  - id: "gemini-2.5-flash"
+    name: "Gemini 2.5 Flash"
+    context_length: 1048576
+    max_output_tokens: 65536
+    description: "Fast and efficient Gemini model supporting text, images, video, and audio"
+    supported_inputs: ["text", "images", "video", "audio"]
+    supported_outputs: ["text"]
+
+  - id: "gemini-2.5-pro"
+    name: "Gemini 2.5 Pro"
+    context_length: 1048576
+    max_output_tokens: 65536
+    description: "Most capable Gemini model supporting audio, images, video, text, and PDF"
+    supported_inputs: ["audio", "images", "video", "text", "pdf"]
+    supported_outputs: ["text"]
+
+# ============================================
+# Embedding Models Configuration
+# ============================================
+embedding:
+  # Default embedding model
+  default_model: "gemini-embedding-001"
+  
+  # Default parameters
+  defaults:
+    dimensions: 3072
+    task_type: "RETRIEVAL_DOCUMENT"  # or RETRIEVAL_QUERY depending on use case
+  
+  # Available embedding models
+  models:
+    - id: "gemini-embedding-001"
+      name: "Gemini Embedding 001"
+      dimensions: 3072
+      max_input: 2048
+      supported_dimensions: [128, 256, 512, 768, 1024, 1536, 2048, 3072]
+      description: "Google Gemini Embedding Model with flexible dimensions (128-3072, recommended: 768, 1536, 3072)"
+

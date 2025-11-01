@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.2.6/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.3.1/schema.json",
   "files": {
     "includes": [
       "src/**/*.{ts,tsx,js,jsx}",
@@ -53,7 +53,7 @@
         "useExhaustiveDependencies": "warn"
       },
       "nursery": {
-        "noImportCycles": "warn",
+        "noImportCycles": "off",
         "useSortedClasses": {
           "fix": "safe",
           "level": "error",

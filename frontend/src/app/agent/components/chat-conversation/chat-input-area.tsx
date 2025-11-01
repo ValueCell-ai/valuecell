@@ -46,7 +46,7 @@ const ChatInputArea: FC<ChatInputAreaProps> = ({
       className={cn(
         "flex flex-col gap-2 rounded-2xl bg-white p-4",
         "border border-gray-200 shadow-[0px_4px_20px_8px_rgba(17,17,17,0.04)]",
-        "focus-within:border-gray-300 focus-within:shadow-[0px_4px_20px_8px_rgba(17,17,17,0.08)]",
+        "focus-within:border-gray-300",
         isWelcomeVariant && "w-2/3 min-w-[600px]",
         !isWelcomeVariant && "w-full",
         className,

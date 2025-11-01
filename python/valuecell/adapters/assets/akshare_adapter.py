@@ -60,11 +60,11 @@ class AKShareAdapter(BaseDataAdapter):
             "a_shares": {
                 "code": ["代码", "symbol", "ts_code"],
                 "name": ["名称", "name", "short_name"],
-                "price": ["最新价", "close", "price"],
+                "price": ["最新价", "close", "price", "latest"],
                 "open": ["今开", "开盘", "open"],
                 "high": ["最高", "high"],
                 "low": ["最低", "low"],
-                "close": ["收盘", "close"],
+                "close": ["收盘", "close", "latest"],
                 "volume": ["成交量", "volume", "vol"],
                 "market_cap": ["总市值", "total_mv"],
                 "change": ["涨跌额", "change"],
@@ -75,10 +75,11 @@ class AKShareAdapter(BaseDataAdapter):
             "hk_stocks": {
                 "code": ["symbol", "code", "代码"],
                 "name": ["name", "名称", "short_name"],
+                "price": ["最新价", "close", "latest"],
                 "open": ["开盘", "open"],
                 "high": ["最高", "high"],
                 "low": ["最低", "low"],
-                "close": ["收盘", "close"],
+                "close": ["收盘", "close", "latest"],
                 "volume": ["成交量", "volume", "vol"],
                 "change": ["涨跌额", "change"],
                 "change_percent": ["涨跌幅", "change_percent", "pct_chg"],
@@ -88,10 +89,11 @@ class AKShareAdapter(BaseDataAdapter):
             "us_stocks": {
                 "code": ["代码", "symbol", "ticker"],
                 "name": ["名称", "name", "short_name"],
+                "price": ["最新价", "close", "price", "latest"],
                 "open": ["开盘", "open"],
                 "high": ["最高", "high"],
                 "low": ["最低", "low"],
-                "close": ["收盘", "close"],
+                "close": ["收盘", "close", "latest"],
                 "volume": ["成交量", "volume", "vol"],
                 "change": ["涨跌额", "change"],
                 "change_percent": ["涨跌幅", "change_percent", "pct_chg"],
@@ -171,6 +173,87 @@ class AKShareAdapter(BaseDataAdapter):
             return "USD"
         else:
             return "USD"  # Default fallback
+
+    def _is_hk_index(self, ticker: str) -> bool:
+        """Check if a ticker is a Hong Kong index.
+
+        Args:
+            ticker: Asset ticker in internal format
+
+        Returns:
+            True if ticker is a HK index, False otherwise
+        """
+        try:
+            # Check database first
+            from ...server.db.repositories.asset_repository import (
+                get_asset_repository,
+            )
+
+            asset_repo = get_asset_repository()
+            asset = asset_repo.get_asset_by_symbol(ticker)
+
+            if asset and asset.asset_type == AssetType.INDEX.value:
+                exchange_str = ticker.split(":")[0] if ":" in ticker else ""
+                return exchange_str == Exchange.HKEX.value
+        except (ImportError, Exception) as e:
+            logger.debug(f"Could not check asset type from database: {e}")
+
+        return False
+
+    def _is_us_index(self, ticker: str) -> bool:
+        """Check if a ticker is a US index.
+
+        Args:
+            ticker: Asset ticker in internal format
+
+        Returns:
+            True if ticker is a US index, False otherwise
+        """
+        try:
+            # Check database first
+            from ...server.db.repositories.asset_repository import (
+                get_asset_repository,
+            )
+
+            asset_repo = get_asset_repository()
+            asset = asset_repo.get_asset_by_symbol(ticker)
+
+            if asset and asset.asset_type == AssetType.INDEX.value:
+                exchange_str = ticker.split(":")[0] if ":" in ticker else ""
+                return exchange_str in [
+                    Exchange.NASDAQ.value,
+                    Exchange.NYSE.value,
+                    Exchange.AMEX.value,
+                ]
+        except (ImportError, Exception) as e:
+            logger.debug(f"Could not check asset type from database: {e}")
+
+        return False
+
+    def _get_us_index_symbol_for_sina(self, ticker: str) -> Optional[str]:
+        """Convert internal ticker to Sina US index symbol format.
+
+        Args:
+            ticker: Asset ticker in internal format (e.g., "NASDAQ:IXIC", "NYSE:DJI")
+
+        Returns:
+            Sina symbol format (e.g., ".INX", ".DJI", ".IXIC") or None if not found
+        """
+        # Common US indices and their Sina symbols
+        index_mapping = {
+            "IXIC": ".IXIC",  # NASDAQ Composite
+            "NDX": ".NDX",  # NASDAQ 100
+            "DJI": ".DJI",  # Dow Jones Industrial Average
+            "GSPC": ".INX",  # S&P 500 (Yahoo uses ^GSPC, Sina uses .INX)
+            "RUT": ".RUT",  # Russell 2000
+            "VIX": ".VIX",  # CBOE Volatility Index
+        }
+
+        if ":" in ticker:
+            symbol = ticker.split(":", 1)[1]
+            return index_mapping.get(symbol, f".{symbol}")
+
+        return None
 
     def _get_field_name(
         self, df: pd.DataFrame, field: str, exchange: Exchange
@@ -560,33 +643,118 @@ class AKShareAdapter(BaseDataAdapter):
                     )
                     return None
 
-            # Hong Kong stocks
+            # Hong Kong stocks and indices
             elif exchange == Exchange.HKEX:
-                try:
-                    # Get 1-minute data for HK stocks
-                    df = ak.stock_hk_hist_min_em(
-                        symbol=symbol,
-                        period="1",
-                        adjust="",
-                        start_date=start_date.strftime("%Y-%m-%d %H:%M:%S"),
-                        end_date=end_date.strftime("%Y-%m-%d %H:%M:%S"),
-                    )
-                except Exception as e:
-                    logger.error(
-                        f"Error fetching HK stock real-time data for {symbol}: {e}"
-                    )
-                    return None
+                # Check if this is an index
+                is_index = self._is_hk_index(ticker)
 
-            # US stocks
+                if is_index:
+                    try:
+                        # For HK indices, use index spot data API
+                        df_spot = ak.stock_hk_index_spot_em()
+                        if df_spot is not None and not df_spot.empty:
+                            # Find the matching index
+                            # Try different possible column names
+                            code_col = None
+                            for col in ["代码", "symbol", "code"]:
+                                if col in df_spot.columns:
+                                    code_col = col
+                                    break
+
+                            if code_col:
+                                mask = (
+                                    df_spot[code_col].astype(str).str.upper()
+                                    == symbol.upper()
+                                )
+                                matching_rows = df_spot[mask]
+
+                                if not matching_rows.empty:
+                                    row = matching_rows.iloc[0]
+                                    # Extract price data
+                                    price_col = (
+                                        self._get_field_name(df_spot, "price", exchange)
+                                        or "最新价"
+                                    )
+                                    if price_col in row:
+                                        price = AssetPrice(
+                                            ticker=ticker,
+                                            price=Decimal(str(row[price_col])),
+                                            currency=self._get_currency(exchange),
+                                            timestamp=datetime.now(),
+                                            source=DataSource.AKSHARE,
+                                        )
+                                        return price
+                    except Exception as e:
+                        logger.error(
+                            f"Error fetching HK index spot data for {symbol}: {e}"
+                        )
+                        return None
+                else:
+                    try:
+                        # Get 1-minute data for HK stocks
+                        df = ak.stock_hk_hist_min_em(
+                            symbol=symbol,
+                            period="1",
+                            adjust="",
+                            start_date=start_date.strftime("%Y-%m-%d %H:%M:%S"),
+                            end_date=end_date.strftime("%Y-%m-%d %H:%M:%S"),
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"Error fetching HK stock real-time data for {symbol}: {e}"
+                        )
+                        return None
+
+            # US stocks and indices
             elif exchange in [Exchange.NASDAQ, Exchange.NYSE, Exchange.AMEX]:
-                try:
-                    # US stock minute data API returns latest data
-                    df = ak.stock_us_hist_min_em(symbol=source_ticker)
-                except Exception as e:
-                    logger.error(
-                        f"Error fetching US stock real-time data for {source_ticker}: {e}"
-                    )
-                    return None
+                # Check if this is an index
+                is_index = self._is_us_index(ticker)
+
+                if is_index:
+                    # AKShare doesn't have real-time API for US indices
+                    # Use latest historical data instead
+                    try:
+                        sina_symbol = self._get_us_index_symbol_for_sina(ticker)
+                        if sina_symbol:
+                            df_hist = ak.index_us_stock_sina(symbol=sina_symbol)
+                            if df_hist is not None and not df_hist.empty:
+                                # Get the latest row
+                                latest = df_hist.iloc[-1]
+                                price = AssetPrice(
+                                    ticker=ticker,
+                                    price=Decimal(str(latest["close"])),
+                                    currency=self._get_currency(exchange),
+                                    timestamp=pd.to_datetime(latest["date"]),
+                                    open_price=Decimal(str(latest["open"]))
+                                    if pd.notna(latest["open"])
+                                    else None,
+                                    high_price=Decimal(str(latest["high"]))
+                                    if pd.notna(latest["high"])
+                                    else None,
+                                    low_price=Decimal(str(latest["low"]))
+                                    if pd.notna(latest["low"])
+                                    else None,
+                                    close_price=Decimal(str(latest["close"]))
+                                    if pd.notna(latest["close"])
+                                    else None,
+                                    volume=Decimal(str(latest["volume"]))
+                                    if pd.notna(latest["volume"])
+                                    else None,
+                                    source=DataSource.AKSHARE,
+                                )
+                                return price
+                    except Exception as e:
+                        logger.error(f"Error fetching US index data for {ticker}: {e}")
+                        return None
+                else:
+                    try:
+                        # US stock minute data API returns latest data
+                        df = ak.stock_us_hist_min_em(symbol=source_ticker)
+                    except Exception as e:
+                        logger.error(
+                            f"Error fetching US stock real-time data for {source_ticker}: {e}"
+                        )
+                        return None
 
             else:
                 logger.warning(f"Unsupported exchange for real-time data: {exchange}")
@@ -663,15 +831,15 @@ class AKShareAdapter(BaseDataAdapter):
             # For daily/weekly/monthly: period='daily'/'weekly'/'monthly'
             interval_mapping = {
                 # Minute intervals (intraday)
-                f"1{Interval.MINUTE}": "1",
-                f"5{Interval.MINUTE}": "5",
-                f"15{Interval.MINUTE}": "15",
-                f"30{Interval.MINUTE}": "30",
-                f"60{Interval.MINUTE}": "60",
+                f"1{Interval.MINUTE.value}": "1",
+                f"5{Interval.MINUTE.value}": "5",
+                f"15{Interval.MINUTE.value}": "15",
+                f"30{Interval.MINUTE.value}": "30",
+                f"60{Interval.MINUTE.value}": "60",
                 # Daily/Weekly/Monthly intervals
-                f"1{Interval.DAY}": "daily",
-                f"1{Interval.WEEK}": "weekly",
-                f"1{Interval.MONTH}": "monthly",
+                f"1{Interval.DAY.value}": "daily",
+                f"1{Interval.WEEK.value}": "weekly",
+                f"1{Interval.MONTH.value}": "monthly",
             }
 
             # Get the period value from mapping
@@ -715,37 +883,86 @@ class AKShareAdapter(BaseDataAdapter):
                     )
                     return []
 
-            # Hong Kong stocks
+            # Hong Kong stocks and indices
             elif exchange == Exchange.HKEX:
-                try:
-                    df = ak.stock_hk_hist(
-                        symbol=symbol,
-                        period=period,
-                        start_date=start_date_str,
-                        end_date=end_date_str,
-                        adjust="qfq",  # Forward adjusted
-                    )
-                except Exception as e:
-                    logger.error(
-                        f"Error fetching HK stock historical data for {symbol} with period {period}: {e}"
-                    )
-                    return []
+                # Check if this is an index
+                is_index = self._is_hk_index(ticker)
 
-            # US stocks
+                if is_index:
+                    try:
+                        # For HK indices, use index daily data API
+                        df = ak.stock_hk_index_daily_em(symbol=symbol)
+                        # Note: This API returns all available historical data
+                        # We need to filter by date range
+                        if df is not None and not df.empty:
+                            # Convert date column to datetime
+                            date_col = (
+                                self._get_field_name(df, "date", exchange) or "date"
+                            )
+                            if date_col in df.columns:
+                                df[date_col] = pd.to_datetime(df[date_col])
+                                # Filter by date range
+                                df = df[
+                                    (df[date_col] >= start_date)
+                                    & (df[date_col] <= end_date)
+                                ]
+                    except Exception as e:
+                        logger.error(
+                            f"Error fetching HK index historical data for {symbol}: {e}"
+                        )
+                        return []
+                else:
+                    try:
+                        df = ak.stock_hk_hist(
+                            symbol=symbol,
+                            period=period,
+                            start_date=start_date_str,
+                            end_date=end_date_str,
+                            adjust="qfq",  # Forward adjusted
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"Error fetching HK stock historical data for {symbol} with period {period}: {e}"
+                        )
+                        return []
+
+            # US stocks and indices
             elif exchange in [Exchange.NASDAQ, Exchange.NYSE, Exchange.AMEX]:
-                try:
-                    df = ak.stock_us_hist(
-                        symbol=source_ticker,  # US stocks need exchange code prefix
-                        period=period,
-                        start_date=start_date_str,
-                        end_date=end_date_str,
-                        adjust="qfq",  # Forward adjusted
-                    )
-                except Exception as e:
-                    logger.error(
-                        f"Error fetching US stock historical data for {source_ticker} with period {period}: {e}"
-                    )
-                    return []
+                # Check if this is an index
+                is_index = self._is_us_index(ticker)
+
+                if is_index:
+                    try:
+                        # For US indices, use Sina index API
+                        sina_symbol = self._get_us_index_symbol_for_sina(ticker)
+                        if sina_symbol:
+                            df = ak.index_us_stock_sina(symbol=sina_symbol)
+                            # Filter by date range
+                            if df is not None and not df.empty:
+                                df["date"] = pd.to_datetime(df["date"])
+                                df = df[
+                                    (df["date"] >= start_date)
+                                    & (df["date"] <= end_date)
+                                ]
+                    except Exception as e:
+                        logger.error(
+                            f"Error fetching US index historical data for {ticker}: {e}"
+                        )
+                        return []
+                else:
+                    try:
+                        df = ak.stock_us_hist(
+                            symbol=source_ticker,  # US stocks need exchange code prefix
+                            period=period,
+                            start_date=start_date_str,
+                            end_date=end_date_str,
+                            adjust="qfq",  # Forward adjusted
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"Error fetching US stock historical data for {source_ticker} with period {period}: {e}"
+                        )
+                        return []
 
             else:
                 logger.warning(f"Unsupported exchange for historical data: {exchange}")

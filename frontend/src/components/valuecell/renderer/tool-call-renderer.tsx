@@ -21,7 +21,7 @@ const ToolCallRenderer: FC<ToolCallRendererProps> = ({ content }) => {
     <Collapsible
       open={isOpen}
       onOpenChange={setIsOpen}
-      className={cn("min-w-96 rounded-xl p-3", styles["border-gradient"])}
+      className={cn("min-w-96 rounded-lg p-3", styles["border-gradient"])}
       data-active={isOpen}
     >
       <CollapsibleTrigger

@@ -1,0 +1,109 @@
+# ============================================
+# News Agent Configuration
+# ============================================
+# The News Agent specializes in gathering, analyzing, and presenting news information.
+# It provides real-time news search, categorized news retrieval, and comprehensive analysis.
+# ============================================
+# Configuration Priority (highest to lowest):
+# 1. Environment Variables (highest priority)
+# 2. .env file
+# 3. YAML files (lowest priority, system defaults)
+# ============================================
+
+name: "News Agent"
+enabled: true
+
+# Model Configuration
+# News Agent needs a capable model for news analysis and summarization
+models:
+  # Primary model for news analysis, summarization, and query processing
+  primary:
+    model_id: "anthropic/claude-haiku-4.5"
+    provider: "openrouter"  # Must explicitly specify provider (not null)
+
+    # Provider-specific model mappings for fallback
+    # Used when primary provider fails and fallback is attempted
+    provider_models:
+      siliconflow: "Qwen/Qwen3-235B-A22B-Thinking-2507"  # Strong reasoning for news analysis
+      google: "gemini-2.5-flash"  # Fast and efficient for news processing
+
+    parameters:
+      # temperature: 0.3  # Lower temperature for more factual news reporting
+      # max_tokens: 4096  # Sufficient for comprehensive news analysis
+
+  # Web search model for real-time information gathering
+  # Uses specialized models optimized for web search and real-time data
+  search:
+    model_id: "perplexity/sonar"
+    provider: "openrouter"
+
+    # Provider-specific search model mappings
+    provider_models:
+      google: "gemini-2.5-flash"  # With search grounding enabled
+
+    parameters:
+      # max_tokens: 2048  # Optimized for search result processing
+
+# Environment Variable Overrides
+# Format: ENV_VAR_NAME -> config.path
+# These allow runtime configuration through environment variables
+env_overrides:
+  # Primary model overrides
+  NEWS_AGENT_MODEL_ID: "models.primary.model_id"
+  NEWS_AGENT_PROVIDER: "models.primary.provider"
+  NEWS_AGENT_TEMPERATURE: "models.primary.parameters.temperature"
+  NEWS_AGENT_MAX_TOKENS: "models.primary.parameters.max_tokens"
+
+  # Search model overrides
+  NEWS_SEARCH_MODEL_ID: "models.search.model_id"
+  NEWS_SEARCH_PROVIDER: "models.search.provider"
+
+  # Web search provider configuration
+  WEB_SEARCH_PROVIDER: "capabilities.web_search.provider"
+
+# News Agent Capabilities
+capabilities:
+  # Web search configuration
+  web_search:
+    enabled: true
+    provider: "perplexity"  # Default: perplexity, alternative: google
+    max_results: 10
+
+  # Breaking news monitoring
+  breaking_news:
+    enabled: true  # Enable breaking news monitoring
+    refresh_interval: 300  # seconds
+
+  # Financial news specialization
+  financial_news:
+    enabled: true
+    supported_markets: ["US", "Global"]
+    include_sectors: true
+    include_individual_stocks: true
+
+
+
+  # Multi-language support
+  languages:
+    enabled: true
+    supported: ["en", "zh", "ja", "ko", "es", "fr", "de"]
+    default: "en"
+
+  # News analysis features
+  analysis:
+    sentiment_analysis: true
+    topic_extraction: true
+    entity_recognition: true
+    summarization: true
+    fact_checking: false  # Requires additional verification tools
+
+# Tool Configuration
+tools:
+  web_search:
+    enabled: true
+
+  get_breaking_news:
+    enabled: true
+
+  get_financial_news:
+    enabled: true

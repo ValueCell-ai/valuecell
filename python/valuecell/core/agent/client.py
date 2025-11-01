@@ -74,7 +74,7 @@ class AgentClient:
         query: str,
         conversation_id: str = None,
         metadata: dict = None,
-        streaming: bool = False,
+        streaming: bool = True,
     ) -> AsyncIterator[RemoteAgentResponse]:
         """Send a message to the remote agent and return an async iterator.
 

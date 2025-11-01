@@ -225,7 +225,7 @@ class EventPredicates:
     """
 
     @staticmethod
-    def is_task_completed(response_type) -> bool:
+    def is_task_completed(response_event) -> bool:
         """Check if the response type indicates task completion.
 
         Args:
@@ -234,12 +234,12 @@ class EventPredicates:
         Returns:
             True if the event indicates task completion
         """
-        return response_type in {
+        return response_event in {
             TaskStatusEvent.TASK_COMPLETED,
         }
 
     @staticmethod
-    def is_task_failed(response_type) -> bool:
+    def is_task_failed(response_event) -> bool:
         """Check if the response type indicates task failure.
 
         Args:
@@ -248,12 +248,12 @@ class EventPredicates:
         Returns:
             True if the event indicates task failure
         """
-        return response_type in {
+        return response_event in {
             TaskStatusEvent.TASK_FAILED,
         }
 
     @staticmethod
-    def is_tool_call(response_type) -> bool:
+    def is_tool_call(response_event) -> bool:
         """Check if the response type indicates a tool call event.
 
         Args:
@@ -262,13 +262,13 @@ class EventPredicates:
         Returns:
             True if the event is related to tool calls
         """
-        return response_type in {
+        return response_event in {
             StreamResponseEvent.TOOL_CALL_STARTED,
             StreamResponseEvent.TOOL_CALL_COMPLETED,
         }
 
     @staticmethod
-    def is_reasoning(response_type) -> bool:
+    def is_reasoning(response_event) -> bool:
         """Check if the response type indicates a reasoning event.
 
         Args:
@@ -277,14 +277,14 @@ class EventPredicates:
         Returns:
             True if the event is related to reasoning
         """
-        return response_type in {
+        return response_event in {
             StreamResponseEvent.REASONING_STARTED,
             StreamResponseEvent.REASONING,
             StreamResponseEvent.REASONING_COMPLETED,
         }
 
     @staticmethod
-    def is_message(response_type) -> bool:
+    def is_message(response_event) -> bool:
         """Check if the response type indicates a message event.
 
         Args:
@@ -293,7 +293,7 @@ class EventPredicates:
         Returns:
             True if the event is a message-related event
         """
-        return response_type in {
+        return response_event in {
             StreamResponseEvent.MESSAGE_CHUNK,
             NotifyResponseEvent.MESSAGE,
         }

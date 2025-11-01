@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useGetStockHistory, useGetStockPrice } from "@/api/stock";
 import { TimeUtils } from "@/lib/time";
 import type { SparklineData } from "@/types/chart";
+import type { StockInterval } from "@/types/stock";
 import type { SparklineStock } from "../components/sparkline-stock-list";
 
 interface StockConfig {
@@ -12,8 +13,8 @@ interface StockConfig {
 interface UseSparklineStocksOptions {
   /** Number of days for historical data */
   historyDays?: number;
-  /** Data interval for historical data */
-  interval?: "d" | "h" | "m";
+  /** Data interval for historical data (default: "1d") */
+  interval?: StockInterval;
 }
 
 /**
@@ -24,7 +25,7 @@ export function useSparklineStocks(
   stocks: readonly StockConfig[],
   options: UseSparklineStocksOptions = {},
 ) {
-  const { historyDays = 30, interval = "d" } = options;
+  const { historyDays = 30, interval = "1d" } = options;
 
   // Calculate date range for historical data
   const dateRange = useMemo(() => {
@@ -89,22 +90,12 @@ export function useSparklineStocks(
           ],
         );
 
-        // Extract current price (remove currency symbols and formatting)
-        const currentPrice = parseFloat(
-          priceData.price_formatted?.replace(/[^0-9.-]/g, "") || "N/A",
-        );
-
-        // Extract change percentage (remove % symbol)
-        const changePercent = parseFloat(
-          priceData.change_percent_formatted?.replace(/[^0-9.-]/g, "") || "N/A",
-        );
-
         result.push({
           symbol: stock.symbol,
-          price: currentPrice,
-          currency: "$", // Default USD, can be adjusted as needed
+          price: priceData.price,
+          currency: priceData.currency || "USD", // Use actual currency from API
           changeAmount: priceData.change,
-          changePercent: changePercent,
+          changePercent: priceData.change_percent,
           sparklineData: sparklineData,
         });
       }

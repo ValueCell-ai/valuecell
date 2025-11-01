@@ -1,0 +1,47 @@
+# ============================================
+# Research Agent Configuration
+# ============================================
+name: "Research Agent"
+enabled: true
+
+# Model Configuration
+# Priority: Environment Variables > .env > YAML
+models:
+  # Primary model for reasoning and generation
+  primary:
+    model_id: "google/gemini-2.5-flash"
+    provider: "openrouter"
+    # Provider-specific model mappings for fallback
+    provider_models:
+      siliconflow: "Qwen/Qwen3-235B-A22B-Thinking-2507"
+      google: "gemini-2.5-flash"
+    parameters:
+      # temperature: 0.7
+      # max_tokens: 8192
+  
+  # Embedding model for knowledge base
+  # Note: If not specified, will auto-select from available providers
+  embedding:
+    model_id: "Qwen/Qwen3-Embedding-4B"  # Optional, uses provider default
+    provider: "siliconflow"  # Must explicitly specify provider
+    # Provider-specific embedding model mappings for fallback
+    provider_models:
+      google: "gemini-embedding-001"
+    parameters:
+      dimensions: ${EMBEDDER_DIMENSION:2560}
+      # encoding_format: "float"
+
+# Environment Variable Overrides
+# Format: ENV_VAR_NAME -> config.path
+env_overrides:
+  # Primary model overrides
+  RESEARCH_AGENT_MODEL_ID: "models.primary.model_id"
+  RESEARCH_AGENT_PROVIDER: "models.primary.provider"
+  RESEARCH_AGENT_TEMPERATURE: "models.primary.parameters.temperature"
+  RESEARCH_AGENT_MAX_TOKENS: "models.primary.parameters.max_tokens"
+  
+  # Embedding model overrides (backward compatible with existing env vars)
+  EMBEDDER_MODEL_ID: "models.embedding.model_id"
+  EMBEDDER_MODEL_PROVIDER: "models.embedding.provider"
+  EMBEDDER_DIMENSION: "models.embedding.parameters.dimensions"
+

@@ -1,0 +1,70 @@
+# ============================================
+# SiliconFlow Provider Configuration
+# ============================================
+name: "SiliconFlow"
+provider_type: "siliconflow"
+
+enabled: true # Default is true if not specified
+
+# Connection Configuration
+connection:
+  base_url: "https://api.siliconflow.cn/v1" # China domestic server
+  api_key_env: "SILICONFLOW_API_KEY"
+
+# Default model if none specified
+default_model: "deepseek-ai/DeepSeek-V3.1-Terminus"
+
+# Model Parameters Defaults
+defaults:
+  temperature: 0.7
+  max_tokens: 4096
+
+# Available Models (commonly used)
+models:
+  - id: "deepseek-ai/DeepSeek-V3.1-Terminus"
+    name: "DeepSeek V3.1 Terminus"
+    context_length: 160000
+  
+  - id: "Qwen/Qwen3-235B-A22B-Thinking-2507"
+    name: "Qwen 3.235B A22B Thinking 2507"
+    context_length: 256000
+
+  - id: "moonshotai/Kimi-K2-Instruct-0905"
+    name: "Kimi K2 Instruct 0905"
+    context_length: 256000
+  
+  - id: "zai-org/GLM-4.5"
+    name: "GLM-4.5"
+    context_length: 128000
+  
+  - id: "inclusionAI/Ring-1T"
+    name: "Ring 1T"
+    context_length: 128000
+
+# ============================================
+# Embedding Models Configuration
+# ============================================
+# SiliconFlow provides embedding models
+embedding:
+  # Default embedding model
+  default_model: "Qwen/Qwen3-Embedding-4B"
+  
+  # Default parameters
+  defaults:
+    dimensions: 2560
+    encoding_format: "float"
+  
+  # Available embedding models
+  models:
+  
+    - id: "Qwen/Qwen3-Embedding-4B"
+      name: "Qwen3 Embedding 4B"
+      dimensions: 2560
+      max_input: 32768
+      description: "Qwen3 Embedding Model"
+
+    - id: "BAAI/bge-m3"
+      name: "BGE M3"
+      dimensions: 1024
+      max_input: 8192
+      description: "BGE Free Vector Embedding Model"

@@ -25,6 +25,23 @@ class TaskPattern(str, Enum):
     RECURRING = "recurring"  # Recurring task
 
 
+class ScheduleConfig(BaseModel):
+    """Schedule configuration for recurring tasks"""
+
+    interval_minutes: Optional[int] = Field(
+        None,
+        description="Interval in minutes for recurring execution (e.g., 60 for every hour)",
+    )
+    daily_time: Optional[str] = Field(
+        None,
+        description="Daily execution time in HH:MM format (e.g., '09:00' for 9 AM)",
+    )
+
+    def is_valid(self) -> bool:
+        """Check if the schedule configuration is valid"""
+        return self.interval_minutes is not None or self.daily_time is not None
+
+
 class Task(BaseModel):
     """Task data model"""
 
@@ -34,6 +51,10 @@ class Task(BaseModel):
     remote_task_ids: List[str] = Field(
         default_factory=list,
         description="Task identifier determined by the remote agent after submission",
+    )
+    title: str = Field(
+        default="",
+        description="A concise task title or summary (<=10 words or characters)",
     )
     query: str = Field(..., description="The task to be performed")
     conversation_id: str = Field(
@@ -49,6 +70,9 @@ class Task(BaseModel):
     )
     pattern: TaskPattern = Field(
         default=TaskPattern.ONCE, description="Task execution pattern"
+    )
+    schedule_config: Optional[ScheduleConfig] = Field(
+        None, description="Schedule configuration for recurring tasks"
     )
     handoff_from_super_agent: bool = Field(
         False,
@@ -73,19 +97,19 @@ class Task(BaseModel):
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat() if v else None}
 
-    def start_task(self) -> None:
+    def start(self) -> None:
         """Start task execution"""
         self.status = TaskStatus.RUNNING
         self.started_at = datetime.now()
         self.updated_at = datetime.now()
 
-    def complete_task(self) -> None:
+    def complete(self) -> None:
         """Complete the task"""
         self.status = TaskStatus.COMPLETED
         self.completed_at = datetime.now()
         self.updated_at = datetime.now()
 
-    def fail_task(self, error_message: str) -> None:
+    def fail(self, error_message: str) -> None:
         """Mark task as failed"""
         self.status = TaskStatus.FAILED
         self.completed_at = datetime.now()
@@ -93,7 +117,7 @@ class Task(BaseModel):
         self.error_message = error_message
 
     # TODO: cancel agent remote task
-    def cancel_task(self) -> None:
+    def cancel(self) -> None:
         """Cancel the task"""
         self.status = TaskStatus.CANCELLED
         self.completed_at = datetime.now()
@@ -114,3 +138,11 @@ class Task(BaseModel):
     def is_waiting_input(self) -> bool:
         """Check if task is waiting for user input"""
         return self.status == TaskStatus.WAITING_INPUT
+
+    def is_scheduled(self) -> bool:
+        """Check if task is scheduled for recurring execution"""
+        return (
+            self.pattern == TaskPattern.RECURRING
+            and self.schedule_config is not None
+            and self.schedule_config.is_valid()
+        )

@@ -28,22 +28,23 @@
   <a href="README.md" style="color: gray;">English</a>
   <a href="README.zh.md" style="color: gray;">中文（简体）</a>
   <a href="README.zh_Hant.md" style="color: auto;">中文（繁體）</a>
+  <a href="README.ja.md" style="color: gray;">日本語</a>
 </div>
 
 
 # ValueCell
-ValueCell is a community-driven, multi-agent platform for financial applications.
+ValueCell is a community-driven, multi-agent platform for financial applications. Our mission is to build the world's largest decentralized financial agent community.
 
-It provides a team of TOP investment Agents to help manage your portfolio.
+It provides a team of TOP investment Agents to help you with stock selection, research, tracking, and even trading.
+
+Welcome to join our Discord community to share feedback and issues you encounter, and invite more developers to contribute 🔥🔥🔥
+
+>Note: ValueCell team members will never proactively contact community participants. This project is for technical exchange only. Investing involves risk. ⚠️
 
 # Screenshot
 
 <p align="center">
   <img src="assets/product/homepage.png" style="width: 100%; height: auto;">
-</p>
-
-<p align="center">
-  <img src="assets/product/agent_market.png" style="width: 100%; height: auto;">
 </p>
 
 <p align="center">
@@ -54,6 +55,15 @@ It provides a team of TOP investment Agents to help manage your portfolio.
   <img src="assets/product/AutoTradingAgent.png" style="width: 100%; height: auto;">
 </p>
 
+<p align="center">
+  <img src="assets/product/NewPushAgent.png" style="width: 100%; height: auto;">
+</p>
+
+<p align="center">
+  <img src="assets/product/agent_market.png" style="width: 100%; height: auto;">
+</p>
+
+
 # Key Features
 
 <p align="center">
@@ -62,16 +72,17 @@ It provides a team of TOP investment Agents to help manage your portfolio.
 
 
 ## Multi-Agent System
-- **DeepResearch Agent**: Automatically retrieve and analyze SEC filings to generate accurate data insights and interpretable summaries
-- **Auto Trading Agent**: multiple crypto assets and AI-powered trading strategies
+- **DeepResearch Agent**: Automatically retrieve and analyze fundamental documents to generate accurate data insights and interpretable summaries
+- **Auto Trading Agent**: Support for multiple crypto assets and AI-powered trading strategies, creating automated trading based on technical indicators
+- **News Retrieval Agent**: Supports personalized scheduled news delivery to track key information in real time
 - **Trading Agents**: Agents work for market analysis, sentiment analysis, news analysis, and fundamentals analysis 
 - **AI-Hedge-Fund**: Agents collaborate to provide comprehensive financial insights
 - **Others**: More agents are in planning...
 
 ## Flexible Integrations
-- **Multiple LLM Providers**: Support OpenRouter, OpenAI, Anthropic, Google and Ollama 
+- **Multiple LLM Providers**: Support OpenRouter, SiliconFlow, Google and OpenAI 
 - **Popular Market Data**: Cover US market, Crypto market, Hong Kong market, China market and more
-- **Multi-Agent Framework Compatible**: Support Langchain, Agno by A2A Protocol
+- **Multi-Agent Framework Compatible**: Support Langchain, Agno by A2A Protocol for research and development integration
 
 # Quick Start
 
@@ -99,22 +110,27 @@ For optimal performance and streamlined development, we recommend installing the
    cp .env.example .env
    ```
    
-   Edit the `.env` file with your API keys and preferences. This configuration file is shared across all agents.
+   Edit the `.env` file with your API keys and preferences. This configuration file is shared across all agents. See [Configuration Guide](docs/CONFIGURATION_GUIDE.md) for details.
 
 ## Configuration
 
-### Model Providers
-Configure your preferred model providers by editing the ⁠`.env` file:
+More detailed configuration information can be found at [CONFIGURATION_GUIDE](./docs/CONFIGURATION_GUIDE.md)
 
-- **Primary Support**: [OpenRouter](https://openrouter.ai) - Currently the main supported provider for most agents
-- **TradingAgents** requires the use of Memory. If you use OpenRouter as API key, configuring the Embedding model parameters will be needed (since OpenRouter does not support Embedding models). Please refer to the TradingAgents/.env.example file and copy its configuration into the .env file located in the root directory.
+### Model Providers
+Configure your preferred model providers by editing the `.env` file:
+
+- **Simple Setup**: Just configure the model provider's API Key
+
+- **Advanced Configuration**: For research-type agents, you need to configure more environment variables. Please refer to the `.env.example` file for details.
+
+- **Official Recommendation**: Configure OpenRouter + any supplier that provides embedding models. Reason: This enables quick model switching across providers and provides RAG+Memory AI capabilities
   
 
 Choose your preferred models and providers based on your requirements and preferences.
 
 ## Running the Application
 
-Launch the complete application stack (frontend, backend, and agents):
+Launch the complete application (frontend, backend, and agents):
 
 ### Linux / Macos
 ```bash
@@ -131,6 +147,11 @@ bash start.sh
 - **Web UI**: Navigate to [http://localhost:1420](http://localhost:1420) in your browser
 - **Logs**: Monitor application logs at `logs/{timestamp}/*.log` for detailed runtime information of backend services and individual agents
 
+## Note
+
+Before running the application, ensure all prerequisites are installed and environment variables are properly configured.
+If it has been a long time since the last update, you can delete the database files in the project (`lancedb/`, `valuecell.db`, `.knowledgebase/`) and start again.
+
 ## Next Steps
 
 Once the application is running, you can explore the web interface to interact with ValueCell's features and capabilities.
@@ -143,9 +164,13 @@ Once the application is running, you can explore the web interface to interact w
 # Roadmap
 
 ## 🤖 Enhanced Agent Capabilities
+### Trading Capabilities
+- **Crypto**: Support more exchanges
+- **Securities**: Gradually support AI securities trading
+
 ### Market Expansion
 - **European Markets**: Add support for FTSE, DAX, CAC 40, and other European exchanges
-- **Asian Markets**: Expand coverage to Nikkei, Hang Seng, Shanghai Composite, and emerging Asian markets
+- **Asian Markets**: Expand coverage to Nikkei and emerging Asian markets
 - **Commodity Markets**: Oil, Gold, Silver, Agricultural products analysis
 - **Forex Markets**: Major currency pairs and cross-currency analysis
 
@@ -159,9 +184,13 @@ Once the application is running, you can explore the web interface to interact w
 - **Scheduled Reports**: Daily/weekly/monthly portfolio summaries
 - **Event-driven Notifications**: Earnings releases, dividend announcements, regulatory changes
 - **Custom Triggers**: User-defined conditions and thresholds
-- **Multi-channel Delivery**: Email, SMS, Slack, Discord, and webhook integrations
+- **Multi-channel Delivery**: Discord and webhook integrations
 
 ## ⚙️ Product Configuration & Personalization
+### Multi-platform Products
+- **Desktop Support**: Gradually support desktop and client capabilities
+- **Database Hot Updates**: Gradually support compatibility upgrades
+
 ### Internationalization (i18n)
 - **Multi-language Support**: English, Chinese (Simplified/Traditional), Japanese, Korean, Spanish, French
 - **Localized Market Data**: Region-specific financial terminology and formats
@@ -171,8 +200,6 @@ Once the application is running, you can explore the web interface to interact w
 ### Token & Authentication Management
 - **API Key Management**: Secure storage and rotation of third-party API keys
 - **OAuth Integration**: Support for major financial data providers
-- **Rate Limiting**: Intelligent request throttling and quota management
-- **Multi-tenant Architecture**: Enterprise-grade user isolation and security
 
 ### User Preferences & Customization
 - **Investment Profile**: Risk tolerance, investment horizon, and strategy preferences
@@ -189,14 +216,11 @@ Once the application is running, you can explore the web interface to interact w
 ## 🔧 ValueCell SDK Development
 ### Core SDK Features
 - **Python SDK**: Comprehensive library for agent integration and customization
-- **REST API Wrapper**: Simplified HTTP client with automatic authentication
 - **WebSocket Support**: Real-time data streaming and bidirectional communication
 
 ### Agent Integration Framework
 - **Plugin Architecture**: Easy integration of third-party agents and tools
 - **Agent Registry**: Marketplace for community-contributed agents
-- **Custom Agent Builder**: Low-code/no-code agent creation tools
-- **Agent Orchestration**: Workflow management and agent coordination
 
 ### Developer Tools & Documentation
 - **Interactive API Explorer**: Swagger/OpenAPI documentation with live testing

@@ -13,6 +13,9 @@ interface BaseEventData {
   thread_id: string; // Message chain within conversation
   task_id: string; // Single agent execution unit
   item_id: string; // Minimum granular render level
+  metadata: Partial<{
+    task_title: string; // Title of the task
+  }>;
 }
 
 // Helper types to reduce repetition
@@ -101,7 +104,7 @@ export interface ConversationView {
    * By component_type grouped sections
    * @description this is rendered outside of the threads (main section)
    */
-  sections?: Record<SectionComponentType, ChatItem[]>;
+  sections: Record<SectionComponentType, ThreadView>;
 }
 
 export type AgentConversationsStore = Record<string, ConversationView>;

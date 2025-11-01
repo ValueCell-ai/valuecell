@@ -147,6 +147,7 @@ class DatabaseInitializer:
                         task_id TEXT,
                         payload TEXT,
                         agent_name TEXT,
+                        metadata TEXT,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)

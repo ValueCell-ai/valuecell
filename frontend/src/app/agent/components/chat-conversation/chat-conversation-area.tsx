@@ -69,7 +69,7 @@ const ChatConversationAreaContent: FC<ChatConversationAreaProps> = ({
   }
 
   return (
-    <div className="flex flex-1 gap-2 overflow-hidden">
+    <div className="flex flex-1 overflow-hidden">
       {/* main section */}
       <section className="flex flex-1 flex-col items-center">
         <ChatConversationHeader agent={agent} />
@@ -92,17 +92,18 @@ const ChatConversationAreaContent: FC<ChatConversationAreaProps> = ({
       </section>
 
       {/* Chat section components: one section per special component_type */}
-      {currentConversation.sections &&
-        Object.entries(currentConversation.sections).map(
-          ([componentType, items]) => (
+      {Object.entries(currentConversation.sections).map(
+        ([componentType, threadView]) => {
+          return (
             <ChatSectionComponent
               key={componentType}
               // TODO: componentType as type assertion is not safe, find a better way to do this
               componentType={componentType as SectionComponentType}
-              items={items}
+              threadView={threadView}
             />
-          ),
-        )}
+          );
+        },
+      )}
 
       {/* Multi-section detail view */}
       {currentSection && (

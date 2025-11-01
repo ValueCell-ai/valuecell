@@ -31,7 +31,9 @@ def _build_lang_ctx_from_dep(
         "When composing your answer, consider the user's language and timezone:"
     )
     if user_lang:
-        parts.append(f"- Preferred language: {user_lang}")
+        parts.append(
+            f"- Preferred language: {user_lang}. Choose user's query language if different."
+        )
     else:
         parts.append(
             "- Preferred language: not set. Infer the user's language from their query and respond in that language."

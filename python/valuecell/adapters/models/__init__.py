@@ -1,0 +1,47 @@
+"""
+Model Adapters - Factory and providers for creating AI model instances
+
+This module provides a unified interface for creating and managing different AI model providers
+through the ModelFactory class and various provider implementations.
+
+Main Components:
+- ModelFactory: Factory class for creating model instances
+- ModelProvider: Abstract base class for provider implementations
+- Provider implementations: OpenRouterProvider, GoogleProvider, AzureProvider, etc.
+
+Usage:
+    >>> from valuecell.adapters.models import create_model, create_model_for_agent
+    >>>
+    >>> # Create a model with default provider
+    >>> model = create_model()
+    >>>
+    >>> # Create a model for a specific agent
+    >>> model = create_model_for_agent("research_agent")
+"""
+
+from valuecell.adapters.models.factory import (
+    AzureProvider,
+    GoogleProvider,
+    ModelFactory,
+    ModelProvider,
+    OpenRouterProvider,
+    SiliconFlowProvider,
+    create_model,
+    create_model_for_agent,
+    get_model_factory,
+)
+
+__all__ = [
+    # Factory and base classes
+    "ModelFactory",
+    "ModelProvider",
+    "get_model_factory",
+    # Provider implementations
+    "OpenRouterProvider",
+    "GoogleProvider",
+    "AzureProvider",
+    "SiliconFlowProvider",
+    # Convenience functions
+    "create_model",
+    "create_model_for_agent",
+]

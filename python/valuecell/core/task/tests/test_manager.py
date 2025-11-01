@@ -3,7 +3,7 @@ Unit tests for valuecell.core.task.manager module
 """
 
 from datetime import datetime
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -78,7 +78,6 @@ class TestTaskManager:
 
         with (
             patch("valuecell.core.task.models.datetime") as mock_datetime,
-            patch.object(manager, "update_task", new_callable=AsyncMock) as mock_update,
         ):
             start_time = datetime(2023, 1, 1, 12, 1, 0)
             mock_datetime.now.return_value = start_time
@@ -89,7 +88,6 @@ class TestTaskManager:
             assert task.status == TaskStatus.RUNNING
             assert task.started_at == start_time
             assert task.updated_at == start_time
-            mock_update.assert_called_once_with(task)
 
     @pytest.mark.asyncio
     async def test_start_task_nonexistent(self):
@@ -132,7 +130,6 @@ class TestTaskManager:
 
         with (
             patch("valuecell.core.task.models.datetime") as mock_datetime,
-            patch.object(manager, "update_task", new_callable=AsyncMock) as mock_update,
         ):
             complete_time = datetime(2023, 1, 1, 12, 5, 0)
             mock_datetime.now.return_value = complete_time
@@ -143,7 +140,6 @@ class TestTaskManager:
             assert task.status == TaskStatus.COMPLETED
             assert task.completed_at == complete_time
             assert task.updated_at == complete_time
-            mock_update.assert_called_once_with(task)
 
     @pytest.mark.asyncio
     async def test_complete_task_nonexistent(self):
@@ -186,7 +182,6 @@ class TestTaskManager:
 
         with (
             patch("valuecell.core.task.models.datetime") as mock_datetime,
-            patch.object(manager, "update_task", new_callable=AsyncMock) as mock_update,
         ):
             fail_time = datetime(2023, 1, 1, 12, 5, 0)
             mock_datetime.now.return_value = fail_time
@@ -198,7 +193,6 @@ class TestTaskManager:
             assert task.completed_at == fail_time
             assert task.updated_at == fail_time
             assert task.error_message == "Test error"
-            mock_update.assert_called_once_with(task)
 
     @pytest.mark.asyncio
     async def test_fail_task_nonexistent(self):
@@ -241,7 +235,6 @@ class TestTaskManager:
 
         with (
             patch("valuecell.core.task.models.datetime") as mock_datetime,
-            patch.object(manager, "update_task", new_callable=AsyncMock) as mock_update,
         ):
             cancel_time = datetime(2023, 1, 1, 12, 5, 0)
             mock_datetime.now.return_value = cancel_time
@@ -252,7 +245,6 @@ class TestTaskManager:
             assert task.status == TaskStatus.CANCELLED
             assert task.completed_at == cancel_time
             assert task.updated_at == cancel_time
-            mock_update.assert_called_once_with(task)
 
     @pytest.mark.asyncio
     async def test_cancel_task_nonexistent(self):
@@ -327,7 +319,6 @@ class TestTaskManager:
 
         with (
             patch("valuecell.core.task.models.datetime") as mock_datetime,
-            patch.object(manager, "update_task", new_callable=AsyncMock) as mock_update,
         ):
             cancel_time = datetime(2023, 1, 1, 12, 5, 0)
             mock_datetime.now.return_value = cancel_time
@@ -345,9 +336,6 @@ class TestTaskManager:
             assert (
                 task4.status == TaskStatus.RUNNING
             )  # Different conversation, unchanged
-
-            # update_task should be called twice
-            assert mock_update.call_count == 2
 
     @pytest.mark.asyncio
     async def test_cancel_conversation_tasks_no_tasks(self):

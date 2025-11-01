@@ -1,5 +1,4 @@
 import { parse } from "best-effort-json-parser";
-import { Filter } from "lucide-react";
 import { type FC, memo, useMemo, useState } from "react";
 import {
   Select,
@@ -139,14 +138,14 @@ const ModelTradeTableRenderer: FC<ModelTradeTableRendererProps> = ({
     <Tabs
       value={activeTab}
       onValueChange={setActiveTab}
-      className="size-full flex-col py-4"
+      className="size-full flex-col py-6"
     >
       {/* Tab Navigation */}
-      <ScrollContainer className="pb-3">
+      <ScrollContainer className="pb-1">
         <TabsList>
           {groupedData.map((group) => (
             <TabsTrigger
-              className="cursor-pointer"
+              className="cursor-pointer text-gray-700"
               key={group.table_title}
               value={group.table_title}
             >
@@ -168,9 +167,7 @@ const ModelTradeTableRenderer: FC<ModelTradeTableRendererProps> = ({
             className="h-full"
           >
             {/* Filter Bar */}
-            <div className="flex items-center gap-2 border-border border-b px-4 py-2.5 text-muted-foreground text-xs">
-              <Filter className="size-3.5" />
-              <span className="font-medium">Filter:</span>
+            <div className="flex items-center pb-4 text-gray-700 text-xs">
               <Select
                 value={currentFilter}
                 onValueChange={(value) => {
@@ -194,26 +191,24 @@ const ModelTradeTableRenderer: FC<ModelTradeTableRendererProps> = ({
             </div>
 
             {/* Content Area */}
-            <ScrollContainer className="p-3">
-              {filteredItems.length > 0 ? (
-                <div className="flex flex-col gap-4">
-                  {filteredItems.map((item, index) => (
-                    <div
-                      key={`${item.title}-${index}`}
-                      className="rounded-lg border border-border bg-gray-50 p-4"
-                    >
-                      <ScrollContainer>
-                        <MarkdownRenderer content={item.data} />
-                      </ScrollContainer>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-muted-foreground text-sm">
-                  No data available for selected filter
-                </div>
-              )}
-            </ScrollContainer>
+            {filteredItems.length > 0 ? (
+              <div className="flex flex-col gap-4">
+                {filteredItems.map((item, index) => (
+                  <div
+                    key={`${item.title}-${index}`}
+                    className="rounded-lg bg-gray-50 p-4"
+                  >
+                    <ScrollContainer>
+                      <MarkdownRenderer content={item.data} />
+                    </ScrollContainer>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-muted-foreground text-sm">
+                No data available for selected filter
+              </div>
+            )}
 
             {/* Footer */}
             <div className="border-border border-t px-3 py-2 text-right text-muted-foreground text-xs">

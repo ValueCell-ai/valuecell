@@ -152,8 +152,22 @@ class ComponentType(str, Enum):
     REPORT = "report"
     PROFILE = "profile"
     SUBAGENT_CONVERSATION = "subagent_conversation"
+    SCHEDULED_TASK_CONTROLLER = "scheduled_task_controller"
+    SCHEDULED_TASK_RESULT = "scheduled_task_result"
     FILTERED_LINE_CHART = "filtered_line_chart"
     FILTERED_CARD_PUSH_NOTIFICATION = "filtered_card_push_notification"
+
+
+class ScheduledTaskComponentContent(BaseModel):
+    """Scheduled task component extended content."""
+
+    task_id: Optional[str] = Field(None, description="The scheduled task ID")
+    task_title: Optional[str] = Field(None, description="The scheduled task title")
+    task_status: Optional[str] = Field(None, description="The scheduled task status")
+    result: Optional[str] = Field(None, description="The scheduled task result")
+    create_time: Optional[str] = Field(
+        None, description="The scheduled task created time"
+    )
 
 
 class SubagentConversationPhase(str, Enum):
@@ -223,6 +237,8 @@ ResponsePayload = Union[
     ToolCallPayload,
 ]
 
+ResponseMetadata = Dict[str, str | int | float]
+
 
 ConversationItemEvent = Union[
     StreamResponseEvent,
@@ -262,6 +278,7 @@ class ConversationItem(BaseModel):
         None, description="Task ID if associated with a task"
     )
     payload: str = Field(..., description="The actual message payload")
+    metadata: str = Field("{}", description="Additional metadata for the item")
 
 
 class UnifiedResponseData(BaseModel):
@@ -281,6 +298,9 @@ class UnifiedResponseData(BaseModel):
     )
     payload: Optional[ResponsePayload] = Field(
         None, description="The message data payload"
+    )
+    metadata: Optional[ResponseMetadata] = Field(
+        None, description="Additional metadata for the response"
     )
     role: Role = Field(..., description="The role of the message sender")
     item_id: str = Field(default_factory=generate_item_id)

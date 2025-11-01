@@ -5,6 +5,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
+from ...utils.i18n_utils import convert_timezone, get_current_timezone
 from .models import Position, TechnicalIndicators, TradeAction, TradeType
 
 logger = logging.getLogger(__name__)
@@ -12,6 +13,63 @@ logger = logging.getLogger(__name__)
 
 class MessageFormatter:
     """Formats various messages and notifications"""
+
+    @staticmethod
+    def _convert_and_format_timestamp(
+        dt: datetime, format_str: str = "%m/%d, %I:%M %p", include_tz: bool = False
+    ) -> str:
+        """
+        Convert timestamp to user's timezone and format it.
+
+        Args:
+            dt: DateTime to convert and format
+            format_str: Format string for strftime
+            include_tz: Whether to include timezone abbreviation
+
+        Returns:
+            Formatted timestamp string
+        """
+        try:
+            # Get user's configured timezone
+            user_tz = get_current_timezone()
+
+            # Convert from UTC to user's timezone
+            # Assume input is UTC if no timezone info
+            if dt.tzinfo is None:
+                dt = datetime(
+                    dt.year,
+                    dt.month,
+                    dt.day,
+                    dt.hour,
+                    dt.minute,
+                    dt.second,
+                    tzinfo=timezone.utc,
+                )
+
+            converted_dt = convert_timezone(dt, "UTC", user_tz)
+
+            # Format the datetime
+            formatted = converted_dt.strftime(format_str)
+
+            # Optionally append timezone info
+            if include_tz:
+                formatted += f" ({user_tz})"
+
+            return formatted
+        except Exception as e:
+            logger.warning(f"Failed to convert timezone: {e}, using UTC")
+            # Fallback to UTC format
+            if dt.tzinfo is None:
+                dt = datetime(
+                    dt.year,
+                    dt.month,
+                    dt.day,
+                    dt.hour,
+                    dt.minute,
+                    dt.second,
+                    tzinfo=timezone.utc,
+                )
+            return dt.strftime(format_str)
 
     @staticmethod
     def format_trade_notification(
@@ -33,13 +91,16 @@ class MessageFormatter:
             trade_type = trade_details["trade_type"]
             timestamp = trade_details["timestamp"]
 
+            # Convert timestamp to user's timezone
+            formatted_time = MessageFormatter._convert_and_format_timestamp(timestamp)
+
             if action == "opened":
                 message = (
-                    f"{agent_name} opened a {trade_type} position on {symbol}!\n"
-                    f"{timestamp.strftime('%m/%d, %I:%M %p')}\n"
-                    f"Price: ${trade_details['entry_price']:,.2f}\n"
-                    f"Quantity: {trade_details['quantity']:.4f}\n"
-                    f"Notional: ${trade_details['notional']:,.2f}"
+                    f"**{agent_name}** opened a **{trade_type}** position on **{symbol}**!\n\n"
+                    f"📅 {formatted_time}\n\n"
+                    f"**Price:** `${trade_details['entry_price']:,.2f}`\n\n"
+                    f"**Quantity:** `{trade_details['quantity']:.4f}`\n\n"
+                    f"**Notional:** `${trade_details['notional']:,.2f}`"
                 )
             else:  # closed
                 hours = int(trade_details["holding_time"].total_seconds() // 3600)
@@ -48,15 +109,16 @@ class MessageFormatter:
                 )
                 pnl = trade_details["pnl"]
                 pnl_sign = "+" if pnl >= 0 else ""
+                pnl_emoji = "🟢" if pnl >= 0 else "🔴"
 
                 message = (
-                    f"{agent_name} completed a {trade_type} trade on {symbol}!\n"
-                    f"{timestamp.strftime('%m/%d, %I:%M %p')}\n"
-                    f"Price: ${trade_details['entry_price']:,.2f} → ${trade_details['exit_price']:,.2f}\n"
-                    f"Quantity: {trade_details['quantity']:.4f}\n"
-                    f"Notional: ${trade_details['entry_notional']:,.2f} → ${trade_details['exit_notional']:,.2f}\n"
-                    f"Holding time: {hours}H {minutes}M\n"
-                    f"Net P&L: {pnl_sign}${pnl:,.2f}"
+                    f"**{agent_name}** completed a **{trade_type}** trade on **{symbol}**!\n\n"
+                    f"📅 {formatted_time}\n\n"
+                    f"**Price:** `${trade_details['entry_price']:,.2f}` → `${trade_details['exit_price']:,.2f}`\n\n"
+                    f"**Quantity:** `{trade_details['quantity']:.4f}`\n\n"
+                    f"**Notional:** `${trade_details['entry_notional']:,.2f}` → `${trade_details['exit_notional']:,.2f}`\n\n"
+                    f"**Holding time:** `{hours}H {minutes}M`\n\n"
+                    f"**Net P&L:** {pnl_emoji} **{pnl_sign}${pnl:,.2f}**"
                 )
 
             return message
@@ -106,9 +168,14 @@ class MessageFormatter:
                 "data": {"Portfolio": portfolio_value},
             }
 
+            # Convert timestamp to user's timezone for display
+            formatted_time = MessageFormatter._convert_and_format_timestamp(
+                timestamp, format_str="%m/%d, %I:%M %p", include_tz=True
+            )
+
             display_message = (
                 f"💰 Portfolio Update\n"
-                f"Time: {timestamp.strftime('%m/%d, %I:%M %p UTC')}\n"
+                f"Time: {formatted_time}\n"
                 f"Total Value: ${portfolio_value:,.2f}\n"
                 f"Open Positions: {positions_count}\n"
                 f"Available Capital: ${current_capital:,.2f}"
@@ -146,6 +213,11 @@ class MessageFormatter:
         try:
             timestamp = datetime.now(timezone.utc)
 
+            # Convert timestamp to user's timezone for display
+            formatted_time = MessageFormatter._convert_and_format_timestamp(
+                timestamp, format_str="%m/%d, %I:%M %p", include_tz=True
+            )
+
             # Format action with emoji
             action_emoji = {
                 TradeAction.BUY: "🟢",
@@ -155,7 +227,7 @@ class MessageFormatter:
 
             message = (
                 f"📊 **Market Analysis - {symbol}**\n"
-                f"Time: {timestamp.strftime('%m/%d, %I:%M %p UTC')}\n\n"
+                f"Time: {formatted_time}\n\n"
                 f"**Current Price:** ${indicators.close_price:,.2f}\n"
                 f"**Decision:** {action_emoji.get(action, '')} {action.value.upper()}"
             )

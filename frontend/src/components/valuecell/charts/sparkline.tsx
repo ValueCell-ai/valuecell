@@ -9,10 +9,10 @@ import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import type { EChartsOption } from "echarts/types/dist/shared";
 import { useEffect, useMemo, useRef } from "react";
-import { STOCK_COLORS, STOCK_GRADIENT_COLORS } from "@/constants/stock";
 import { useChartResize } from "@/hooks/use-chart-resize";
 import { TimeUtils } from "@/lib/time";
 import { cn } from "@/lib/utils";
+import { useStockColors, useStockGradientColors } from "@/store/settings-store";
 import type { SparklineData } from "@/types/chart";
 import type { StockChangeType } from "@/types/stock";
 
@@ -41,10 +41,11 @@ function Sparkline({
 }: SparklineProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<ECharts | null>(null);
+  const stockColors = useStockColors();
+  const gradientColors = useStockGradientColors();
 
-  // Get colors based on change type
-  const color = STOCK_COLORS[changeType];
-  const gradientColors = STOCK_GRADIENT_COLORS[changeType];
+  const color = stockColors[changeType];
+  const gradient = gradientColors[changeType];
 
   const option: EChartsOption = useMemo(() => {
     return {
@@ -89,11 +90,11 @@ function Sparkline({
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
               {
                 offset: 0,
-                color: gradientColors[0],
+                color: gradient[0],
               },
               {
                 offset: 1,
-                color: gradientColors[1],
+                color: gradient[1],
               },
             ]),
           },
@@ -137,7 +138,7 @@ function Sparkline({
         },
       },
     };
-  }, [data, color, gradientColors]);
+  }, [data, color, gradient]);
 
   useChartResize(chartInstance);
 

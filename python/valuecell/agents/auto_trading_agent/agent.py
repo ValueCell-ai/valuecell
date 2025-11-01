@@ -9,7 +9,6 @@ from datetime import datetime, timezone
 from typing import Any, AsyncGenerator, Deque, Dict, List, Optional
 
 from agno.agent import Agent
-from agno.models.openrouter import OpenRouter
 
 from valuecell.core.agent.responses import streaming
 from valuecell.core.types import (
@@ -23,6 +22,8 @@ from valuecell.core.types import (
 from .constants import (
     DEFAULT_AGENT_MODEL,
     DEFAULT_CHECK_INTERVAL,
+    ENV_PARSER_MODEL_ID,
+    ENV_SIGNAL_MODEL_ID,
 )
 from .formatters import MessageFormatter
 from .models import (
@@ -53,9 +54,6 @@ class AutoTradingAgent(BaseAgent):
     def __init__(self):
         super().__init__()
 
-        # Configuration
-        self.parser_model_id = os.getenv("TRADING_PARSER_MODEL_ID", DEFAULT_AGENT_MODEL)
-
         # Multi-instance state management
         # Structure: {session_id: {instance_id: TradingInstanceData}}
         self.trading_instances: Dict[str, Dict[str, Dict[str, Any]]] = {}
@@ -69,8 +67,15 @@ class AutoTradingAgent(BaseAgent):
 
         try:
             # Parser agent for natural language query parsing
+            # Uses centralized configuration system with automatic provider detection
+            from valuecell.utils.model import get_model
+
+            parser_model = get_model(
+                env_key=ENV_PARSER_MODEL_ID,
+            )
+
             self.parser_agent = Agent(
-                model=OpenRouter(id=self.parser_model_id),
+                model=parser_model,
                 output_schema=TradingRequest,
                 markdown=True,
             )
@@ -262,7 +267,7 @@ class AutoTradingAgent(BaseAgent):
                             )
                             trade_message = FilteredCardPushNotificationComponentData(
                                 title=f"{config.agent_model} Trade",
-                                data=f"💰 **Trade Executed:**\n{trade_message_text}\n",
+                                data=f"💰 **Trade Executed**\n\n{trade_message_text}\n",
                                 filters=[config.agent_model],
                                 table_title="Trade Detail",
                                 create_time=datetime.now(timezone.utc).strftime(
@@ -466,24 +471,49 @@ class AutoTradingAgent(BaseAgent):
     def _initialize_ai_signal_generator(
         self, config: AutoTradingConfig
     ) -> Optional[AISignalGenerator]:
-        """Initialize AI signal generator if configured"""
+        """Initialize AI signal generator if configured.
+
+        Uses the centralized configuration system with proper provider selection.
+        Supports any provider configured in the config system.
+
+        Args:
+            config: AutoTradingConfig with use_ai_signals, agent_model, and agent_provider settings
+
+        Returns:
+            AISignalGenerator instance or None if AI signals are disabled or creation fails
+        """
         if not config.use_ai_signals:
             return None
 
         try:
-            api_key = config.openrouter_api_key or os.getenv("OPENROUTER_API_KEY")
-            if not api_key:
-                logger.warning("OpenRouter API key not provided, AI signals disabled")
-                return None
+            # Use centralized configuration system for model creation
+            # Supports automatic provider detection and fallback
+            from valuecell.adapters.models.factory import create_model
 
-            llm_client = OpenRouter(
-                id=config.agent_model,
-                api_key=api_key,
+            # Check for environment variable override
+            model_id_override = os.getenv(ENV_SIGNAL_MODEL_ID)
+            model_id = model_id_override or config.agent_model
+
+            # Create model with provider auto-detection or explicit provider
+            llm_client = create_model(
+                model_id=model_id,
+                provider=config.agent_provider,  # None = auto-detect
+                use_fallback=True,  # Enable fallback to other providers
+            )
+
+            logger.info(
+                f"Initialized AI signal generator: model_id={model_id}, "
+                f"provider={config.agent_provider or 'auto-detect'}"
             )
             return AISignalGenerator(llm_client)
 
         except Exception as e:
             logger.error(f"Failed to initialize AI signal generator: {e}")
+            logger.info(
+                "Hint: Make sure provider API keys are configured in .env file. "
+                "Check configs/providers/ for required environment variables. "
+                "AI signals will be disabled for this trading instance."
+            )
             return None
 
     def _get_instance_status_component_data(
@@ -518,39 +548,33 @@ class AutoTradingAgent(BaseAgent):
         output = []
 
         # Header
-        output.append(f"📊 **Trading Portfolio Status** - {instance_id}")
-        output.append("\n**Instance Configuration**")
+        output.append("📊 **Instance Configuration**\n")
         output.append(f"- Model: `{config.agent_model}`")
         output.append(f"- Symbols: {', '.join(config.crypto_symbols)}")
         output.append(
-            f"- Status: {'🟢 Active' if instance['active'] else '🔴 Stopped'}"
+            f"- Status: {'🟢 Active' if instance['active'] else '🔴 Stopped'}\n"
         )
 
         # Portfolio Summary Section
-        output.append("\n💰 **Portfolio Summary**")
-        output.append("\n**Overall Performance**")
-        output.append(f"- Initial Capital: `${config.initial_capital:,.2f}`")
-        output.append(f"- Current Value: `${portfolio_value:,.2f}`")
+        output.append("💰 **Portfolio Summary**\n")
+        output.append("**Overall Performance**\n")
+        output.append(f"- Current Value: `${portfolio_value:,.2f}`\n")
 
         pnl_emoji = "🟢" if total_pnl >= 0 else "🔴"
         pnl_sign = "+" if total_pnl >= 0 else ""
         output.append(
-            f"- Total P&L: {pnl_emoji} **{pnl_sign}${total_pnl:,.2f}** ({pnl_sign}{pnl_pct:.2f}%)"
+            f"- Total P&L: {pnl_emoji} **{pnl_sign}${total_pnl:,.2f}** ({pnl_sign}{pnl_pct:.2f}%)\n"
         )
-
-        output.append("\n**Cash Position**")
-        output.append(f"- Available Cash: `${available_cash:,.2f}`")
+        output.append(f"- Available Cash: `${available_cash:,.2f}`\n")
 
         # Current Positions Section
-        output.append(f"\n📈 **Current Positions ({len(executor.positions)})**")
+        output.append(f"📈 **Current Positions ({len(executor.positions)})**")
 
         if executor.positions:
             output.append(
-                "\n| Symbol | Type | Quantity | Avg Price | Current Price | Position Value | Unrealized P&L |"
+                "\n| Symbol | Type | **Position**/Quantity | **Current**/Avg | **P&L** |"
             )
-            output.append(
-                "|--------|------|----------|-----------|---------------|----------------|----------------|"
-            )
+            output.append("|--------|------|---------|--------|--------|")
 
             for symbol, pos in executor.positions.items():
                 try:
@@ -573,15 +597,14 @@ class AutoTradingAgent(BaseAgent):
                         )
                         position_value = pos.notional + unrealized_pnl
 
-                    # Format row
-                    pnl_emoji = "🟢" if unrealized_pnl >= 0 else "🔴"
+                    # Format row with merged columns
                     pnl_sign = "+" if unrealized_pnl >= 0 else ""
 
                     output.append(
                         f"| **{symbol}** | {pos.trade_type.value.upper()} | "
-                        f"{abs(pos.quantity):.4f} | ${pos.entry_price:,.2f} | "
-                        f"${current_price:,.2f} | ${position_value:,.2f} | "
-                        f"{pnl_emoji} {pnl_sign}${unrealized_pnl:,.2f} |"
+                        f"**${position_value:,.2f}** <br> {abs(pos.quantity):.4f} | "
+                        f"**${current_price:,.2f}** <br> ${pos.entry_price:,.2f} | "
+                        f"**{pnl_sign}${unrealized_pnl:,.2f}** |"
                     )
 
                 except Exception as e:
@@ -589,8 +612,9 @@ class AutoTradingAgent(BaseAgent):
                     # Fallback display with entry price only
                     output.append(
                         f"| **{symbol}** | {pos.trade_type.value.upper()} | "
-                        f"{abs(pos.quantity):.4f} | ${pos.entry_price:,.2f} | "
-                        f"N/A | ${pos.notional:,.2f} | N/A |"
+                        f"**${pos.notional:,.2f}** <br> {abs(pos.quantity):.4f} | "
+                        f"**${pos.entry_price:,.2f}** <br> ${pos.entry_price:,.2f} | "
+                        f"**N/A** |"
                     )
         else:
             output.append("\n*No open positions*")

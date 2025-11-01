@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Path, Query
 from valuecell.server.services.conversation_service import get_conversation_service
 
 from ..schemas.conversation import (
+    AllConversationsScheduledTaskResponse,
     ConversationDeleteResponse,
     ConversationHistoryResponse,
     ConversationListResponse,
@@ -40,6 +41,30 @@ def create_conversation_router() -> APIRouter:
         )
 
     @router.get(
+        "/scheduled-task-results",
+        response_model=AllConversationsScheduledTaskResponse,
+        summary="Get all conversations scheduled task results",
+        description="Get scheduled task results from all conversations, grouped by agent name",
+    )
+    async def get_all_conversations_scheduled_task_results(
+        user_id: Optional[str] = Query(None, description="Filter by user ID"),
+    ) -> AllConversationsScheduledTaskResponse:
+        """Get all conversations scheduled task results grouped by agent."""
+        try:
+            service = get_conversation_service()
+            data = await service.get_all_conversations_scheduled_task_results(
+                user_id=user_id
+            )
+            return AllConversationsScheduledTaskResponse.create(
+                data=data,
+                msg="All conversations scheduled task results retrieved successfully",
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
+    @router.get(
         "/{conversation_id}/history",
         response_model=ConversationHistoryResponse,
         summary="Get conversation history",
@@ -56,6 +81,32 @@ def create_conversation_router() -> APIRouter:
             )
             return ConversationHistoryResponse.create(
                 data=data, msg="Conversation history retrieved successfully"
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Internal server error: {str(e)}"
+            )
+
+    @router.get(
+        "/{conversation_id}/scheduled-task-results",
+        response_model=ConversationHistoryResponse,
+        summary="Get conversation scheduled task results",
+        description="Get scheduled task results for a specific conversation",
+    )
+    async def get_conversation_scheduled_task_results(
+        conversation_id: str = Path(..., description="The conversation ID"),
+    ) -> ConversationHistoryResponse:
+        """Get conversation scheduled task results."""
+        try:
+            service = get_conversation_service()
+            data = await service.get_conversation_scheduled_task_results(
+                conversation_id=conversation_id
+            )
+            return ConversationHistoryResponse.create(
+                data=data,
+                msg="Conversation scheduled task results retrieved successfully",
             )
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e))

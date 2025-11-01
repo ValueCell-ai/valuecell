@@ -1,0 +1,55 @@
+{
+    "name": "NewsAgent",
+    "display_name": "News Agent",
+    "url": "http://localhost:10005/",
+    "description": "Professional news agent specialized in gathering, analyzing, and presenting current events, breaking news, and financial market information from reliable sources with real-time web search capabilities.",
+    "capabilities": {
+        "streaming": true
+    },
+    "skills": [
+        {
+            "id": "web_search",
+            "name": "Real-time news search",
+            "description": "Search for current news articles and information across the web using advanced search capabilities.",
+            "examples": [
+                "What's the latest news about artificial intelligence?",
+                "Search for recent developments in renewable energy",
+                "Find news about the latest tech IPOs"
+            ],
+            "tags": ["web search", "real-time", "current events", "research"]
+        },
+        {
+            "id": "get_breaking_news",
+            "name": "Breaking news monitoring",
+            "description": "Monitor and retrieve urgent breaking news updates and alerts from multiple sources.",
+            "examples": [
+                "Any breaking news right now?",
+                "What are the latest urgent news updates?",
+                "Show me breaking news from the past hour"
+            ],
+            "tags": ["breaking news", "urgent", "alerts", "monitoring"]
+        },
+        {
+            "id": "get_financial_news",
+            "name": "Financial market news",
+            "description": "Provide comprehensive financial market news, business updates, and economic developments.",
+            "examples": [
+                "What's happening in the stock market today?",
+                "Latest financial news and market updates",
+                "Show me news about major economic indicators"
+            ],
+            "tags": ["finance", "markets", "business", "stocks", "economics"]
+        }
+    ],
+    "enabled": true,
+    "metadata": {
+        "version": "1.0.0",
+        "author": "ValueCell Team",
+        "tags": [
+            "news",
+            "current events",
+            "financial markets",
+            "real-time search"
+        ]
+    }
+}

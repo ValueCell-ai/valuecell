@@ -1,0 +1,69 @@
+# ============================================
+# OpenAI Provider Configuration
+# ============================================
+name: "OpenAI"
+provider_type: "openai"
+
+enabled: true # Default is true if not specified
+
+# Connection Configuration
+connection:
+  base_url: "https://api.openai.com/v1"
+  api_key_env: "OPENAI_API_KEY"
+
+# Default model if none specified
+default_model: "gpt-5-2025-08-07"
+
+# Available Models
+models:
+
+  - id: "gpt-5-2025-08-07"
+    name: "GPT-5 2025-08-07"
+    context_length: 400000
+    max_output_tokens: 128000
+    description: "Most capable GPT-5 model with 400K context window"
+    supported_inputs: ["text"]
+    supported_outputs: ["text"]
+
+  - id: "gpt-5-mini-2025-08-07"
+    name: "GPT-5 Mini 2025-08-07"
+    context_length: 400000
+    max_output_tokens: 128000
+    description: "Lightweight GPT-5 model optimized for efficiency"
+    supported_inputs: ["text"]
+    supported_outputs: ["text"]
+
+  - id: "gpt-4.1-2025-04-14"
+    name: "GPT-4.1 2025-04-14"
+    context_length: 1047576
+    max_output_tokens: 32768
+    description: "Most capable GPT-4.1 model with 1M context window (without organization verification)"
+    supported_inputs: ["text"]
+    supported_outputs: ["text"]
+
+# ============================================
+# Embedding Models Configuration
+# ============================================
+embedding:
+  # Default embedding model
+  default_model: "text-embedding-3-small"
+  
+  # Default parameters
+  defaults:
+    encoding_format: "float"
+  
+  # Available embedding models
+  models:
+    - id: "text-embedding-3-small"
+      name: "Text Embedding 3 Small"
+      dimensions: 1536
+      max_input: 8192
+      performance_mteb: 62.3
+      description: "Small embedding model with good performance and efficiency"
+
+    - id: "text-embedding-3-large"
+      name: "Text Embedding 3 Large"
+      dimensions: 3072
+      max_input: 8192
+      performance_mteb: 64.6
+      description: "Large embedding model with higher performance"

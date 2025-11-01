@@ -8,6 +8,7 @@ from .conversation_store import (
 from .item_store import InMemoryItemStore, ItemStore, SQLiteItemStore
 from .manager import ConversationManager
 from .models import Conversation, ConversationStatus
+from .service import ConversationService
 
 __all__ = [
     # Models
@@ -15,6 +16,7 @@ __all__ = [
     "ConversationStatus",
     # Conversation management
     "ConversationManager",
+    "ConversationService",
     # Conversation storage
     "ConversationStore",
     "InMemoryConversationStore",

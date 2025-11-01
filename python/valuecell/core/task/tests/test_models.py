@@ -120,7 +120,7 @@ class TestTask:
             start_time = datetime(2023, 1, 1, 12, 1, 0)
             mock_datetime.now.return_value = start_time
 
-            task.start_task()
+            task.start()
 
             assert task.status == TaskStatus.RUNNING
             assert task.started_at == start_time
@@ -141,7 +141,7 @@ class TestTask:
             complete_time = datetime(2023, 1, 1, 12, 5, 0)
             mock_datetime.now.return_value = complete_time
 
-            task.complete_task()
+            task.complete()
 
             assert task.status == TaskStatus.COMPLETED
             assert task.completed_at == complete_time
@@ -162,7 +162,7 @@ class TestTask:
             fail_time = datetime(2023, 1, 1, 12, 5, 0)
             mock_datetime.now.return_value = fail_time
 
-            task.fail_task("Test error message")
+            task.fail("Test error message")
 
             assert task.status == TaskStatus.FAILED
             assert task.completed_at == fail_time
@@ -184,7 +184,7 @@ class TestTask:
             cancel_time = datetime(2023, 1, 1, 12, 5, 0)
             mock_datetime.now.return_value = cancel_time
 
-            task.cancel_task()
+            task.cancel()
 
             assert task.status == TaskStatus.CANCELLED
             assert task.completed_at == cancel_time

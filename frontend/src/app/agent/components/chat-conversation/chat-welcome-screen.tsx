@@ -22,7 +22,7 @@ const ChatWelcomeScreen: FC<ChatWelcomeScreenProps> = ({
       <ChatBackground />
 
       {/* Welcome content */}
-      <div className="flex flex-1 flex-col items-center justify-center gap-4">
+      <div className="flex flex-1 flex-col items-center justify-center gap-12">
         <h1 className="text-center font-semibold text-3xl text-gray-950 leading-12">
           {title}
         </h1>
@@ -80,7 +80,7 @@ const ChatBackground = () => (
         style={{ left: blur.left, top: blur.top }}
       >
         <div
-          className={`h-full w-full rounded-full bg-gradient-to-br ${blur.colors} blur-[100px]`}
+          className={`h-full w-full rounded-full bg-linear-to-br ${blur.colors} blur-[100px]`}
         />
       </div>
     ))}

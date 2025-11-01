@@ -11,9 +11,11 @@ export default function HomeLayout() {
       <h1 className="font-medium text-3xl">👋 Welcome to ValueCell !</h1>
 
       <div className="flex flex-1 gap-3 overflow-hidden">
-        <ScrollContainer className="flex-1">
-          <Outlet />
-        </ScrollContainer>
+        <main className="h-full flex-1 overflow-hidden rounded-lg">
+          <ScrollContainer className="h-full">
+            <Outlet />
+          </ScrollContainer>
+        </main>
 
         <aside className="flex min-w-62 max-w-80 flex-col justify-between rounded-lg bg-white">
           <StockList />

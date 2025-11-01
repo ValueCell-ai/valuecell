@@ -1,53 +1,81 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { useAllPollTaskList } from "@/api/conversation";
+import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { HOME_STOCK_SHOW } from "@/constants/stock";
 import { agentSuggestions } from "@/mock/agent-data";
 import ChatInputArea from "../agent/components/chat-conversation/chat-input-area";
-import { AgentSuggestionsList, SparklineStockList } from "./components";
+import {
+  AgentSuggestionsList,
+  AgentTaskCards,
+  SparklineStockList,
+} from "./components";
 import { useSparklineStocks } from "./hooks/use-sparkline-stocks";
 
 function Home() {
   const navigate = useNavigate();
   const [inputValue, setInputValue] = useState<string>("");
 
+  const { data: allPollTaskList } = useAllPollTaskList();
+  const { sparklineStocks } = useSparklineStocks(HOME_STOCK_SHOW);
+
   const handleAgentClick = (agentId: string) => {
     navigate(`/agent/${agentId}`);
   };
-
-  const { sparklineStocks } = useSparklineStocks(HOME_STOCK_SHOW);
 
   return (
     <div className="flex h-full min-w-[800px] flex-col gap-3">
       <SparklineStockList stocks={sparklineStocks} />
 
-      <section className="flex flex-1 flex-col items-center justify-center gap-8 rounded-lg bg-white py-8">
-        <div className="space-y-4 text-center text-gray-950">
-          <h1 className="font-medium text-3xl">👋 Hello Investor!</h1>
-          <p>
-            You can analyze and track the stock information you want to know
-          </p>
-        </div>
+      {allPollTaskList && allPollTaskList.length > 0 ? (
+        <section className="flex flex-1 flex-col items-center justify-between gap-4 overflow-hidden">
+          <ScrollContainer className="w-full">
+            <AgentTaskCards tasks={allPollTaskList} />
+          </ScrollContainer>
 
-        <ChatInputArea
-          className="w-3/4 max-w-[800px]"
-          value={inputValue}
-          onChange={(value) => setInputValue(value)}
-          onSend={() =>
-            navigate("/agent/ValueCellAgent", {
-              state: {
-                inputValue,
-              },
-            })
-          }
-        />
+          <ChatInputArea
+            className="w-full"
+            value={inputValue}
+            onChange={(value) => setInputValue(value)}
+            onSend={() =>
+              navigate("/agent/ValueCellAgent", {
+                state: {
+                  inputValue,
+                },
+              })
+            }
+          />
+        </section>
+      ) : (
+        <section className="flex w-full flex-1 flex-col items-center justify-center gap-8 overflow-hidden rounded-lg bg-white py-8">
+          <div className="space-y-4 text-center text-gray-950">
+            <h1 className="font-medium text-3xl">👋 Hello Investor!</h1>
+            <p>
+              You can analyze and track the stock information you want to know
+            </p>
+          </div>
 
-        <AgentSuggestionsList
-          suggestions={agentSuggestions.map((suggestion) => ({
-            ...suggestion,
-            onClick: () => handleAgentClick(suggestion.id),
-          }))}
-        />
-      </section>
+          <ChatInputArea
+            className="w-3/4 max-w-[800px]"
+            value={inputValue}
+            onChange={(value) => setInputValue(value)}
+            onSend={() =>
+              navigate("/agent/ValueCellAgent", {
+                state: {
+                  inputValue,
+                },
+              })
+            }
+          />
+
+          <AgentSuggestionsList
+            suggestions={agentSuggestions.map((suggestion) => ({
+              ...suggestion,
+              onClick: () => handleAgentClick(suggestion.id),
+            }))}
+          />
+        </section>
+      )}
     </div>
   );
 }

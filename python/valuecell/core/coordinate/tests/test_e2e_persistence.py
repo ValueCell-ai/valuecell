@@ -4,12 +4,27 @@ import pytest
 
 from valuecell.core.coordinate.orchestrator import AgentOrchestrator
 from valuecell.core.types import UserInput, UserInputMetadata
+import valuecell.adapters.models.factory as factory_mod
+import valuecell.utils.model as model_utils_mod
 
 
 @pytest.mark.asyncio
 async def test_orchestrator_buffer_store_e2e(tmp_path, monkeypatch):
     db_path = tmp_path / "e2e_valuecell.db"
     monkeypatch.setenv("VALUECELL_SQLITE_DB", str(db_path))
+
+    monkeypatch.setattr(
+        factory_mod, "create_model", lambda *args, **kwargs: "stub-model"
+    )
+    monkeypatch.setattr(
+        factory_mod, "create_embedder", lambda *args, **kwargs: "stub-embedder"
+    )
+    monkeypatch.setattr(
+        model_utils_mod, "get_model_for_agent", lambda *args, **kwargs: "stub-model"
+    )
+    monkeypatch.setattr(
+        model_utils_mod, "create_embedder", lambda *args, **kwargs: "stub-embedder"
+    )
 
     orch = AgentOrchestrator()
 
@@ -35,12 +50,14 @@ async def test_orchestrator_buffer_store_e2e(tmp_path, monkeypatch):
         pass
 
     # Verify persistence: at least 1 message exists for conversation
-    msgs = await orch.conversation_manager.get_conversation_items(conversation_id)
+    msgs = await orch.conversation_service.manager.get_conversation_items(
+        conversation_id
+    )
     assert isinstance(msgs, list)
     assert len(msgs) >= 1
 
     # Also verify we can count and fetch latest
-    cnt = await orch.conversation_manager.get_item_count(conversation_id)
+    cnt = await orch.conversation_service.manager.get_item_count(conversation_id)
     assert cnt == len(msgs)
-    latest = await orch.conversation_manager.get_latest_item(conversation_id)
+    latest = await orch.conversation_service.manager.get_latest_item(conversation_id)
     assert latest is not None

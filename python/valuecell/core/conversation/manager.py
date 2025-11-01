@@ -1,9 +1,11 @@
+import json
 from datetime import datetime
 from typing import List, Optional
 
 from valuecell.core.types import (
     ConversationItem,
     ConversationItemEvent,
+    ResponseMetadata,
     ResponsePayload,
     Role,
 )
@@ -81,9 +83,10 @@ class ConversationManager:
         conversation_id: str,
         thread_id: Optional[str] = None,
         task_id: Optional[str] = None,
-        payload: ResponsePayload = None,
+        payload: Optional[ResponsePayload] = None,
         item_id: Optional[str] = None,
         agent_name: Optional[str] = None,
+        metadata: Optional[ResponseMetadata] = None,
     ) -> Optional[ConversationItem]:
         """Add item to conversation
 
@@ -95,6 +98,8 @@ class ConversationManager:
             task_id: Associated task ID (optional)
             payload: Item payload
             item_id: Item ID (optional)
+            agent_name: Agent name (optional)
+            metadata: Additional metadata as dict (optional)
         """
         # Verify conversation exists
         conversation = await self.get_conversation(conversation_id)
@@ -114,6 +119,15 @@ class ConversationManager:
                 except Exception:
                     payload_str = None
 
+        # Serialize metadata to JSON string
+        metadata_str = None
+        if metadata is not None:
+            try:
+                metadata_str = json.dumps(metadata, default=str)
+            except Exception:
+                metadata_str = "{}"
+        metadata_str = metadata_str or "{}"
+
         item = ConversationItem(
             item_id=item_id or generate_item_id(),
             role=role,
@@ -123,6 +137,7 @@ class ConversationManager:
             task_id=task_id,
             payload=payload_str,
             agent_name=agent_name,
+            metadata=metadata_str,
         )
 
         # Save item directly to item store
@@ -139,17 +154,24 @@ class ConversationManager:
         conversation_id: Optional[str] = None,
         event: Optional[ConversationItemEvent] = None,
         component_type: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
     ) -> List[ConversationItem]:
         """Get items for a conversation with optional filtering and pagination
 
         Args:
             conversation_id: Conversation ID
-            limit: Maximum number of items to return
-            offset: Number of items to skip
-            role: Filter by specific role (optional)
+            event: Filter by specific event (optional)
+            component_type: Filter by component type (optional)
+            limit: Maximum number of items to return (optional, default: all)
+            offset: Number of items to skip (optional, default: 0)
         """
         return await self.item_store.get_items(
-            conversation_id=conversation_id, event=event, component_type=component_type
+            conversation_id=conversation_id,
+            event=event,
+            component_type=component_type,
+            limit=limit,
+            offset=offset or 0,
         )
 
     async def get_latest_item(self, conversation_id: str) -> Optional[ConversationItem]:

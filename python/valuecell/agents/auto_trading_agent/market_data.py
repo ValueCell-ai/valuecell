@@ -111,7 +111,8 @@ class MarketDataProvider:
         delta = df["Close"].diff()
         gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
         loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-        rs = gain / loss
+        # Avoid division by zero: if loss is 0, RSI = 100 (maximum strength)
+        rs = gain / loss.replace(0, float("inf"))
         df["rsi"] = 100 - (100 / (1 + rs))
 
     @staticmethod

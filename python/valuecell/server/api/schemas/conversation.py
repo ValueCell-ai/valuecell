@@ -1,5 +1,6 @@
 """Conversation API schemas."""
 
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
@@ -37,6 +38,9 @@ class MessageData(BaseModel):
     role: Optional[str] = Field(None, description="Role for simple event format")
     item_id: Optional[str] = Field(None, description="Item ID for simple event format")
     agent_name: Optional[str] = Field(None, description="Name of the agent")
+    metadata: Optional[Dict[str, str | int | float]] = Field(
+        None, description="Metadata"
+    )
 
 
 class MessageEvent(BaseModel):
@@ -72,6 +76,26 @@ class ConversationDeleteData(BaseModel):
     )
 
 
+class AgentScheduledTaskResults(BaseModel):
+    """Scheduled task results for a specific agent."""
+
+    agent_name: str = Field(..., description="Name of the agent")
+    results: List[ConversationHistoryItem] = Field(
+        ..., description="List of scheduled task results for this agent"
+    )
+    update_time: Optional[datetime] = Field(
+        None, description="Timestamp of the latest message from this agent"
+    )
+
+
+class AllConversationsScheduledTaskData(BaseModel):
+    """Data structure for all conversations scheduled task results."""
+
+    agents: List[AgentScheduledTaskResults] = Field(
+        ..., description="List of agents with their scheduled task results"
+    )
+
+
 # Response type for conversation list
 ConversationListResponse = SuccessResponse[ConversationListData]
 
@@ -80,3 +104,8 @@ ConversationHistoryResponse = SuccessResponse[ConversationHistoryData]
 
 # Response type for conversation deletion
 ConversationDeleteResponse = SuccessResponse[ConversationDeleteData]
+
+# Response type for all conversations scheduled task results
+AllConversationsScheduledTaskResponse = SuccessResponse[
+    AllConversationsScheduledTaskData
+]

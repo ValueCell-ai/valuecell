@@ -8,6 +8,7 @@ export { default as EmotionalAgencyPng } from "./agents/Emotionalagency.png";
 export { default as FundamentalProxyPng } from "./agents/FundamentalProxy.png";
 export { default as MichaelBurryPng } from "./agents/MichaelBurry.png";
 export { default as MohnishPabraiPng } from "./agents/MohnishPabrai.png";
+export { default as NewPushAgentPng } from "./agents/NewPushAgent.png";
 export { default as PeterLynchPng } from "./agents/PeterLynch.png";
 export { default as PhilFisherPng } from "./agents/PhilFisher.png";
 export { default as PortfolioManagerPng } from "./agents/PortfolioManager.png";

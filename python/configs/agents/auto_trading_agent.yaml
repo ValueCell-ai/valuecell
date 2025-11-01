@@ -1,0 +1,42 @@
+# ============================================
+# Auto Trading Agent Configuration
+# ============================================
+# Configuration Priority (highest to lowest):
+# 1. Environment Variables (highest priority)
+# 2. .env file 
+# 3. YAML files (lowest priority, system defaults)
+# ============================================
+
+name: "Auto Trading Agent"
+enabled: true
+
+# Model Configuration
+# Primary model is used for AI-enhanced trading signals and portfolio decisions
+models:
+  primary:
+    model_id: "deepseek/deepseek-v3.1-terminus"
+    provider: "openrouter"  # Must explicitly specify provider (not null)
+    # Provider-specific model mappings for fallback
+    provider_models:
+      openrouter: "anthropic/claude-haiku-4.5"  # Fast and reasoning capable
+      google: "gemini-2.5-flash"  # Fast and efficient
+    parameters:
+      # temperature: 0.5
+      # max_tokens: 2048
+
+# Environment Variable Overrides
+# Format: ENV_VAR_NAME -> config.path
+env_overrides:
+  AUTO_TRADING_AGENT_MODEL_ID: "models.primary.model_id"
+  AUTO_TRADING_PARSER_MODEL_ID: "models.parser.model_id"
+  AUTO_TRADING_SIGNAL_MODEL_ID: "models.primary.model_id"
+
+# Trading configuration
+trading:
+  default_initial_capital: 100000
+  default_risk_per_trade: 0.02
+  default_max_positions: 3
+  default_check_interval: 60
+  max_symbols: 10
+  max_concurrent_instances: 10
+

@@ -133,6 +133,7 @@ class SQLiteItemStore(ItemStore):
                       task_id TEXT,
                       payload TEXT,
                       agent_name TEXT,
+                      metadata TEXT,
                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     );
                     """
@@ -157,6 +158,7 @@ class SQLiteItemStore(ItemStore):
             task_id=row["task_id"],
             payload=row["payload"],
             agent_name=row["agent_name"],
+            metadata=row["metadata"],
         )
 
     async def save_item(self, item: ConversationItem) -> None:
@@ -167,8 +169,8 @@ class SQLiteItemStore(ItemStore):
             await db.execute(
                 """
                 INSERT OR REPLACE INTO conversation_items (
-                    item_id, role, event, conversation_id, thread_id, task_id, payload, agent_name
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    item_id, role, event, conversation_id, thread_id, task_id, payload, agent_name, metadata
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     item.item_id,
@@ -179,18 +181,20 @@ class SQLiteItemStore(ItemStore):
                     item.task_id,
                     item.payload,
                     item.agent_name,
+                    item.metadata,
                 ),
             )
             await db.commit()
 
+    # TODO: consider pagination by agent_name
     async def get_items(
         self,
         conversation_id: Optional[str] = None,
-        limit: Optional[int] = None,
-        offset: int = 0,
         role: Optional[Role] = None,
         event: Optional[ConversationItemEvent] = None,
         component_type: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: int = 0,
         **kwargs,
     ) -> List[ConversationItem]:
         await self._ensure_initialized()

@@ -1,4 +1,4 @@
-import type { SSEData } from "./agent";
+import type { AgentComponentMessage, SSEData } from "./agent";
 
 export type ConversationItem = {
   conversation_id: string;
@@ -15,4 +15,10 @@ export type ConversationList = {
 export type ConversationHistory = {
   conversation_id: string;
   items: SSEData[];
+};
+
+export type TaskCardItem = {
+  agent_name: string;
+  update_time: string;
+  results: { event: "component_generator"; data: AgentComponentMessage }[];
 };

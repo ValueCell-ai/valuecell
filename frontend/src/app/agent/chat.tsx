@@ -9,7 +9,7 @@ import {
 } from "react-router";
 import { toast } from "sonner";
 import { useGetAgentInfo } from "@/api/agent";
-import { useGetConversationHistory } from "@/api/conversation";
+import { useGetConversationHistory, usePollTaskList } from "@/api/conversation";
 import { API_QUERY_KEYS } from "@/constants/api";
 import { useSSE } from "@/hooks/use-sse";
 import { getServerUrl } from "@/lib/api-client";
@@ -26,13 +26,6 @@ export default function AgentChat() {
   const conversationId = useSearchParams()[0].get("id") ?? "";
   const navigate = useNavigate();
   const inputValue = useLocation().state?.inputValue;
-  const queryClient = useQueryClient();
-  const { refetch: fetchConversationHistory } =
-    useGetConversationHistory(conversationId);
-
-  const { data: agent, isLoading: isLoadingAgent } = useGetAgentInfo({
-    agentName: agentName ?? "",
-  });
 
   // Use optimized hooks with built-in shallow comparison
   const { curConversation, curConversationId } = useCurrentConversation();
@@ -42,55 +35,78 @@ export default function AgentChat() {
     dispatchAgentStoreHistory,
   } = useAgentStoreActions();
 
-  // Handle SSE data events using agent store
-  // biome-ignore lint/correctness/useExhaustiveDependencies: close is no need to be in dependencies
-  const handleSSEData = useCallback((sseData: SSEData) => {
-    // Update agent store using the reducer
-    dispatchAgentStore(sseData);
+  const queryClient = useQueryClient();
+  const { data: agent, isLoading: isLoadingAgent } = useGetAgentInfo({
+    agentName: agentName ?? "",
+  });
+  const { data: conversationHistory } =
+    useGetConversationHistory(conversationId);
+  const { data: taskList } = usePollTaskList(conversationId);
 
-    // Handle specific UI state updates
-    const { event, data } = sseData;
-    switch (event) {
-      case "conversation_started":
-        navigate(`/agent/${agentName}?id=${data.conversation_id}`, {
-          replace: true,
-        });
-        queryClient.invalidateQueries({
-          queryKey: API_QUERY_KEYS.CONVERSATION.conversationList,
-        });
-        break;
+  // Load conversation history (only once when conversation changes)
+  useEffect(() => {
+    if (
+      !conversationId ||
+      !conversationHistory ||
+      conversationHistory.length === 0
+    )
+      return;
 
-      case "component_generator":
-        if (data.payload.component_type === "subagent_conversation") {
-          queryClient.invalidateQueries({
-            queryKey: API_QUERY_KEYS.CONVERSATION.conversationList,
-          });
-        }
-        break;
+    dispatchAgentStoreHistory(conversationId, conversationHistory, true);
+  }, [conversationId, conversationHistory, dispatchAgentStoreHistory]);
 
-      case "system_failed":
-        // Handle system errors in UI layer
-        toast.error(data.payload.content, {
-          closeButton: true,
-          duration: 30 * 1000,
-        });
-        break;
+  // Update task list (polls every 30s)
+  useEffect(() => {
+    if (!conversationId || !taskList || taskList.length === 0) return;
 
-      case "done":
-        close();
-        break;
-
-      // All message-related events are handled by the store
-      default:
-        break;
-    }
-  }, []);
+    dispatchAgentStoreHistory(conversationId, taskList);
+  }, [conversationId, taskList, dispatchAgentStoreHistory]);
 
   // Initialize SSE connection using the useSSE hook
   const { connect, close, isStreaming } = useSSE({
     url: getServerUrl("/agents/stream"),
     handlers: {
-      onData: handleSSEData,
+      onData: (sseData: SSEData) => {
+        // Update agent store using the reducer
+        dispatchAgentStore(sseData);
+
+        // Handle specific UI state updates
+        const { event, data } = sseData;
+        switch (event) {
+          case "conversation_started":
+            navigate(`/agent/${agentName}?id=${data.conversation_id}`, {
+              replace: true,
+            });
+            queryClient.invalidateQueries({
+              queryKey: API_QUERY_KEYS.CONVERSATION.conversationList,
+            });
+            break;
+
+          case "component_generator":
+            if (data.payload.component_type === "subagent_conversation") {
+              queryClient.invalidateQueries({
+                queryKey: API_QUERY_KEYS.CONVERSATION.conversationList,
+              });
+            }
+            break;
+
+          case "system_failed":
+            // Handle system errors in UI layer
+            toast.error(data.payload.content, {
+              closeButton: true,
+              duration: 30 * 1000,
+            });
+            break;
+
+          case "done":
+            close();
+            break;
+
+          // All message-related events are handled by the store
+          default:
+            break;
+        }
+      },
       onOpen: () => {
         console.log("✅ SSE connection opened");
       },
@@ -123,17 +139,9 @@ export default function AgentChat() {
     [agentName, conversationId],
   );
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: setCurConversationId and navigate are no need to be in dependencies
   useEffect(() => {
     if (curConversationId !== conversationId) {
       setCurConversationId(conversationId);
-      if (conversationId)
-        fetchConversationHistory().then((res) => {
-          return dispatchAgentStoreHistory(
-            conversationId,
-            res.data as SSEData[],
-          );
-        });
     }
 
     if (inputValue) {
@@ -141,7 +149,14 @@ export default function AgentChat() {
       // Clear the state after using it once to prevent re-triggering on page refresh
       navigate(".", { replace: true, state: {} });
     }
-  }, [conversationId, inputValue, sendMessage]);
+  }, [
+    conversationId,
+    inputValue,
+    sendMessage,
+    setCurConversationId,
+    curConversationId,
+    navigate,
+  ]);
 
   if (isLoadingAgent) return null;
   if (!agent) return <Navigate to="/" replace />;

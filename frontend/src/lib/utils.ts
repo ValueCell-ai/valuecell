@@ -6,37 +6,44 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const isNullOrUndefined = (value: unknown): value is undefined | null =>
+  value === undefined || value === null;
+
+function getCurrencySymbol(currencyCode: string): string {
+  const currencyMap: Record<string, string> = {
+    USD: "$",
+    CNY: "¥",
+    HKD: "HK$",
+    EUR: "€",
+    GBP: "£",
+    JPY: "¥",
+    KRW: "₩",
+  };
+  return currencyMap[currencyCode] || currencyCode;
+}
+
 /**
- * Formats a numeric price with currency symbol
- * @param price - The numeric price value
- * @param currency - Currency symbol (e.g., "$", "¥", "€")
- * @param decimals - Number of decimal places (default: 2)
- * @returns Formatted price string with currency symbol
- * @example formatPrice(1234.567, "$") // "$1234.57"
+ * Format price with currency symbol
  */
 export function formatPrice(
   price: number,
   currency: string,
-  decimals: number = 2,
+  decimals = 2,
 ): string {
-  return `${currency}${price.toFixed(decimals)}`;
+  const symbol = getCurrencySymbol(currency);
+  return `${symbol}${price.toFixed(decimals)}`;
 }
 
 /**
- * Formats a percentage change with appropriate sign and styling
- * @param changePercent - The percentage change value (can be positive, negative, or zero)
- * @param decimals - Number of decimal places (default: 2)
- * @param suffix - Suffix to add to the percentage string (default: "")
- * @returns Formatted percentage string with sign
+ * Format percentage change with sign
  */
 export function formatChange(
-  changePercent: number,
-  suffix: string = "",
-  decimals: number = 2,
+  changePercent: number | null,
+  suffix = "",
+  decimals = 2,
 ): string {
-  if (changePercent === 0) {
-    return `${changePercent.toFixed(decimals)}${suffix}`;
-  }
+  if (isNullOrUndefined(changePercent)) return "N/A";
+  if (changePercent === 0) return `${changePercent.toFixed(decimals)}${suffix}`;
 
   const sign = changePercent > 0 ? "+" : "-";
   const value = Math.abs(changePercent).toFixed(decimals);
@@ -44,14 +51,11 @@ export function formatChange(
 }
 
 /**
- * Determines the type of change based on percentage value
- * @param changePercent - The percentage change value
- * @returns Change type: "positive", "negative", or "neutral"
+ * Get stock change type: "positive" (up), "negative" (down), or "neutral" (no change)
  */
-export function getChangeType(changePercent: number): StockChangeType {
-  return changePercent > 0
-    ? "positive"
-    : changePercent < 0
-      ? "negative"
-      : "neutral";
+export function getChangeType(changePercent: number | null): StockChangeType {
+  if (isNullOrUndefined(changePercent) || changePercent === 0) {
+    return "neutral";
+  }
+  return changePercent > 0 ? "positive" : "negative";
 }
