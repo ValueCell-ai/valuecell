@@ -229,6 +229,7 @@ class YFinanceAdapter(BaseDataAdapter):
             long_name = info.get("longName", info.get("shortName", ticker))
             names.set_name("en-US", long_name)
 
+            exchange = None
             if info.get("exchange"):
                 exchange = self.exchange_mapping.get(info.get("exchange"))
 
