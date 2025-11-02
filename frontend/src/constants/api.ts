@@ -17,7 +17,6 @@ const STOCK_QUERY_KEYS = {
 const AGENT_QUERY_KEYS = {
   agentList: queryKeyFn(["agent", "list"]),
   agentInfo: queryKeyFn(["agent", "info"]),
-  conversationList: ["conversation"],
 } as const;
 
 export const CONVERSATION_QUERY_KEYS = {
