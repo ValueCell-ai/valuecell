@@ -42,10 +42,14 @@ export const useEnableAgent = () => {
       apiClient.post<ApiResponse<null>>(`/agents/${params.agentName}/enable`, {
         enabled: params.enabled,
       }),
-    onSuccess: () => {
+    onSuccess: (_, { agentName }) => {
       // invalidate agent list query cache to trigger re-fetch
       queryClient.invalidateQueries({
-        queryKey: ["agent", "list"],
+        queryKey: API_QUERY_KEYS.AGENT.agentInfo([agentName]),
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: API_QUERY_KEYS.AGENT.agentList([]),
       });
     },
   });
