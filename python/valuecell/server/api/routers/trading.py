@@ -47,9 +47,7 @@ def create_trading_router() -> APIRouter:
                 api_key = os.getenv("OKX_API_KEY", "").strip()
                 api_secret = os.getenv("OKX_API_SECRET", "").strip()
                 passphrase = os.getenv("OKX_API_PASSPHRASE", "").strip()
-                (
-                    os.getenv("OKX_ALLOW_LIVE_TRADING", "false").lower() == "true"
-                )
+                (os.getenv("OKX_ALLOW_LIVE_TRADING", "false").lower() == "true")
                 resolved_network = (
                     network or os.getenv("OKX_NETWORK", "paper")
                 ).lower()
