@@ -83,7 +83,7 @@ Welcome to join our Discord community to share feedback and issues you encounter
 - **Multiple LLM Providers**: Support OpenRouter, SiliconFlow, Google and OpenAI 
 - **Popular Market Data**: Cover US market, Crypto market, Hong Kong market, China market and more
 - **Multi-Agent Framework Compatible**: Support Langchain, Agno by A2A Protocol for research and development integration
-- **Exchange Connectivity**: Optional live routing to Hyperliquid or OKX with built-in guardrails
+- **Exchange Connectivity**: Optional live routing to OKX with built-in guardrails
 
 # Quick Start
 
@@ -157,12 +157,11 @@ If it has been a long time since the last update, you can delete the database fi
 
 Once the application is running, you can explore the web interface to interact with ValueCell's features and capabilities.
 
-## Live Trading (Hyperliquid & OKX Preview)
+## Live Trading (OKX Preview)
 
-- Set `AUTO_TRADING_EXCHANGE` to `hyperliquid` or `okx` and populate the respective credentials in `.env` (see [Configuration Guide](docs/CONFIGURATION_GUIDE.md)).
-- Start the stack with `./start.sh --exchange hyperliquid --network testnet` or `./start.sh --exchange okx --network paper` so overrides reach the Auto Trading agent.
-- Follow the dedicated setup guides ([Hyperliquid](docs/HYPERLIQUID_SETUP.md) and [OKX](docs/OKX_SETUP.md)) to source API keys, fund your demo wallets, and understand safety toggles.
-- Keep the corresponding `*_ALLOW_LIVE_TRADING=false` flags until strategies pass paper trading validation and stakeholders approve mainnet deployment.
+- Set `AUTO_TRADING_EXCHANGE=okx` and populate the required `OKX_*` credentials in `.env` (see [Configuration Guide](docs/CONFIGURATION_GUIDE.md) and [OKX Setup](docs/OKX_SETUP.md)).
+- Start the stack with `./start.sh` after configuring the environment.
+- Keep `OKX_ALLOW_LIVE_TRADING=false` until strategies pass paper trading validation and stakeholders approve mainnet deployment.
 
 ---
 

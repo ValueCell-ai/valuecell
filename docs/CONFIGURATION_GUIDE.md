@@ -485,20 +485,6 @@ models:
 
 ### Pattern 3: Development vs Production
 
-### Hyperliquid Trading
-
-| Variable                         | Default   | Description                                                                               |
-| -------------------------------- | --------- | ----------------------------------------------------------------------------------------- |
-| `HYPERLIQUID_NETWORK`            | `testnet` | Select `testnet` for paper funds or `mainnet` for live trading.                           |
-| `HYPERLIQUID_ACCOUNT_ADDRESS`    | —         | Wallet address used to sign orders. Required when `exchange=hyperliquid`.                 |
-| `HYPERLIQUID_SECRET_KEY`         | —         | Private key that signs Hyperliquid orders. Load from a secure secret store in production. |
-| `HYPERLIQUID_ALLOW_LIVE_TRADING` | `false`   | Must be `true` to permit mainnet order placement. Acts as a safety toggle.                |
-| `AUTO_TRADING_EXCHANGE`          | `paper`   | Default exchange for the Auto Trading agent (`paper` or `hyperliquid`).                   |
-| `HYPERLIQUID_DEFAULT_SLIPPAGE`   | `0.02`    | Slippage buffer applied to Hyperliquid market orders (0.0–0.5).                           |
-
-> [!WARNING]
-> Never commit your Hyperliquid private key. Prefer OS keychains or environment injection in CI. Test new strategies on `testnet` before enabling `mainnet` funds.
-
 ### OKX Trading
 
 | Variable                 | Default | Description                                                        |
