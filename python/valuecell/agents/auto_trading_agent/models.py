@@ -14,6 +14,9 @@ from .constants import (
     MAX_SYMBOLS,
 )
 
+SUPPORTED_EXCHANGES = {"paper", "okx"}
+SUPPORTED_NETWORKS = {"testnet", "mainnet", "demo", "beta", "local", "paper"}
+
 
 class TradeAction(str, Enum):
     """Trade action enumeration"""
@@ -50,6 +53,22 @@ class TradingRequest(BaseModel):
         default=[DEFAULT_AGENT_MODEL],
         description="List of model IDs for trading decisions - one instance per model",
     )
+    exchange: Optional[str] = Field(
+        default=None,
+        description="Exchange adapter to use (paper or okx)",
+    )
+    exchange_network: Optional[str] = Field(
+        default=None,
+        description="Target network for the exchange (testnet, mainnet, etc.)",
+    )
+    allow_live_trading: Optional[bool] = Field(
+        default=None,
+        description="Explicit confirmation toggle for mainnet trading",
+    )
+    okx_td_mode: Optional[str] = Field(
+        default=None,
+        description="OKX trading mode (cash, cross, isolated); defaults to cash",
+    )
 
     @field_validator("crypto_symbols")
     @classmethod
@@ -60,6 +79,26 @@ class TradingRequest(BaseModel):
             raise ValueError(f"Maximum {MAX_SYMBOLS} symbols allowed")
         # Normalize symbols to uppercase
         return [s.upper() for s in v]
+
+    @field_validator("exchange")
+    @classmethod
+    def validate_exchange(cls, value):
+        if value is None:
+            return value
+        lowered = value.lower()
+        if lowered not in SUPPORTED_EXCHANGES:
+            raise ValueError(f"Unsupported exchange '{value}'")
+        return lowered
+
+    @field_validator("exchange_network")
+    @classmethod
+    def validate_exchange_network(cls, value):
+        if value is None:
+            return value
+        lowered = value.lower()
+        if lowered not in SUPPORTED_NETWORKS:
+            raise ValueError(f"Unsupported exchange network '{value}'")
+        return lowered
 
 
 class AutoTradingConfig(BaseModel):
@@ -99,6 +138,45 @@ class AutoTradingConfig(BaseModel):
         default=False,
         description="Whether to use AI model for enhanced signal generation",
     )
+    openrouter_api_key: Optional[str] = Field(
+        default=None,
+        description="OpenRouter API key for AI model access",
+    )
+    exchange: str = Field(
+        default="paper",
+        description="Exchange adapter to use (paper or okx)",
+    )
+    exchange_network: str = Field(
+        default="testnet",
+        description="Exchange network identifier (testnet, mainnet, etc.)",
+    )
+    allow_live_trading: bool = Field(
+        default=False,
+        description="Must be true to enable mainnet order placement",
+    )
+    okx_api_key: Optional[str] = Field(
+        default=None,
+        description="OKX API key for REST access",
+        repr=False,
+    )
+    okx_api_secret: Optional[str] = Field(
+        default=None,
+        description="OKX API secret",
+        repr=False,
+    )
+    okx_api_passphrase: Optional[str] = Field(
+        default=None,
+        description="OKX API passphrase",
+        repr=False,
+    )
+    okx_margin_mode: str = Field(
+        default="cross",
+        description="OKX trading mode (contracts cross by default; use 'cash' for SPOT)",
+    )
+    okx_use_server_time: bool = Field(
+        default=False,
+        description="Sync with OKX server time when placing orders",
+    )
 
     @field_validator("crypto_symbols")
     @classmethod
@@ -109,6 +187,22 @@ class AutoTradingConfig(BaseModel):
             raise ValueError(f"Maximum {MAX_SYMBOLS} symbols allowed")
         # Normalize symbols to uppercase
         return [s.upper() for s in v]
+
+    @field_validator("exchange")
+    @classmethod
+    def validate_exchange(cls, value: str) -> str:
+        lowered = value.lower()
+        if lowered not in SUPPORTED_EXCHANGES:
+            raise ValueError(f"Unsupported exchange '{value}'")
+        return lowered
+
+    @field_validator("exchange_network")
+    @classmethod
+    def validate_network(cls, value: str) -> str:
+        lowered = value.lower()
+        if lowered not in SUPPORTED_NETWORKS:
+            raise ValueError(f"Unsupported exchange network '{value}'")
+        return lowered
 
 
 class Position(BaseModel):

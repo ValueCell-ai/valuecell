@@ -21,12 +21,12 @@ This hierarchy allows you to:
 
 ValueCell supports multiple LLM providers. Choose at least one:
 
-| Provider | Sign Up |
-|----------|---------|
-| **OpenRouter** | [openrouter.ai](https://openrouter.ai/) |
-| **SiliconFlow** | [siliconflow.cn](https://www.siliconflow.cn/) |
-| **Google** | [ai.google.dev](https://ai.google.dev/) |
-| **OpenAI** | [platform.openai.com](https://platform.openai.com/) |
+| Provider        | Sign Up                                             |
+| --------------- | --------------------------------------------------- |
+| **OpenRouter**  | [openrouter.ai](https://openrouter.ai/)             |
+| **SiliconFlow** | [siliconflow.cn](https://www.siliconflow.cn/)       |
+| **Google**      | [ai.google.dev](https://ai.google.dev/)             |
+| **OpenAI**      | [platform.openai.com](https://platform.openai.com/) |
 
 ### Step 2: Configure .env File
 
@@ -485,11 +485,37 @@ models:
 
 ### Pattern 3: Development vs Production
 
-```bash
-# .env.development
-OPENROUTER_API_KEY=sk-or-v1-dev-xxxxx
-APP_ENVIRONMENT=development
+### Hyperliquid Trading
 
+| Variable                         | Default   | Description                                                                               |
+| -------------------------------- | --------- | ----------------------------------------------------------------------------------------- |
+| `HYPERLIQUID_NETWORK`            | `testnet` | Select `testnet` for paper funds or `mainnet` for live trading.                           |
+| `HYPERLIQUID_ACCOUNT_ADDRESS`    | —         | Wallet address used to sign orders. Required when `exchange=hyperliquid`.                 |
+| `HYPERLIQUID_SECRET_KEY`         | —         | Private key that signs Hyperliquid orders. Load from a secure secret store in production. |
+| `HYPERLIQUID_ALLOW_LIVE_TRADING` | `false`   | Must be `true` to permit mainnet order placement. Acts as a safety toggle.                |
+| `AUTO_TRADING_EXCHANGE`          | `paper`   | Default exchange for the Auto Trading agent (`paper` or `hyperliquid`).                   |
+| `HYPERLIQUID_DEFAULT_SLIPPAGE`   | `0.02`    | Slippage buffer applied to Hyperliquid market orders (0.0–0.5).                           |
+
+> [!WARNING]
+> Never commit your Hyperliquid private key. Prefer OS keychains or environment injection in CI. Test new strategies on `testnet` before enabling `mainnet` funds.
+
+### OKX Trading
+
+| Variable                 | Default | Description                                                        |
+| ------------------------ | ------- | ------------------------------------------------------------------ |
+| `OKX_NETWORK`            | `paper` | Choose `paper` for demo trading or `mainnet` for live environment. |
+| `OKX_API_KEY`            | —       | OKX API key generated from the OKX console.                        |
+| `OKX_API_SECRET`         | —       | API secret corresponding to the key.                               |
+| `OKX_API_PASSPHRASE`     | —       | Passphrase set when creating the OKX API key.                      |
+| `OKX_ALLOW_LIVE_TRADING` | `false` | Must be `true` before routing orders to the mainnet environment.   |
+| `OKX_MARGIN_MODE`        | `cash`  | Trading mode passed to OKX (`cash`, `cross`, `isolated`).          |
+| `OKX_USE_SERVER_TIME`    | `false` | Enable to sync with OKX server time for order stamping.            |
+
+> [!IMPORTANT]
+> Keep `OKX_ALLOW_LIVE_TRADING=false` until strategies are validated on the OKX paper environment. Treat API secrets as production credentials and store them in a secure vault.
+
+## Troubleshooting
+```bash
 # .env.production  
 OPENROUTER_API_KEY=sk-or-v1-prod-xxxxx
 SILICONFLOW_API_KEY=sk-prod-xxxxx

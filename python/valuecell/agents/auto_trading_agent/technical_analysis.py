@@ -6,7 +6,7 @@ from typing import Optional
 
 from agno.agent import Agent
 
-from .market_data import MarketDataProvider, SignalGenerator
+from .market_data import MarketDataProvider, SignalGenerator, OkxMarketDataProvider
 from .models import TechnicalIndicators, TradeAction, TradeType
 
 logger = logging.getLogger(__name__)
@@ -20,6 +20,11 @@ class TechnicalAnalyzer:
     """
 
     _market_data_provider = MarketDataProvider()
+
+    @staticmethod
+    def set_provider(provider: MarketDataProvider) -> None:
+        """Override the default market data provider."""
+        TechnicalAnalyzer._market_data_provider = provider
 
     @staticmethod
     def calculate_indicators(

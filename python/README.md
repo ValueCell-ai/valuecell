@@ -55,3 +55,34 @@ uv venv --python 3.12 && uv sync && uv pip list
 
 - Python >= 3.12
 - Dependencies managed via `pyproject.toml`
+
+## Hyperliquid Trading (Preview)
+
+The Auto Trading agent can submit orders to Hyperliquid via the official SDK. Install dependencies with `uv sync --group dev`, then populate the following environment variables:
+
+```bash
+AUTO_TRADING_EXCHANGE=hyperliquid        # switch from paper trading to Hyperliquid
+HYPERLIQUID_NETWORK=testnet   # switch to mainnet once validated
+HYPERLIQUID_ACCOUNT_ADDRESS=0x...
+HYPERLIQUID_SECRET_KEY=0x...  # store securely!
+HYPERLIQUID_ALLOW_LIVE_TRADING=false
+HYPERLIQUID_DEFAULT_SLIPPAGE=0.02
+```
+
+> Test new strategies on the Hyperliquid testnet before enabling `HYPERLIQUID_ALLOW_LIVE_TRADING=true`. Mainnet trading requires sufficient collateral in your Hyperliquid wallet.
+
+## OKX Trading (Preview)
+
+Add OKX credentials to `.env` (or export them before launch):
+
+```bash
+AUTO_TRADING_EXCHANGE=okx
+OKX_NETWORK=paper          # switch to mainnet only after validation
+OKX_API_KEY=...
+OKX_API_SECRET=...
+OKX_API_PASSPHRASE=...
+OKX_ALLOW_LIVE_TRADING=false
+OKX_MARGIN_MODE=cash       # or cross / isolated
+```
+
+Launch with `./start.sh --exchange okx --network paper` to route the Auto Trading agent through OKX. Flip `OKX_ALLOW_LIVE_TRADING=true` only when you're ready for real execution.

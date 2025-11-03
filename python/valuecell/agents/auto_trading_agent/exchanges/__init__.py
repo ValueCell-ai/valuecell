@@ -9,12 +9,16 @@ Adapters:
 - BinanceExchange: Live trading on Binance (requires API keys)
 """
 
-from .base_exchange import ExchangeBase, ExchangeType, OrderStatus
+from .base_exchange import ExchangeBase, ExchangeType, Order, OrderStatus
+from .okx_exchange import OKXExchange, OKXExchangeError
 from .paper_trading import PaperTrading
 
 __all__ = [
     "ExchangeBase",
     "ExchangeType",
+    "Order",
     "OrderStatus",
+    "OKXExchange",
+    "OKXExchangeError",
     "PaperTrading",
 ]

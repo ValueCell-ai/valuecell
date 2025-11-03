@@ -151,6 +151,11 @@ def _add_routes(app: FastAPI, settings) -> None:
     # Include task router
     app.include_router(create_task_router(), prefix=API_PREFIX)
 
+    # Include trading router
+    from .routers.trading import create_trading_router
+
+    app.include_router(create_trading_router(), prefix=API_PREFIX)
+
 
 # For uvicorn
 app = create_app()
