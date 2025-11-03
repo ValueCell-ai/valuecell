@@ -22,6 +22,11 @@ class TechnicalAnalyzer:
     _market_data_provider = MarketDataProvider()
 
     @staticmethod
+    def set_provider(provider: MarketDataProvider) -> None:
+        """Override the default market data provider."""
+        TechnicalAnalyzer._market_data_provider = provider
+
+    @staticmethod
     def calculate_indicators(
         symbol: str, period: str = "5d", interval: str = "1m"
     ) -> Optional[TechnicalIndicators]:

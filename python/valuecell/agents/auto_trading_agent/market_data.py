@@ -1,12 +1,14 @@
 """Market data and technical indicator retrieval - from a trader's perspective"""
 
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Dict, Optional
 
 import pandas as pd
 import yfinance as yf
 
+from .exchanges.okx_exchange import OKXExchange
 from .models import TechnicalIndicators
 
 logger = logging.getLogger(__name__)
@@ -152,6 +154,74 @@ class MarketDataProvider:
             bb_middle=safe_float(latest.get("bb_middle")),
             bb_lower=safe_float(latest.get("bb_lower")),
         )
+
+
+class OkxMarketDataProvider(MarketDataProvider):
+    """Market data provider that uses OKX APIs for spot/contract prices.
+
+    Falls back to parent implementation for indicators (yfinance) to keep
+    indicator availability without extra OKX Kline wiring for now.
+    """
+
+    def __init__(self, cache_ttl_seconds: int = 60):
+        super().__init__(cache_ttl_seconds=cache_ttl_seconds)
+        self._okx = None
+
+    def _ensure_okx(self) -> OKXExchange:
+        if self._okx is None:
+            api_key = os.getenv("OKX_API_KEY", "")
+            api_secret = os.getenv("OKX_API_SECRET", "")
+            passphrase = os.getenv("OKX_API_PASSPHRASE", "")
+            network = os.getenv("OKX_NETWORK", "paper")
+            self._okx = OKXExchange(
+                api_key=api_key,
+                api_secret=api_secret,
+                passphrase=passphrase,
+                network=network,
+            )
+        return self._okx
+
+    def get_current_price(self, symbol: str) -> Optional[float]:
+        try:
+            okx = self._ensure_okx()
+            # Connect lazily on first price call
+            if not getattr(okx, "is_connected", False):
+                import asyncio
+
+                try:
+                    asyncio.get_running_loop()
+                    # we're in an async context; run sync via to_thread later
+                    # Fallback to parent if connection cannot be ensured here
+                except RuntimeError:
+                    # No running loop; safe to run connect synchronously
+                    asyncio.run(okx.connect())
+
+            # Get price from OKX adapter
+            price = None
+            try:
+                # Try synchronous bridge via asyncio for adapter's async method
+                import asyncio
+
+                async def _get():
+                    if not okx.is_connected:
+                        await okx.connect()
+                    return await okx.get_current_price(symbol)
+
+                try:
+                    loop = asyncio.get_running_loop()
+                    # If running loop exists, schedule and block until done
+                    price = loop.run_until_complete(_get())  # type: ignore
+                except RuntimeError:
+                    # No running loop; we can create one
+                    price = asyncio.run(_get())
+            except Exception:
+                # As a fallback, use parent (yfinance)
+                return super().get_current_price(symbol)
+
+            return float(price) if price is not None else None
+        except Exception as e:
+            logger.error(f"Failed to get OKX price for {symbol}: {e}")
+            return super().get_current_price(symbol)
 
 
 class SignalGenerator:

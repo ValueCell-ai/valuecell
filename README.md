@@ -83,6 +83,7 @@ Welcome to join our Discord community to share feedback and issues you encounter
 - **Multiple LLM Providers**: Support OpenRouter, SiliconFlow, Google and OpenAI 
 - **Popular Market Data**: Cover US market, Crypto market, Hong Kong market, China market and more
 - **Multi-Agent Framework Compatible**: Support Langchain, Agno by A2A Protocol for research and development integration
+- **Exchange Connectivity**: Optional live routing to OKX with built-in guardrails
 
 # Quick Start
 
@@ -155,6 +156,12 @@ If it has been a long time since the last update, you can delete the database fi
 ## Next Steps
 
 Once the application is running, you can explore the web interface to interact with ValueCell's features and capabilities.
+
+## Live Trading (OKX Preview)
+
+- Set `AUTO_TRADING_EXCHANGE=okx` and populate the required `OKX_*` credentials in `.env` (see [Configuration Guide](docs/CONFIGURATION_GUIDE.md) and [OKX Setup](docs/OKX_SETUP.md)).
+- Start the stack with `./start.sh` after configuring the environment.
+- Keep `OKX_ALLOW_LIVE_TRADING=false` until strategies pass paper trading validation and stakeholders approve mainnet deployment.
 
 ---
 

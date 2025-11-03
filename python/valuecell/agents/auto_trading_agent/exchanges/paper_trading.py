@@ -182,6 +182,7 @@ class PaperTrading(ExchangeBase):
             quantity=quantity,
             price=price,
             order_type=order_type,
+            trade_type=kwargs.get("trade_type"),
         )
 
         # Immediately fill market orders

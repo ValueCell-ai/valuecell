@@ -18,6 +18,7 @@ class ExchangeType(str, Enum):
     BINANCE = "binance"  # Binance exchange
     BYBIT = "bybit"  # Bybit exchange (future support)
     COINBASE = "coinbase"  # Coinbase (future support)
+    OKX = "okx"  # OKX spot/derivatives exchange
 
 
 class OrderStatus(str, Enum):

@@ -9,6 +9,7 @@ description = "ValueCell is a community-driven, multi-agent platform for financi
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "python-okx>=0.4.0",
     "pytz>=2023.3",
     "python-dateutil>=2.8.2",
     "fastapi>=0.104.0",

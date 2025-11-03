@@ -4,6 +4,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from .exchanges import ExchangeBase, Order, OrderStatus, PaperTrading
 from .models import (
     AutoTradingConfig,
     PortfolioValueSnapshot,
@@ -30,7 +31,11 @@ class TradingExecutor:
     - Cash management (via PositionManager)
     """
 
-    def __init__(self, config: AutoTradingConfig):
+    def __init__(
+        self,
+        config: AutoTradingConfig,
+        exchange: Optional[ExchangeBase] = None,
+    ):
         """
         Initialize trading executor.
 
@@ -40,11 +45,17 @@ class TradingExecutor:
         self.config = config
         self.initial_capital = config.initial_capital
 
+        # Exchange adapter (defaults to in-memory paper trading)
+        self.exchange: ExchangeBase = exchange or PaperTrading(
+            initial_balance=config.initial_capital
+        )
+        self.exchange_type = self.exchange.exchange_type
+
         # Use specialized modules
         self._position_manager = PositionManager(config.initial_capital)
         self._trade_recorder = TradeRecorder()
 
-    def execute_trade(
+    async def execute_trade(
         self,
         symbol: str,
         action: TradeAction,
@@ -68,9 +79,13 @@ class TradingExecutor:
             timestamp = datetime.now(timezone.utc)
 
             if action == TradeAction.BUY:
-                return self._execute_buy(symbol, trade_type, current_price, timestamp)
-            elif action == TradeAction.SELL:
-                return self._execute_sell(symbol, trade_type, current_price, timestamp)
+                return await self._execute_buy(
+                    symbol, trade_type, current_price, timestamp
+                )
+            if action == TradeAction.SELL:
+                return await self._execute_sell(
+                    symbol, trade_type, current_price, timestamp
+                )
 
             return None
 
@@ -78,7 +93,7 @@ class TradingExecutor:
             logger.error(f"Failed to execute trade for {symbol}: {e}")
             return None
 
-    def _execute_buy(
+    async def _execute_buy(
         self,
         symbol: str,
         trade_type: TradeType,
@@ -99,7 +114,10 @@ class TradingExecutor:
         # Calculate position size
         available_cash = self._position_manager.get_available_cash()
         risk_amount = available_cash * self.config.risk_per_trade
-        quantity = risk_amount / current_price
+        quantity = risk_amount / current_price if current_price > 0 else 0.0
+        if quantity <= 0:
+            logger.warning("Calculated quantity is non-positive; skipping trade")
+            return None
         notional = quantity * current_price
 
         # Check if we have enough cash
@@ -109,11 +127,29 @@ class TradingExecutor:
             )
             return None
 
+        side = "buy" if trade_type == TradeType.LONG else "sell"
+        order = await self._submit_order(
+            symbol=symbol,
+            side=side,
+            quantity=abs(quantity),
+            trade_type=trade_type,
+        )
+
+        if order is None or order.status in {
+            OrderStatus.REJECTED,
+            OrderStatus.CANCELLED,
+        }:
+            logger.warning("Exchange rejected open order for %s", symbol)
+            return None
+
+        fill_price = order.price or current_price
+        notional = abs(quantity) * fill_price
+
         # Create and open position
         position = Position(
             symbol=symbol,
-            entry_price=current_price,
-            quantity=quantity if trade_type == TradeType.LONG else -quantity,
+            entry_price=fill_price,
+            quantity=abs(quantity) if trade_type == TradeType.LONG else -abs(quantity),
             entry_time=timestamp,
             trade_type=trade_type,
             notional=notional,
@@ -129,7 +165,7 @@ class TradingExecutor:
             symbol=symbol,
             action="opened",
             trade_type=trade_type.value,
-            price=current_price,
+            price=fill_price,
             quantity=abs(position.quantity),
             notional=notional,
             pnl=None,
@@ -142,13 +178,15 @@ class TradingExecutor:
             "action": "opened",
             "trade_type": trade_type.value,
             "symbol": symbol,
-            "entry_price": current_price,
+            "entry_price": fill_price,
             "quantity": position.quantity,
             "notional": notional,
             "timestamp": timestamp,
+            "order_id": order.order_id,
+            "exchange": self.exchange_type.value,
         }
 
-    def _execute_sell(
+    async def _execute_sell(
         self,
         symbol: str,
         trade_type: TradeType,
@@ -165,11 +203,23 @@ class TradingExecutor:
         if position.trade_type != trade_type:
             return None
 
-        # Calculate P&L
-        pnl = self._position_manager.calculate_position_pnl(position, current_price)
-        exit_notional = abs(position.quantity) * current_price
+        side = "sell" if trade_type == TradeType.LONG else "buy"
+        order = await self._submit_order(
+            symbol=symbol,
+            side=side,
+            quantity=abs(position.quantity),
+            trade_type=trade_type,
+        )
 
-        # Close position
+        if order is None:
+            logger.warning("Failed to close position on %s via exchange", symbol)
+            return None
+
+        exit_price = order.price or current_price
+        pnl = self._position_manager.calculate_position_pnl(position, exit_price)
+        exit_notional = abs(position.quantity) * exit_price
+
+        # Close position locally
         self._position_manager.close_position(symbol)
         self._position_manager.release_cash(position.notional, pnl)
 
@@ -181,7 +231,7 @@ class TradingExecutor:
             symbol=symbol,
             action="closed",
             trade_type=trade_type.value,
-            price=current_price,
+            price=exit_price,
             quantity=abs(position.quantity),
             notional=exit_notional,
             pnl=pnl,
@@ -195,14 +245,46 @@ class TradingExecutor:
             "trade_type": trade_type.value,
             "symbol": symbol,
             "entry_price": position.entry_price,
-            "exit_price": current_price,
+            "exit_price": exit_price,
             "quantity": position.quantity,
             "entry_notional": position.notional,
             "exit_notional": exit_notional,
             "pnl": pnl,
             "holding_time": holding_time,
             "timestamp": timestamp,
+            "order_id": order.order_id,
+            "exchange": self.exchange_type.value,
         }
+
+    async def _submit_order(
+        self,
+        *,
+        symbol: str,
+        side: str,
+        quantity: float,
+        trade_type: TradeType,
+        order_type: str = "market",
+    ) -> Optional[Order]:
+        try:
+            if not self.exchange.is_connected:
+                await self.exchange.connect()
+            return await self.exchange.place_order(
+                symbol=symbol,
+                side=side,
+                quantity=quantity,
+                price=None,
+                order_type=order_type,
+                trade_type=trade_type,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.error(
+                "Order submission failed (%s %s %s): %s",
+                side,
+                quantity,
+                symbol,
+                exc,
+            )
+            return None
 
     # ============ Portfolio Queries ============
 

@@ -25,8 +25,18 @@ from .constants import (
     ENV_PARSER_MODEL_ID,
     ENV_SIGNAL_MODEL_ID,
 )
+from .exchanges import (
+    ExchangeBase,
+    ExchangeType,
+    OKXExchange,
+    OKXExchangeError,
+    PaperTrading,
+)
 from .formatters import MessageFormatter
+from .market_data import MarketDataProvider, OkxMarketDataProvider
 from .models import (
+    SUPPORTED_EXCHANGES,
+    SUPPORTED_NETWORKS,
     AutoTradingConfig,
     TradingRequest,
 )
@@ -53,6 +63,33 @@ class AutoTradingAgent(BaseAgent):
 
     def __init__(self):
         super().__init__()
+
+        # Configuration
+        self.parser_model_id = os.getenv("TRADING_PARSER_MODEL_ID", DEFAULT_AGENT_MODEL)
+        self.default_exchange = self._sanitize_exchange(
+            os.getenv("AUTO_TRADING_EXCHANGE", ExchangeType.PAPER.value)
+        )
+        self.okx_api_key = os.getenv("OKX_API_KEY")
+        self.okx_api_secret = os.getenv("OKX_API_SECRET")
+        self.okx_api_passphrase = os.getenv("OKX_API_PASSPHRASE")
+        self.okx_network = self._sanitize_network(os.getenv("OKX_NETWORK", "paper"))
+        self.okx_allow_live_trading_flag = self._parse_bool(
+            os.getenv("OKX_ALLOW_LIVE_TRADING", "false")
+        )
+        self.okx_margin_mode = os.getenv("OKX_MARGIN_MODE", "cash")
+        self.okx_use_server_time = self._parse_bool(
+            os.getenv("OKX_USE_SERVER_TIME", "false")
+        )
+        self.default_exchange_network = self.okx_network
+
+        # Select price data provider based on default exchange configuration
+        try:
+            if self.default_exchange == ExchangeType.OKX.value:
+                TechnicalAnalyzer.set_provider(OkxMarketDataProvider())
+            else:
+                TechnicalAnalyzer.set_provider(MarketDataProvider())
+        except Exception:
+            pass
 
         # Multi-instance state management
         # Structure: {session_id: {instance_id: TradingInstanceData}}
@@ -83,6 +120,28 @@ class AutoTradingAgent(BaseAgent):
         except Exception as e:
             logger.error(f"Failed to initialize Auto Trading Agent: {e}")
             raise
+
+    @staticmethod
+    def _parse_bool(value: Optional[str], default: bool = False) -> bool:
+        if value is None:
+            return default
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+
+    @staticmethod
+    def _parse_float(value: Optional[str], fallback: float) -> float:
+        try:
+            parsed = float(value) if value is not None else fallback
+        except (TypeError, ValueError):
+            return fallback
+        return max(0.0, min(parsed, 0.5))
+
+    def _sanitize_exchange(self, value: Optional[str]) -> str:
+        lowered = (value or ExchangeType.PAPER.value).lower()
+        return lowered if lowered in SUPPORTED_EXCHANGES else ExchangeType.PAPER.value
+
+    def _sanitize_network(self, value: Optional[str]) -> str:
+        lowered = (value or "testnet").lower()
+        return lowered if lowered in SUPPORTED_NETWORKS else "testnet"
 
     async def _process_trading_instance(
         self,
@@ -254,7 +313,7 @@ class AutoTradingAgent(BaseAgent):
                             continue
 
                         # Execute trade
-                        trade_details = executor.execute_trade(
+                        trade_details = await executor.execute_trade(
                             symbol, action, trade_type, asset_analysis.indicators
                         )
 
@@ -311,14 +370,12 @@ class AutoTradingAgent(BaseAgent):
 
                 if executor.positions:
                     portfolio_msg += "\n**Open Positions:**\n"
+                    provider = TechnicalAnalyzer._market_data_provider
                     for symbol, pos in executor.positions.items():
                         try:
-                            import yfinance as yf
-
-                            ticker = yf.Ticker(symbol)
-                            current_price = ticker.history(period="1d", interval="1m")[
-                                "Close"
-                            ].iloc[-1]
+                            current_price = (
+                                provider.get_current_price(symbol) or pos.entry_price
+                            )
                             if pos.trade_type.value == "long":
                                 current_pnl = (current_price - pos.entry_price) * abs(
                                     pos.quantity
@@ -447,7 +504,10 @@ class AutoTradingAgent(BaseAgent):
             2. initial_capital: Initial trading capital in USD (default: 100000 if not specified)
             3. use_ai_signals: Whether to use AI-enhanced signals (default: true)
             4. agent_model: Model ID for trading decisions (default: DEFAULT_AGENT_MODEL)
-            
+            5. exchange (optional): Trading venue. Use "paper" (default) or "okx" if the user requests real execution.
+            6. exchange_network (optional): OKX network to use, default "paper". Accept "paper" or "testnet".
+            7. allow_live_trading (optional): Boolean that must be true to enable OKX live trading.
+
             Examples:
             - "Trade Bitcoin and Ethereum with $50000" -> {{"crypto_symbols": ["BTC-USD", "ETH-USD"], "initial_capital": 50000, "use_ai_signals": true}}
             - "Start auto trading BTC-USD" -> {{"crypto_symbols": ["BTC-USD"], "initial_capital": 100000, "use_ai_signals": true}}
@@ -516,6 +576,45 @@ class AutoTradingAgent(BaseAgent):
             )
             return None
 
+    async def _build_exchange(self, config: AutoTradingConfig) -> ExchangeBase:
+        exchange_name = (config.exchange or ExchangeType.PAPER.value).lower()
+
+        if exchange_name == ExchangeType.PAPER.value:
+            adapter = PaperTrading(initial_balance=config.initial_capital)
+            await adapter.connect()
+            return adapter
+
+        if exchange_name == ExchangeType.OKX.value:
+            api_key = config.okx_api_key or self.okx_api_key
+            api_secret = config.okx_api_secret or self.okx_api_secret
+            passphrase = config.okx_api_passphrase or self.okx_api_passphrase
+
+            if not api_key or not api_secret or not passphrase:
+                raise OKXExchangeError(
+                    "OKX credentials missing. Set OKX_API_KEY/OKX_API_SECRET/OKX_API_PASSPHRASE."
+                )
+
+            if (
+                config.exchange_network not in {"paper", "demo", "testnet"}
+                and not config.allow_live_trading
+            ):
+                raise OKXExchangeError(
+                    "Live OKX trading disabled. Set OKX_ALLOW_LIVE_TRADING=true or request allow_live_trading in the query."
+                )
+
+            adapter = OKXExchange(
+                api_key=api_key,
+                api_secret=api_secret,
+                passphrase=passphrase,
+                network=config.exchange_network,
+                margin_mode=config.okx_margin_mode,
+                use_server_time=config.okx_use_server_time,
+            )
+            await adapter.connect()
+            return adapter
+
+        raise ValueError(f"Unsupported exchange '{exchange_name}'")
+
     def _get_instance_status_component_data(
         self, session_id: str, instance_id: str
     ) -> Optional[FilteredCardPushNotificationComponentData]:
@@ -578,12 +677,10 @@ class AutoTradingAgent(BaseAgent):
 
             for symbol, pos in executor.positions.items():
                 try:
-                    import yfinance as yf
-
-                    ticker = yf.Ticker(symbol)
-                    current_price = ticker.history(period="1d", interval="1m")[
-                        "Close"
-                    ].iloc[-1]
+                    provider = TechnicalAnalyzer._market_data_provider
+                    current_price = (
+                        provider.get_current_price(symbol) or pos.entry_price
+                    )
 
                     # Calculate unrealized P&L
                     if pos.trade_type.value == "long":
@@ -807,6 +904,8 @@ class AutoTradingAgent(BaseAgent):
                 f"**Instance:** `{instance_id}`  {status}\n"
                 f"- Model: {config.agent_model}\n"
                 f"- Symbols: {', '.join(config.crypto_symbols)}\n"
+                f"- Exchange: {config.exchange} ({config.exchange_network})\n"
+                f"- Live Trading: {'✅' if config.allow_live_trading else '❌'}\n"
                 f"- Portfolio Value: ${portfolio_value:,.2f}\n"
                 f"- P&L: ${total_pnl:,.2f}\n"
                 f"- Open Positions: {len(executor.positions)}\n"
@@ -897,15 +996,78 @@ class AutoTradingAgent(BaseAgent):
                 instance_id = self._generate_instance_id(task_id, model_id)
 
                 # Create configuration for this specific model
+                exchange_choice = self._sanitize_exchange(
+                    trading_request.exchange or self.default_exchange
+                )
+                # If parser filled default 'paper' but environment prefers a real exchange,
+                # and the user did not explicitly mention paper/demo/testnet in the query,
+                # honor environment default to avoid surprising fallback to paper.
+                if (
+                    exchange_choice == ExchangeType.PAPER.value
+                    and self.default_exchange != ExchangeType.PAPER.value
+                ):
+                    hints = ["paper", "demo", "testnet", "模拟", "仿真", "纸面", "演示"]
+                    if not any(hint in query_lower for hint in hints):
+                        exchange_choice = self.default_exchange
+
+                exchange_network_input = trading_request.exchange_network
+                if not exchange_network_input:
+                    if exchange_choice == ExchangeType.OKX.value:
+                        exchange_network_input = self.okx_network
+                    else:
+                        exchange_network_input = self.default_exchange_network
+                exchange_network = self._sanitize_network(exchange_network_input)
+
+                if trading_request.allow_live_trading is not None:
+                    allow_live_trading = trading_request.allow_live_trading
+                elif exchange_choice == ExchangeType.OKX.value:
+                    allow_live_trading = self.okx_allow_live_trading_flag
+                else:
+                    allow_live_trading = False
+
                 config = AutoTradingConfig(
                     initial_capital=trading_request.initial_capital or 100000,
                     crypto_symbols=trading_request.crypto_symbols,
                     use_ai_signals=trading_request.use_ai_signals or False,
                     agent_model=model_id,
+                    exchange=exchange_choice,
+                    exchange_network=exchange_network,
+                    allow_live_trading=allow_live_trading,
+                    okx_api_key=self.okx_api_key
+                    if exchange_choice == ExchangeType.OKX.value
+                    else None,
+                    okx_api_secret=self.okx_api_secret
+                    if exchange_choice == ExchangeType.OKX.value
+                    else None,
+                    okx_api_passphrase=self.okx_api_passphrase
+                    if exchange_choice == ExchangeType.OKX.value
+                    else None,
+                    okx_margin_mode=self.okx_margin_mode,
+                    okx_use_server_time=self.okx_use_server_time,
                 )
 
-                # Initialize executor
-                executor = TradingExecutor(config)
+                # Initialize exchange adapter
+                try:
+                    exchange_adapter = await self._build_exchange(config)
+                except (OKXExchangeError,) as exc:
+                    logger.error("Failed to create exchange adapter: %s", exc)
+                    if exchange_choice == ExchangeType.OKX.value:
+                        remediation = "Please verify your OKX API credentials and live-trading flag."
+                    else:
+                        remediation = "Please verify exchange credentials."
+                    yield streaming.failed(
+                        f"❌ **Instance {instance_id}**: {str(exc)}\n" + remediation
+                    )
+                    continue
+                except Exception as exc:  # noqa: BLE001
+                    logger.error("Unexpected exchange initialization error: %s", exc)
+                    yield streaming.failed(
+                        f"❌ **Instance {instance_id}**: Unexpected exchange initialization failure."
+                    )
+                    continue
+
+                # Initialize executor with exchange adapter
+                executor = TradingExecutor(config, exchange=exchange_adapter)
 
                 # Initialize AI signal generator if enabled
                 ai_signal_generator = self._initialize_ai_signal_generator(config)
@@ -915,6 +1077,7 @@ class AutoTradingAgent(BaseAgent):
                     "instance_id": instance_id,
                     "config": config,
                     "executor": executor,
+                    "exchange": exchange_adapter,
                     "ai_signal_generator": ai_signal_generator,
                     "active": True,
                     "created_at": datetime.now(),
@@ -926,6 +1089,13 @@ class AutoTradingAgent(BaseAgent):
 
                 # Display configuration for this instance
                 ai_status = "✅ Enabled" if config.use_ai_signals else "❌ Disabled"
+                exchange_label = config.exchange.capitalize()
+                exchange_details = (
+                    f"{exchange_label} ({config.exchange_network})"
+                    if config.exchange in {ExchangeType.OKX.value}
+                    else exchange_label
+                )
+                live_flag = "✅ Enabled" if config.allow_live_trading else "❌ Disabled"
                 config_message = (
                     f"✅ **Trading Instance Created**\n\n"
                     f"**Instance ID:** `{instance_id}`\n"
@@ -936,6 +1106,8 @@ class AutoTradingAgent(BaseAgent):
                     f"- Check Interval: {config.check_interval}s (1 minute)\n"
                     f"- Risk Per Trade: {config.risk_per_trade * 100:.1f}%\n"
                     f"- Max Positions: {config.max_positions}\n"
+                    f"- Exchange: {exchange_details}\n"
+                    f"- Live Trading: {live_flag}\n"
                     f"- AI Signals: {ai_status}\n\n"
                 )
 
