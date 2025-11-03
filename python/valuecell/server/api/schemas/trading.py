@@ -34,5 +34,3 @@ class OpenPositionsResponse(SuccessResponse[OpenPositionsData]):
     """Success response wrapping open positions data."""
 
     pass
-
-

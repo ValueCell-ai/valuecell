@@ -33,18 +33,18 @@ from .exchanges import (
     PaperTrading,
 )
 from .formatters import MessageFormatter
+from .market_data import MarketDataProvider, OkxMarketDataProvider
 from .models import (
-    AutoTradingConfig,
-    TradingRequest,
     SUPPORTED_EXCHANGES,
     SUPPORTED_NETWORKS,
+    AutoTradingConfig,
+    TradingRequest,
 )
 from .portfolio_decision_manager import (
     AssetAnalysis,
     PortfolioDecisionManager,
 )
 from .technical_analysis import AISignalGenerator, TechnicalAnalyzer
-from .market_data import OkxMarketDataProvider, MarketDataProvider
 from .trading_executor import TradingExecutor
 
 # Configure logging

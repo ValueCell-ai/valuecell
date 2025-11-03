@@ -135,7 +135,10 @@ class TradingExecutor:
             trade_type=trade_type,
         )
 
-        if order is None or order.status in {OrderStatus.REJECTED, OrderStatus.CANCELLED}:
+        if order is None or order.status in {
+            OrderStatus.REJECTED,
+            OrderStatus.CANCELLED,
+        }:
             logger.warning("Exchange rejected open order for %s", symbol)
             return None
 

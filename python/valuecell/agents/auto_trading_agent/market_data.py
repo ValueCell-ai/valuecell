@@ -1,14 +1,14 @@
 """Market data and technical indicator retrieval - from a trader's perspective"""
 
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Dict, Optional
 
 import pandas as pd
 import yfinance as yf
-from .exchanges.okx_exchange import OKXExchange
-import os
 
+from .exchanges.okx_exchange import OKXExchange
 from .models import TechnicalIndicators
 
 logger = logging.getLogger(__name__)

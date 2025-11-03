@@ -10,12 +10,12 @@ from fastapi import APIRouter, HTTPException, Query
 from valuecell.agents.auto_trading_agent.exchanges.okx_exchange import (
     OKXExchange,
 )
+from valuecell.server.api.schemas.base import SuccessResponse
 from valuecell.server.api.schemas.trading import (
     OpenPositionsData,
     OpenPositionsResponse,
     PositionItem,
 )
-from valuecell.server.api.schemas.base import SuccessResponse
 
 
 def create_trading_router() -> APIRouter:
@@ -37,7 +37,9 @@ def create_trading_router() -> APIRouter:
     ) -> OpenPositionsResponse:
         try:
             # Resolve target exchange: query > env > default
-            resolved_exchange = (exchange or os.getenv("AUTO_TRADING_EXCHANGE", "paper")).lower()
+            resolved_exchange = (
+                exchange or os.getenv("AUTO_TRADING_EXCHANGE", "paper")
+            ).lower()
 
             items: List[PositionItem] = []
 
@@ -48,7 +50,9 @@ def create_trading_router() -> APIRouter:
                 allow_live = (
                     os.getenv("OKX_ALLOW_LIVE_TRADING", "false").lower() == "true"
                 )
-                resolved_network = (network or os.getenv("OKX_NETWORK", "paper")).lower()
+                resolved_network = (
+                    network or os.getenv("OKX_NETWORK", "paper")
+                ).lower()
 
                 okx = OKXExchange(
                     api_key=api_key,
@@ -58,7 +62,9 @@ def create_trading_router() -> APIRouter:
                     # default to contracts; margin_mode/inst_type internal defaults
                 )
                 await okx.connect()
-                raw_positions: Dict[str, Dict[str, float]] = await okx.get_open_positions()
+                raw_positions: Dict[
+                    str, Dict[str, float]
+                ] = await okx.get_open_positions()
 
                 for symbol, pos in raw_positions.items():
                     qty = float(pos.get("quantity", 0.0) or 0.0)
@@ -80,13 +86,19 @@ def create_trading_router() -> APIRouter:
                             pnl_percent=pnl_pct,
                         )
                     )
-                data = OpenPositionsData(exchange="okx", network=resolved_network, positions=items)
+                data = OpenPositionsData(
+                    exchange="okx", network=resolved_network, positions=items
+                )
                 return SuccessResponse.create(data=data, msg="Retrieved open positions")
 
             # Paper / unsupported exchange: return empty set gracefully
-            resolved_network = (network or os.getenv("OKX_NETWORK") or "paper")
-            data = OpenPositionsData(exchange=resolved_exchange, network=resolved_network, positions=[])
-            return SuccessResponse.create(data=data, msg="No positions for selected exchange")
+            resolved_network = network or os.getenv("OKX_NETWORK") or "paper"
+            data = OpenPositionsData(
+                exchange=resolved_exchange, network=resolved_network, positions=[]
+            )
+            return SuccessResponse.create(
+                data=data, msg="No positions for selected exchange"
+            )
 
         except HTTPException:
             raise
@@ -96,5 +108,3 @@ def create_trading_router() -> APIRouter:
             )
 
     return router
-
-
