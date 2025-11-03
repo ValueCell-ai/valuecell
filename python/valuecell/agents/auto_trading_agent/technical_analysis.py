@@ -6,7 +6,7 @@ from typing import Optional
 
 from agno.agent import Agent
 
-from .market_data import MarketDataProvider, OkxMarketDataProvider, SignalGenerator
+from .market_data import MarketDataProvider, SignalGenerator
 from .models import TechnicalIndicators, TradeAction, TradeType
 
 logger = logging.getLogger(__name__)

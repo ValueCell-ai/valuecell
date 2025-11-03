@@ -4,7 +4,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from .exchanges import ExchangeBase, ExchangeType, Order, OrderStatus, PaperTrading
+from .exchanges import ExchangeBase, Order, OrderStatus, PaperTrading
 from .models import (
     AutoTradingConfig,
     PortfolioValueSnapshot,
