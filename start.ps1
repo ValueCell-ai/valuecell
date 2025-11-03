@@ -181,10 +181,37 @@ function Start-Frontend {
     Write-Info "Starting frontend dev server (bun run dev)..."
     Push-Location $FRONTEND_DIR
     try {
-        $script:FRONTEND_PROCESS = Start-Process -FilePath "bun" -ArgumentList "run", "dev" -NoNewWindow -PassThru
+        # Try to find the actual bun.exe first
+        $bunExe = "$env:USERPROFILE\.bun\bin\bun.exe"
+        $bunPath = $null
+        
+        if (Test-Path $bunExe) {
+            $bunPath = $bunExe
+            Write-Info "Using bun at: $bunPath"
+            $script:FRONTEND_PROCESS = Start-Process -FilePath $bunPath -ArgumentList "run", "dev" -NoNewWindow -PassThru
+        } else {
+            # Fallback: get command and handle .ps1 scripts
+            $bunCmd = Get-Command "bun" -ErrorAction Stop
+            $resolvedPath = $bunCmd.Source
+            
+            if ([System.IO.Path]::GetExtension($resolvedPath) -eq ".ps1") {
+                # If it's a PowerShell script, use powershell.exe to execute it
+                Write-Info "Using bun script at: $resolvedPath"
+                $currentDir = Get-Location
+                $script:FRONTEND_PROCESS = Start-Process -FilePath "powershell.exe" `
+                    -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "& { Set-Location '$currentDir'; & '$resolvedPath' run dev }" `
+                    -NoNewWindow -PassThru
+            } else {
+                # Regular executable
+                Write-Info "Using bun at: $resolvedPath"
+                $script:FRONTEND_PROCESS = Start-Process -FilePath $resolvedPath -ArgumentList "run", "dev" -NoNewWindow -PassThru
+            }
+        }
+        
         Write-Info "Frontend PID: $($script:FRONTEND_PROCESS.Id)"
     } catch {
         Write-Err "Failed to start frontend: $_"
+        throw
     } finally {
         Pop-Location
     }
