@@ -93,8 +93,9 @@ Interfaces live in their respective modules as ABCs (not Pydantic models):
 - `features/interfaces.py`
   - `FeatureComputer.compute_features(candles?: List[Candle]) -> List[FeatureVector]`
 - `core.py`
-  - `PortfolioService.get_view() -> PortfolioView`
   - `DecisionCoordinator.run_once() -> None`
+- `portfolio/interfaces.py`
+  - `PortfolioService.get_view() -> PortfolioView`
   - `PortfolioSnapshotStore.load_latest() -> Optional[PortfolioView]`
   - `PortfolioSnapshotStore.save(view: PortfolioView) -> None`
 - `decision/interfaces.py`
