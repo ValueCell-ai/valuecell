@@ -416,9 +416,48 @@ impl BackendManager {
         
         let mut processes = self.processes.lock().unwrap();
         for mut process in processes.drain(..) {
-            if let Err(e) = process.kill() {
-                log::error!("Failed to stop process {}: {}", process.id(), e);
+            let pid = process.id();
+            log::info!("Terminating process {}", pid);
+            
+            // First try graceful termination with SIGTERM
+            #[cfg(unix)]
+            {
+                use std::process::Command as SysCommand;
+                let _ = SysCommand::new("kill")
+                    .arg("-TERM")
+                    .arg(pid.to_string())
+                    .output();
+                
+                // Wait a bit for graceful shutdown
+                std::thread::sleep(std::time::Duration::from_millis(500));
+                
+                // Check if process is still alive
+                match process.try_wait() {
+                    Ok(None) => {
+                        // Process still running, force kill
+                        log::warn!("Process {} did not terminate gracefully, forcing kill", pid);
+                        if let Err(e) = process.kill() {
+                            log::error!("Failed to force kill process {}: {}", pid, e);
+                        }
+                    }
+                    Ok(Some(status)) => {
+                        log::info!("Process {} terminated with status: {:?}", pid, status);
+                    }
+                    Err(e) => {
+                        log::error!("Error checking process {} status: {}", pid, e);
+                    }
+                }
             }
+            
+            #[cfg(not(unix))]
+            {
+                if let Err(e) = process.kill() {
+                    log::error!("Failed to stop process {}: {}", pid, e);
+                }
+            }
+            
+            // Wait for the process to fully exit
+            let _ = process.wait();
         }
         
         log::info!("✓ All backend processes stopped");

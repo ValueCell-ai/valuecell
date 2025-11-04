@@ -12,13 +12,16 @@ PYTHON_DIR="$PROJECT_ROOT/python"
 echo "Project root: $PROJECT_ROOT"
 echo "Python dir: $PYTHON_DIR"
 
-# Remove .venv from python directory to avoid packaging broken virtual environment
-if [ -d "$PYTHON_DIR/.venv" ]; then
-    echo "Removing $PYTHON_DIR/.venv..."
-    rm -rf "$PYTHON_DIR/.venv"
-    echo "✓ Removed .venv"
+# Remove ALL .venv directories recursively from python directory
+echo "Searching for .venv directories..."
+VENV_COUNT=$(find "$PYTHON_DIR" -type d -name ".venv" | wc -l)
+
+if [ "$VENV_COUNT" -gt 0 ]; then
+    echo "Found $VENV_COUNT .venv directories, removing..."
+    find "$PYTHON_DIR" -type d -name ".venv" -exec rm -rf {} + 2>/dev/null || true
+    echo "✓ Removed all .venv directories"
 else
-    echo "No .venv found (already clean)"
+    echo "No .venv directories found (already clean)"
 fi
 
 # Remove __pycache__ directories

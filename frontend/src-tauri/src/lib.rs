@@ -43,7 +43,25 @@ pub fn run() {
             
             Ok(())
         })
+        .on_window_event(|window, event| {
+            // Handle window close events to ensure proper cleanup
+            if let tauri::WindowEvent::Destroyed = event {
+                log::info!("Window destroyed, ensuring backend cleanup...");
+                if let Some(manager) = window.app_handle().try_state::<BackendManager>() {
+                    manager.stop_all();
+                }
+            }
+        })
         .invoke_handler(tauri::generate_handler![greet])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app_handle, event| {
+            // Handle app exit events (e.g., Cmd+Q on Mac)
+            if let tauri::RunEvent::Exit = event {
+                log::info!("Application exiting, cleaning up backend...");
+                if let Some(manager) = app_handle.try_state::<BackendManager>() {
+                    manager.stop_all();
+                }
+            }
+        });
 }
