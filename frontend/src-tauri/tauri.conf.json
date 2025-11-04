@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.valuecell.app",
   "build": {
-    "beforeDevCommand": "bun run dev",
+    "beforeDevCommand": "bun run dev:tauri",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "bun run build",
+    "beforeBuildCommand": "sh scripts/pre-build.sh && bun run build",
     "frontendDist": "../build/client"
   },
   "app": {
