@@ -67,12 +67,12 @@ Defined in `models.py`:
   - `Candle { ts, instrument, open, high, low, close, volume, interval }`
 
 - User request / configuration
-  - `UserRequest { symbols, max_positions?, max_leverage?, initial_capital?, decide_interval?, strategy_template?, user_prompt?, name?, model_provider?, model_id?, exchange_id? }`
+  - `UserRequest { symbols, max_positions?, max_leverage?, initial_capital?, decide_interval?, strategy_template?, user_prompt?, strategy_name?, model_provider?, model_id?, exchange_id?, trading_mode? }`
 
 - Features and portfolio
   - `FeatureVector { ts, instrument, values: Dict[str, float], meta? }`
   - `PositionSnapshot { instrument, quantity, avg_price?, mark_price?, unrealized_pnl?, notional?, leverage?, entry_ts?, pnl_pct?, trade_type? }`
-  - `PortfolioView { ts, cash, positions: Dict[symbol, PositionSnapshot], gross_exposure?, net_exposure?, constraints?, total_value?, total_unrealized_pnl?, available_cash? }`
+  - `PortfolioView { strategy_id?, ts, cash, positions: Dict[symbol, PositionSnapshot], gross_exposure?, net_exposure?, constraints?, total_value?, total_unrealized_pnl?, available_cash? }`
 
 - LLM decision and normalization
   - `LlmDecisionItem { instrument, action: (buy|sell|flat|noop), target_qty, confidence?, rationale? }`
@@ -89,6 +89,7 @@ Defined in `models.py`:
   - `TradingMode = (live|virtual)`
   - `StrategyStatus = (running|paused|stopped|error)`
   - `StrategySummary { strategy_id?, name?, model_provider?, model_id?, exchange_id?, mode?, status?, pnl_abs?, pnl_pct?, last_updated_ts? }`
+  - `StrategySummary { strategy_id?, name?, model_provider?, model_id?, exchange_id?, mode?, status?, realized_pnl?, unrealized_pnl?, pnl_pct?, last_updated_ts? }`
   - `MetricPoint { ts, value }`
   - `PortfolioValueSeries { strategy_id?, points: List[MetricPoint] }`
 

@@ -8,8 +8,29 @@ DEFAULT_AGENT_MODEL = "deepseek-ai/DeepSeek-V3.1-Terminus"
 DEFAULT_MODEL_PROVIDER = "siliconflow"
 DEFAULT_MAX_POSITIONS = 3
 DEFAULT_MAX_SYMBOLS = 5
-DEFAULT_MAX_LEVERAGE = 10
+DEFAULT_MAX_LEVERAGE = 10.0
 DEFAULT_RISK_PER_TRADE = 0.02
+
+
+class TradingMode(str, Enum):
+    """Trading mode for a strategy used by UI/leaderboard tags."""
+
+    LIVE = "live"
+    VIRTUAL = "virtual"
+
+
+class TradeType(str, Enum):
+    """Semantic trade type for positions."""
+
+    LONG = "long"
+    SHORT = "short"
+
+
+class TradeSide(str, Enum):
+    """Side for executable trade instruction."""
+
+    BUY = "buy"
+    SELL = "sell"
 
 
 class UserRequest(BaseModel):
@@ -28,7 +49,7 @@ class UserRequest(BaseModel):
         description="Maximum number of concurrent positions",
         gt=0,
     )
-    max_leverage: int = Field(
+    max_leverage: float = Field(
         default=DEFAULT_MAX_LEVERAGE,
         description="Maximum leverage",
         gt=0,
@@ -52,7 +73,7 @@ class UserRequest(BaseModel):
         description="Optional user prompt to customize strategy behavior",
     )
 
-    name: Optional[str] = Field(
+    strategy_name: Optional[str] = Field(
         default=None,
         description="Optional user-friendly name for this request/strategy",
     )
@@ -67,6 +88,10 @@ class UserRequest(BaseModel):
     exchange_id: Optional[str] = Field(
         None,
         description="Exchange id for this strategy",
+    )
+    trading_mode: Optional[TradingMode] = Field(
+        default=TradingMode.VIRTUAL,
+        description="Trading mode for this strategy",
     )
 
     @field_validator("symbols")
@@ -130,20 +155,6 @@ class FeatureVector(BaseModel):
     )
 
 
-class TradeType(str, Enum):
-    """Semantic trade type for positions."""
-
-    LONG = "long"
-    SHORT = "short"
-
-
-class TradingMode(str, Enum):
-    """Trading mode for a strategy used by UI/leaderboard tags."""
-
-    LIVE = "live"
-    VIRTUAL = "virtual"
-
-
 class StrategyStatus(str, Enum):
     """High-level runtime status for strategies (for UI health dot)."""
 
@@ -184,6 +195,9 @@ class PositionSnapshot(BaseModel):
 class PortfolioView(BaseModel):
     """Portfolio state used by the composer for decision making."""
 
+    strategy_id: Optional[str] = Field(
+        default=None, description="Owning strategy id for this portfolio snapshot"
+    )
     ts: int
     cash: float
     positions: Dict[str, PositionSnapshot] = Field(
@@ -254,13 +268,6 @@ class LlmPlanProposal(BaseModel):
     model_meta: Optional[Dict[str, str]] = Field(
         default=None, description="Optional model metadata (e.g., model_name)"
     )
-
-
-class TradeSide(str, Enum):
-    """Side for executable trade instruction."""
-
-    BUY = "buy"
-    SELL = "sell"
 
 
 class TradeInstruction(BaseModel):
@@ -403,7 +410,12 @@ class StrategySummary(BaseModel):
     exchange_id: Optional[str] = Field(default=None)
     mode: Optional[TradingMode] = Field(default=None)
     status: Optional[StrategyStatus] = Field(default=None)
-    pnl_abs: Optional[float] = Field(default=None, description="P&L in quote CCY")
+    realized_pnl: Optional[float] = Field(
+        default=None, description="Realized P&L in quote CCY"
+    )
+    unrealized_pnl: Optional[float] = Field(
+        default=None, description="Unrealized P&L in quote CCY"
+    )
     pnl_pct: Optional[float] = Field(
         default=None, description="P&L as percent of equity or initial capital"
     )
