@@ -244,10 +244,12 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
     ) -> None:
         if not trades:
             return
-
-        apply_method = getattr(self._portfolio_service, "apply_trades", None)
-        if callable(apply_method):
-            apply_method(trades, market_snapshot)
+        # PortfolioService now exposes apply_trades; call directly to update state
+        try:
+            self._portfolio_service.apply_trades(trades, market_snapshot)
+        except NotImplementedError:
+            # service may be read-only; ignore
+            return
 
     def _build_summary(
         self,
