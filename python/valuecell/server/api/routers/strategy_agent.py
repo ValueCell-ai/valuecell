@@ -3,12 +3,10 @@ StrategyAgent router for handling strategy creation via streaming responses.
 """
 
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import JSONResponse
 
-from valuecell.server.api.schemas.strategy_agent import StrategyAgentCreateRequest
+from valuecell.agents.strategy_agent.models import StrategyStatusContent, UserRequest
 from valuecell.core.coordinate.orchestrator import AgentOrchestrator
 from valuecell.core.types import UserInput, UserInputMetadata
-from valuecell.agents.strategy_agent.models import UserRequest
 
 
 def create_strategy_agent_router() -> APIRouter:
@@ -18,7 +16,7 @@ def create_strategy_agent_router() -> APIRouter:
     orchestrator = AgentOrchestrator()
 
     @router.post("/create_strategy_agent")
-    async def create_strategy_agent(request: StrategyAgentCreateRequest):
+    async def create_strategy_agent(request: UserRequest):
         """
         Create a strategy through StrategyAgent and return final JSON result.
 
@@ -34,16 +32,10 @@ def create_strategy_agent_router() -> APIRouter:
             )
             query = user_request.model_dump_json()
 
-            # Aggregate streaming events into a final JSON result
-            messages = []
-            components = []
-
             agent_name = "StrategyAgent"
 
             # Build UserInput for orchestrator
-            user_input_meta = UserInputMetadata(
-                user_id="default_user"
-            )
+            user_input_meta = UserInputMetadata(user_id="default_user")
             user_input = UserInput(
                 query=query,
                 target_agent_name=agent_name,
@@ -57,17 +49,13 @@ def create_strategy_agent_router() -> APIRouter:
 
                 if event == "component_generator":
                     content = data.payload.content
+                    return StrategyStatusContent.model_validate_json(content)
 
-
-            result = {
-                "agent_name": agent_name,
-                "messages": messages,
-                "components": components,
-                "status": "completed",
-            }
-            return JSONResponse(content=result)
+            return StrategyStatusContent(status="error")
 
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"StrategyAgent create failed: {str(e)}")
+            raise HTTPException(
+                status_code=500, detail=f"StrategyAgent create failed: {str(e)}"
+            )
 
     return router

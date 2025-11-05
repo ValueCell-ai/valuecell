@@ -31,6 +31,8 @@ class AgentContext:
     listener_task: Optional[asyncio.Task] = None
     listener_url: Optional[str] = None
     client: Optional[AgentClient] = None
+    # Planner passthrough flag derived from raw agent card JSON
+    planner_passthrough: bool = False
     # Listener preferences
     desired_listener_host: Optional[str] = None
     desired_listener_port: Optional[int] = None
@@ -91,13 +93,20 @@ class RemoteConnections:
                     continue
                 if not agent_card_dict.get("enabled", True):
                     continue
+                # Detect planner passthrough from raw JSON (top-level or metadata)
+                passthrough = bool(agent_card_dict.get("planner_passthrough"))
+                if not passthrough:
+                    meta = agent_card_dict.get("metadata") or {}
+                    if isinstance(meta, dict):
+                        passthrough = bool(meta.get("planner_passthrough"))
                 local_agent_card = parse_local_agent_card_dict(agent_card_dict)
-                if not local_agent_card or not local_agent_card.url:
+                if not local_agent_card:
                     continue
                 self._contexts[agent_name] = AgentContext(
                     name=agent_name,
                     url=local_agent_card.url,
                     local_agent_card=local_agent_card,
+                    planner_passthrough=passthrough,
                 )
             except (json.JSONDecodeError, FileNotFoundError, KeyError) as e:
                 logger.warning(
@@ -330,3 +339,12 @@ class RemoteConnections:
                 agent_cards[name] = card
 
         return agent_cards
+
+    def is_planner_passthrough(self, agent_name: str) -> bool:
+        """Return True if the named agent is marked as planner passthrough.
+
+        The flag is read once from raw JSON on load and cached in AgentContext.
+        """
+        self._ensure_remote_contexts_loaded()
+        ctx = self._contexts.get(agent_name)
+        return bool(getattr(ctx, "planner_passthrough", False)) if ctx else False
