@@ -39,36 +39,29 @@ class ModelConfig(BaseModel):
 
     provider: str = Field(
         default=DEFAULT_MODEL_PROVIDER,
-        description="Model provider (e.g., 'openrouter', 'google', 'openai')"
+        description="Model provider (e.g., 'openrouter', 'google', 'openai')",
     )
     model_id: str = Field(
         default=DEFAULT_AGENT_MODEL,
-        description="Model identifier (e.g., 'deepseek-ai/deepseek-v3.1', 'gpt-4o')"
+        description="Model identifier (e.g., 'deepseek-ai/deepseek-v3.1', 'gpt-4o')",
     )
-    api_key: str = Field(
-        ...,
-        description="API key for the model provider"
-    )
+    api_key: str = Field(..., description="API key for the model provider")
 
 
 class ExchangeConfig(BaseModel):
     """Exchange configuration for trading."""
 
     exchange_id: Optional[str] = Field(
-        default=None,
-        description="Exchange identifier (e.g., 'okx', 'binance')"
+        default=None, description="Exchange identifier (e.g., 'okx', 'binance')"
     )
     trading_mode: TradingMode = Field(
-        default=TradingMode.VIRTUAL,
-        description="Trading mode for this strategy"
+        default=TradingMode.VIRTUAL, description="Trading mode for this strategy"
     )
     api_key: Optional[str] = Field(
-        default=None,
-        description="Exchange API key (required for live trading)"
+        default=None, description="Exchange API key (required for live trading)"
     )
     secret_key: Optional[str] = Field(
-        default=None,
-        description="Exchange secret key (required for live trading)"
+        default=None, description="Exchange secret key (required for live trading)"
     )
 
 
@@ -76,8 +69,7 @@ class TradingConfig(BaseModel):
     """Trading strategy configuration."""
 
     strategy_name: Optional[str] = Field(
-        default=None,
-        description="User-friendly name for this strategy"
+        default=None, description="User-friendly name for this strategy"
     )
     initial_capital: Optional[float] = Field(
         default=DEFAULT_INITIAL_CAPITAL,
@@ -104,12 +96,11 @@ class TradingConfig(BaseModel):
         gt=0,
     )
     template_id: Optional[str] = Field(
-        default=None,
-        description="Strategy template identifier to guide the agent"
+        default=None, description="Strategy template identifier to guide the agent"
     )
     custom_prompt: Optional[str] = Field(
         default=None,
-        description="Optional custom prompt to customize strategy behavior"
+        description="Optional custom prompt to customize strategy behavior",
     )
 
     @field_validator("symbols")
@@ -131,16 +122,13 @@ class UserRequest(BaseModel):
     """
 
     model_config: ModelConfig = Field(
-        default_factory=ModelConfig,
-        description="AI model configuration"
+        default_factory=ModelConfig, description="AI model configuration"
     )
     exchange_config: ExchangeConfig = Field(
-        default_factory=ExchangeConfig,
-        description="Exchange configuration for trading"
+        default_factory=ExchangeConfig, description="Exchange configuration for trading"
     )
     trading_config: TradingConfig = Field(
-        ...,
-        description="Trading strategy configuration"
+        ..., description="Trading strategy configuration"
     )
 
 
