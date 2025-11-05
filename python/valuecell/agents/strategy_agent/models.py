@@ -387,7 +387,9 @@ class TradeHistoryEntry(BaseModel):
     realized_pnl: Optional[float] = Field(default=None)
     realized_pnl_pct: Optional[float] = Field(default=None)
     leverage: Optional[float] = Field(default=None)
-    note: Optional[str] = Field(default=None, description="Optional free-form note or comment about the trade")
+    note: Optional[str] = Field(
+        default=None, description="Optional free-form note or comment about the trade"
+    )
 
 
 class TradeDigest(BaseModel):
