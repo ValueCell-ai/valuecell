@@ -93,6 +93,8 @@ Defined in `models.py`:
   - `MetricPoint { ts, value }`
   - `PortfolioValueSeries { strategy_id?, points: List[MetricPoint] }`
 
+`TradeHistoryEntry { trade_id?, compose_id?, instruction_id?, strategy_id?, trade_ts?, entry_ts?, exit_ts?, instrument, side, type, quantity, entry_price?, exit_price?, realized_pnl?, realized_pnl_pct?, holding_ms?, leverage?, note? }`
+
 Notes:
 
 - Only `target_qty` is used (no `delta_qty`). Composer computes `order_qty = target_qty − current_qty` and turns it into a `TradeInstruction` (side + quantity).

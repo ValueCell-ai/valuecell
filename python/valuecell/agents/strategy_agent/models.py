@@ -382,11 +382,12 @@ class TradeHistoryEntry(BaseModel):
     notional_exit: Optional[float] = Field(default=None)
     entry_ts: Optional[int] = Field(default=None, description="Entry timestamp ms")
     exit_ts: Optional[int] = Field(default=None, description="Exit timestamp ms")
+    trade_ts: Optional[int] = Field(default=None, description="Trade timestamp in ms")
     holding_ms: Optional[int] = Field(default=None, description="Holding time in ms")
     realized_pnl: Optional[float] = Field(default=None)
     realized_pnl_pct: Optional[float] = Field(default=None)
     leverage: Optional[float] = Field(default=None)
-    notes: Optional[str] = Field(default=None)
+    note: Optional[str] = Field(default=None, description="Optional free-form note or comment about the trade")
 
 
 class TradeDigest(BaseModel):
