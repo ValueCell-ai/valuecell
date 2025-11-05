@@ -38,7 +38,9 @@ class ComponentType(str, Enum):
     """Component types for StrategyAgent streaming responses."""
 
     STATUS = "strategy_agent_status"
-    UPDATE = "strategy_agent_update"
+    UPDATE_TRADE = "strategy_agent_update_trade"
+    UPDATE_PORTFOLIO = "strategy_agent_update_portfolio"
+    UPDATE_STRATEGY_SUMMARY = "strategy_agent_update_strategy_summary"
 
 
 class LLMModelConfig(BaseModel):

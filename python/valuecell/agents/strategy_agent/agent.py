@@ -52,8 +52,16 @@ class StrategyAgent(BaseAgent):
                 for trade in result.trades:
                     yield streaming.component_generator(
                         content=trade.model_dump_json(),
-                        component_type=ComponentType.UPDATE.value,
+                        component_type=ComponentType.UPDATE_TRADE.value,
                     )
+                yield streaming.component_generator(
+                    content=result.strategy_summary.model_dump_json(),
+                    component_type=ComponentType.UPDATE_STRATEGY_SUMMARY.value,
+                )
+                yield streaming.component_generator(
+                    content=result.portfolio_view.model_dump_json(),
+                    component_type=ComponentType.UPDATE_PORTFOLIO.value,
+                )
                 await asyncio.sleep(request.trading_config.decide_interval)
 
         except asyncio.CancelledError:

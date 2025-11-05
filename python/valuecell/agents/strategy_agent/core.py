@@ -15,6 +15,7 @@ from .models import (
     ComposeContext,
     FeatureVector,
     HistoryRecord,
+    PortfolioView,
     StrategyStatus,
     StrategySummary,
     TradeDigest,
@@ -34,11 +35,12 @@ class DecisionCycleResult:
 
     compose_id: str
     timestamp_ms: int
-    summary: StrategySummary
+    strategy_summary: StrategySummary
     instructions: List[TradeInstruction]
     trades: List[TradeHistoryEntry]
     history_records: List[HistoryRecord]
     digest: TradeDigest
+    portfolio_view: PortfolioView
 
 
 # Core interfaces for orchestration and portfolio service.
@@ -172,14 +174,16 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         digest = self._digest_builder.build(list(self._history_records))
         self._cycle_index += 1
 
+        portfolio = self._portfolio_service.get_view()
         return DecisionCycleResult(
             compose_id=compose_id,
             timestamp_ms=timestamp_ms,
-            summary=summary,
+            strategy_summary=summary,
             instructions=instructions,
             trades=trades,
             history_records=history_records,
             digest=digest,
+            portfolio_view=portfolio,
         )
 
     def _default_prompt(self, request: UserRequest) -> str:
