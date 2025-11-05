@@ -10,8 +10,6 @@ from ..models import Candle
 # synchronous or asynchronous without runtime overhead.
 
 
-
-
 class MarketDataSource(ABC):
     """Abstract market data access used by feature computation.
 

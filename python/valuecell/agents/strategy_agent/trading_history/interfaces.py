@@ -8,8 +8,6 @@ from ..models import HistoryRecord, TradeDigest
 # Contracts for history recording and digest building (module-local abstract interfaces).
 
 
-
-
 class HistoryRecorder(ABC):
     """Persists important checkpoints for later analysis and digest building."""
 

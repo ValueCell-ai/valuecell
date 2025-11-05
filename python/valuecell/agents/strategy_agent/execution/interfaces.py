@@ -9,8 +9,6 @@ from ..models import TradeInstruction
 # An implementation may route to a real exchange or a paper broker.
 
 
-
-
 class ExecutionGateway(ABC):
     """Executes normalized trade instructions against an exchange/broker."""
 

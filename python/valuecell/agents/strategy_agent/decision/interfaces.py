@@ -9,8 +9,6 @@ from ..models import ComposeContext, TradeInstruction
 # Composer hosts the LLM call and guardrails, producing executable instructions.
 
 
-
-
 class Composer(ABC):
     """LLM-driven decision composer with guardrails.
 

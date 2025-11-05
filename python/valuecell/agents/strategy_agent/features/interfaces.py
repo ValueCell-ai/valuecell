@@ -9,8 +9,6 @@ from ..models import Candle, FeatureVector
 # Plain ABCs (not Pydantic) to keep implementations lightweight.
 
 
-
-
 class FeatureComputer(ABC):
     """Computes feature vectors from raw market data (ticks/candles).
 

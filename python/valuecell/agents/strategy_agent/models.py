@@ -381,5 +381,7 @@ class StrategySummary(BaseModel):
     mode: Optional[TradingMode] = Field(default=None)
     status: Optional[StrategyStatus] = Field(default=None)
     pnl_abs: Optional[float] = Field(default=None, description="P&L in quote CCY")
-    pnl_pct: Optional[float] = Field(default=None, description="P&L as percent of equity or initial capital")
+    pnl_pct: Optional[float] = Field(
+        default=None, description="P&L as percent of equity or initial capital"
+    )
     last_updated_ts: Optional[int] = Field(default=None)

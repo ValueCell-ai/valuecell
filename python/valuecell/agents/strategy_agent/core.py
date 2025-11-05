@@ -7,7 +7,6 @@ from abc import ABC, abstractmethod
 # wire the pipeline: data -> features -> composer -> execution -> history/digest.
 
 
-
 class DecisionCoordinator(ABC):
     """Coordinates a single decision cycle end-to-end.
 
