@@ -34,7 +34,14 @@ class TradeSide(str, Enum):
     SELL = "SELL"
 
 
-class ModelConfig(BaseModel):
+class ComponentType(str, Enum):
+    """Component types for StrategyAgent streaming responses."""
+
+    STATUS = "strategy_agent_status"
+    UPDATE = "strategy_agent_update"
+
+
+class LLMModelConfig(BaseModel):
     """AI model configuration for strategy."""
 
     provider: str = Field(
@@ -121,8 +128,8 @@ class UserRequest(BaseModel):
     update a strategy instance. It was previously named `Strategy`.
     """
 
-    model_config: ModelConfig = Field(
-        default_factory=ModelConfig, description="AI model configuration"
+    llm_model_config: LLMModelConfig = Field(
+        default_factory=LLMModelConfig, description="AI model configuration"
     )
     exchange_config: ExchangeConfig = Field(
         default_factory=ExchangeConfig, description="Exchange configuration for trading"
@@ -450,3 +457,10 @@ class StrategySummary(BaseModel):
         default=None, description="P&L as percent of equity or initial capital"
     )
     last_updated_ts: Optional[int] = Field(default=None)
+
+
+class StrategyStatusContent(BaseModel):
+    """Content for strategy agent status component."""
+
+    strategy_id: str
+    status: StrategyStatus
