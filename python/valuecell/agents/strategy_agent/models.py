@@ -3,13 +3,14 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-DEFAULT_INITIAL_CAPITAL = 100000.0
-DEFAULT_AGENT_MODEL = "deepseek-ai/DeepSeek-V3.1-Terminus"
-DEFAULT_MODEL_PROVIDER = "siliconflow"
-DEFAULT_MAX_POSITIONS = 3
-DEFAULT_MAX_SYMBOLS = 5
-DEFAULT_MAX_LEVERAGE = 10.0
-DEFAULT_RISK_PER_TRADE = 0.02
+from .constants import (
+    DEFAULT_INITIAL_CAPITAL,
+    DEFAULT_AGENT_MODEL,
+    DEFAULT_MODEL_PROVIDER,
+    DEFAULT_MAX_POSITIONS,
+    DEFAULT_MAX_SYMBOLS,
+    DEFAULT_MAX_LEVERAGE,
+)
 
 
 class TradingMode(str, Enum):
