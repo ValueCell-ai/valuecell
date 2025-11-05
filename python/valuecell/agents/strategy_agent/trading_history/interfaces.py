@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-# Contracts for history recording and digest building (module-local abstract interfaces).
-
 from abc import ABC, abstractmethod
 from typing import List
 
 from ..models import HistoryRecord, TradeDigest
+
+# Contracts for history recording and digest building (module-local abstract interfaces).
+
+
 
 
 class HistoryRecorder(ABC):

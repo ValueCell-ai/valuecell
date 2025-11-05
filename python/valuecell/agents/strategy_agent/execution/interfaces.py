@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-# Contracts for execution gateways (module-local abstract interfaces).
-# An implementation may route to a real exchange or a paper broker.
-
 from abc import ABC, abstractmethod
 from typing import List
 
 from ..models import TradeInstruction
+
+# Contracts for execution gateways (module-local abstract interfaces).
+# An implementation may route to a real exchange or a paper broker.
+
+
 
 
 class ExecutionGateway(ABC):

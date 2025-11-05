@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-# Contracts for decision making (module-local abstract interfaces).
-# Composer hosts the LLM call and guardrails, producing executable instructions.
-
 from abc import ABC, abstractmethod
 from typing import List
 
 from ..models import ComposeContext, TradeInstruction
+
+# Contracts for decision making (module-local abstract interfaces).
+# Composer hosts the LLM call and guardrails, producing executable instructions.
+
+
 
 
 class Composer(ABC):

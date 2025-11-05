@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-# Contracts for market data sources (module-local abstract interfaces).
-# These are plain ABCs (not Pydantic models) so implementations can be
-# synchronous or asynchronous without runtime overhead.
-
 from abc import ABC, abstractmethod
 from typing import List
 
 from ..models import Candle
+
+# Contracts for market data sources (module-local abstract interfaces).
+# These are plain ABCs (not Pydantic models) so implementations can be
+# synchronous or asynchronous without runtime overhead.
+
+
 
 
 class MarketDataSource(ABC):
@@ -25,7 +27,7 @@ class MarketDataSource(ABC):
         """Return recent candles (OHLCV) for the given symbols/interval.
 
         Args:
-            symbols: list of symbols (e.g., ["BTCUSDT", "ETHUSDT"]) 
+            symbols: list of symbols (e.g., ["BTCUSDT", "ETHUSDT"])
             interval: candle interval string (e.g., "1m", "5m")
             lookback: number of bars to retrieve
         """

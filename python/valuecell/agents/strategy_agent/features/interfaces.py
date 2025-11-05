@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-# Contracts for feature computation (module-local abstract interfaces).
-# Plain ABCs (not Pydantic) to keep implementations lightweight.
-
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
 from ..models import Candle, FeatureVector
+
+# Contracts for feature computation (module-local abstract interfaces).
+# Plain ABCs (not Pydantic) to keep implementations lightweight.
+
+
 
 
 class FeatureComputer(ABC):

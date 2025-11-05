@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
+
 # Core interfaces for orchestration and portfolio service.
 # Plain ABCs to avoid runtime dependencies on pydantic. Concrete implementations
 # wire the pipeline: data -> features -> composer -> execution -> history/digest.
 
-from abc import ABC, abstractmethod
 
 
 class DecisionCoordinator(ABC):
