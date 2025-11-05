@@ -23,15 +23,15 @@ class TradingMode(str, Enum):
 class TradeType(str, Enum):
     """Semantic trade type for positions."""
 
-    LONG = "long"
-    SHORT = "short"
+    LONG = "LONG"
+    SHORT = "SHORT"
 
 
 class TradeSide(str, Enum):
     """Side for executable trade instruction."""
 
-    BUY = "buy"
-    SELL = "sell"
+    BUY = "BUY"
+    SELL = "SELL"
 
 
 class UserRequest(BaseModel):
