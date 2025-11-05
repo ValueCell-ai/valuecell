@@ -3,8 +3,6 @@ import { useLocation } from "react-router";
 import { useGetStockPrice, useGetWatchlist } from "@/api/stock";
 import {
   StockMenu,
-  StockMenuGroup,
-  StockMenuGroupHeader,
   StockMenuHeader,
   StockMenuListItem,
 } from "@/components/valuecell/menus/stock-menus";

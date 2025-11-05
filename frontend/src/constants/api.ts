@@ -30,11 +30,16 @@ export const SETTING_QUERY_KEYS = {
   memoryList: ["memory"],
 } as const;
 
+const STRATEGY_QUERY_KEYS = {
+  strategyList: ["strategy", "list"],
+} as const;
+
 export const API_QUERY_KEYS = {
   STOCK: STOCK_QUERY_KEYS,
   AGENT: AGENT_QUERY_KEYS,
   CONVERSATION: CONVERSATION_QUERY_KEYS,
   SETTING: SETTING_QUERY_KEYS,
+  STRATEGY: STRATEGY_QUERY_KEYS,
 } as const;
 
 /**

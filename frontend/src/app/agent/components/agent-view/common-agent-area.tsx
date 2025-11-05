@@ -23,6 +23,7 @@ import {
 } from "@/store/agent-store";
 import type {
   AgentStreamRequest,
+  AgentViewProps,
   MultiSectionComponentType,
   SectionComponentType,
   SSEData,
@@ -273,7 +274,7 @@ const CommonAgentAreaContent: FC<CommonAgentAreaProps> = ({ agentName }) => {
   );
 };
 
-const CommonAgentArea: FC<CommonAgentAreaProps> = (props) => {
+const CommonAgentArea: FC<AgentViewProps> = (props) => {
   return (
     <MultiSectionProvider>
       <CommonAgentAreaContent {...props} />
