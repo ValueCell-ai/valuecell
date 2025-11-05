@@ -67,10 +67,10 @@ Defined in `models.py`:
   - `Candle { ts, instrument, open, high, low, close, volume, interval }`
 - Features and portfolio
   - `FeatureVector { ts, instrument, values: Dict[str, float], meta? }`
-  - `PositionSnapshot { instrument, quantity, avg_price?, unrealized_pnl? }`
-  - `PortfolioView { ts, cash, positions: Dict[symbol, PositionSnapshot], gross_exposure?, net_exposure?, constraints? }`
+  - `PositionSnapshot { instrument, quantity, avg_price?, mark_price?, unrealized_pnl?, notional?, leverage?, entry_ts?, pnl_pct?, trade_type? }`
+  - `PortfolioView { ts, cash, positions: Dict[symbol, PositionSnapshot], gross_exposure?, net_exposure?, constraints?, total_value?, total_unrealized_pnl?, available_cash? }`
 - LLM decision and normalization
-  - `LlmDecisionItem { instrument, action: (buy|sell|flat), target_qty, confidence?, rationale? }`
+  - `LlmDecisionItem { instrument, action: (buy|sell|flat|noop), target_qty, confidence?, rationale? }`
   - `LlmPlanProposal { ts, items: List[LlmDecisionItem], notes?, model_meta? }`
   - `TradeInstruction { instruction_id, instrument, side: (buy|sell), quantity, price_mode, limit_price?, max_slippage_bps?, meta? }`
   - `ComposeContext { ts, features, portfolio, digest, prompt_text, market_snapshot?, constraints? }`
@@ -78,11 +78,26 @@ Defined in `models.py`:
   - `HistoryRecord { ts, kind, reference_id, payload }`
   - `TradeDigestEntry { instrument, trade_count, realized_pnl, win_rate?, avg_holding_ms?, last_trade_ts?, avg_entry_price?, max_drawdown?, recent_performance_score? }`
   - `TradeDigest { ts, by_instrument: Dict[symbol, TradeDigestEntry] }`
+- UI/summary and series (optional; for leaderboard and charts)
+  - `TradingMode = (live|paper)`
+  - `StrategyStatus = (running|paused|stopped|error)`
+  - `StrategySummary { strategy_id?, name?, model_provider?, model_id?, exchange_id?, mode?, status?, pnl_abs?, pnl_pct?, last_updated_ts? }`
+  - `MetricPoint { ts, value }`
+  - `PortfolioValueSeries { strategy_id?, points: List[MetricPoint] }`
 
 Notes:
 
 - Only `target_qty` is used (no `delta_qty`). Composer computes `order_qty = target_qty − current_qty` and turns it into a `TradeInstruction` (side + quantity).
 - Initial versions can set `price_mode = "market"` for simplicity.
+Action semantics:
+
+- `flat`: target position is zero (may emit close-out instructions)
+- `noop`: target equals current (delta == 0), emit no instruction
+
+Additional notes:
+
+- `mark_price` in `PositionSnapshot` allows consistent P&L visualization without coupling to feed-specific last trade logic.
+- The UI-oriented DTOs (`StrategySummary`, `PortfolioValueSeries`, etc.) are additive and do not affect the core compose/execute pipeline.
 
 ## Abstract Interfaces (contracts)
 

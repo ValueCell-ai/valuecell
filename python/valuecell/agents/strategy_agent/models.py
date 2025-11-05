@@ -37,7 +37,19 @@ class Strategy(BaseModel):
         description="Check interval in seconds",
         gt=0,
     )
+    strategy_template: Optional[str] = Field(
+        default=None,
+        description="Optional strategy template text to guide the agent",
+    )
+    user_prompt: Optional[str] = Field(
+        default=None,
+        description="Optional user prompt to customize strategy behavior",
+    )
 
+    name: Optional[str] = Field(
+        default=None,
+        description="Optional strategy name for identification",
+    )
     model_provider: Optional[str] = Field(
         default=DEFAULT_MODEL_PROVIDER,
         description="Provider for model",
@@ -112,13 +124,55 @@ class FeatureVector(BaseModel):
     )
 
 
+class TradeType(str, Enum):
+    """Semantic trade type for positions."""
+
+    LONG = "long"
+    SHORT = "short"
+
+
+class TradingMode(str, Enum):
+    """Trading mode for a strategy used by UI/leaderboard tags."""
+
+    LIVE = "live"
+    PAPER = "paper"
+
+
+class StrategyStatus(str, Enum):
+    """High-level runtime status for strategies (for UI health dot)."""
+
+    RUNNING = "running"
+    PAUSED = "paused"
+    STOPPED = "stopped"
+    ERROR = "error"
+
+
 class PositionSnapshot(BaseModel):
     """Current position snapshot for one instrument."""
 
     instrument: InstrumentRef
     quantity: float = Field(..., description="Position quantity (+long, -short)")
     avg_price: Optional[float] = Field(default=None, description="Average entry price")
+    mark_price: Optional[float] = Field(
+        default=None, description="Current mark/reference price for P&L calc"
+    )
     unrealized_pnl: Optional[float] = Field(default=None, description="Unrealized PnL")
+    # Optional fields useful for UI and reporting
+    notional: Optional[float] = Field(
+        default=None, description="Position notional in quote currency"
+    )
+    leverage: Optional[float] = Field(
+        default=None, description="Leverage applied to the position (if any)"
+    )
+    entry_ts: Optional[int] = Field(
+        default=None, description="Entry timestamp (ms) for the current position"
+    )
+    pnl_pct: Optional[float] = Field(
+        default=None, description="Unrealized P&L as a percent of position value"
+    )
+    trade_type: Optional[TradeType] = Field(
+        default=None, description="Semantic trade type, e.g., 'long' or 'short'"
+    )
 
 
 class PortfolioView(BaseModel):
@@ -139,14 +193,31 @@ class PortfolioView(BaseModel):
         default=None,
         description="Optional risk/limits snapshot (e.g., max position, step size)",
     )
+    # Optional aggregated fields convenient for UI
+    total_value: Optional[float] = Field(
+        default=None, description="Total portfolio value (cash + positions)"
+    )
+    total_unrealized_pnl: Optional[float] = Field(
+        default=None, description="Sum of unrealized PnL across positions"
+    )
+    available_cash: Optional[float] = Field(
+        default=None, description="Cash available for new positions"
+    )
 
 
 class LlmDecisionAction(str, Enum):
-    """Normalized high-level action from LLM plan item."""
+    """Normalized high-level action from LLM plan item.
+
+    Semantics:
+    - BUY/SELL: directional intent; final TradeSide is decided by delta (target - current)
+    - FLAT: target position is zero (may produce close-out instructions)
+    - NOOP: target equals current (delta == 0), no instruction should be emitted
+    """
 
     BUY = "buy"
     SELL = "sell"
     FLAT = "flat"
+    NOOP = "noop"
 
 
 class LlmDecisionItem(BaseModel):
@@ -205,6 +276,20 @@ class TradeInstruction(BaseModel):
     )
 
 
+class MetricPoint(BaseModel):
+    """Generic time-value point, used for value history charts."""
+
+    ts: int
+    value: float
+
+
+class PortfolioValueSeries(BaseModel):
+    """Series for portfolio total value over time (for performance charts)."""
+
+    strategy_id: Optional[str] = Field(default=None)
+    points: List[MetricPoint] = Field(default_factory=list)
+
+
 class ComposeContext(BaseModel):
     """Context assembled for the LLM-driven composer."""
 
@@ -248,8 +333,53 @@ class TradeDigestEntry(BaseModel):
     recent_performance_score: Optional[float] = Field(default=None)
 
 
+class TradeHistoryEntry(BaseModel):
+    """Executed trade record for UI history and auditing.
+
+    This model is intended to be a compact, display-friendly representation
+    of a completed trade (entry + exit). Fields are optional to allow
+    use for partially filled / in-progress records.
+    """
+
+    trade_id: Optional[str] = Field(default=None, description="Unique trade id")
+    instrument: InstrumentRef
+    side: TradeSide
+    quantity: float
+    entry_price: Optional[float] = Field(default=None)
+    exit_price: Optional[float] = Field(default=None)
+    notional_entry: Optional[float] = Field(default=None)
+    notional_exit: Optional[float] = Field(default=None)
+    entry_ts: Optional[int] = Field(default=None, description="Entry timestamp ms")
+    exit_ts: Optional[int] = Field(default=None, description="Exit timestamp ms")
+    holding_ms: Optional[int] = Field(default=None, description="Holding time in ms")
+    realized_pnl: Optional[float] = Field(default=None)
+    realized_pnl_pct: Optional[float] = Field(default=None)
+    leverage: Optional[float] = Field(default=None)
+    notes: Optional[str] = Field(default=None)
+
+
 class TradeDigest(BaseModel):
     """Compact digest used by the composer as historical reference."""
 
     ts: int
     by_instrument: Dict[str, TradeDigestEntry] = Field(default_factory=dict)
+
+
+class StrategySummary(BaseModel):
+    """Minimal summary for leaderboard and quick status views.
+
+    Purely for UI aggregation; does not affect the compose pipeline.
+    All fields are optional to avoid breaking callers and allow
+    progressive enhancement by the backend.
+    """
+
+    strategy_id: Optional[str] = Field(default=None)
+    name: Optional[str] = Field(default=None)
+    model_provider: Optional[str] = Field(default=None)
+    model_id: Optional[str] = Field(default=None)
+    exchange_id: Optional[str] = Field(default=None)
+    mode: Optional[TradingMode] = Field(default=None)
+    status: Optional[StrategyStatus] = Field(default=None)
+    pnl_abs: Optional[float] = Field(default=None, description="P&L in quote CCY")
+    pnl_pct: Optional[float] = Field(default=None, description="P&L as percent of equity or initial capital")
+    last_updated_ts: Optional[int] = Field(default=None)
