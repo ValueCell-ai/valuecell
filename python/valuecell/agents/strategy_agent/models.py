@@ -85,13 +85,13 @@ class InstrumentRef(BaseModel):
     """Identifies a tradable instrument.
 
     - symbol: exchange symbol, e.g., "BTCUSDT"
-    - venue: optional venue/exchange id, e.g., "binance", "virtual"
+    - exchange_id: optional exchange id, e.g., "binance", "virtual"
     - quote_ccy: optional quote currency, e.g., "USDT"
     """
 
     symbol: str = Field(..., description="Exchange symbol, e.g., BTCUSDT")
-    venue: Optional[str] = Field(
-        default=None, description="Venue/exchange identifier (e.g., binance)"
+    exchange_id: Optional[str] = Field(
+        default=None, description="exchange identifier (e.g., binance)"
     )
     quote_ccy: Optional[str] = Field(
         default=None, description="Quote currency (e.g., USDT)"
@@ -135,7 +135,7 @@ class TradingMode(str, Enum):
     """Trading mode for a strategy used by UI/leaderboard tags."""
 
     LIVE = "live"
-    PAPER = "paper"
+    VIRTUAL = "virtual"
 
 
 class StrategyStatus(str, Enum):
