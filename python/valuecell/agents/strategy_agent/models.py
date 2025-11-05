@@ -34,20 +34,54 @@ class TradeSide(str, Enum):
     SELL = "SELL"
 
 
-class UserRequest(BaseModel):
-    """User-specified strategy request / configuration.
+class ModelConfig(BaseModel):
+    """AI model configuration for strategy."""
 
-    This model captures the inputs a user (or frontend) sends to create or
-    update a strategy instance. It was previously named `Strategy`.
-    """
-
-    symbols: List[str] = Field(
-        ...,
-        description="List of crypto symbols to trade (e.g., ['BTC-USD', 'ETH-USD'])",
+    provider: str = Field(
+        default=DEFAULT_MODEL_PROVIDER,
+        description="Model provider (e.g., 'openrouter', 'google', 'openai')"
     )
-    max_positions: int = Field(
-        default=DEFAULT_MAX_POSITIONS,
-        description="Maximum number of concurrent positions",
+    model_id: str = Field(
+        default=DEFAULT_AGENT_MODEL,
+        description="Model identifier (e.g., 'deepseek-ai/deepseek-v3.1', 'gpt-4o')"
+    )
+    api_key: str = Field(
+        ...,
+        description="API key for the model provider"
+    )
+
+
+class ExchangeConfig(BaseModel):
+    """Exchange configuration for trading."""
+
+    exchange_id: Optional[str] = Field(
+        default=None,
+        description="Exchange identifier (e.g., 'okx', 'binance')"
+    )
+    trading_mode: TradingMode = Field(
+        default=TradingMode.VIRTUAL,
+        description="Trading mode for this strategy"
+    )
+    api_key: Optional[str] = Field(
+        default=None,
+        description="Exchange API key (required for live trading)"
+    )
+    secret_key: Optional[str] = Field(
+        default=None,
+        description="Exchange secret key (required for live trading)"
+    )
+
+
+class TradingConfig(BaseModel):
+    """Trading strategy configuration."""
+
+    strategy_name: Optional[str] = Field(
+        default=None,
+        description="User-friendly name for this strategy"
+    )
+    initial_capital: Optional[float] = Field(
+        default=DEFAULT_INITIAL_CAPITAL,
+        description="Initial capital for trading in USD",
         gt=0,
     )
     max_leverage: float = Field(
@@ -55,44 +89,27 @@ class UserRequest(BaseModel):
         description="Maximum leverage",
         gt=0,
     )
-    initial_capital: Optional[float] = Field(
-        default=DEFAULT_INITIAL_CAPITAL,
-        description="Initial capital for trading in USD",
+    max_positions: int = Field(
+        default=DEFAULT_MAX_POSITIONS,
+        description="Maximum number of concurrent positions",
         gt=0,
+    )
+    symbols: List[str] = Field(
+        ...,
+        description="List of crypto symbols to trade (e.g., ['BTC-USD', 'ETH-USD'])",
     )
     decide_interval: int = Field(
         default=60,
         description="Check interval in seconds",
         gt=0,
     )
-    strategy_template: Optional[str] = Field(
+    template_id: Optional[str] = Field(
         default=None,
-        description="Optional strategy template text to guide the agent",
+        description="Strategy template identifier to guide the agent"
     )
-    user_prompt: Optional[str] = Field(
+    custom_prompt: Optional[str] = Field(
         default=None,
-        description="Optional user prompt to customize strategy behavior",
-    )
-
-    strategy_name: Optional[str] = Field(
-        default=None,
-        description="Optional user-friendly name for this request/strategy",
-    )
-    model_provider: Optional[str] = Field(
-        default=DEFAULT_MODEL_PROVIDER,
-        description="Provider for model",
-    )
-    model_id: Optional[str] = Field(
-        DEFAULT_AGENT_MODEL,
-        description="Model id for this strategy",
-    )
-    exchange_id: Optional[str] = Field(
-        None,
-        description="Exchange id for this strategy",
-    )
-    trading_mode: Optional[TradingMode] = Field(
-        default=TradingMode.VIRTUAL,
-        description="Trading mode for this strategy",
+        description="Optional custom prompt to customize strategy behavior"
     )
 
     @field_validator("symbols")
@@ -104,6 +121,27 @@ class UserRequest(BaseModel):
             raise ValueError(f"Maximum {DEFAULT_MAX_SYMBOLS} symbols allowed")
         # Normalize symbols to uppercase
         return [s.upper() for s in v]
+
+
+class UserRequest(BaseModel):
+    """User-specified strategy request / configuration.
+
+    This model captures the inputs a user (or frontend) sends to create or
+    update a strategy instance. It was previously named `Strategy`.
+    """
+
+    model_config: ModelConfig = Field(
+        default_factory=ModelConfig,
+        description="AI model configuration"
+    )
+    exchange_config: ExchangeConfig = Field(
+        default_factory=ExchangeConfig,
+        description="Exchange configuration for trading"
+    )
+    trading_config: TradingConfig = Field(
+        ...,
+        description="Trading strategy configuration"
+    )
 
 
 # =========================

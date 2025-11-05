@@ -67,7 +67,10 @@ Defined in `models.py`:
   - `Candle { ts, instrument, open, high, low, close, volume, interval }`
 
 - User request / configuration
-  - `UserRequest { symbols, max_positions?, max_leverage?, initial_capital?, decide_interval?, strategy_template?, user_prompt?, strategy_name?, model_provider?, model_id?, exchange_id?, trading_mode? }`
+  - `UserRequest { model_config: ModelConfig, exchange_config: ExchangeConfig, trading_config: TradingConfig }`
+  - `ModelConfig { provider, model_id, api_key }`
+  - `ExchangeConfig { exchange_id?, trading_mode, api_key?, secret_key? }`
+  - `TradingConfig { strategy_name?, initial_capital?, max_leverage?, max_positions?, symbols, decide_interval?, template_id?, custom_prompt? }`
 
 - Features and portfolio
   - `FeatureVector { ts, instrument, values: Dict[str, float], meta? }`
