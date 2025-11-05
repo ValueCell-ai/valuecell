@@ -121,7 +121,7 @@ class UserRequest(BaseModel):
     update a strategy instance. It was previously named `Strategy`.
     """
 
-    model_config: ModelConfig = Field(
+    llm_config: ModelConfig = Field(
         default_factory=ModelConfig, description="AI model configuration"
     )
     exchange_config: ExchangeConfig = Field(

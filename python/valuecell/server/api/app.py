@@ -16,6 +16,7 @@ from .exceptions import (
 )
 from .routers.agent import create_agent_router
 from .routers.agent_stream import create_agent_stream_router
+from .routers.strategy_agent import create_strategy_agent_router
 from .routers.conversation import create_conversation_router
 from .routers.i18n import create_i18n_router
 from .routers.system import create_system_router
@@ -145,6 +146,9 @@ def _add_routes(app: FastAPI, settings) -> None:
     # Include agent stream router
     app.include_router(create_agent_stream_router(), prefix=API_PREFIX)
 
+    # Include strategy agent router
+    app.include_router(create_strategy_agent_router(), prefix=API_PREFIX)
+
     # Include agent router
     app.include_router(create_agent_router(), prefix=API_PREFIX)
 
@@ -152,9 +156,11 @@ def _add_routes(app: FastAPI, settings) -> None:
     app.include_router(create_task_router(), prefix=API_PREFIX)
 
     # Include trading router
-    from .routers.trading import create_trading_router
-
-    app.include_router(create_trading_router(), prefix=API_PREFIX)
+    try:
+        from .routers.trading import create_trading_router
+        app.include_router(create_trading_router(), prefix=API_PREFIX)
+    except Exception as e:
+        print(f"Skip trading router because of import error: {e}")
 
 
 # For uvicorn
