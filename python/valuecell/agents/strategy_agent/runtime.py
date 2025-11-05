@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 import ccxt.pro as ccxtpro
+import numpy as np
+import pandas as pd
 from loguru import logger
 
 from valuecell.utils.uuid import generate_uuid
@@ -107,7 +109,6 @@ class SimpleMarketDataSource(MarketDataSource):
                     symbol,
                     self._exchange_id,
                 )
-
         return candles
 
 
@@ -126,20 +127,116 @@ class SimpleFeatureComputer(FeatureComputer):
 
         features: List[FeatureVector] = []
         for symbol, series in grouped.items():
+            # Build a DataFrame for indicator calculations
             series.sort(key=lambda item: item.ts)
-            last = series[-1]
-            prev = series[-2] if len(series) > 1 else series[-1]
-            change_pct = (last.close - prev.close) / prev.close if prev.close else 0.0
+            rows = [
+                {
+                    "ts": c.ts,
+                    "open": c.open,
+                    "high": c.high,
+                    "low": c.low,
+                    "close": c.close,
+                    "volume": c.volume,
+                    "interval": c.interval,
+                }
+                for c in series
+            ]
+            df = pd.DataFrame(rows)
+
+            # EMAs
+            df["ema_12"] = df["close"].ewm(span=12, adjust=False).mean()
+            df["ema_26"] = df["close"].ewm(span=26, adjust=False).mean()
+            df["ema_50"] = df["close"].ewm(span=50, adjust=False).mean()
+
+            # MACD
+            df["macd"] = df["ema_12"] - df["ema_26"]
+            df["macd_signal"] = df["macd"].ewm(span=9, adjust=False).mean()
+            df["macd_histogram"] = df["macd"] - df["macd_signal"]
+
+            # RSI
+            delta = df["close"].diff()
+            gain = delta.clip(lower=0).rolling(window=14).mean()
+            loss = (-delta).clip(lower=0).rolling(window=14).mean()
+            rs = gain / loss.replace(0, np.inf)
+            df["rsi"] = 100 - (100 / (1 + rs))
+
+            # Bollinger Bands
+            df["bb_middle"] = df["close"].rolling(window=20).mean()
+            bb_std = df["close"].rolling(window=20).std()
+            df["bb_upper"] = df["bb_middle"] + (bb_std * 2)
+            df["bb_lower"] = df["bb_middle"] - (bb_std * 2)
+
+            last = df.iloc[-1]
+            prev = df.iloc[-2] if len(df) > 1 else last
+
+            change_pct = (
+                (float(last.close) - float(prev.close)) / float(prev.close)
+                if prev.close
+                else 0.0
+            )
+
+            values = {
+                "close": float(last.close),
+                "volume": float(last.volume),
+                "change_pct": float(change_pct),
+                "ema_12": (
+                    float(last.get("ema_12", np.nan))
+                    if not pd.isna(last.get("ema_12"))
+                    else None
+                ),
+                "ema_26": (
+                    float(last.get("ema_26", np.nan))
+                    if not pd.isna(last.get("ema_26"))
+                    else None
+                ),
+                "ema_50": (
+                    float(last.get("ema_50", np.nan))
+                    if not pd.isna(last.get("ema_50"))
+                    else None
+                ),
+                "macd": (
+                    float(last.get("macd", np.nan))
+                    if not pd.isna(last.get("macd"))
+                    else None
+                ),
+                "macd_signal": (
+                    float(last.get("macd_signal", np.nan))
+                    if not pd.isna(last.get("macd_signal"))
+                    else None
+                ),
+                "macd_histogram": (
+                    float(last.get("macd_histogram", np.nan))
+                    if not pd.isna(last.get("macd_histogram"))
+                    else None
+                ),
+                "rsi": (
+                    float(last.get("rsi", np.nan))
+                    if not pd.isna(last.get("rsi"))
+                    else None
+                ),
+                "bb_upper": (
+                    float(last.get("bb_upper", np.nan))
+                    if not pd.isna(last.get("bb_upper"))
+                    else None
+                ),
+                "bb_middle": (
+                    float(last.get("bb_middle", np.nan))
+                    if not pd.isna(last.get("bb_middle"))
+                    else None
+                ),
+                "bb_lower": (
+                    float(last.get("bb_lower", np.nan))
+                    if not pd.isna(last.get("bb_lower"))
+                    else None
+                ),
+            }
+
             features.append(
                 FeatureVector(
-                    ts=last.ts,
-                    instrument=last.instrument,
-                    values={
-                        "close": last.close,
-                        "volume": last.volume,
-                        "change_pct": change_pct,
-                    },
-                    meta={"interval": last.interval, "count": len(series)},
+                    ts=int(last["ts"]),
+                    instrument=series[-1].instrument,
+                    values=values,
+                    meta={"interval": series[-1].interval, "count": len(series)},
                 )
             )
 
@@ -321,7 +418,9 @@ def create_strategy_runtime(request: UserRequest) -> StrategyRuntime:
         symbol: 120.0 + index * 15.0
         for index, symbol in enumerate(request.trading_config.symbols)
     }
-    market_data_source = SimpleMarketDataSource(base_prices=base_prices)
+    market_data_source = SimpleMarketDataSource(
+        base_prices=base_prices, exchange_id=request.exchange_config.exchange_id
+    )
     feature_computer = SimpleFeatureComputer()
     composer = RuleBasedComposer()
     execution_gateway = PaperExecutionGateway()
