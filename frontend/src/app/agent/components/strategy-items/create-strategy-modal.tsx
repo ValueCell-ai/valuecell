@@ -30,18 +30,57 @@ interface CreateStrategyModalProps {
 
 type StepNumber = 1 | 2 | 3;
 
-// Form validation schema
-const formSchema = z.object({
-  // Step 1: AI Model Config
+// Step 1 Schema: AI Models
+const step1Schema = z.object({
   modelProvider: z.string().min(1, "Model platform is required"),
   modelId: z.string().min(1, "Model selection is required"),
   modelApiKey: z.string().min(1, "API key is required"),
-  // Step 2: Exchange Config
-  exchangeId: z.string().min(1, "Exchange is required"),
-  tradingMode: z.enum(["live", "virtual"]),
-  exchangeApiKey: z.string(),
-  exchangeSecretKey: z.string(),
-  // Step 3: Trading Config
+});
+
+// Step 2 Schema: Exchanges (conditional validation with superRefine)
+const step2Schema = z
+  .object({
+    tradingMode: z.enum(["live", "virtual"]),
+    exchangeId: z.string(),
+    exchangeApiKey: z.string(),
+    exchangeSecretKey: z.string(),
+  })
+  .superRefine((data, ctx) => {
+    // Only validate exchange credentials when live trading is selected
+    if (data.tradingMode === "live") {
+      const fields = [
+        {
+          name: "exchangeId" as const,
+          label: "Exchange",
+          value: data.exchangeId,
+        },
+        {
+          name: "exchangeApiKey" as const,
+          label: "API key",
+          value: data.exchangeApiKey,
+        },
+        {
+          name: "exchangeSecretKey" as const,
+          label: "Secret key",
+          value: data.exchangeSecretKey,
+        },
+      ];
+
+      for (const field of fields) {
+        if (!field.value?.trim()) {
+          ctx.addIssue({
+            code: "custom",
+            message: `${field.label} is required for live trading`,
+            path: [field.name],
+          });
+        }
+      }
+    }
+    // Virtual trading mode: no validation needed for exchange fields
+  });
+
+// Step 3 Schema: Trading Strategy
+const step3Schema = z.object({
   strategyName: z.string().min(1, "Strategy name is required"),
   initialCapital: z.number().min(0, "Initial capital must be positive"),
   maxLeverage: z.number().min(1, "Leverage must be at least 1"),
@@ -56,58 +95,72 @@ const STEPS = [
   { number: 3 as const, title: "Trading strategy" },
 ];
 
-// Custom Step Indicator Component
 const StepIndicator: FC<{ currentStep: StepNumber }> = ({ currentStep }) => {
+  const getStepState = (stepNumber: StepNumber) => ({
+    isCompleted: stepNumber < currentStep,
+    isCurrent: stepNumber === currentStep,
+    isActive: stepNumber <= currentStep,
+  });
+
+  const renderStepNumber = (
+    step: StepNumber,
+    isCurrent: boolean,
+    isCompleted: boolean,
+  ) => {
+    if (isCompleted) {
+      return (
+        <div className="flex size-6 items-center justify-center rounded-full bg-gray-950">
+          <Check className="size-3 text-white" />
+        </div>
+      );
+    }
+
+    return (
+      <div className="relative flex size-6 items-center justify-center">
+        <div
+          className={`absolute inset-0 rounded-full border-2 ${
+            isCurrent ? "border-gray-950 bg-gray-700" : "border-black/40"
+          }`}
+        />
+        <span
+          className={`relative font-semibold text-base ${
+            isCurrent ? "text-white" : "text-black/40"
+          }`}
+        >
+          {step}
+        </span>
+      </div>
+    );
+  };
+
   return (
     <div className="flex items-start">
       {STEPS.map((step, index) => {
-        const isCompleted = step.number < currentStep;
-        const isCurrent = step.number === currentStep;
+        const { isCompleted, isCurrent, isActive } = getStepState(step.number);
+        const isLastStep = index === STEPS.length - 1;
 
         return (
           <div key={step.number} className="flex min-w-0 flex-1 items-start">
-            <div className="flex w-full items-start gap-4 px-0 py-1">
-              {/* Step circle */}
-              <div className="relative flex size-6 shrink-0 items-center justify-center">
-                {isCompleted ? (
-                  <div className="flex size-6 items-center justify-center rounded-full bg-[#030712]">
-                    <Check className="size-3 text-white" />
-                  </div>
-                ) : (
-                  <>
-                    <div
-                      className={`absolute inset-0 rounded-full border-2 ${
-                        isCurrent
-                          ? "border-[#0052D9] bg-[#030712]"
-                          : "border-black"
-                      }`}
-                    />
-                    <span
-                      className={`relative font-semibold text-base ${
-                        isCurrent ? "text-white" : "text-black/40"
-                      }`}
-                    >
-                      {step.number}
-                    </span>
-                  </>
-                )}
+            <div className="flex w-full items-start gap-2">
+              {/* Step number/icon */}
+              <div className="shrink-0">
+                {renderStepNumber(step.number, isCurrent, isCompleted)}
               </div>
 
-              {/* Title and divider */}
-              <div className="flex min-w-0 flex-1 items-center gap-4 overflow-hidden pr-4">
-                <p
+              {/* Step title and connector line */}
+              <div className="flex min-w-0 flex-1 items-center gap-3 pr-3">
+                <span
                   className={`shrink-0 whitespace-nowrap text-base ${
-                    isCompleted || isCurrent
-                      ? "font-normal text-black/90"
-                      : "font-normal text-black/40"
+                    isActive ? "text-black/90" : "text-black/40"
                   }`}
                 >
                   {step.title}
-                </p>
-                {index < STEPS.length - 1 && (
+                </span>
+
+                {!isLastStep && (
                   <div
                     className={`h-0.5 min-w-0 flex-1 ${
-                      isCompleted ? "bg-gray-950" : "bg-[gainsboro]"
+                      isCompleted ? "bg-gray-950" : "bg-gray-200"
                     }`}
                   />
                 )}
@@ -126,15 +179,40 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState<StepNumber>(1);
 
-  const form = useForm({
+  // Step 1 Form: AI Models
+  const form1 = useForm({
     defaultValues: {
       modelProvider: "openrouter",
       modelId: "deepseek-ai/DeepSeek-V3.1-Terminus",
       modelApiKey: "",
-      exchangeId: "okx",
+    },
+    validators: {
+      onSubmit: step1Schema,
+    },
+    onSubmit: () => {
+      setCurrentStep(2);
+    },
+  });
+
+  // Step 2 Form: Exchanges
+  const form2 = useForm({
+    defaultValues: {
       tradingMode: "live" as "live" | "virtual",
+      exchangeId: "okx",
       exchangeApiKey: "",
       exchangeSecretKey: "",
+    },
+    validators: {
+      onSubmit: step2Schema,
+    },
+    onSubmit: () => {
+      setCurrentStep(3);
+    },
+  });
+
+  // Step 3 Form: Trading Strategy
+  const form3 = useForm({
+    defaultValues: {
       strategyName: "",
       initialCapital: 1000,
       maxLeverage: 8,
@@ -143,21 +221,20 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
       customPrompt: "",
     },
     validators: {
-      onSubmit: formSchema,
+      onSubmit: step3Schema,
     },
-    onSubmit: async ({ value }) => {
-      // Convert flat form to nested structure
+    onSubmit: ({ value }) => {
       const payload = {
         modelConfig: {
-          provider: value.modelProvider,
-          modelId: value.modelId,
-          apiKey: value.modelApiKey,
+          provider: form1.state.values.modelProvider,
+          modelId: form1.state.values.modelId,
+          apiKey: form1.state.values.modelApiKey,
         },
         exchangeConfig: {
-          exchangeId: value.exchangeId,
-          tradingMode: value.tradingMode,
-          apiKey: value.exchangeApiKey,
-          secretKey: value.exchangeSecretKey,
+          exchangeId: form2.state.values.exchangeId,
+          tradingMode: form2.state.values.tradingMode,
+          apiKey: form2.state.values.exchangeApiKey,
+          secretKey: form2.state.values.exchangeSecretKey,
         },
         tradingConfig: {
           strategyName: value.strategyName,
@@ -173,22 +250,20 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
       };
       console.log("Form submitted:", payload);
       setOpen(false);
-      setCurrentStep(1);
+      resetAll();
     },
   });
 
-  const handleNext = () => {
-    if (currentStep < 3) {
-      setCurrentStep((prev) => (prev + 1) as StepNumber);
-    } else {
-      form.handleSubmit();
-    }
+  const resetAll = () => {
+    setCurrentStep(1);
+    form1.reset();
+    form2.reset();
+    form3.reset();
   };
 
   const handleCancel = () => {
     setOpen(false);
-    setCurrentStep(1);
-    form.reset();
+    resetAll();
   };
 
   return (
@@ -202,240 +277,273 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
       </DialogTrigger>
 
       <DialogContent
-        className="flex max-h-[90vh] max-w-2xl flex-col rounded-[24px] p-10"
+        className="h-full max-h-[90vh] overflow-hidden"
         showCloseButton={false}
       >
         {/* Header */}
-        <div className="flex shrink-0 flex-col gap-6">
+        <div className="flex shrink-0 flex-col gap-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-lg leading-[26px]">
-              Add trading strategy
-            </h2>
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="flex size-6 shrink-0 items-center justify-center"
-            >
-              <X className="size-4 text-gray-400" />
-            </button>
+            <h2 className="font-semibold text-lg">Add trading strategy</h2>
+            <Button variant="ghost" size="icon" onClick={handleCancel}>
+              <X />
+            </Button>
           </div>
 
-          {/* Step indicator */}
           <StepIndicator currentStep={currentStep} />
         </div>
 
         {/* Form content with scroll */}
-        <ScrollContainer className="flex-1 overflow-y-auto">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleNext();
-            }}
-            className="flex flex-col gap-6 py-2"
-          >
+        <ScrollContainer>
+          <div className="py-2">
             {/* Step 1: AI Models */}
             {currentStep === 1 && (
-              <FieldGroup className="gap-6">
-                <form.Field name="modelProvider">
-                  {(field) => {
-                    const isInvalid =
-                      field.state.meta.isTouched &&
-                      field.state.meta.errors.length > 0;
-                    return (
-                      <Field data-invalid={isInvalid}>
-                        <FieldLabel className="font-medium text-base text-gray-950">
-                          Model Platform
-                        </FieldLabel>
-                        <Select
-                          value={field.state.value}
-                          onValueChange={field.handleChange}
-                        >
-                          <SelectTrigger className="h-[58px] justify-between rounded-[10px] border-gray-200 px-4">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="openrouter">
-                              Openrouter
-                            </SelectItem>
-                            <SelectItem value="openai">OpenAI</SelectItem>
-                            <SelectItem value="anthropic">Anthropic</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {isInvalid && (
-                          <FieldError errors={field.state.meta.errors} />
-                        )}
-                      </Field>
-                    );
-                  }}
-                </form.Field>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  form1.handleSubmit();
+                }}
+              >
+                <FieldGroup className="gap-6">
+                  <form1.Field name="modelProvider">
+                    {(field) => {
+                      const isInvalid =
+                        field.state.meta.isTouched &&
+                        field.state.meta.errors.length > 0;
+                      return (
+                        <Field data-invalid={isInvalid}>
+                          <FieldLabel className="font-medium text-base text-gray-950">
+                            Model Platform
+                          </FieldLabel>
+                          <Select
+                            value={field.state.value}
+                            onValueChange={field.handleChange}
+                          >
+                            <SelectTrigger className="h-[58px] justify-between rounded-[10px] border-gray-200 px-4">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="openrouter">
+                                Openrouter
+                              </SelectItem>
+                              <SelectItem value="openai">OpenAI</SelectItem>
+                              <SelectItem value="anthropic">
+                                Anthropic
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {isInvalid && (
+                            <FieldError errors={field.state.meta.errors} />
+                          )}
+                        </Field>
+                      );
+                    }}
+                  </form1.Field>
 
-                <form.Field name="modelId">
-                  {(field) => {
-                    const isInvalid =
-                      field.state.meta.isTouched &&
-                      field.state.meta.errors.length > 0;
-                    return (
-                      <Field data-invalid={isInvalid}>
-                        <FieldLabel className="font-medium text-base text-gray-950">
-                          Select Model
-                        </FieldLabel>
-                        <Select
-                          value={field.state.value}
-                          onValueChange={field.handleChange}
-                        >
-                          <SelectTrigger className="h-[58px] justify-between rounded-[10px] border-gray-200 px-4">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="deepseek-ai/DeepSeek-V3.1-Terminus">
-                              Deepseek-ai/DeepSeek-V3.1-Terminus
-                            </SelectItem>
-                            <SelectItem value="gpt-4">GPT-4</SelectItem>
-                            <SelectItem value="claude-3">Claude 3</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {isInvalid && (
-                          <FieldError errors={field.state.meta.errors} />
-                        )}
-                      </Field>
-                    );
-                  }}
-                </form.Field>
+                  <form1.Field name="modelId">
+                    {(field) => {
+                      const isInvalid =
+                        field.state.meta.isTouched &&
+                        field.state.meta.errors.length > 0;
+                      return (
+                        <Field data-invalid={isInvalid}>
+                          <FieldLabel className="font-medium text-base text-gray-950">
+                            Select Model
+                          </FieldLabel>
+                          <Select
+                            value={field.state.value}
+                            onValueChange={field.handleChange}
+                          >
+                            <SelectTrigger className="h-[58px] justify-between rounded-[10px] border-gray-200 px-4">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="deepseek-ai/DeepSeek-V3.1-Terminus">
+                                Deepseek-ai/DeepSeek-V3.1-Terminus
+                              </SelectItem>
+                              <SelectItem value="gpt-4">GPT-4</SelectItem>
+                              <SelectItem value="claude-3">Claude 3</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {isInvalid && (
+                            <FieldError errors={field.state.meta.errors} />
+                          )}
+                        </Field>
+                      );
+                    }}
+                  </form1.Field>
 
-                <form.Field name="modelApiKey">
-                  {(field) => {
-                    const isInvalid =
-                      field.state.meta.isTouched &&
-                      field.state.meta.errors.length > 0;
-                    return (
-                      <Field data-invalid={isInvalid}>
-                        <FieldLabel className="font-medium text-base text-gray-950">
-                          API key
-                        </FieldLabel>
-                        <Input
-                          value={field.state.value}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                          onBlur={field.handleBlur}
-                          placeholder="Enter API Key"
-                        />
-                        {isInvalid && (
-                          <FieldError errors={field.state.meta.errors} />
-                        )}
-                      </Field>
-                    );
-                  }}
-                </form.Field>
-              </FieldGroup>
+                  <form1.Field name="modelApiKey">
+                    {(field) => {
+                      const isInvalid =
+                        field.state.meta.isTouched &&
+                        field.state.meta.errors.length > 0;
+                      return (
+                        <Field data-invalid={isInvalid}>
+                          <FieldLabel className="font-medium text-base text-gray-950">
+                            API key
+                          </FieldLabel>
+                          <Input
+                            value={field.state.value}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            onBlur={field.handleBlur}
+                            placeholder="Enter API Key"
+                          />
+                          {isInvalid && (
+                            <FieldError errors={field.state.meta.errors} />
+                          )}
+                        </Field>
+                      );
+                    }}
+                  </form1.Field>
+                </FieldGroup>
+              </form>
             )}
 
             {/* Step 2: Exchanges */}
             {currentStep === 2 && (
-              <FieldGroup className="gap-6">
-                <form.Field name="tradingMode">
-                  {(field) => (
-                    <Field>
-                      <FieldLabel className="font-medium text-base text-gray-950">
-                        Transaction Type
-                      </FieldLabel>
-                      <RadioGroup
-                        value={field.state.value}
-                        onValueChange={(value) =>
-                          field.handleChange(value as "live" | "virtual")
-                        }
-                        className="flex items-center gap-6"
-                      >
-                        <div className="flex items-center gap-2">
-                          <RadioGroupItem value="live" id="live" />
-                          <Label htmlFor="live" className="text-sm">
-                            Live Trading
-                          </Label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <RadioGroupItem value="virtual" id="virtual" />
-                          <Label htmlFor="virtual" className="text-sm">
-                            Virtual Trading
-                          </Label>
-                        </div>
-                      </RadioGroup>
-                    </Field>
-                  )}
-                </form.Field>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  form2.handleSubmit();
+                }}
+              >
+                <FieldGroup className="gap-6">
+                  <form2.Field name="tradingMode">
+                    {(field) => {
+                      const isLiveTrading = field.state.value === "live";
 
-                <form.Field name="exchangeId">
-                  {(field) => {
-                    const isInvalid =
-                      field.state.meta.isTouched &&
-                      field.state.meta.errors.length > 0;
-                    return (
-                      <Field data-invalid={isInvalid}>
-                        <FieldLabel className="font-medium text-base text-gray-950">
-                          Select Exchange
-                        </FieldLabel>
-                        <Select
-                          value={field.state.value}
-                          onValueChange={field.handleChange}
-                        >
-                          <SelectTrigger className="h-[58px] justify-between rounded-[10px] border-gray-200 px-4">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="okx">OKX</SelectItem>
-                            <SelectItem value="binance">Binance</SelectItem>
-                            <SelectItem value="coinbase">Coinbase</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {isInvalid && (
-                          <FieldError errors={field.state.meta.errors} />
-                        )}
-                      </Field>
-                    );
-                  }}
-                </form.Field>
+                      return (
+                        <>
+                          <Field>
+                            <FieldLabel className="font-medium text-base text-gray-950">
+                              Transaction Type
+                            </FieldLabel>
+                            <RadioGroup
+                              value={field.state.value}
+                              onValueChange={(value) => {
+                                const newMode = value as "live" | "virtual";
+                                form2.reset();
 
-                <form.Field name="exchangeApiKey">
-                  {(field) => (
-                    <Field>
-                      <FieldLabel className="font-medium text-base text-gray-950">
-                        API key
-                      </FieldLabel>
-                      <Input
-                        value={field.state.value}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        onBlur={field.handleBlur}
-                        placeholder="Enter API Key"
-                      />
-                    </Field>
-                  )}
-                </form.Field>
+                                field.handleChange(newMode);
+                              }}
+                              className="flex items-center gap-6"
+                            >
+                              <div className="flex items-center gap-2">
+                                <RadioGroupItem value="live" id="live" />
+                                <Label htmlFor="live" className="text-sm">
+                                  Live Trading
+                                </Label>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <RadioGroupItem value="virtual" id="virtual" />
+                                <Label htmlFor="virtual" className="text-sm">
+                                  Virtual Trading
+                                </Label>
+                              </div>
+                            </RadioGroup>
+                          </Field>
 
-                <form.Field name="exchangeSecretKey">
-                  {(field) => (
-                    <Field>
-                      <FieldLabel className="font-medium text-base text-gray-950">
-                        Secret Key
-                      </FieldLabel>
-                      <Input
-                        value={field.state.value}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        onBlur={field.handleBlur}
-                        placeholder="Enter Secret Key"
-                      />
-                    </Field>
-                  )}
-                </form.Field>
-              </FieldGroup>
+                          {isLiveTrading && (
+                            <>
+                              <form2.Field name="exchangeId">
+                                {(field) => (
+                                  <Field>
+                                    <FieldLabel className="font-medium text-base text-gray-950">
+                                      Select Exchange
+                                    </FieldLabel>
+                                    <Select
+                                      value={field.state.value}
+                                      onValueChange={field.handleChange}
+                                    >
+                                      <SelectTrigger className="h-[58px] justify-between rounded-[10px] border-gray-200 px-4">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="okx">OKX</SelectItem>
+                                        <SelectItem value="binance">
+                                          Binance
+                                        </SelectItem>
+                                        <SelectItem value="coinbase">
+                                          Coinbase
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                    {field.state.meta.errors.length > 0 && (
+                                      <FieldError
+                                        errors={field.state.meta.errors}
+                                      />
+                                    )}
+                                  </Field>
+                                )}
+                              </form2.Field>
+
+                              <form2.Field name="exchangeApiKey">
+                                {(field) => (
+                                  <Field>
+                                    <FieldLabel className="font-medium text-base text-gray-950">
+                                      API key
+                                    </FieldLabel>
+                                    <Input
+                                      value={field.state.value}
+                                      onChange={(e) =>
+                                        field.handleChange(e.target.value)
+                                      }
+                                      onBlur={field.handleBlur}
+                                      placeholder="Enter API Key"
+                                    />
+                                    {field.state.meta.errors.length > 0 && (
+                                      <FieldError
+                                        errors={field.state.meta.errors}
+                                      />
+                                    )}
+                                  </Field>
+                                )}
+                              </form2.Field>
+
+                              <form2.Field name="exchangeSecretKey">
+                                {(field) => (
+                                  <Field>
+                                    <FieldLabel className="font-medium text-base text-gray-950">
+                                      Secret Key
+                                    </FieldLabel>
+                                    <Input
+                                      value={field.state.value}
+                                      onChange={(e) =>
+                                        field.handleChange(e.target.value)
+                                      }
+                                      onBlur={field.handleBlur}
+                                      placeholder="Enter Secret Key"
+                                    />
+                                    {field.state.meta.errors.length > 0 && (
+                                      <FieldError
+                                        errors={field.state.meta.errors}
+                                      />
+                                    )}
+                                  </Field>
+                                )}
+                              </form2.Field>
+                            </>
+                          )}
+                        </>
+                      );
+                    }}
+                  </form2.Field>
+                </FieldGroup>
+              </form>
             )}
 
             {/* Step 3: Trading Strategy */}
             {currentStep === 3 && (
-              <FieldGroup className="gap-6">
-                <form.Field name="strategyName">
-                  {(field) => {
-                    const isInvalid =
-                      field.state.meta.isTouched &&
-                      field.state.meta.errors.length > 0;
-                    return (
-                      <Field data-invalid={isInvalid}>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  form3.handleSubmit();
+                }}
+              >
+                <FieldGroup className="gap-6">
+                  <form3.Field name="strategyName">
+                    {(field) => (
+                      <Field>
                         <FieldLabel className="font-medium text-base text-gray-950">
                           Strategy Name
                         </FieldLabel>
@@ -445,32 +553,27 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
                           onBlur={field.handleBlur}
                           placeholder="Enter strategy name"
                         />
-                        {isInvalid && (
+                        {field.state.meta.errors.length > 0 && (
                           <FieldError errors={field.state.meta.errors} />
                         )}
                       </Field>
-                    );
-                  }}
-                </form.Field>
+                    )}
+                  </form3.Field>
 
-                {/* Transaction Configuration Section */}
-                <div className="flex flex-col gap-6">
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-1 rounded-[1px] bg-black" />
-                    <h3 className="font-semibold text-lg leading-[26px]">
-                      Transaction configuration
-                    </h3>
-                  </div>
+                  {/* Transaction Configuration */}
+                  <div className="flex flex-col gap-6">
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-1 rounded-[1px] bg-black" />
+                      <h3 className="font-semibold text-lg leading-[26px]">
+                        Transaction configuration
+                      </h3>
+                    </div>
 
-                  <div className="flex flex-col gap-4">
-                    <div className="flex gap-4">
-                      <form.Field name="initialCapital">
-                        {(field) => {
-                          const isInvalid =
-                            field.state.meta.isTouched &&
-                            field.state.meta.errors.length > 0;
-                          return (
-                            <Field data-invalid={isInvalid} className="flex-1">
+                    <div className="flex flex-col gap-4">
+                      <div className="flex gap-4">
+                        <form3.Field name="initialCapital">
+                          {(field) => (
+                            <Field className="flex-1">
                               <FieldLabel className="font-medium text-base text-gray-950">
                                 Initial Capital
                               </FieldLabel>
@@ -482,21 +585,16 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
                                 }
                                 onBlur={field.handleBlur}
                               />
-                              {isInvalid && (
+                              {field.state.meta.errors.length > 0 && (
                                 <FieldError errors={field.state.meta.errors} />
                               )}
                             </Field>
-                          );
-                        }}
-                      </form.Field>
+                          )}
+                        </form3.Field>
 
-                      <form.Field name="maxLeverage">
-                        {(field) => {
-                          const isInvalid =
-                            field.state.meta.isTouched &&
-                            field.state.meta.errors.length > 0;
-                          return (
-                            <Field data-invalid={isInvalid} className="flex-1">
+                        <form3.Field name="maxLeverage">
+                          {(field) => (
+                            <Field className="flex-1">
                               <FieldLabel className="font-medium text-base text-gray-950">
                                 Max Leverage
                               </FieldLabel>
@@ -508,22 +606,17 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
                                 }
                                 onBlur={field.handleBlur}
                               />
-                              {isInvalid && (
+                              {field.state.meta.errors.length > 0 && (
                                 <FieldError errors={field.state.meta.errors} />
                               )}
                             </Field>
-                          );
-                        }}
-                      </form.Field>
-                    </div>
+                          )}
+                        </form3.Field>
+                      </div>
 
-                    <form.Field name="symbols">
-                      {(field) => {
-                        const isInvalid =
-                          field.state.meta.isTouched &&
-                          field.state.meta.errors.length > 0;
-                        return (
-                          <Field data-invalid={isInvalid}>
+                      <form3.Field name="symbols">
+                        {(field) => (
+                          <Field>
                             <FieldLabel className="font-medium text-base text-gray-950">
                               Trading Symbols
                             </FieldLabel>
@@ -535,33 +628,28 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
                               onBlur={field.handleBlur}
                               placeholder="BTC, ETH, SOL, DOGE, XRP"
                             />
-                            {isInvalid && (
+                            {field.state.meta.errors.length > 0 && (
                               <FieldError errors={field.state.meta.errors} />
                             )}
                           </Field>
-                        );
-                      }}
-                    </form.Field>
-                  </div>
-                </div>
-
-                {/* Trading Strategy Prompt Section */}
-                <div className="flex flex-col gap-6">
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-1 rounded-[1px] bg-black" />
-                    <h3 className="font-semibold text-lg leading-[26px]">
-                      Trading strategy prompt
-                    </h3>
+                        )}
+                      </form3.Field>
+                    </div>
                   </div>
 
-                  <div className="flex flex-col gap-4">
-                    <form.Field name="templateId">
-                      {(field) => {
-                        const isInvalid =
-                          field.state.meta.isTouched &&
-                          field.state.meta.errors.length > 0;
-                        return (
-                          <Field data-invalid={isInvalid}>
+                  {/* Trading Strategy Prompt */}
+                  <div className="flex flex-col gap-6">
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-1 rounded-[1px] bg-black" />
+                      <h3 className="font-semibold text-lg leading-[26px]">
+                        Trading strategy prompt
+                      </h3>
+                    </div>
+
+                    <div className="flex flex-col gap-4">
+                      <form3.Field name="templateId">
+                        {(field) => (
+                          <Field>
                             <FieldLabel className="font-medium text-base text-gray-950">
                               System Prompt Template
                             </FieldLabel>
@@ -582,50 +670,61 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
                                 </SelectItem>
                               </SelectContent>
                             </Select>
-                            {isInvalid && (
+                            {field.state.meta.errors.length > 0 && (
                               <FieldError errors={field.state.meta.errors} />
                             )}
                           </Field>
-                        );
-                      }}
-                    </form.Field>
+                        )}
+                      </form3.Field>
 
-                    <form.Field name="customPrompt">
-                      {(field) => (
-                        <Field>
-                          <FieldLabel className="font-medium text-base text-gray-950">
-                            Custom Prompt
-                          </FieldLabel>
-                          <Textarea
-                            value={field.state.value}
-                            onChange={(e) => field.handleChange(e.target.value)}
-                            onBlur={field.handleBlur}
-                            placeholder="Additional custom prompt..."
-                            className="min-h-[117px] rounded-[10px] border-gray-200 px-4 py-4 text-base placeholder:text-gray-400"
-                          />
-                        </Field>
-                      )}
-                    </form.Field>
+                      <form3.Field name="customPrompt">
+                        {(field) => (
+                          <Field>
+                            <FieldLabel className="font-medium text-base text-gray-950">
+                              Custom Prompt
+                            </FieldLabel>
+                            <Textarea
+                              value={field.state.value}
+                              onChange={(e) =>
+                                field.handleChange(e.target.value)
+                              }
+                              onBlur={field.handleBlur}
+                              placeholder="Additional custom prompt..."
+                              className="min-h-[117px] rounded-[10px] border-gray-200 px-4 py-4 text-base placeholder:text-gray-400"
+                            />
+                          </Field>
+                        )}
+                      </form3.Field>
+                    </div>
                   </div>
-                </div>
-              </FieldGroup>
+                </FieldGroup>
+              </form>
             )}
-          </form>
+          </div>
         </ScrollContainer>
 
         {/* Footer buttons */}
-        <div className="mt-6 flex shrink-0 gap-[25px]">
+        <div className="flex gap-6">
           <Button
             type="button"
             variant="outline"
             onClick={handleCancel}
-            className="flex-1 rounded-[10px] border-gray-100 py-4 font-semibold text-base leading-[22px]"
+            className="flex-1 border-gray-100 py-4 font-semibold text-base"
           >
             Cancel
           </Button>
           <Button
-            onClick={handleNext}
-            className="flex-1 rounded-[10px] bg-gray-950 py-4 font-semibold text-base text-white leading-[22px] hover:bg-gray-800"
+            type="button"
+            onClick={() => {
+              if (currentStep === 1) {
+                form1.handleSubmit();
+              } else if (currentStep === 2) {
+                form2.handleSubmit();
+              } else {
+                form3.handleSubmit();
+              }
+            }}
+            className="flex-1 py-4 font-semibold text-base text-white hover:bg-gray-800"
           >
             {currentStep === 3 ? "Confirm" : "Next"}
           </Button>
