@@ -61,7 +61,7 @@ class DecisionCoordinator(ABC):
     """
 
     @abstractmethod
-    def run_once(self) -> DecisionCycleResult:
+    async def run_once(self) -> DecisionCycleResult:
         """Execute one decision cycle and return the result."""
         raise NotImplementedError
 
@@ -127,12 +127,12 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         self._cycle_index: int = 0
         self._strategy_name = request.trading_config.strategy_name or strategy_id
 
-    def run_once(self) -> DecisionCycleResult:
+    async def run_once(self) -> DecisionCycleResult:
         timestamp_ms = int(self._clock().timestamp() * 1000)
         compose_id = generate_uuid("compose")
 
         portfolio = self._portfolio_service.get_view()
-        candles = self._market_data_source.get_recent_candles(
+        candles = await self._market_data_source.get_recent_candles(
             self._symbols, self._interval, self._lookback
         )
         features = self._feature_computer.compute_features(candles=candles)
@@ -152,6 +152,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         )
 
         instructions = self._composer.compose(context)
+        # Execution gateway may be sync; allow sync execute
         self._execution_gateway.execute(instructions)
 
         trades = self._create_trades(

@@ -1,21 +1,20 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import AsyncGenerator, Dict, Optional
+
+from loguru import logger
 
 from valuecell.core.agent.responses import streaming
 from valuecell.core.types import BaseAgent, StreamResponse
 
 from .models import (
     ComponentType,
+    StrategyStatus,
     StrategyStatusContent,
     UserRequest,
-    StrategyStatus,
 )
 from .runtime import create_strategy_runtime
-
-logger = logging.getLogger(__name__)
 
 
 class StrategyAgent(BaseAgent):
@@ -31,7 +30,7 @@ class StrategyAgent(BaseAgent):
         try:
             request = UserRequest.model_validate_json(query)
         except ValueError as exc:
-            logger.warning("StrategyAgent received invalid payload: %s", exc)
+            logger.exception("StrategyAgent received invalid payload")
             yield streaming.message_chunk(str(exc))
             yield streaming.done()
             return
@@ -48,7 +47,7 @@ class StrategyAgent(BaseAgent):
 
         try:
             while True:
-                result = runtime.run_cycle()
+                result = await runtime.run_cycle()
                 for trade in result.trades:
                     yield streaming.component_generator(
                         content=trade.model_dump_json(),
