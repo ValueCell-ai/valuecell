@@ -63,23 +63,30 @@ Data → Features → Composer(LLM+Guardrails) → Execution → History → Dig
 Defined in `models.py`:
 
 - Identification and raw data
-  - `InstrumentRef { symbol, venue?, quote_ccy? }`
+  - `InstrumentRef { symbol, exchange_id?, quote_ccy? }`
   - `Candle { ts, instrument, open, high, low, close, volume, interval }`
+
+- User request / configuration
+  - `UserRequest { symbols, max_positions?, max_leverage?, initial_capital?, decide_interval?, strategy_template?, user_prompt?, name?, model_provider?, model_id?, exchange_id? }`
+
 - Features and portfolio
   - `FeatureVector { ts, instrument, values: Dict[str, float], meta? }`
   - `PositionSnapshot { instrument, quantity, avg_price?, mark_price?, unrealized_pnl?, notional?, leverage?, entry_ts?, pnl_pct?, trade_type? }`
   - `PortfolioView { ts, cash, positions: Dict[symbol, PositionSnapshot], gross_exposure?, net_exposure?, constraints?, total_value?, total_unrealized_pnl?, available_cash? }`
+
 - LLM decision and normalization
   - `LlmDecisionItem { instrument, action: (buy|sell|flat|noop), target_qty, confidence?, rationale? }`
   - `LlmPlanProposal { ts, items: List[LlmDecisionItem], notes?, model_meta? }`
-  - `TradeInstruction { instruction_id, instrument, side: (buy|sell), quantity, price_mode, limit_price?, max_slippage_bps?, meta? }`
-  - `ComposeContext { ts, features, portfolio, digest, prompt_text, market_snapshot?, constraints? }`
+  - `TradeInstruction { instruction_id, compose_id, instrument, side: (buy|sell), quantity, price_mode, limit_price?, max_slippage_bps?, meta? }`
+  - `ComposeContext { ts, compose_id, strategy_id?, features, portfolio, digest, prompt_text, market_snapshot?, constraints? }`
+
 - History and digest
   - `HistoryRecord { ts, kind, reference_id, payload }`
   - `TradeDigestEntry { instrument, trade_count, realized_pnl, win_rate?, avg_holding_ms?, last_trade_ts?, avg_entry_price?, max_drawdown?, recent_performance_score? }`
   - `TradeDigest { ts, by_instrument: Dict[symbol, TradeDigestEntry] }`
+
 - UI/summary and series (optional; for leaderboard and charts)
-  - `TradingMode = (live|paper)`
+  - `TradingMode = (live|virtual)`
   - `StrategyStatus = (running|paused|stopped|error)`
   - `StrategySummary { strategy_id?, name?, model_provider?, model_id?, exchange_id?, mode?, status?, pnl_abs?, pnl_pct?, last_updated_ts? }`
   - `MetricPoint { ts, value }`
@@ -98,6 +105,13 @@ Additional notes:
 
 - `mark_price` in `PositionSnapshot` allows consistent P&L visualization without coupling to feed-specific last trade logic.
 - The UI-oriented DTOs (`StrategySummary`, `PortfolioValueSeries`, etc.) are additive and do not affect the core compose/execute pipeline.
+
+## ID and correlation model
+
+- `strategy_id`: identity of a running strategy; used by UI aggregation (`StrategySummary`, `PortfolioValueSeries`).
+- `compose_id`: unique id generated per decision cycle by the coordinator. It is carried in `ComposeContext` and copied into each `TradeInstruction` for correlation. `HistoryRecord.reference_id` uses this id.
+- `instruction_id`: deterministic id for idempotency, recommended format: `${compose_id}:${instrument.symbol}` (or include an ordinal if multiple instructions per instrument).
+- `trade_id`: execution-layer id for a closed trade. `TradeHistoryEntry` can store `compose_id` and `instruction_id` optionally to link back to the decision that initiated it.
 
 ## Abstract Interfaces (contracts)
 
