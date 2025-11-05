@@ -4,12 +4,12 @@ from typing import Dict, List, Optional
 from pydantic import BaseModel, Field, field_validator
 
 from .constants import (
-    DEFAULT_INITIAL_CAPITAL,
     DEFAULT_AGENT_MODEL,
-    DEFAULT_MODEL_PROVIDER,
+    DEFAULT_INITIAL_CAPITAL,
+    DEFAULT_MAX_LEVERAGE,
     DEFAULT_MAX_POSITIONS,
     DEFAULT_MAX_SYMBOLS,
-    DEFAULT_MAX_LEVERAGE,
+    DEFAULT_MODEL_PROVIDER,
 )
 
 
