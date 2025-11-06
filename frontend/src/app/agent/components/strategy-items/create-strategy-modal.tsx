@@ -282,7 +282,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
       </DialogTrigger>
 
       <DialogContent
-        className="flex max-h-[90vh] flex-col"
+        className="flex max-h-[90vh] min-h-96 flex-col"
         showCloseButton={false}
         aria-describedby={undefined}
       >
@@ -713,7 +713,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
         </ScrollContainer>
 
         {/* Footer buttons */}
-        <div className="flex gap-6">
+        <div className="mt-auto flex gap-6">
           <Button
             type="button"
             variant="outline"
