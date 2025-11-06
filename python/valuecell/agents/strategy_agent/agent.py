@@ -66,7 +66,7 @@ class StrategyAgent(BaseAgent):
         except asyncio.CancelledError:
             raise
         except Exception as err:  # noqa: BLE001
-            logger.exception("StrategyAgent stream failed: %%s", err)
+            logger.exception("StrategyAgent stream failed: {}", err)
             yield streaming.message_chunk(f"StrategyAgent error: {err}")
         finally:
             yield streaming.done()

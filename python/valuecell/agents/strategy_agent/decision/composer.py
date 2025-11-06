@@ -493,11 +493,7 @@ class LlmComposer(Composer):
     ) -> float:
         if item.action == LlmDecisionAction.NOOP:
             return current_qty
-        if item.action == LlmDecisionAction.FLAT:
-            target = 0.0
-        else:
-            target = float(item.target_qty)
-
+        target = float(item.target_qty)
         if max_position_qty is not None:
             max_abs = abs(float(max_position_qty))
             target = max(-max_abs, min(max_abs, target))
