@@ -266,7 +266,14 @@ class LlmComposer(Composer):
             # Set additional purchasable units to 0 but proceed with piecewise logic
             # so that de-risking trades are not blocked.
             a = abs(current_qty)
-            ap_units = (avail_bp / float(px)) if avail_bp > 0 else 0.0
+            # Conservative buffer for expected slippage: assume execution price may move
+            # against us by `self._default_slippage_bps`. Use a higher effective price
+            # when computing how many units fit into available buying power so that
+            # planned increases don't accidentally exceed real-world costs.
+            slip_bps = float(self._default_slippage_bps or 0.0)
+            slip = slip_bps / 10000.0
+            effective_px = float(px) * (1.0 + slip)
+            ap_units = (avail_bp / effective_px) if avail_bp > 0 else 0.0
 
             # Piecewise: additional gross consumption must fit into available BP
             if side is TradeSide.BUY:
