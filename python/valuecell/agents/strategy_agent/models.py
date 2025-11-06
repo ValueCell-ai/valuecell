@@ -10,6 +10,7 @@ from .constants import (
     DEFAULT_MAX_POSITIONS,
     DEFAULT_MAX_SYMBOLS,
     DEFAULT_MODEL_PROVIDER,
+    DEFAULT_CAP_FACTOR,
 )
 
 
@@ -110,6 +111,12 @@ class TradingConfig(BaseModel):
     custom_prompt: Optional[str] = Field(
         default=None,
         description="Optional custom prompt to customize strategy behavior",
+    )
+
+    cap_factor: float = Field(
+        default=DEFAULT_CAP_FACTOR,
+        description="Notional cap factor used by the composer to limit per-symbol exposure (e.g., 1.5)",
+        gt=0,
     )
 
     @field_validator("symbols")

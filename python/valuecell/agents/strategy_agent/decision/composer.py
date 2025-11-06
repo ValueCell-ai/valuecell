@@ -217,7 +217,9 @@ class LlmComposer(Composer):
         # Step 2: notional/leverage cap (Phase 1 rules)
         price = price_map.get(symbol)
         if price is not None and price > 0:
-            cap_factor = 1.5
+            # cap_factor controls how aggressively we allow position sizing by notional.
+            # Make it configurable via trading_config.cap_factor (strategy parameter).
+            cap_factor = float(getattr(self._request.trading_config, "cap_factor", 1.5) or 1.5)
             if constraints.quantity_step and constraints.quantity_step > 0:
                 cap_factor = max(cap_factor, 1.5)
 
