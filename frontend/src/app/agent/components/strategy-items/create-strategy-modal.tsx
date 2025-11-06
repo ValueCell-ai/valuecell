@@ -284,6 +284,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
       <DialogContent
         className="flex max-h-[90vh] flex-col"
         showCloseButton={false}
+        aria-describedby={undefined}
       >
         <DialogTitle className="flex flex-col gap-4 px-1">
           <div className="flex items-center justify-between">
