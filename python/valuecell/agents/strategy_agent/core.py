@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List
 
 from valuecell.utils.uuid import generate_uuid
 
@@ -99,10 +99,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         execution_gateway: ExecutionGateway,
         history_recorder: HistoryRecorder,
         digest_builder: DigestBuilder,
-        interval: str = "1m",
-        lookback: int = 20,
-        prompt_provider: Optional[Callable[[UserRequest], str]] = None,
-        clock: Optional[Callable[[], datetime]] = None,
+        prompt_provider: Callable[[UserRequest], str],
         history_limit: int = 200,
     ) -> None:
         self._request = request
@@ -114,14 +111,12 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         self._execution_gateway = execution_gateway
         self._history_recorder = history_recorder
         self._digest_builder = digest_builder
-        self._interval = interval
-        self._lookback = lookback
         self._history_limit = max(history_limit, 1)
         self._symbols = list(dict.fromkeys(request.trading_config.symbols))
-        self._prompt_provider = (
-            prompt_provider if prompt_provider is not None else self._default_prompt
-        )
-        self._clock = clock if clock is not None else _default_clock
+        # prompt_provider is a required parameter (caller must supply a prompt builder)
+        self._prompt_provider = prompt_provider
+        # Use the default clock internally; clock is not a constructor parameter
+        self._clock = _default_clock
         self._history_records: List[HistoryRecord] = []
         self._realized_pnl: float = 0.0
         self._unrealized_pnl: float = 0.0
@@ -133,8 +128,9 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         compose_id = generate_uuid("compose")
 
         portfolio = self._portfolio_service.get_view()
+        # Use fixed 1-minute interval and lookback of 4 hours (60 * 4 minutes)
         candles = await self._market_data_source.get_recent_candles(
-            self._symbols, self._interval, self._lookback
+            self._symbols, "1m", 60 * 4
         )
         features = self._feature_computer.compute_features(candles=candles)
         market_snapshot = _build_market_snapshot(features)
@@ -187,13 +183,6 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             portfolio_view=portfolio,
         )
 
-    def _default_prompt(self, request: UserRequest) -> str:
-        custom_prompt = request.trading_config.custom_prompt
-        if custom_prompt:
-            return custom_prompt
-        symbols = ", ".join(self._symbols)
-        return f"Compose trading instructions for symbols: {symbols}."
-
     def _create_trades(
         self,
         tx_results: List[TxResult],
@@ -215,32 +204,30 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             fee = float(tx.fee_cost or 0.0)
             realized_pnl = -fee if notional else None
             trade = TradeHistoryEntry(
-                    trade_id=generate_uuid("trade"),
-                    compose_id=compose_id,
-                    instruction_id=tx.instruction_id,
-                    strategy_id=self.strategy_id,
-                    instrument=tx.instrument,
-                    side=tx.side,
-                    type=TradeType.LONG
-                    if tx.side == TradeSide.BUY
-                    else TradeType.SHORT,
-                    quantity=qty,
-                    entry_price=price or None,
-                    exit_price=None,
-                    notional_entry=notional or None,
-                    notional_exit=None,
-                    entry_ts=timestamp_ms,
-                    exit_ts=None,
-                    trade_ts=timestamp_ms,
-                    holding_ms=None,
-                    realized_pnl=realized_pnl,
-                    realized_pnl_pct=((realized_pnl or 0.0) / notional)
-                    if notional
-                    else None,
-                    leverage=tx.leverage,
-                    note=None,
-                )
-            
+                trade_id=generate_uuid("trade"),
+                compose_id=compose_id,
+                instruction_id=tx.instruction_id,
+                strategy_id=self.strategy_id,
+                instrument=tx.instrument,
+                side=tx.side,
+                type=TradeType.LONG if tx.side == TradeSide.BUY else TradeType.SHORT,
+                quantity=qty,
+                entry_price=price or None,
+                exit_price=None,
+                notional_entry=notional or None,
+                notional_exit=None,
+                entry_ts=timestamp_ms,
+                exit_ts=None,
+                trade_ts=timestamp_ms,
+                holding_ms=None,
+                realized_pnl=realized_pnl,
+                realized_pnl_pct=(
+                    ((realized_pnl or 0.0) / notional) if notional else None
+                ),
+                leverage=tx.leverage,
+                note=None,
+            )
+
             # If this tx likely closes an existing position (opposite side exists in pre_view),
             # try to find the most recent open trade for this instrument in past execution history
             # and annotate that past record with exit details so entries and exits are paired.
@@ -251,9 +238,8 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                     if prev_pos is not None:
                         # prev_pos.quantity sign indicates current exposure direction
                         is_closing = (
-                            (prev_pos.quantity > 0 and tx.side == TradeSide.SELL)
-                            or (prev_pos.quantity < 0 and tx.side == TradeSide.BUY)
-                        )
+                            prev_pos.quantity > 0 and tx.side == TradeSide.SELL
+                        ) or (prev_pos.quantity < 0 and tx.side == TradeSide.BUY)
                     else:
                         is_closing = False
                 else:
@@ -282,10 +268,14 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                                 entry_ts_prev = t.get("entry_ts") or t.get("trade_ts")
                                 if entry_ts_prev:
                                     try:
-                                        t["holding_ms"] = int(timestamp_ms - int(entry_ts_prev))
+                                        t["holding_ms"] = int(
+                                            timestamp_ms - int(entry_ts_prev)
+                                        )
                                     except Exception:
                                         t["holding_ms"] = None
-                                t["notional_exit"] = float(price * qty) if price and qty else None
+                                t["notional_exit"] = (
+                                    float(price * qty) if price and qty else None
+                                )
                                 paired_id = t.get("trade_id")
                                 break
                         except Exception:
@@ -299,7 +289,6 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
 
             trades.append(trade)
         return trades
-
 
     def _build_summary(
         self,

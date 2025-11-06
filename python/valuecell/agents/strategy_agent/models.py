@@ -5,12 +5,12 @@ from pydantic import BaseModel, Field, field_validator
 
 from .constants import (
     DEFAULT_AGENT_MODEL,
+    DEFAULT_CAP_FACTOR,
     DEFAULT_INITIAL_CAPITAL,
     DEFAULT_MAX_LEVERAGE,
     DEFAULT_MAX_POSITIONS,
     DEFAULT_MAX_SYMBOLS,
     DEFAULT_MODEL_PROVIDER,
-    DEFAULT_CAP_FACTOR,
 )
 
 
@@ -303,7 +303,8 @@ class PortfolioView(BaseModel):
         default=None, description="Sum of unrealized PnL across positions"
     )
     buying_power: Optional[float] = Field(
-        default=None, description="Buying power: max(0, equity * max_leverage - gross_exposure)"
+        default=None,
+        description="Buying power: max(0, equity * max_leverage - gross_exposure)",
     )
 
 
