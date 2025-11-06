@@ -12,6 +12,22 @@ export interface Strategy {
   model_id: string;
 }
 
+// Trade types
+export interface Trade {
+  trade_id: string;
+  symbol: string;
+  type: "LONG" | "SHORT";
+  side: "BUY" | "SELL";
+  leverage: number;
+  quantity: number;
+  unrealized_pnl: number;
+  entry_price: number;
+  exit_price: number | null;
+  holding_ms: number;
+  time: string;
+  note: string;
+}
+
 // Create Strategy Request types
 export interface CreateStrategyRequest {
   // LLM Model Configuration

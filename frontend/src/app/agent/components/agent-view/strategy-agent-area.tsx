@@ -1,10 +1,15 @@
 import { Plus } from "lucide-react";
-import type { FC } from "react";
-import { useGetStrategyList } from "@/api/strategy";
+import { type FC, useEffect, useState } from "react";
+import { useGetStrategyList, useGetStrategyTrades } from "@/api/strategy";
 import { Button } from "@/components/ui/button";
 import { MOCK_STRATEGIES } from "@/mock/strategy-data";
 import type { AgentViewProps } from "@/types/agent";
-import { CreateStrategyModal, TradeStrategyGroup } from "../strategy-items";
+import type { Strategy } from "@/types/strategy";
+import {
+  CreateStrategyModal,
+  TradeHistoryGroup,
+  TradeStrategyGroup,
+} from "../strategy-items";
 
 const EmptyIllustration = () => (
   <svg
@@ -23,18 +28,34 @@ const EmptyIllustration = () => (
 const StrategyAgentArea: FC<AgentViewProps> = () => {
   const { data: strategies = MOCK_STRATEGIES, isLoading } =
     useGetStrategyList();
+  const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(
+    null,
+  );
+
+  const { data: trades = [] } = useGetStrategyTrades(
+    selectedStrategy?.strategy_id,
+  );
+
+  useEffect(() => {
+    if (strategies && strategies.length > 0) {
+      setSelectedStrategy(strategies[0]);
+    }
+  }, [strategies]);
 
   if (isLoading) return null;
 
-  // Show empty state when there are no strategies
   return (
     <div className="flex flex-1 overflow-hidden">
-      {/* Left section: Strategy list empty state */}
+      {/* Left section: Strategy list */}
       <div className="flex w-96 flex-col gap-4 border-r py-6 *:px-6">
         <p className="font-semibold text-base">Trading Strategies</p>
 
         {strategies && strategies.length > 0 ? (
-          <TradeStrategyGroup strategies={strategies} />
+          <TradeStrategyGroup
+            strategies={strategies}
+            selectedStrategy={selectedStrategy}
+            onStrategySelect={setSelectedStrategy}
+          />
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-4">
             <EmptyIllustration />
@@ -57,14 +78,21 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
         )}
       </div>
 
-      {/* Right section: Strategy details empty state */}
+      {/* Right section: Trade History */}
       <div className="flex flex-1">
-        <div className="flex size-full flex-col items-center justify-center gap-8">
-          <EmptyIllustration />
-          <p className="font-normal text-base text-gray-400">
-            No running strategies
-          </p>
-        </div>
+        {selectedStrategy ? (
+          <TradeHistoryGroup
+            trades={trades}
+            tradingMode={selectedStrategy.trading_mode}
+          />
+        ) : (
+          <div className="flex size-full flex-col items-center justify-center gap-8">
+            <EmptyIllustration />
+            <p className="font-normal text-base text-gray-400">
+              No running strategies
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

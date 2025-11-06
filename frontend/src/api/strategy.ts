@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { API_QUERY_KEYS } from "@/constants/api";
 import { type ApiResponse, apiClient } from "@/lib/api-client";
-import type { CreateStrategyRequest, Strategy } from "@/types/strategy";
+import type { CreateStrategyRequest, Strategy, Trade } from "@/types/strategy";
 
 export const useGetStrategyList = () => {
   return useQuery({
@@ -13,6 +13,18 @@ export const useGetStrategyList = () => {
         }>
       >("/strategies"),
     select: (data) => data.data.strategies,
+  });
+};
+
+export const useGetStrategyTrades = (strategyId?: string) => {
+  return useQuery({
+    queryKey: API_QUERY_KEYS.STRATEGY.strategyTrades([strategyId ?? ""]),
+    queryFn: () =>
+      apiClient.get<ApiResponse<Trade[]>>(
+        `/strategies/detail?id=${strategyId}`,
+      ),
+    select: (data) => data.data,
+    enabled: !!strategyId,
   });
 };
 

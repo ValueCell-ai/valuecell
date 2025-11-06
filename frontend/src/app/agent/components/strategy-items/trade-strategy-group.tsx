@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import { type FC, memo, useState } from "react";
+import { type FC, memo } from "react";
 import { StrategyStatus } from "@/assets/svg";
 import { Button } from "@/components/ui/button";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
@@ -18,9 +18,8 @@ interface TradeStrategyCardProps {
 
 interface TradeStrategyGroupProps {
   strategies: Strategy[];
-
-  isSelected?: boolean;
-  onClick?: () => void;
+  selectedStrategy?: Strategy | null;
+  onStrategySelect?: (strategy: Strategy) => void;
 }
 
 const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
@@ -84,11 +83,11 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
   );
 };
 
-const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({ strategies }) => {
-  const [selectedStrategyId, setSelectedStrategyId] = useState<string | null>(
-    strategies[0]?.strategy_id || null,
-  );
-
+const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
+  strategies,
+  selectedStrategy,
+  onStrategySelect,
+}) => {
   return (
     <>
       <ScrollContainer className="flex-1">
@@ -97,8 +96,10 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({ strategies }) => {
             <TradeStrategyCard
               key={strategy.strategy_id}
               strategy={strategy}
-              isSelected={selectedStrategyId === strategy.strategy_id}
-              onClick={() => setSelectedStrategyId(strategy.strategy_id)}
+              isSelected={
+                selectedStrategy?.strategy_id === strategy.strategy_id
+              }
+              onClick={() => onStrategySelect?.(strategy)}
             />
           ))}
         </div>
