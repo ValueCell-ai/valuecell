@@ -300,10 +300,6 @@ class LlmPlanProposal(BaseModel):
 
     ts: int
     items: List[LlmDecisionItem] = Field(default_factory=list)
-    notes: Optional[List[str]] = Field(default=None)
-    model_meta: Optional[Dict[str, str]] = Field(
-        default=None, description="Optional model metadata (e.g., model_name)"
-    )
 
 
 class TradeInstruction(BaseModel):
