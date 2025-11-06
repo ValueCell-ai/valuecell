@@ -530,10 +530,16 @@ class InMemoryPortfolioService(PortfolioService):
 
             # Update cash by trade notional
             notional = price * delta
+            # Deduct fees from cash as well. Trade may include fee_cost (in quote ccy).
+            fee = trade.fee_cost or 0.0
             if trade.side == TradeSide.BUY:
+                # buying reduces cash by notional plus fees
                 self._view.cash -= notional
+                self._view.cash -= fee
             else:
+                # selling increases cash by notional minus fees
                 self._view.cash += notional
+                self._view.cash -= fee
 
             # Recompute per-position derived fields (if position still exists)
             pos = self._view.positions.get(symbol)

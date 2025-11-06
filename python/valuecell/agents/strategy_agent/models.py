@@ -515,6 +515,10 @@ class TradeHistoryEntry(BaseModel):
     holding_ms: Optional[int] = Field(default=None, description="Holding time in ms")
     realized_pnl: Optional[float] = Field(default=None)
     realized_pnl_pct: Optional[float] = Field(default=None)
+    # Total fees charged for this trade in quote currency (if available)
+    fee_cost: Optional[float] = Field(
+        default=None, description="Total fees charged in quote currency for this trade"
+    )
     leverage: Optional[float] = Field(default=None)
     note: Optional[str] = Field(
         default=None, description="Optional free-form note or comment about the trade"

@@ -229,7 +229,11 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                     is_full_close = close_units >= abs(prev_qty) - eps
                     pos_dir_type = TradeType.SHORT
 
-            if is_full_close and prev_pos is not None and prev_pos.avg_price is not None:
+            if (
+                is_full_close
+                and prev_pos is not None
+                and prev_pos.avg_price is not None
+            ):
                 # Build a completed trade that ties back to the original open (avg_price/entry_ts)
                 entry_px = float(prev_pos.avg_price or 0.0)
                 entry_ts_prev = int(prev_pos.entry_ts) if prev_pos.entry_ts else None
@@ -243,13 +247,19 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                         core_pnl = (float(exit_px) - float(entry_px)) * qty_closed
                     else:  # SHORT
                         core_pnl = (float(entry_px) - float(exit_px)) * qty_closed
-                realized_pnl = (core_pnl if core_pnl is not None else None)
+                realized_pnl = core_pnl if core_pnl is not None else None
                 if realized_pnl is not None:
                     realized_pnl = float(realized_pnl) - fee
-                notional_entry = (qty_closed * entry_px) if entry_px and qty_closed else None
-                notional_exit = (qty_closed * float(exit_px)) if exit_px and qty_closed else None
+                notional_entry = (
+                    (qty_closed * entry_px) if entry_px and qty_closed else None
+                )
+                notional_exit = (
+                    (qty_closed * float(exit_px)) if exit_px and qty_closed else None
+                )
                 realized_pnl_pct = (
-                    (realized_pnl / notional_entry) if realized_pnl is not None and notional_entry else None
+                    (realized_pnl / notional_entry)
+                    if realized_pnl is not None and notional_entry
+                    else None
                 )
 
                 trade = TradeHistoryEntry(
@@ -259,7 +269,10 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                     strategy_id=self.strategy_id,
                     instrument=tx.instrument,
                     side=tx.side,
-                    type=pos_dir_type or (TradeType.LONG if tx.side == TradeSide.BUY else TradeType.SHORT),
+                    type=pos_dir_type
+                    or (
+                        TradeType.LONG if tx.side == TradeSide.BUY else TradeType.SHORT
+                    ),
                     quantity=qty_closed or qty,
                     entry_price=entry_px or None,
                     exit_price=exit_px,
@@ -271,7 +284,13 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                     holding_ms=(exit_ts - entry_ts_prev) if entry_ts_prev else None,
                     realized_pnl=realized_pnl,
                     realized_pnl_pct=realized_pnl_pct,
-                    leverage=tx.leverage,
+                    # For a full close, reflect the leverage of the closed position, not the closing instruction
+                    leverage=(
+                        float(prev_pos.leverage)
+                        if getattr(prev_pos, "leverage", None) is not None
+                        else tx.leverage
+                    ),
+                    fee_cost=fee or None,
                     note=(tx.meta.get("rationale") if tx.meta else None),
                 )
             else:
@@ -283,7 +302,9 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                     strategy_id=self.strategy_id,
                     instrument=tx.instrument,
                     side=tx.side,
-                    type=TradeType.LONG if tx.side == TradeSide.BUY else TradeType.SHORT,
+                    type=(
+                        TradeType.LONG if tx.side == TradeSide.BUY else TradeType.SHORT
+                    ),
                     quantity=qty,
                     entry_price=price or None,
                     exit_price=None,
@@ -298,13 +319,14 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                         ((realized_pnl or 0.0) / notional) if notional else None
                     ),
                     leverage=tx.leverage,
+                    fee_cost=fee or None,
                     note=(tx.meta.get("rationale") if tx.meta else None),
                 )
 
             # If reducing/closing but not a full close, try to annotate the most recent open trade
-            is_closing = (
-                prev_pos is not None
-                and ((prev_qty > 0 and tx.side == TradeSide.SELL) or (prev_qty < 0 and tx.side == TradeSide.BUY))
+            is_closing = prev_pos is not None and (
+                (prev_qty > 0 and tx.side == TradeSide.SELL)
+                or (prev_qty < 0 and tx.side == TradeSide.BUY)
             )
             if is_closing and not is_full_close:
                 # scan history records (most recent first) to find an open trade for this symbol
