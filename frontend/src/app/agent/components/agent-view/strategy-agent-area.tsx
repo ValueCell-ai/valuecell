@@ -7,6 +7,7 @@ import type { AgentViewProps } from "@/types/agent";
 import type { Strategy } from "@/types/strategy";
 import {
   CreateStrategyModal,
+  PortfolioPositionsGroup,
   TradeHistoryGroup,
   TradeStrategyGroup,
 } from "../strategy-items";
@@ -78,13 +79,18 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
         )}
       </div>
 
-      {/* Right section: Trade History */}
+      {/* Right section: Trade History and Portfolio/Positions */}
       <div className="flex flex-1">
         {selectedStrategy ? (
+          <>
           <TradeHistoryGroup
             trades={trades}
             tradingMode={selectedStrategy.trading_mode}
           />
+            <PortfolioPositionsGroup
+              strategyId={selectedStrategy.strategy_id}
+            />
+          </>
         ) : (
           <div className="flex size-full flex-col items-center justify-center gap-8">
             <EmptyIllustration />

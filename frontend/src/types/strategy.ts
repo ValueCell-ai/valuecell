@@ -28,6 +28,23 @@ export interface Trade {
   note: string;
 }
 
+// Position types
+export interface Position {
+  symbol: string;
+  type: "LONG" | "SHORT";
+  leverage: number;
+  entry_price: number;
+  quantity: number;
+  unrealized_pnl: number;
+  unrealized_pnl_pct: number;
+}
+
+// Portfolio price curve response
+export interface PortfolioPriceCurve {
+  data: Array<Array<string | number>>;
+  create_time: string;
+}
+
 // Create Strategy Request types
 export interface CreateStrategyRequest {
   // LLM Model Configuration

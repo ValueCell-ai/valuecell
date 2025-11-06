@@ -1,4 +1,9 @@
-import type { Strategy, Trade } from "@/types/strategy";
+import type {
+  PortfolioPriceCurve,
+  Position,
+  Strategy,
+  Trade,
+} from "@/types/strategy";
 
 /**
  * Mock strategy data for development and testing
@@ -372,6 +377,186 @@ export const MOCK_TRADES: Record<string, Trade[]> = {
       holding_ms: 259200000, // 72 hours
       time: "2024-11-01T09:10:00Z",
       note: "Yield farming cycle complete. Rewards harvested and position closed.",
+    },
+  ],
+};
+
+/**
+ * Mock portfolio price curve data for development and testing
+ */
+export const MOCK_PORTFOLIO_PRICE_CURVE: Record<string, PortfolioPriceCurve> = {
+  "str-001": {
+    data: [
+      ["Time", "Portfolio Value"],
+      ["2024-11-06T06:00:00Z", 100000],
+      ["2024-11-06T06:30:00Z", 100234],
+      ["2024-11-06T07:00:00Z", 100456],
+      ["2024-11-06T07:30:00Z", 100123],
+      ["2024-11-06T08:00:00Z", 100678],
+      ["2024-11-06T08:30:00Z", 101234],
+      ["2024-11-06T09:00:00Z", 101234.56],
+    ],
+    create_time: "2024-11-06T09:00:00Z",
+  },
+  "str-002": {
+    data: [
+      ["Time", "Portfolio Value"],
+      ["2024-11-06T06:00:00Z", 100000],
+      ["2024-11-06T06:30:00Z", 99876],
+      ["2024-11-06T07:00:00Z", 99654],
+      ["2024-11-06T07:30:00Z", 99432],
+      ["2024-11-06T08:00:00Z", 99321],
+      ["2024-11-06T08:30:00Z", 99456],
+      ["2024-11-06T09:00:00Z", 99543.22],
+    ],
+    create_time: "2024-11-06T09:00:00Z",
+  },
+  "str-004": {
+    data: [
+      ["Time", "Portfolio Value"],
+      ["2024-11-06T06:00:00Z", 100000],
+      ["2024-11-06T06:30:00Z", 100567],
+      ["2024-11-06T07:00:00Z", 101234],
+      ["2024-11-06T07:30:00Z", 101890],
+      ["2024-11-06T08:00:00Z", 102123],
+      ["2024-11-06T08:30:00Z", 102456],
+      ["2024-11-06T09:00:00Z", 102345.67],
+    ],
+    create_time: "2024-11-06T09:00:00Z",
+  },
+  "str-007": {
+    data: [
+      ["Time", "Portfolio Value"],
+      ["2024-11-06T08:00:00Z", 100000],
+      ["2024-11-06T08:15:00Z", 100123],
+      ["2024-11-06T08:30:00Z", 100234],
+      ["2024-11-06T08:45:00Z", 100456],
+      ["2024-11-06T09:00:00Z", 100567.89],
+    ],
+    create_time: "2024-11-06T09:00:00Z",
+  },
+  "str-008": {
+    data: [
+      ["Time", "Portfolio Value"],
+      ["2024-11-04T09:00:00Z", 100000],
+      ["2024-11-05T09:00:00Z", 101234],
+      ["2024-11-06T09:00:00Z", 103456.78],
+    ],
+    create_time: "2024-11-06T09:00:00Z",
+  },
+};
+
+/**
+ * Mock position data for development and testing
+ */
+export const MOCK_POSITIONS: Record<string, Position[]> = {
+  "str-001": [
+    {
+      symbol: "BTC-USDT",
+      type: "LONG",
+      leverage: 20,
+      entry_price: 42500.0,
+      quantity: 0.0038,
+      unrealized_pnl: 34.56,
+      unrealized_pnl_pct: 0.21,
+    },
+    {
+      symbol: "ETH-USDT",
+      type: "LONG",
+      leverage: 10,
+      entry_price: 2850.0,
+      quantity: 0.0012,
+      unrealized_pnl: 24.56,
+      unrealized_pnl_pct: 0.33,
+    },
+    {
+      symbol: "SOL-USDT",
+      type: "LONG",
+      leverage: 10,
+      entry_price: 98.5,
+      quantity: 0.0012,
+      unrealized_pnl: 10.56,
+      unrealized_pnl_pct: 0.29,
+    },
+    {
+      symbol: "DOGE-USDT",
+      type: "SHORT",
+      leverage: 10,
+      entry_price: 0.085,
+      quantity: 0.0012,
+      unrealized_pnl: -10.56,
+      unrealized_pnl_pct: -0.2,
+    },
+    {
+      symbol: "XRP-USDT",
+      type: "SHORT",
+      leverage: 10,
+      entry_price: 0.52,
+      quantity: 0.0012,
+      unrealized_pnl: -10.56,
+      unrealized_pnl_pct: -0.2,
+    },
+  ],
+  "str-002": [
+    {
+      symbol: "ETH-USDT",
+      type: "LONG",
+      leverage: 2,
+      entry_price: 2850.0,
+      quantity: 5.0,
+      unrealized_pnl: -456.78,
+      unrealized_pnl_pct: -3.2,
+    },
+  ],
+  "str-004": [
+    {
+      symbol: "SOL-USDT",
+      type: "LONG",
+      leverage: 5,
+      entry_price: 98.5,
+      quantity: 50.0,
+      unrealized_pnl: 1234.5,
+      unrealized_pnl_pct: 25.1,
+    },
+  ],
+  "str-007": [
+    {
+      symbol: "BTC-USDT",
+      type: "LONG",
+      leverage: 10,
+      entry_price: 42450.0,
+      quantity: 0.1,
+      unrealized_pnl: 123.45,
+      unrealized_pnl_pct: 2.91,
+    },
+    {
+      symbol: "ETH-USDT",
+      type: "SHORT",
+      leverage: 10,
+      entry_price: 2895.0,
+      quantity: 1.0,
+      unrealized_pnl: 45.67,
+      unrealized_pnl_pct: 1.58,
+    },
+  ],
+  "str-008": [
+    {
+      symbol: "UNI-USDT",
+      type: "LONG",
+      leverage: 1,
+      entry_price: 6.5,
+      quantity: 1000.0,
+      unrealized_pnl: 2345.67,
+      unrealized_pnl_pct: 36.09,
+    },
+    {
+      symbol: "AAVE-USDT",
+      type: "LONG",
+      leverage: 1,
+      entry_price: 145.0,
+      quantity: 50.0,
+      unrealized_pnl: 890.12,
+      unrealized_pnl_pct: 12.28,
     },
   ],
 };
