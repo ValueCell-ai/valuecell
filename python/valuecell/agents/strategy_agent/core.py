@@ -158,7 +158,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         )
 
         trades = self._create_trades(tx_results, compose_id, timestamp_ms)
-        self._apply_trades_to_portfolio(trades, market_snapshot)
+        self._portfolio_service.apply_trades(trades, market_snapshot)
         summary = self._build_summary(timestamp_ms, trades)
 
         history_records = self._create_history_records(
@@ -300,19 +300,6 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             trades.append(trade)
         return trades
 
-    def _apply_trades_to_portfolio(
-        self,
-        trades: List[TradeHistoryEntry],
-        market_snapshot: Dict[str, float],
-    ) -> None:
-        if not trades:
-            return
-        # PortfolioService now exposes apply_trades; call directly to update state
-        try:
-            self._portfolio_service.apply_trades(trades, market_snapshot)
-        except NotImplementedError:
-            # service may be read-only; ignore
-            return
 
     def _build_summary(
         self,
