@@ -295,8 +295,8 @@ class PortfolioView(BaseModel):
     total_unrealized_pnl: Optional[float] = Field(
         default=None, description="Sum of unrealized PnL across positions"
     )
-    available_cash: Optional[float] = Field(
-        default=None, description="Cash available for new positions"
+    buying_power: Optional[float] = Field(
+        default=None, description="Buying power: max(0, equity * max_leverage - gross_exposure)"
     )
 
 
@@ -305,13 +305,11 @@ class LlmDecisionAction(str, Enum):
 
     Semantics:
     - BUY/SELL: directional intent; final TradeSide is decided by delta (target - current)
-    - FLAT: target position is zero (may produce close-out instructions)
     - NOOP: target equals current (delta == 0), no instruction should be emitted
     """
 
     BUY = "buy"
     SELL = "sell"
-    FLAT = "flat"
     NOOP = "noop"
 
 

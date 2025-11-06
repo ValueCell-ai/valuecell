@@ -404,8 +404,7 @@ class InMemoryPortfolioService(PortfolioService):
     - net_exposure   = sum(qty * mark_price)
     - equity (total_value) = cash + net_exposure  [correct for both long and short]
     - total_unrealized_pnl = sum((mark_price - avg_price) * qty)
-    - available_cash approximates buying power with leverage:
-        available_cash = max(0, equity * max_leverage - gross_exposure)
+    - buying_power: max(0, equity * max_leverage - gross_exposure)
       where max_leverage comes from portfolio.constraints (default 1.0)
     """
 
@@ -429,7 +428,7 @@ class InMemoryPortfolioService(PortfolioService):
             constraints=constraints or None,
             total_value=initial_capital,
             total_unrealized_pnl=0.0,
-            available_cash=initial_capital,
+            buying_power=initial_capital,
         )
         self._trading_mode = trading_mode
 
@@ -451,8 +450,9 @@ class InMemoryPortfolioService(PortfolioService):
         This method updates:
         - cash (subtract on BUY, add on SELL at trade price)
         - positions with weighted avg price, entry_ts on (re)open, and mark_price
-        - per-position notional, unrealized_pnl, pnl_pct
-        - portfolio aggregates: gross_exposure, net_exposure, total_value (equity), total_unrealized_pnl, available_cash (buying power)
+        - per-position notional, unrealized_pnl, unrealized_pnl_pct (and keeps pnl_pct for
+          backward compatibility)
+        - portfolio aggregates: gross_exposure, net_exposure, total_value (equity), total_unrealized_pnl, buying_power
         """
         for trade in trades:
             symbol = trade.instrument.symbol
@@ -545,11 +545,13 @@ class InMemoryPortfolioService(PortfolioService):
                 if apx and mpx:
                     pos.unrealized_pnl = (mpx - apx) * qty
                     denom = abs(qty) * apx
-                    pos.pnl_pct = (
-                        (pos.unrealized_pnl / denom) * 100.0 if denom else None
-                    )
+                    pct = (pos.unrealized_pnl / denom) * 100.0 if denom else None
+                    # populate both the newer field and keep the legacy alias
+                    pos.unrealized_pnl_pct = pct
+                    pos.pnl_pct = pct
                 else:
                     pos.unrealized_pnl = None
+                    pos.unrealized_pnl_pct = None
                     pos.pnl_pct = None
 
         # Recompute portfolio aggregates
@@ -570,13 +572,16 @@ class InMemoryPortfolioService(PortfolioService):
             mpx = float(pos.mark_price or 0.0)
             qty = float(pos.quantity)
             apx = float(pos.avg_price or 0.0)
-            # Recompute unrealized PnL and pnl% with the refreshed mark
+            # Recompute unrealized PnL and percent (populate both new and legacy fields)
             if apx and mpx:
                 pos.unrealized_pnl = (mpx - apx) * qty
                 denom = abs(qty) * apx
-                pos.pnl_pct = (pos.unrealized_pnl / denom) * 100.0 if denom else None
+                pct = (pos.unrealized_pnl / denom) * 100.0 if denom else None
+                pos.unrealized_pnl_pct = pct
+                pos.pnl_pct = pct
             else:
                 pos.unrealized_pnl = None
+                pos.unrealized_pnl_pct = None
                 pos.pnl_pct = None
             gross += abs(qty) * mpx
             net += qty * mpx
@@ -597,7 +602,7 @@ class InMemoryPortfolioService(PortfolioService):
             else 1.0
         )
         buying_power = max(0.0, equity * max_lev - gross)
-        self._view.available_cash = buying_power
+        self._view.buying_power = buying_power
 
 
 @dataclass
