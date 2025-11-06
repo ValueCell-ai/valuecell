@@ -51,19 +51,27 @@ class LlmComposer(Composer):
 
     async def compose(self, context: ComposeContext) -> List[TradeInstruction]:
         prompt = self._build_llm_prompt(context)
+        logger.debug(
+            "Built LLM prompt for compose_id={}: {}",
+            context.compose_id,
+            prompt,
+        )
         try:
             plan = await self._call_llm(prompt)
         except NotImplementedError:
             logger.warning("LLM call not implemented; returning no instructions")
             return []
         except ValidationError as exc:
-            logger.error("LLM output failed validation: %s", exc)
+            logger.error("LLM output failed validation: {}", exc)
             return []
         except Exception:  # noqa: BLE001
             logger.exception("LLM invocation failed")
             return []
 
         if not plan.items:
+            logger.debug(
+                "LLM returned empty plan for compose_id={}", context.compose_id
+            )
             return []
 
         constraints = self._merge_constraints(context)
@@ -117,20 +125,12 @@ class LlmComposer(Composer):
             api_key=cfg.api_key,
         )
 
-        # No custom llm_client support: always wrap the created model in an Agent
-
         # Wrap model in an Agent (consistent with parser_agent usage)
         agent = AgnoAgent(model=model, output_schema=LlmPlanProposal, markdown=False)
         response = await agent.arun(prompt)
         content = getattr(response, "content", None) or response
-
-        # If Agent validated to the schema, response.content may already be the model
-        if isinstance(content, LlmPlanProposal):
-            return content
-
-        # Last resort: try to stringify and parse
-        parsed = json.loads(str(content))
-        return LlmPlanProposal.model_validate(parsed)
+        logger.debug("Received LLM response {}", content)
+        return content
 
     # ------------------------------------------------------------------
     # Normalization / guardrails helpers
@@ -176,6 +176,12 @@ class LlmComposer(Composer):
             delta = target_qty - current_qty
 
             if abs(delta) <= self._quantity_precision:
+                logger.debug(
+                    "Skipping symbol {} because delta {} <= quantity_precision {}",
+                    symbol,
+                    delta,
+                    self._quantity_precision,
+                )
                 continue
 
             is_new_position = (
@@ -188,7 +194,10 @@ class LlmComposer(Composer):
                 and active_positions >= int(max_positions)
             ):
                 logger.warning(
-                    "Skipping symbol %s due to max_positions constraint", symbol
+                    "Skipping symbol {} due to max_positions constraint (active={} max={})",
+                    symbol,
+                    active_positions,
+                    max_positions,
                 )
                 continue
 
@@ -206,6 +215,12 @@ class LlmComposer(Composer):
             )
 
             if quantity <= self._quantity_precision:
+                logger.debug(
+                    "Post-filter quantity for {} is {} <= precision {} -> skipping",
+                    symbol,
+                    quantity,
+                    self._quantity_precision,
+                )
                 continue
 
             # Update projected positions for subsequent guardrails
@@ -241,6 +256,13 @@ class LlmComposer(Composer):
                 meta=meta,
             )
             instructions.append(instruction)
+            logger.debug(
+                "Created TradeInstruction {} for {} side={} qty={}",
+                instruction.instruction_id,
+                symbol,
+                instruction.side,
+                instruction.quantity,
+            )
 
         return instructions
 
