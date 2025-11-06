@@ -17,10 +17,11 @@ class Composer(ABC):
     """
 
     @abstractmethod
-    def compose(self, context: ComposeContext) -> List[TradeInstruction]:
+    async def compose(self, context: ComposeContext) -> List[TradeInstruction]:
         """Produce normalized trade instructions given the current context.
-        Call the LLM, parse/validate output, apply guardrails (limits, step size,
-        min notional, cool-down), and return executable instructions.
-        Any optional auditing metadata should be recorded via HistoryRecorder.
+
+        This method is async because LLM providers and agent wrappers are often
+        asynchronous. Implementations should perform any network/IO and return
+        a validated list of TradeInstruction objects.
         """
         raise NotImplementedError

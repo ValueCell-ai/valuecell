@@ -151,7 +151,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             constraints=None,
         )
 
-        instructions = self._composer.compose(context)
+        instructions = await self._composer.compose(context)
         # Execution gateway may be sync; allow sync execute
         self._execution_gateway.execute(instructions)
 

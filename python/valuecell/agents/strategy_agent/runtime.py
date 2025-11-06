@@ -2,6 +2,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
+from pathlib import Path
 
 import ccxt.pro as ccxtpro
 import numpy as np
@@ -12,12 +13,11 @@ from valuecell.utils.uuid import generate_uuid
 
 from .core import DecisionCycleResult, DefaultDecisionCoordinator
 from .data.interfaces import MarketDataSource
-from .decision.interfaces import Composer
+from .decision.composer import LlmComposer
 from .execution.interfaces import ExecutionGateway
 from .features.interfaces import FeatureComputer
 from .models import (
     Candle,
-    ComposeContext,
     FeatureVector,
     HistoryRecord,
     InstrumentRef,
@@ -33,6 +33,57 @@ from .models import (
 )
 from .portfolio.interfaces import PortfolioService
 from .trading_history.interfaces import DigestBuilder, HistoryRecorder
+
+
+def _make_prompt_provider(template_dir: Optional[Path] = None):
+    """Return a prompt_provider callable that builds prompts from templates.
+
+    Behavior:
+    - If request.trading_config.template_id matches a file under templates dir
+      (try extensions .txt, .md, or exact name), the file content is used.
+    - If request.trading_config.custom_prompt is present, it is appended after
+      the template content (separated by two newlines).
+    - If neither is present, fall back to a simple generated prompt mentioning
+      the symbols.
+    """
+    base = (
+        Path(__file__).parent / "templates" if template_dir is None else template_dir
+    )
+
+    def provider(request: UserRequest) -> str:
+        tid = request.trading_config.template_id
+        custom = request.trading_config.custom_prompt
+
+        template_text = ""
+        if tid:
+            # safe-resolve candidate files
+            candidates = [tid, f"{tid}.txt", f"{tid}.md"]
+            for name in candidates:
+                try_path = (base / name)
+                try:
+                    resolved = try_path.resolve()
+                    # ensure resolved path is inside base
+                    if base.resolve() in resolved.parents or resolved == base.resolve():
+                        if resolved.exists() and resolved.is_file():
+                            template_text = resolved.read_text(encoding="utf-8")
+                            break
+                except Exception:
+                    continue
+
+        parts = []
+        if template_text:
+            parts.append(template_text.strip())
+        if custom:
+            parts.append(custom.strip())
+
+        if parts:
+            return "\n\n".join(parts)
+
+        # fallback: simple generated prompt referencing symbols
+        symbols = ", ".join(request.trading_config.symbols)
+        return f"Compose trading instructions for symbols: {symbols}."
+
+    return provider
 
 
 class SimpleMarketDataSource(MarketDataSource):
@@ -243,42 +294,6 @@ class SimpleFeatureComputer(FeatureComputer):
         return features
 
 
-class RuleBasedComposer(Composer):
-    """Simple deterministic composer using momentum."""
-
-    def __init__(self, threshold: float = 0.003, max_quantity: float = 1.0) -> None:
-        self._threshold = threshold
-        self._max_quantity = max_quantity
-
-    def compose(self, context: ComposeContext) -> List[TradeInstruction]:
-        instructions: List[TradeInstruction] = []
-        for feature in context.features:
-            change_pct = float(feature.values.get("change_pct", 0.0))
-            if abs(change_pct) < self._threshold:
-                continue
-
-            symbol = feature.instrument.symbol
-            side = TradeSide.BUY if change_pct > 0 else TradeSide.SELL
-            quantity = min(self._max_quantity, max(0.01, abs(change_pct) * 10))
-            instruction_id = f"{context.compose_id}:{symbol}:{side.value}"
-
-            instructions.append(
-                TradeInstruction(
-                    instruction_id=instruction_id,
-                    compose_id=context.compose_id,
-                    instrument=feature.instrument,
-                    side=side,
-                    quantity=quantity,
-                    price_mode="market",
-                    limit_price=None,
-                    max_slippage_bps=25,
-                    meta={"change_pct": change_pct},
-                )
-            )
-
-        return instructions
-
-
 class PaperExecutionGateway(ExecutionGateway):
     """Records instructions without sending them anywhere."""
 
@@ -422,7 +437,7 @@ def create_strategy_runtime(request: UserRequest) -> StrategyRuntime:
         base_prices=base_prices, exchange_id=request.exchange_config.exchange_id
     )
     feature_computer = SimpleFeatureComputer()
-    composer = RuleBasedComposer()
+    composer = LlmComposer(request=request)
     execution_gateway = PaperExecutionGateway()
     history_recorder = InMemoryHistoryRecorder()
     digest_builder = RollingDigestBuilder()
@@ -437,6 +452,7 @@ def create_strategy_runtime(request: UserRequest) -> StrategyRuntime:
         execution_gateway=execution_gateway,
         history_recorder=history_recorder,
         digest_builder=digest_builder,
+        prompt_provider=_make_prompt_provider(),
     )
 
     return StrategyRuntime(
