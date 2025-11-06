@@ -4,7 +4,12 @@ import type { FC } from "react";
 import { useState } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Field,
   FieldError,
@@ -277,8 +282,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
         className="flex max-h-[90vh] flex-col overflow-hidden"
         showCloseButton={false}
       >
-        {/* Header */}
-        <div className="flex shrink-0 flex-col gap-4">
+        <DialogTitle className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-lg">Add trading strategy</h2>
             <Button variant="ghost" size="icon" onClick={handleCancel}>
@@ -287,7 +291,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
           </div>
 
           <StepIndicator currentStep={currentStep} />
-        </div>
+        </DialogTitle>
 
         {/* Form content with scroll */}
         <ScrollContainer>
