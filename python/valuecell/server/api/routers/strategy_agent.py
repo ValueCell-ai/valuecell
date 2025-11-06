@@ -19,10 +19,10 @@ from valuecell.utils.uuid import generate_conversation_id
 def create_strategy_agent_router() -> APIRouter:
     """Create and configure the StrategyAgent router."""
 
-    router = APIRouter(prefix="/agents", tags=["Strategy Agent"])
+    router = APIRouter(prefix="/strategies", tags=["strategies"])
     orchestrator = AgentOrchestrator()
 
-    @router.post("/create_strategy_agent")
+    @router.post("/create")
     async def create_strategy_agent(
         request: UserRequest, db: Session = Depends(get_db)
     ):

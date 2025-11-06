@@ -20,11 +20,17 @@ from .routers.agent_stream import create_agent_stream_router
 from .routers.conversation import create_conversation_router
 from .routers.i18n import create_i18n_router
 from .routers.models import create_models_router
-from .routers.strategy_agent import create_strategy_agent_router
+
+# from .routers.strategy_alias import create_strategy_alias_router
+from .routers.strategy_api import create_strategy_api_router
+
+# from .routers.strategy_agent import create_strategy_agent_router
 from .routers.system import create_system_router
 from .routers.task import create_task_router
 from .routers.user_profile import create_user_profile_router
 from .routers.watchlist import create_watchlist_router
+
+# from .routers.strategy import create_strategy_router
 from .schemas import AppInfoData, SuccessResponse
 
 
@@ -113,33 +119,30 @@ def _add_middleware(app: FastAPI, settings) -> None:
     # Custom logging middleware removed
 
 
-def _add_exception_handlers(app: FastAPI):
-    """Add exception handlers."""
+def _add_exception_handlers(app: FastAPI) -> None:
+    """Add exception handlers to the application."""
     app.add_exception_handler(APIException, api_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(Exception, general_exception_handler)
 
 
+API_PREFIX = "/api/v1"
+
+
 def _add_routes(app: FastAPI, settings) -> None:
     """Add routes to the application."""
 
-    API_PREFIX = "/api/v1"
-
-    @app.get(
-        "/",
-        response_model=SuccessResponse[AppInfoData],
-        summary="Get application info",
-        description="Get ValueCell application basic information including name, version and environment",
-        tags=["Root"],
-    )
-    async def root():
-        """Root endpoint - Get application basic information."""
-        app_info = AppInfoData(
-            name=settings.APP_NAME,
-            version=settings.APP_VERSION,
-            environment=settings.APP_ENVIRONMENT,
+    # Root endpoint
+    @app.get("/", response_model=SuccessResponse[AppInfoData])
+    async def home_page():
+        return SuccessResponse.create(
+            data=AppInfoData(
+                name=settings.APP_NAME,
+                version=settings.APP_VERSION,
+                environment=settings.APP_ENVIRONMENT,
+            ),
+            msg="Welcome to ValueCell Server API",
         )
-        return SuccessResponse.create(data=app_info, msg="Welcome to ValueCell API")
 
     # Include i18n router
     app.include_router(create_i18n_router(), prefix=API_PREFIX)
@@ -162,8 +165,8 @@ def _add_routes(app: FastAPI, settings) -> None:
     # Include agent stream router
     app.include_router(create_agent_stream_router(), prefix=API_PREFIX)
 
-    # Include strategy agent router
-    app.include_router(create_strategy_agent_router(), prefix=API_PREFIX)
+    # Include aggregated strategy API router (strategies + strategy agent)
+    app.include_router(create_strategy_api_router(), prefix=API_PREFIX)
 
     # Include agent router
     app.include_router(create_agent_router(), prefix=API_PREFIX)
