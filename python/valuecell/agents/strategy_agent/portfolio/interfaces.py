@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional, List, Dict
+from typing import Dict, List, Optional
 
 from ..models import PortfolioView, TradeHistoryEntry
 
@@ -17,7 +17,9 @@ class PortfolioService(ABC):
         """Return the latest portfolio view (positions, cash, optional constraints)."""
         raise NotImplementedError
 
-    def apply_trades(self, trades: List[TradeHistoryEntry], market_snapshot: Dict[str, float]) -> None:
+    def apply_trades(
+        self, trades: List[TradeHistoryEntry], market_snapshot: Dict[str, float]
+    ) -> None:
         """Apply executed trades to the portfolio view (optional).
 
         Implementations that support state changes (paper trading, backtests)

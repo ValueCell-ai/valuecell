@@ -7,7 +7,6 @@ from typing import Dict, List, Optional
 from loguru import logger
 from pydantic import ValidationError
 
-from .interfaces import Composer
 from ..models import (
     ComposeContext,
     LlmDecisionAction,
@@ -16,6 +15,7 @@ from ..models import (
     TradeSide,
     UserRequest,
 )
+from .interfaces import Composer
 
 
 class LlmComposer(Composer):
@@ -115,8 +115,9 @@ class LlmComposer(Composer):
         `LlmPlanProposal`.
         """
 
-        from valuecell.utils.model import create_model_with_provider
         from agno.agent import Agent as AgnoAgent
+
+        from valuecell.utils.model import create_model_with_provider
 
         cfg = self._request.llm_model_config
         model = create_model_with_provider(

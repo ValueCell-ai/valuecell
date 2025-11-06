@@ -1,8 +1,8 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
 from pathlib import Path
+from typing import Dict, List, Optional
 
 import ccxt.pro as ccxtpro
 import numpy as np
@@ -27,8 +27,8 @@ from .models import (
     TradeDigestEntry,
     TradeHistoryEntry,
     TradeInstruction,
-    TradeType,
     TradeSide,
+    TradeType,
     TradingMode,
     UserRequest,
 )
@@ -47,9 +47,7 @@ def _make_prompt_provider(template_dir: Optional[Path] = None):
     - If neither is present, fall back to a simple generated prompt mentioning
       the symbols.
     """
-    base = (
-        Path(__file__).parent / "templates" if template_dir is None else template_dir
-    )
+    base = Path(__file__).parent / "templates" if template_dir is None else template_dir
 
     def provider(request: UserRequest) -> str:
         tid = request.trading_config.template_id
@@ -60,7 +58,7 @@ def _make_prompt_provider(template_dir: Optional[Path] = None):
             # safe-resolve candidate files
             candidates = [tid, f"{tid}.txt", f"{tid}.md"]
             for name in candidates:
-                try_path = (base / name)
+                try_path = base / name
                 try:
                     resolved = try_path.resolve()
                     # ensure resolved path is inside base
@@ -443,12 +441,12 @@ class InMemoryPortfolioService(PortfolioService):
                 # Opening new position
                 position.quantity = new_qty
                 position.avg_price = price
-                position.entry_ts = trade.entry_ts or trade.trade_ts or int(
-                    datetime.now(timezone.utc).timestamp() * 1000
+                position.entry_ts = (
+                    trade.entry_ts
+                    or trade.trade_ts
+                    or int(datetime.now(timezone.utc).timestamp() * 1000)
                 )
-                position.trade_type = (
-                    TradeType.LONG if new_qty > 0 else TradeType.SHORT
-                )
+                position.trade_type = TradeType.LONG if new_qty > 0 else TradeType.SHORT
             elif (current_qty > 0 and new_qty > 0) or (current_qty < 0 and new_qty < 0):
                 # Same direction
                 if abs(new_qty) > abs(current_qty):
@@ -465,12 +463,12 @@ class InMemoryPortfolioService(PortfolioService):
                 # Crossing through zero to opposite direction: reset avg price and entry_ts
                 position.quantity = new_qty
                 position.avg_price = price
-                position.entry_ts = trade.entry_ts or trade.trade_ts or int(
-                    datetime.now(timezone.utc).timestamp() * 1000
+                position.entry_ts = (
+                    trade.entry_ts
+                    or trade.trade_ts
+                    or int(datetime.now(timezone.utc).timestamp() * 1000)
                 )
-                position.trade_type = (
-                    TradeType.LONG if new_qty > 0 else TradeType.SHORT
-                )
+                position.trade_type = TradeType.LONG if new_qty > 0 else TradeType.SHORT
 
             # Update cash by trade notional
             notional = price * delta
@@ -489,7 +487,9 @@ class InMemoryPortfolioService(PortfolioService):
                 if apx and mpx:
                     pos.unrealized_pnl = (mpx - apx) * qty
                     denom = abs(qty) * apx
-                    pos.pnl_pct = (pos.unrealized_pnl / denom) * 100.0 if denom else None
+                    pos.pnl_pct = (
+                        (pos.unrealized_pnl / denom) * 100.0 if denom else None
+                    )
                 else:
                     pos.unrealized_pnl = None
                     pos.pnl_pct = None

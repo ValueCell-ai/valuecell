@@ -191,8 +191,8 @@ def create_model_with_provider(
     # ProviderConfig but using the provided api_key. This avoids changing the
     # global configuration and keeps the change localized to this call.
     try:
-        from valuecell.config.manager import get_config_manager, ProviderConfig
         from valuecell.adapters.models.factory import get_model_factory
+        from valuecell.config.manager import ProviderConfig, get_config_manager
     except Exception:
         # Fallback to factory convenience if imports fail for some reason
         return create_model(
