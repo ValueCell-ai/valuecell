@@ -1,9 +1,12 @@
 import { Plus } from "lucide-react";
 import type { FC } from "react";
+import { useState } from "react";
 import { useGetStrategyList } from "@/api/strategy";
 import { Button } from "@/components/ui/button";
+import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import type { AgentViewProps } from "@/types/agent";
 import { CreateStrategyModal } from "../strategy-items/create-strategy-modal";
+import { TradeStrategyCard } from "../strategy-items/trade-strategy-card";
 
 const EmptyIllustration = () => (
   <svg
@@ -21,6 +24,9 @@ const EmptyIllustration = () => (
 
 const StrategyAgentArea: FC<AgentViewProps> = () => {
   const { data: strategies, isLoading } = useGetStrategyList();
+  const [selectedStrategyId, setSelectedStrategyId] = useState<string | null>(
+    null,
+  );
 
   if (isLoading) return null;
 
@@ -29,13 +35,35 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
     <div className="flex flex-1">
       {/* Left section: Strategy list empty state */}
       <div className="flex w-96 flex-col gap-4 border-r p-6">
-        <p className="font-semibold text-base">Trading Strategies</p>
+        <div className="flex items-center justify-between">
+          <p className="font-semibold text-base">Trading Strategies</p>
+          {strategies && strategies.length > 0 && (
+            <CreateStrategyModal
+              trigger={
+                <Button variant="ghost" size="icon" className="size-8">
+                  <Plus className="size-5" />
+                </Button>
+              }
+            />
+          )}
+        </div>
 
-        <div className="flex flex-1 flex-col items-center justify-center gap-4">
+        <div className="flex flex-1 flex-col gap-4">
           {strategies && strategies.length > 0 ? (
-            <div>TODO: Strategy list</div>
+            <ScrollContainer className="flex-1">
+              <div className="flex flex-col gap-3 pr-2">
+                {strategies.map((strategy) => (
+                  <TradeStrategyCard
+                    key={strategy.strategy_id}
+                    strategy={strategy}
+                    isSelected={selectedStrategyId === strategy.strategy_id}
+                    onClick={() => setSelectedStrategyId(strategy.strategy_id)}
+                  />
+                ))}
+              </div>
+            </ScrollContainer>
           ) : (
-            <>
+            <div className="flex flex-1 flex-col items-center justify-center gap-4">
               <EmptyIllustration />
 
               <div className="flex flex-col gap-3 text-center text-base text-gray-400">
@@ -54,7 +82,7 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
                   </Button>
                 }
               />
-            </>
+            </div>
           )}
         </div>
       </div>

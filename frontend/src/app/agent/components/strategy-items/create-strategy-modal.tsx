@@ -4,6 +4,7 @@ import { Check, X } from "lucide-react";
 import type { FC } from "react";
 import { useState } from "react";
 import { z } from "zod";
+import { useCreateStrategy } from "@/api/strategy";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -50,37 +51,37 @@ const TRADING_SYMBOLS: string[] = [
 
 // Step 1 Schema: AI Models
 const step1Schema = z.object({
-  modelProvider: z.string().min(1, "Model platform is required"),
-  modelId: z.string().min(1, "Model selection is required"),
-  apiKey: z.string().min(1, "API key is required"),
+  provider: z.string().min(1, "Model platform is required"),
+  model_id: z.string().min(1, "Model selection is required"),
+  api_key: z.string().min(1, "API key is required"),
 });
 
 // Step 2 Schema: Exchanges (conditional validation with superRefine)
 const step2Schema = z
   .object({
-    tradingMode: z.enum(["live", "virtual"]),
-    exchangeId: z.string(),
-    apiKey: z.string(),
-    secretKey: z.string(),
+    trading_mode: z.enum(["live", "virtual"]),
+    exchange_id: z.string(),
+    api_key: z.string(),
+    secret_key: z.string(),
   })
   .superRefine((data, ctx) => {
     // Only validate exchange credentials when live trading is selected
-    if (data.tradingMode === "live") {
+    if (data.trading_mode === "live") {
       const fields = [
         {
-          name: "exchangeId",
+          name: "exchange_id",
           label: "Exchange",
-          value: data.exchangeId,
+          value: data.exchange_id,
         },
         {
-          name: "apiKey",
+          name: "api_key",
           label: "API key",
-          value: data.apiKey,
+          value: data.api_key,
         },
         {
-          name: "secretKey",
+          name: "secret_key",
           label: "Secret key",
-          value: data.secretKey,
+          value: data.secret_key,
         },
       ];
 
@@ -99,12 +100,12 @@ const step2Schema = z
 
 // Step 3 Schema: Trading Strategy
 const step3Schema = z.object({
-  strategyName: z.string().min(1, "Strategy name is required"),
-  initialCapital: z.number().min(0, "Initial capital must be positive"),
-  maxLeverage: z.number().min(1, "Leverage must be at least 1"),
+  strategy_name: z.string().min(1, "Strategy name is required"),
+  initial_capital: z.number().min(0, "Initial capital must be positive"),
+  max_leverage: z.number().min(1, "Leverage must be at least 1"),
   symbols: z.array(z.string()).min(1, "At least one symbol is required"),
-  templateId: z.string().min(1, "Template selection is required"),
-  customPrompt: z.string(),
+  template_id: z.string().min(1, "Template selection is required"),
+  custom_prompt: z.string(),
 });
 
 const STEPS = [
@@ -196,13 +197,14 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState<StepNumber>(1);
+  const createStrategyMutation = useCreateStrategy();
 
   // Step 1 Form: AI Models
   const form1 = useForm({
     defaultValues: {
-      modelProvider: "openrouter",
-      modelId: "deepseek-ai/DeepSeek-V3.1-Terminus",
-      apiKey: "",
+      provider: "openrouter",
+      model_id: "deepseek-ai/DeepSeek-V3.1-Terminus",
+      api_key: "",
     },
     validators: {
       onSubmit: step1Schema,
@@ -215,10 +217,10 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
   // Step 2 Form: Exchanges
   const form2 = useForm({
     defaultValues: {
-      tradingMode: "live" as "live" | "virtual",
-      exchangeId: "okx",
-      apiKey: "",
-      secretKey: "",
+      trading_mode: "live" as "live" | "virtual",
+      exchange_id: "okx",
+      api_key: "",
+      secret_key: "",
     },
     validators: {
       onSubmit: step2Schema,
@@ -231,25 +233,31 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
   // Step 3 Form: Trading Strategy
   const form3 = useForm({
     defaultValues: {
-      strategyName: "",
-      initialCapital: 1000,
-      maxLeverage: 8,
+      strategy_name: "",
+      initial_capital: 1000,
+      max_leverage: 8,
       symbols: TRADING_SYMBOLS,
-      templateId: "default",
-      customPrompt: "",
+      template_id: "default",
+      custom_prompt: "",
     },
     validators: {
       onSubmit: step3Schema,
     },
-    onSubmit: ({ value }) => {
+    onSubmit: async ({ value }) => {
       const payload = {
         LLMModelConfig: form1.state.values,
         exchangeConfig: form2.state.values,
         tradingConfig: value,
       };
-      console.log("Form submitted:", payload);
-      setOpen(false);
-      resetAll();
+
+      try {
+        await createStrategyMutation.mutateAsync(payload);
+        setOpen(false);
+        resetAll();
+      } catch (error) {
+        console.error("Failed to create strategy:", error);
+        // TODO: Show error message to user
+      }
     },
   });
 
@@ -309,7 +317,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
                 }}
               >
                 <FieldGroup className="gap-6">
-                  <form1.Field name="modelProvider">
+                  <form1.Field name="provider">
                     {(field) => {
                       const isInvalid =
                         field.state.meta.isTouched &&
@@ -344,7 +352,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
                     }}
                   </form1.Field>
 
-                  <form1.Field name="modelId">
+                  <form1.Field name="model_id">
                     {(field) => {
                       const isInvalid =
                         field.state.meta.isTouched &&
@@ -377,7 +385,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
                     }}
                   </form1.Field>
 
-                  <form1.Field name="apiKey">
+                  <form1.Field name="api_key">
                     {(field) => {
                       const isInvalid =
                         field.state.meta.isTouched &&
@@ -413,7 +421,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
                 }}
               >
                 <FieldGroup className="gap-6">
-                  <form2.Field name="tradingMode">
+                  <form2.Field name="trading_mode">
                     {(field) => {
                       const isLiveTrading = field.state.value === "live";
 
@@ -450,7 +458,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
 
                           {isLiveTrading && (
                             <>
-                              <form2.Field name="exchangeId">
+                              <form2.Field name="exchange_id">
                                 {(field) => (
                                   <Field>
                                     <FieldLabel className="font-medium text-base text-gray-950">
@@ -482,7 +490,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
                                 )}
                               </form2.Field>
 
-                              <form2.Field name="apiKey">
+                              <form2.Field name="api_key">
                                 {(field) => (
                                   <Field>
                                     <FieldLabel className="font-medium text-base text-gray-950">
@@ -505,7 +513,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
                                 )}
                               </form2.Field>
 
-                              <form2.Field name="secretKey">
+                              <form2.Field name="secret_key">
                                 {(field) => (
                                   <Field>
                                     <FieldLabel className="font-medium text-base text-gray-950">
@@ -546,7 +554,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
                 }}
               >
                 <FieldGroup className="gap-6">
-                  <form3.Field name="strategyName">
+                  <form3.Field name="strategy_name">
                     {(field) => (
                       <Field>
                         <FieldLabel className="font-medium text-base text-gray-950">
@@ -576,7 +584,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
 
                     <div className="flex flex-col gap-4">
                       <div className="flex gap-4">
-                        <form3.Field name="initialCapital">
+                        <form3.Field name="initial_capital">
                           {(field) => (
                             <Field className="flex-1">
                               <FieldLabel className="font-medium text-base text-gray-950">
@@ -597,7 +605,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
                           )}
                         </form3.Field>
 
-                        <form3.Field name="maxLeverage">
+                        <form3.Field name="max_leverage">
                           {(field) => (
                             <Field className="flex-1">
                               <FieldLabel className="font-medium text-base text-gray-950">
@@ -656,7 +664,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
                     </div>
 
                     <div className="flex flex-col gap-4">
-                      <form3.Field name="templateId">
+                      <form3.Field name="template_id">
                         {(field) => (
                           <Field>
                             <FieldLabel className="font-medium text-base text-gray-950">
@@ -686,7 +694,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
                         )}
                       </form3.Field>
 
-                      <form3.Field name="customPrompt">
+                      <form3.Field name="custom_prompt">
                         {(field) => (
                           <Field>
                             <FieldLabel className="font-medium text-base text-gray-950">

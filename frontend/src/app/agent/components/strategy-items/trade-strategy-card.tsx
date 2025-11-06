@@ -1,0 +1,73 @@
+import { Square } from "lucide-react";
+import type { FC } from "react";
+import { TIME_FORMATS, TimeUtils } from "@/lib/time";
+import { formatChange, getChangeType } from "@/lib/utils";
+import { useStockColors } from "@/store/settings-store";
+import type { Strategy } from "@/types/strategy";
+
+interface TradeStrategyCardProps {
+  strategy: Strategy;
+  isSelected?: boolean;
+  onClick?: () => void;
+}
+
+export const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
+  strategy,
+  isSelected = false,
+  onClick,
+}) => {
+  const stockColors = useStockColors();
+  const changeType = getChangeType(strategy.unrealized_pnl_pct);
+
+  return (
+    <div
+      onClick={onClick}
+      data-active={isSelected}
+      className="flex cursor-pointer flex-col gap-3 rounded-lg border border-gradient border-solid px-3 py-4"
+    >
+      {/* Header: Name and Time */}
+      <div className="flex items-center justify-between">
+        <p className="font-medium text-base text-gray-950 leading-[22px]">
+          {strategy.strategy_name}
+        </p>
+        <p className="font-normal text-gray-400 text-xs">
+          {TimeUtils.format(strategy.created_at, TIME_FORMATS.DATETIME_SHORT)}
+        </p>
+      </div>
+
+      {/* Model and Exchange Info */}
+      <div className="flex items-center gap-2 font-medium text-gray-400 text-sm">
+        <p>{strategy.model_id}</p>
+        <p>{strategy.exchange_id}</p>
+      </div>
+
+      {/* PnL, Trading Mode, and Status */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <p
+            className="font-medium text-sm"
+            style={{ color: stockColors[changeType] }}
+          >
+            {formatChange(strategy.unrealized_pnl, "", 2)} (
+            {formatChange(strategy.unrealized_pnl_pct, "%", 1)})
+          </p>
+
+          {/* Trading Mode Badge */}
+          <div className="rounded px-0 py-0.5">
+            <p className="font-normal text-gray-700 text-xs">
+              {strategy.trading_mode === "live" ? "Live" : "Virtual"}
+            </p>
+          </div>
+        </div>
+
+        {/* Status Badge */}
+        <div className="flex items-center gap-2.5 rounded-md px-2.5 py-1">
+          <Square className="size-4 fill-gray-700 text-gray-700" />
+          <p className="font-medium text-gray-700 text-sm">
+            {strategy.status === "running" ? "Running" : "Stopped"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
