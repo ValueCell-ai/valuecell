@@ -23,6 +23,7 @@ from .models import (
     TradeInstruction,
     TradeSide,
     TradeType,
+    TxResult,
     UserRequest,
 )
 from .portfolio.interfaces import PortfolioService
@@ -148,16 +149,15 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             digest=digest,
             prompt_text=self._prompt_provider(self._request),
             market_snapshot=market_snapshot,
-            constraints=None,
         )
 
         instructions = await self._composer.compose(context)
-        # Execution gateway may be sync; allow sync execute
-        self._execution_gateway.execute(instructions)
-
-        trades = self._create_trades(
-            instructions, market_snapshot, compose_id, timestamp_ms
+        # Execute instructions via async gateway to obtain execution results
+        tx_results = await self._execution_gateway.execute(
+            instructions, market_snapshot
         )
+
+        trades = self._create_trades(tx_results, compose_id, timestamp_ms)
         self._apply_trades_to_portfolio(trades, market_snapshot)
         summary = self._build_summary(timestamp_ms, trades)
 
@@ -196,31 +196,30 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
 
     def _create_trades(
         self,
-        instructions: List[TradeInstruction],
-        market_snapshot: Dict[str, float],
+        tx_results: List[TxResult],
         compose_id: str,
         timestamp_ms: int,
     ) -> List[TradeHistoryEntry]:
         trades: List[TradeHistoryEntry] = []
-        for instruction in instructions:
-            symbol = instruction.instrument.symbol
-            price = market_snapshot.get(symbol, 0.0)
-            notional = price * instruction.quantity
-            realized_pnl = notional * (
-                0.001 if instruction.side == TradeSide.SELL else -0.001
-            )
+        for tx in tx_results:
+            qty = float(tx.filled_qty or 0.0)
+            price = float(tx.avg_exec_price or 0.0)
+            notional = (price * qty) if price and qty else None
+            # Immediate realized effect: fees are costs (negative PnL). Slippage already baked into exec price.
+            fee = float(tx.fee_cost or 0.0)
+            realized_pnl = -fee if notional else None
             trades.append(
                 TradeHistoryEntry(
                     trade_id=generate_uuid("trade"),
                     compose_id=compose_id,
-                    instruction_id=instruction.instruction_id,
+                    instruction_id=tx.instruction_id,
                     strategy_id=self.strategy_id,
-                    instrument=instruction.instrument,
-                    side=instruction.side,
+                    instrument=tx.instrument,
+                    side=tx.side,
                     type=TradeType.LONG
-                    if instruction.side == TradeSide.BUY
+                    if tx.side == TradeSide.BUY
                     else TradeType.SHORT,
-                    quantity=instruction.quantity,
+                    quantity=qty,
                     entry_price=price or None,
                     exit_price=None,
                     notional_entry=notional or None,
@@ -230,8 +229,10 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                     trade_ts=timestamp_ms,
                     holding_ms=None,
                     realized_pnl=realized_pnl,
-                    realized_pnl_pct=(realized_pnl / notional) if notional else None,
-                    leverage=None,
+                    realized_pnl_pct=((realized_pnl or 0.0) / notional)
+                    if notional
+                    else None,
+                    leverage=tx.leverage,
                     note=None,
                 )
             )

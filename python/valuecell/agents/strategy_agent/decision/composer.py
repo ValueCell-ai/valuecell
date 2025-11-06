@@ -9,8 +9,10 @@ from pydantic import ValidationError
 
 from ..models import (
     ComposeContext,
+    Constraints,
     LlmDecisionAction,
     LlmPlanProposal,
+    PriceMode,
     TradeInstruction,
     TradeSide,
     UserRequest,
@@ -44,10 +46,6 @@ class LlmComposer(Composer):
         self._request = request
         self._default_slippage_bps = default_slippage_bps
         self._quantity_precision = quantity_precision
-        self._base_constraints: Dict[str, float | int] = {
-            "max_positions": request.trading_config.max_positions,
-            "max_leverage": request.trading_config.max_leverage,
-        }
 
     async def compose(self, context: ComposeContext) -> List[TradeInstruction]:
         prompt = self._build_llm_prompt(context)
@@ -58,9 +56,6 @@ class LlmComposer(Composer):
         )
         try:
             plan = await self._call_llm(prompt)
-        except NotImplementedError:
-            logger.warning("LLM call not implemented; returning no instructions")
-            return []
         except ValidationError as exc:
             logger.error("LLM output failed validation: {}", exc)
             return []
@@ -74,8 +69,7 @@ class LlmComposer(Composer):
             )
             return []
 
-        constraints = self._merge_constraints(context)
-        return self._normalize_plan(context, plan, constraints)
+        return self._normalize_plan(context, plan)
 
     # ------------------------------------------------------------------
     # Prompt + LLM helpers
@@ -91,7 +85,12 @@ class LlmComposer(Composer):
             "market_snapshot": context.market_snapshot or {},
             "digest": context.digest.model_dump(mode="json"),
             "features": [vector.model_dump(mode="json") for vector in context.features],
-            "constraints": context.constraints or {},
+            # Constraints live on the portfolio view; prefer typed model_dump when present
+            "constraints": (
+                context.portfolio.constraints.model_dump(mode="json", exclude_none=True)
+                if context.portfolio and context.portfolio.constraints
+                else {}
+            ),
         }
 
         instructions = (
@@ -103,9 +102,7 @@ class LlmComposer(Composer):
 
         return f"{instructions}\n\nContext:\n{json.dumps(payload, ensure_ascii=False, indent=2)}"
 
-    async def _call_llm(
-        self, prompt: str
-    ) -> LlmPlanProposal:  # pragma: no cover - implemented async
+    async def _call_llm(self, prompt: str) -> LlmPlanProposal:
         """Invoke an LLM asynchronously and parse the response into LlmPlanProposal.
 
         This implementation follows the parser_agent pattern: it creates a model
@@ -136,46 +133,221 @@ class LlmComposer(Composer):
     # ------------------------------------------------------------------
     # Normalization / guardrails helpers
 
-    def _merge_constraints(self, context: ComposeContext) -> Dict[str, float | int]:
-        merged: Dict[str, float | int] = dict(self._base_constraints)
-        if context.constraints:
-            merged.update(context.constraints)
-        return merged
+    def _init_buying_power_context(
+        self,
+        context: ComposeContext,
+    ) -> tuple:
+        """Initialize buying power tracking context.
+
+        Returns:
+            (equity, allowed_lev, constraints, projected_gross, price_map)
+        """
+        constraints = context.portfolio.constraints or Constraints(
+            max_positions=self._request.trading_config.max_positions,
+            max_leverage=self._request.trading_config.max_leverage,
+        )
+
+        # Compute equity (prefer total_value, fallback to cash + net_exposure)
+        if getattr(context.portfolio, "total_value", None) is not None:
+            equity = float(context.portfolio.total_value or 0.0)
+        else:
+            cash = float(getattr(context.portfolio, "cash", 0.0) or 0.0)
+            net = float(getattr(context.portfolio, "net_exposure", 0.0) or 0.0)
+            equity = cash + net
+
+        allowed_lev = (
+            float(constraints.max_leverage)
+            if constraints.max_leverage is not None
+            else 1.0
+        )
+
+        # Initialize projected gross exposure
+        price_map = context.market_snapshot or {}
+        if getattr(context.portfolio, "gross_exposure", None) is not None:
+            projected_gross = float(context.portfolio.gross_exposure or 0.0)
+        else:
+            projected_gross = 0.0
+            for sym, snap in context.portfolio.positions.items():
+                px = float(
+                    price_map.get(sym) or getattr(snap, "mark_price", 0.0) or 0.0
+                )
+                projected_gross += abs(float(snap.quantity)) * px
+
+        return equity, allowed_lev, constraints, projected_gross, price_map
+
+    def _normalize_quantity(
+        self,
+        symbol: str,
+        quantity: float,
+        side: TradeSide,
+        current_qty: float,
+        constraints: Constraints,
+        equity: float,
+        allowed_lev: float,
+        projected_gross: float,
+        price_map: Dict[str, float],
+    ) -> tuple:
+        """Normalize quantity through all guardrails: filters, caps, and buying power.
+
+        Returns:
+            (final_qty, consumed_buying_power_delta)
+        """
+        qty = quantity
+
+        # Step 1: per-order filters (step size, min notional, max order qty)
+        qty = self._apply_quantity_filters(
+            symbol,
+            qty,
+            float(constraints.quantity_step or 0.0),
+            float(constraints.min_trade_qty or 0.0),
+            constraints.max_order_qty,
+            constraints.min_notional,
+            price_map,
+        )
+
+        if qty <= self._quantity_precision:
+            logger.debug(
+                "Post-filter quantity for {} is {} <= precision {} -> skipping",
+                symbol,
+                qty,
+                self._quantity_precision,
+            )
+            return 0.0, 0.0
+
+        # Step 2: notional/leverage cap (Phase 1 rules)
+        price = price_map.get(symbol)
+        if price is not None and price > 0:
+            cap_factor = 1.5
+            if constraints.quantity_step and constraints.quantity_step > 0:
+                cap_factor = max(cap_factor, 1.5)
+
+            allowed_lev_cap = (
+                allowed_lev if math.isfinite(allowed_lev) else float("inf")
+            )
+            max_abs_by_factor = (cap_factor * equity) / float(price)
+            max_abs_by_lev = (allowed_lev_cap * equity) / float(price)
+            max_abs_final = min(max_abs_by_factor, max_abs_by_lev)
+
+            desired_final = current_qty + (qty if side is TradeSide.BUY else -qty)
+            if math.isfinite(max_abs_final) and abs(desired_final) > max_abs_final:
+                target_abs = max_abs_final
+                new_qty = max(0.0, target_abs - abs(current_qty))
+                if new_qty < qty:
+                    logger.debug(
+                        "Capping {} qty due to notional/leverage (price={}, cap_factor={}, old_qty={}, new_qty={})",
+                        symbol,
+                        price,
+                        cap_factor,
+                        qty,
+                        new_qty,
+                    )
+                    qty = new_qty
+
+        if qty <= self._quantity_precision:
+            logger.debug(
+                "Post-cap quantity for {} is {} <= precision {} -> skipping",
+                symbol,
+                qty,
+                self._quantity_precision,
+            )
+            return 0.0, 0.0
+
+        # Step 3: buying power clamp
+        px = price_map.get(symbol)
+        if px is None or px <= 0:
+            logger.debug(
+                "No price for {} to evaluate buying power; using full quantity",
+                symbol,
+            )
+            final_qty = qty
+        else:
+            avail_bp = max(0.0, equity * allowed_lev - projected_gross)
+            if avail_bp <= 0:
+                logger.debug("No available buying power for {}", symbol)
+                return 0.0, 0.0
+
+            a = abs(current_qty)
+            ap_units = avail_bp / float(px)
+
+            # Piecewise: additional gross consumption must fit into available BP
+            if side is TradeSide.BUY:
+                if current_qty >= 0:
+                    q_allowed = ap_units
+                else:
+                    if qty <= 2 * a:
+                        q_allowed = qty
+                    else:
+                        q_allowed = 2 * a + ap_units
+            else:  # SELL
+                if current_qty <= 0:
+                    q_allowed = ap_units
+                else:
+                    if qty <= 2 * a:
+                        q_allowed = qty
+                    else:
+                        q_allowed = 2 * a + ap_units
+
+            final_qty = max(0.0, min(qty, q_allowed))
+
+        if final_qty <= self._quantity_precision:
+            logger.debug(
+                "Post-buying-power quantity for {} is {} <= precision {} -> skipping",
+                symbol,
+                final_qty,
+                self._quantity_precision,
+            )
+            return 0.0, 0.0
+
+        # Compute consumed buying power delta
+        abs_before = abs(current_qty)
+        abs_after = abs(
+            current_qty + (final_qty if side is TradeSide.BUY else -final_qty)
+        )
+        delta_abs = abs_after - abs_before
+        consumed_bp_delta = (
+            delta_abs * price_map.get(symbol, 0.0) if delta_abs > 0 else 0.0
+        )
+
+        return final_qty, consumed_bp_delta
 
     def _normalize_plan(
         self,
         context: ComposeContext,
         plan: LlmPlanProposal,
-        constraints: Dict[str, float | int],
     ) -> List[TradeInstruction]:
         instructions: List[TradeInstruction] = []
 
+        # --- prepare state ---
         projected_positions: Dict[str, float] = {
             symbol: snapshot.quantity
             for symbol, snapshot in context.portfolio.positions.items()
         }
-        active_positions = sum(
-            1
-            for qty in projected_positions.values()
-            if abs(qty) > self._quantity_precision
+
+        def _count_active(pos_map: Dict[str, float]) -> int:
+            return sum(1 for q in pos_map.values() if abs(q) > self._quantity_precision)
+
+        active_positions = _count_active(projected_positions)
+
+        # Initialize buying power context
+        equity, allowed_lev, constraints, projected_gross, price_map = (
+            self._init_buying_power_context(context)
         )
 
-        max_positions = constraints.get("max_positions")
-        quantity_step = float(constraints.get("quantity_step", 0) or 0.0)
-        min_trade_qty = float(constraints.get("min_trade_qty", 0) or 0.0)
-        max_order_qty = constraints.get("max_order_qty")
-        max_position_qty = constraints.get("max_position_qty")
-        min_notional = constraints.get("min_notional")
+        max_positions = constraints.max_positions
+        max_position_qty = constraints.max_position_qty
 
+        # --- process each planned item ---
         for idx, item in enumerate(plan.items):
             symbol = item.instrument.symbol
             current_qty = projected_positions.get(symbol, 0.0)
 
+            # determine the intended target quantity (clamped by max_position_qty)
             target_qty = self._resolve_target_quantity(
                 item, current_qty, max_position_qty
             )
             delta = target_qty - current_qty
 
+            # skip no-ops
             if abs(delta) <= self._quantity_precision:
                 logger.debug(
                     "Skipping symbol {} because delta {} <= quantity_precision {}",
@@ -203,69 +375,107 @@ class LlmComposer(Composer):
                 continue
 
             side = TradeSide.BUY if delta > 0 else TradeSide.SELL
+            # requested leverage (default 1.0), clamped to constraints
+            requested_lev = (
+                float(item.leverage)
+                if getattr(item, "leverage", None) is not None
+                else 1.0
+            )
+            allowed_lev_item = (
+                float(constraints.max_leverage)
+                if constraints.max_leverage is not None
+                else requested_lev
+            )
+            final_leverage = max(1.0, min(requested_lev, allowed_lev_item))
             quantity = abs(delta)
 
-            quantity = self._apply_quantity_filters(
+            # Normalize quantity through all guardrails
+            quantity, consumed_bp = self._normalize_quantity(
                 symbol,
                 quantity,
-                quantity_step,
-                min_trade_qty,
-                max_order_qty,
-                min_notional,
-                context.market_snapshot or {},
+                side,
+                current_qty,
+                constraints,
+                equity,
+                allowed_lev,
+                projected_gross,
+                price_map,
             )
 
             if quantity <= self._quantity_precision:
-                logger.debug(
-                    "Post-filter quantity for {} is {} <= precision {} -> skipping",
-                    symbol,
-                    quantity,
-                    self._quantity_precision,
-                )
                 continue
 
             # Update projected positions for subsequent guardrails
             signed_delta = quantity if side is TradeSide.BUY else -quantity
             projected_positions[symbol] = current_qty + signed_delta
+            projected_gross += consumed_bp
 
             if is_new_position:
                 active_positions += 1
             if abs(projected_positions[symbol]) <= self._quantity_precision:
                 active_positions = max(active_positions - 1, 0)
 
-            final_target = projected_positions[symbol]
-            meta = {
-                "requested_target_qty": target_qty,
-                "current_qty": current_qty,
-                "final_target_qty": final_target,
-                "action": item.action.value,
-            }
-            if item.confidence is not None:
-                meta["confidence"] = item.confidence
-            if item.rationale:
-                meta["rationale"] = item.rationale
-
-            instruction = TradeInstruction(
-                instruction_id=f"{context.compose_id}:{symbol}:{idx}",
-                compose_id=context.compose_id,
-                instrument=item.instrument,
-                side=side,
-                quantity=quantity,
-                price_mode="market",
-                limit_price=None,
-                max_slippage_bps=self._default_slippage_bps,
-                meta=meta,
+            instruction = self._create_instruction(
+                context,
+                idx,
+                item,
+                symbol,
+                side,
+                quantity,
+                final_leverage,
+                current_qty,
+                target_qty,
             )
             instructions.append(instruction)
-            logger.debug(
-                "Created TradeInstruction {} for {} side={} qty={}",
-                instruction.instruction_id,
-                symbol,
-                instruction.side,
-                instruction.quantity,
-            )
 
         return instructions
+
+    def _create_instruction(
+        self,
+        context: ComposeContext,
+        idx: int,
+        item,
+        symbol: str,
+        side: TradeSide,
+        quantity: float,
+        final_leverage: float,
+        current_qty: float,
+        target_qty: float,
+    ) -> TradeInstruction:
+        """Create a normalized TradeInstruction with metadata."""
+        final_target = current_qty + (quantity if side is TradeSide.BUY else -quantity)
+        meta = {
+            "requested_target_qty": target_qty,
+            "current_qty": current_qty,
+            "final_target_qty": final_target,
+            "action": item.action.value,
+        }
+        if item.confidence is not None:
+            meta["confidence"] = item.confidence
+        if item.rationale:
+            meta["rationale"] = item.rationale
+
+        instruction = TradeInstruction(
+            instruction_id=f"{context.compose_id}:{symbol}:{idx}",
+            compose_id=context.compose_id,
+            instrument=item.instrument,
+            side=side,
+            quantity=quantity,
+            leverage=final_leverage,
+            price_mode=PriceMode.MARKET,
+            limit_price=None,
+            max_slippage_bps=self._default_slippage_bps,
+            meta=meta,
+        )
+        logger.debug(
+            "Created TradeInstruction {} for {} side={} qty={} lev={}",
+            instruction.instruction_id,
+            symbol,
+            instruction.side,
+            instruction.quantity,
+            final_leverage,
+        )
+        return instruction
 
     def _resolve_target_quantity(
         self,

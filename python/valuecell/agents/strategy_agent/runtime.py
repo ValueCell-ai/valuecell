@@ -18,6 +18,7 @@ from .execution.interfaces import ExecutionGateway
 from .features.interfaces import FeatureComputer
 from .models import (
     Candle,
+    Constraints,
     FeatureVector,
     HistoryRecord,
     InstrumentRef,
@@ -30,6 +31,7 @@ from .models import (
     TradeSide,
     TradeType,
     TradingMode,
+    TxResult,
     UserRequest,
 )
 from .portfolio.interfaces import PortfolioService
@@ -294,13 +296,53 @@ class SimpleFeatureComputer(FeatureComputer):
 
 
 class PaperExecutionGateway(ExecutionGateway):
-    """Records instructions without sending them anywhere."""
+    """Async paper executor that simulates fills with slippage and fees.
 
-    def __init__(self) -> None:
+    - Uses instruction.max_slippage_bps to compute execution price around snapshot.
+    - Applies a flat fee_bps to notional to produce fee_cost.
+    - Marks orders as FILLED with filled_qty=requested quantity.
+    """
+
+    def __init__(self, fee_bps: float = 10.0) -> None:
+        self._fee_bps = float(fee_bps)
         self.executed: List[TradeInstruction] = []
 
-    def execute(self, instructions: List[TradeInstruction]) -> None:
-        self.executed.extend(instructions)
+    async def execute(
+        self,
+        instructions: List[TradeInstruction],
+        market_snapshot: Optional[Dict[str, float]] = None,
+    ) -> List[TxResult]:
+        results: List[TxResult] = []
+        price_map = market_snapshot or {}
+        for inst in instructions:
+            self.executed.append(inst)
+            ref_price = float(price_map.get(inst.instrument.symbol, 0.0) or 0.0)
+            slip_bps = float(inst.max_slippage_bps or 0.0)
+            slip = slip_bps / 10_000.0
+            if inst.side == TradeSide.BUY:
+                exec_price = ref_price * (1.0 + slip)
+            else:
+                exec_price = ref_price * (1.0 - slip)
+
+            notional = exec_price * float(inst.quantity)
+            fee_cost = notional * (self._fee_bps / 10_000.0) if notional else 0.0
+
+            results.append(
+                TxResult(
+                    instruction_id=inst.instruction_id,
+                    instrument=inst.instrument,
+                    side=inst.side,
+                    requested_qty=float(inst.quantity),
+                    filled_qty=float(inst.quantity),
+                    avg_exec_price=float(exec_price) if exec_price else None,
+                    slippage_bps=slip_bps or None,
+                    fee_cost=fee_cost or None,
+                    leverage=inst.leverage,
+                    meta=None,
+                )
+            )
+
+        return results
 
 
 class InMemoryHistoryRecorder(HistoryRecorder):
@@ -357,18 +399,21 @@ class InMemoryPortfolioService(PortfolioService):
     """Tracks cash and positions in memory and computes derived metrics.
 
     Notes:
-    - cash reflects remaining available cash for new positions (no margin logic here)
+    - cash reflects running cash balance from trade settlements
     - gross_exposure = sum(abs(qty) * mark_price)
     - net_exposure   = sum(qty * mark_price)
-    - total_value    = cash + gross_exposure
+    - equity (total_value) = cash + net_exposure  [correct for both long and short]
     - total_unrealized_pnl = sum((mark_price - avg_price) * qty)
+    - available_cash approximates buying power with leverage:
+        available_cash = max(0, equity * max_leverage - gross_exposure)
+      where max_leverage comes from portfolio.constraints (default 1.0)
     """
 
     def __init__(
         self,
         initial_capital: float,
         trading_mode: TradingMode,
-        constraints: Optional[Dict[str, float | int]] = None,
+        constraints: Optional[Constraints] = None,
         strategy_id: Optional[str] = None,
     ) -> None:
         # Store owning strategy id on the view so downstream components
@@ -407,7 +452,7 @@ class InMemoryPortfolioService(PortfolioService):
         - cash (subtract on BUY, add on SELL at trade price)
         - positions with weighted avg price, entry_ts on (re)open, and mark_price
         - per-position notional, unrealized_pnl, pnl_pct
-        - portfolio aggregates: gross_exposure, net_exposure, total_value, total_unrealized_pnl, available_cash
+        - portfolio aggregates: gross_exposure, net_exposure, total_value (equity), total_unrealized_pnl, available_cash (buying power)
         """
         for trade in trades:
             symbol = trade.instrument.symbol
@@ -447,6 +492,9 @@ class InMemoryPortfolioService(PortfolioService):
                     or int(datetime.now(timezone.utc).timestamp() * 1000)
                 )
                 position.trade_type = TradeType.LONG if new_qty > 0 else TradeType.SHORT
+                # Initialize leverage from trade if provided
+                if trade.leverage is not None:
+                    position.leverage = float(trade.leverage)
             elif (current_qty > 0 and new_qty > 0) or (current_qty < 0 and new_qty < 0):
                 # Same direction
                 if abs(new_qty) > abs(current_qty):
@@ -455,6 +503,13 @@ class InMemoryPortfolioService(PortfolioService):
                         abs(current_qty) * avg_price + abs(quantity_delta) * price
                     ) / abs(new_qty)
                     position.quantity = new_qty
+                    # Update leverage as size-weighted average if provided
+                    if trade.leverage is not None:
+                        prev_lev = float(position.leverage or trade.leverage)
+                        position.leverage = (
+                            abs(current_qty) * prev_lev
+                            + abs(quantity_delta) * float(trade.leverage)
+                        ) / abs(new_qty)
                 else:
                     # Reducing position: keep avg price, update quantity
                     position.quantity = new_qty
@@ -469,6 +524,9 @@ class InMemoryPortfolioService(PortfolioService):
                     or int(datetime.now(timezone.utc).timestamp() * 1000)
                 )
                 position.trade_type = TradeType.LONG if new_qty > 0 else TradeType.SHORT
+                # Reset leverage when flipping direction
+                if trade.leverage is not None:
+                    position.leverage = float(trade.leverage)
 
             # Update cash by trade notional
             notional = price * delta
@@ -499,8 +557,27 @@ class InMemoryPortfolioService(PortfolioService):
         net = 0.0
         unreal = 0.0
         for pos in self._view.positions.values():
+            # Refresh mark price from snapshot if available
+            try:
+                sym = pos.instrument.symbol
+            except Exception:
+                sym = None
+            if sym and sym in market_snapshot:
+                snap_px = float(market_snapshot.get(sym) or 0.0)
+                if snap_px > 0:
+                    pos.mark_price = snap_px
+
             mpx = float(pos.mark_price or 0.0)
             qty = float(pos.quantity)
+            apx = float(pos.avg_price or 0.0)
+            # Recompute unrealized PnL and pnl% with the refreshed mark
+            if apx and mpx:
+                pos.unrealized_pnl = (mpx - apx) * qty
+                denom = abs(qty) * apx
+                pos.pnl_pct = (pos.unrealized_pnl / denom) * 100.0 if denom else None
+            else:
+                pos.unrealized_pnl = None
+                pos.pnl_pct = None
             gross += abs(qty) * mpx
             net += qty * mpx
             if pos.unrealized_pnl is not None:
@@ -509,8 +586,18 @@ class InMemoryPortfolioService(PortfolioService):
         self._view.gross_exposure = gross
         self._view.net_exposure = net
         self._view.total_unrealized_pnl = unreal
-        self._view.total_value = self._view.cash + gross
-        self._view.available_cash = self._view.cash
+        # Equity is cash plus net exposure (correct for both long and short)
+        equity = self._view.cash + net
+        self._view.total_value = equity
+
+        # Approximate buying power using max leverage constraint
+        max_lev = (
+            float(self._view.constraints.max_leverage)
+            if (self._view.constraints and self._view.constraints.max_leverage)
+            else 1.0
+        )
+        buying_power = max(0.0, equity * max_lev - gross)
+        self._view.available_cash = buying_power
 
 
 @dataclass
@@ -527,10 +614,10 @@ def create_strategy_runtime(request: UserRequest) -> StrategyRuntime:
     strategy_id = request.trading_config.strategy_name or generate_uuid("strategy")
 
     initial_capital = request.trading_config.initial_capital or 0.0
-    constraints = {
-        "max_positions": request.trading_config.max_positions,
-        "max_leverage": request.trading_config.max_leverage,
-    }
+    constraints = Constraints(
+        max_positions=request.trading_config.max_positions,
+        max_leverage=request.trading_config.max_leverage,
+    )
     portfolio_service = InMemoryPortfolioService(
         initial_capital=initial_capital,
         trading_mode=request.exchange_config.trading_mode,
