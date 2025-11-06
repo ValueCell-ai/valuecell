@@ -27,6 +27,7 @@ from .models import (
     TradeDigestEntry,
     TradeHistoryEntry,
     TradeInstruction,
+    TradeType,
     TradeSide,
     TradingMode,
     UserRequest,
@@ -355,32 +356,67 @@ class RollingDigestBuilder(DigestBuilder):
 
 
 class InMemoryPortfolioService(PortfolioService):
-    """Tracks cash and positions in memory."""
+    """Tracks cash and positions in memory and computes derived metrics.
 
-    def __init__(self, initial_capital: float, trading_mode: TradingMode) -> None:
+    Notes:
+    - cash reflects remaining available cash for new positions (no margin logic here)
+    - gross_exposure = sum(abs(qty) * mark_price)
+    - net_exposure   = sum(qty * mark_price)
+    - total_value    = cash + gross_exposure
+    - total_unrealized_pnl = sum((mark_price - avg_price) * qty)
+    """
+
+    def __init__(
+        self,
+        initial_capital: float,
+        trading_mode: TradingMode,
+        constraints: Optional[Dict[str, float | int]] = None,
+        strategy_id: Optional[str] = None,
+    ) -> None:
+        # Store owning strategy id on the view so downstream components
+        # always see which strategy this portfolio belongs to.
+        self._strategy_id = strategy_id
         self._view = PortfolioView(
+            strategy_id=strategy_id,
             ts=int(datetime.now(timezone.utc).timestamp() * 1000),
             cash=initial_capital,
             positions={},
-            gross_exposure=None,
-            net_exposure=None,
-            constraints=None,
+            gross_exposure=0.0,
+            net_exposure=0.0,
+            constraints=constraints or None,
+            total_value=initial_capital,
+            total_unrealized_pnl=0.0,
+            available_cash=initial_capital,
         )
         self._trading_mode = trading_mode
 
     def get_view(self) -> PortfolioView:
         self._view.ts = int(datetime.now(timezone.utc).timestamp() * 1000)
+        # Ensure strategy_id is present on each view retrieval
+        if self._strategy_id is not None:
+            try:
+                self._view.strategy_id = self._strategy_id
+            except Exception:
+                pass
         return self._view
 
     def apply_trades(
         self, trades: List[TradeHistoryEntry], market_snapshot: Dict[str, float]
     ) -> None:
+        """Apply trades and update portfolio positions and aggregates.
+
+        This method updates:
+        - cash (subtract on BUY, add on SELL at trade price)
+        - positions with weighted avg price, entry_ts on (re)open, and mark_price
+        - per-position notional, unrealized_pnl, pnl_pct
+        - portfolio aggregates: gross_exposure, net_exposure, total_value, total_unrealized_pnl, available_cash
+        """
         for trade in trades:
             symbol = trade.instrument.symbol
-            price = trade.entry_price or market_snapshot.get(symbol, 0.0)
-            quantity_delta = (
-                trade.quantity if trade.side == TradeSide.BUY else -trade.quantity
-            )
+            price = float(trade.entry_price or market_snapshot.get(symbol, 0.0) or 0.0)
+            delta = float(trade.quantity or 0.0)
+            quantity_delta = delta if trade.side == TradeSide.BUY else -delta
+
             position = self._view.positions.get(symbol)
             if position is None:
                 position = PositionSnapshot(
@@ -388,26 +424,93 @@ class InMemoryPortfolioService(PortfolioService):
                     quantity=0.0,
                     avg_price=None,
                     mark_price=price,
-                    unrealized_pnl=None,
+                    unrealized_pnl=0.0,
                 )
                 self._view.positions[symbol] = position
 
-            new_quantity = position.quantity + quantity_delta
-            position.mark_price = price
-            if new_quantity == 0:
-                self._view.positions.pop(symbol, None)
-            else:
-                position.quantity = new_quantity
-                if position.avg_price is None:
-                    position.avg_price = price
-                else:
-                    position.avg_price = (position.avg_price + price) / 2.0
+            current_qty = float(position.quantity)
+            avg_price = float(position.avg_price or 0.0)
+            new_qty = current_qty + quantity_delta
 
-            notional = (price or 0.0) * trade.quantity
+            # Update mark price
+            position.mark_price = price
+
+            # Handle position quantity transitions and avg price
+            if new_qty == 0.0:
+                # Fully closed
+                self._view.positions.pop(symbol, None)
+            elif current_qty == 0.0:
+                # Opening new position
+                position.quantity = new_qty
+                position.avg_price = price
+                position.entry_ts = trade.entry_ts or trade.trade_ts or int(
+                    datetime.now(timezone.utc).timestamp() * 1000
+                )
+                position.trade_type = (
+                    TradeType.LONG if new_qty > 0 else TradeType.SHORT
+                )
+            elif (current_qty > 0 and new_qty > 0) or (current_qty < 0 and new_qty < 0):
+                # Same direction
+                if abs(new_qty) > abs(current_qty):
+                    # Increasing position: weighted average price
+                    position.avg_price = (
+                        abs(current_qty) * avg_price + abs(quantity_delta) * price
+                    ) / abs(new_qty)
+                    position.quantity = new_qty
+                else:
+                    # Reducing position: keep avg price, update quantity
+                    position.quantity = new_qty
+                # entry_ts remains from original opening
+            else:
+                # Crossing through zero to opposite direction: reset avg price and entry_ts
+                position.quantity = new_qty
+                position.avg_price = price
+                position.entry_ts = trade.entry_ts or trade.trade_ts or int(
+                    datetime.now(timezone.utc).timestamp() * 1000
+                )
+                position.trade_type = (
+                    TradeType.LONG if new_qty > 0 else TradeType.SHORT
+                )
+
+            # Update cash by trade notional
+            notional = price * delta
             if trade.side == TradeSide.BUY:
                 self._view.cash -= notional
             else:
                 self._view.cash += notional
+
+            # Recompute per-position derived fields (if position still exists)
+            pos = self._view.positions.get(symbol)
+            if pos is not None:
+                qty = float(pos.quantity)
+                mpx = float(pos.mark_price or 0.0)
+                apx = float(pos.avg_price or 0.0)
+                pos.notional = abs(qty) * mpx if mpx else None
+                if apx and mpx:
+                    pos.unrealized_pnl = (mpx - apx) * qty
+                    denom = abs(qty) * apx
+                    pos.pnl_pct = (pos.unrealized_pnl / denom) * 100.0 if denom else None
+                else:
+                    pos.unrealized_pnl = None
+                    pos.pnl_pct = None
+
+        # Recompute portfolio aggregates
+        gross = 0.0
+        net = 0.0
+        unreal = 0.0
+        for pos in self._view.positions.values():
+            mpx = float(pos.mark_price or 0.0)
+            qty = float(pos.quantity)
+            gross += abs(qty) * mpx
+            net += qty * mpx
+            if pos.unrealized_pnl is not None:
+                unreal += float(pos.unrealized_pnl)
+
+        self._view.gross_exposure = gross
+        self._view.net_exposure = net
+        self._view.total_unrealized_pnl = unreal
+        self._view.total_value = self._view.cash + gross
+        self._view.available_cash = self._view.cash
 
 
 @dataclass
@@ -424,9 +527,15 @@ def create_strategy_runtime(request: UserRequest) -> StrategyRuntime:
     strategy_id = request.trading_config.strategy_name or generate_uuid("strategy")
 
     initial_capital = request.trading_config.initial_capital or 0.0
+    constraints = {
+        "max_positions": request.trading_config.max_positions,
+        "max_leverage": request.trading_config.max_leverage,
+    }
     portfolio_service = InMemoryPortfolioService(
         initial_capital=initial_capital,
         trading_mode=request.exchange_config.trading_mode,
+        constraints=constraints,
+        strategy_id=strategy_id,
     )
 
     base_prices = {
