@@ -201,6 +201,12 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         timestamp_ms: int,
     ) -> List[TradeHistoryEntry]:
         trades: List[TradeHistoryEntry] = []
+        # Current portfolio view (pre-apply) used to detect closes
+        try:
+            pre_view = self._portfolio_service.get_view()
+        except Exception:
+            pre_view = None
+
         for tx in tx_results:
             qty = float(tx.filled_qty or 0.0)
             price = float(tx.avg_exec_price or 0.0)
@@ -208,8 +214,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             # Immediate realized effect: fees are costs (negative PnL). Slippage already baked into exec price.
             fee = float(tx.fee_cost or 0.0)
             realized_pnl = -fee if notional else None
-            trades.append(
-                TradeHistoryEntry(
+            trade = TradeHistoryEntry(
                     trade_id=generate_uuid("trade"),
                     compose_id=compose_id,
                     instruction_id=tx.instruction_id,
@@ -235,7 +240,64 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                     leverage=tx.leverage,
                     note=None,
                 )
-            )
+            
+            # If this tx likely closes an existing position (opposite side exists in pre_view),
+            # try to find the most recent open trade for this instrument in past execution history
+            # and annotate that past record with exit details so entries and exits are paired.
+            try:
+                if pre_view is not None:
+                    sym = tx.instrument.symbol
+                    prev_pos = pre_view.positions.get(sym)
+                    if prev_pos is not None:
+                        # prev_pos.quantity sign indicates current exposure direction
+                        is_closing = (
+                            (prev_pos.quantity > 0 and tx.side == TradeSide.SELL)
+                            or (prev_pos.quantity < 0 and tx.side == TradeSide.BUY)
+                        )
+                    else:
+                        is_closing = False
+                else:
+                    is_closing = False
+            except Exception:
+                is_closing = False
+
+            if is_closing:
+                # scan history records (most recent first) to find an open trade for this symbol
+                paired_id = None
+                for record in reversed(self._history_records):
+                    if record.kind != "execution":
+                        continue
+                    trades_payload = record.payload.get("trades", []) or []
+                    # iterate trades in reverse to find latest
+                    for t in reversed(trades_payload):
+                        try:
+                            inst = t.get("instrument") or {}
+                            if inst.get("symbol") != tx.instrument.symbol:
+                                continue
+                            # consider open if no exit_ts or exit_price present
+                            if not t.get("exit_ts") and not t.get("exit_price"):
+                                # annotate this historic trade dict with exit fields
+                                t["exit_price"] = float(price) if price else None
+                                t["exit_ts"] = timestamp_ms
+                                entry_ts_prev = t.get("entry_ts") or t.get("trade_ts")
+                                if entry_ts_prev:
+                                    try:
+                                        t["holding_ms"] = int(timestamp_ms - int(entry_ts_prev))
+                                    except Exception:
+                                        t["holding_ms"] = None
+                                t["notional_exit"] = float(price * qty) if price and qty else None
+                                paired_id = t.get("trade_id")
+                                break
+                        except Exception:
+                            continue
+                    if paired_id:
+                        break
+
+                # if we found a paired trade, record the pairing in the new trade's note
+                if paired_id:
+                    trade.note = f"paired_exit_of:{paired_id}"
+
+            trades.append(trade)
         return trades
 
     def _apply_trades_to_portfolio(
