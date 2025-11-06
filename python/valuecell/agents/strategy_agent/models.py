@@ -38,7 +38,9 @@ class ComponentType(str, Enum):
     """Component types for StrategyAgent streaming responses."""
 
     STATUS = "strategy_agent_status"
-    UPDATE = "strategy_agent_update"
+    UPDATE_TRADE = "strategy_agent_update_trade"
+    UPDATE_PORTFOLIO = "strategy_agent_update_portfolio"
+    UPDATE_STRATEGY_SUMMARY = "strategy_agent_update_strategy_summary"
 
 
 class LLMModelConfig(BaseModel):
@@ -248,6 +250,42 @@ class StrategyStatus(str, Enum):
     ERROR = "error"
 
 
+class Constraints(BaseModel):
+    """Typed constraints model used by the runtime and composer.
+
+    Only includes guardrails used in Phase 1. Extend later in Phase 2.
+    """
+
+    max_positions: Optional[int] = Field(
+        default=None,
+        description="Maximum number of concurrent positions allowed for the strategy",
+    )
+    max_leverage: Optional[float] = Field(
+        default=None,
+        description="Maximum leverage allowed for the strategy (e.g., 2.0 means up to 2x).",
+    )
+    quantity_step: Optional[float] = Field(
+        default=None,
+        description="Minimum increment / step size for order quantities (in instrument units).",
+    )
+    min_trade_qty: Optional[float] = Field(
+        default=None,
+        description="Minimum trade quantity (in instrument units) allowed for a single order.",
+    )
+    max_order_qty: Optional[float] = Field(
+        default=None,
+        description="Maximum quantity allowed per single order (in instrument units).",
+    )
+    min_notional: Optional[float] = Field(
+        default=None,
+        description="Minimum order notional (in quote currency) required for an order to be placed.",
+    )
+    max_position_qty: Optional[float] = Field(
+        default=None,
+        description="Maximum absolute position quantity allowed for any single instrument (in instrument units).",
+    )
+
+
 class PositionSnapshot(BaseModel):
     """Current position snapshot for one instrument."""
 
@@ -258,6 +296,9 @@ class PositionSnapshot(BaseModel):
         default=None, description="Current mark/reference price for P&L calc"
     )
     unrealized_pnl: Optional[float] = Field(default=None, description="Unrealized PnL")
+    unrealized_pnl_pct: Optional[float] = Field(
+        default=None, description="Unrealized P&L as a percent of position value"
+    )
     # Optional fields useful for UI and reporting
     notional: Optional[float] = Field(
         default=None, description="Position notional in quote currency"
@@ -293,7 +334,7 @@ class PortfolioView(BaseModel):
     net_exposure: Optional[float] = Field(
         default=None, description="Net exposure (optional)"
     )
-    constraints: Optional[Dict[str, float | int]] = Field(
+    constraints: Optional[Constraints] = Field(
         default=None,
         description="Optional risk/limits snapshot (e.g., max position, step size)",
     )
@@ -335,6 +376,11 @@ class LlmDecisionItem(BaseModel):
     target_qty: float = Field(
         ..., description="Desired position quantity after execution"
     )
+    leverage: Optional[float] = Field(
+        default=None,
+        description="Requested leverage multiple for this target (e.g., 1.0 = no leverage)."
+        " Composer will clamp to allowed constraints.",
+    )
     confidence: Optional[float] = Field(
         default=None, description="Optional confidence score [0,1]"
     )
@@ -348,10 +394,13 @@ class LlmPlanProposal(BaseModel):
 
     ts: int
     items: List[LlmDecisionItem] = Field(default_factory=list)
-    notes: Optional[List[str]] = Field(default=None)
-    model_meta: Optional[Dict[str, str]] = Field(
-        default=None, description="Optional model metadata (e.g., model_name)"
-    )
+
+
+class PriceMode(str, Enum):
+    """Order price mode: market vs limit."""
+
+    MARKET = "market"
+    LIMIT = "limit"
 
 
 class TradeInstruction(BaseModel):
@@ -366,14 +415,58 @@ class TradeInstruction(BaseModel):
     instrument: InstrumentRef
     side: TradeSide
     quantity: float = Field(..., description="Order quantity in instrument units")
-    price_mode: str = Field(
-        ..., description='"market" or "limit" (initial versions may use only "market")'
+    leverage: Optional[float] = Field(
+        default=None,
+        description="Leverage multiple to apply for this instruction (if supported).",
+    )
+    price_mode: PriceMode = Field(
+        PriceMode.MARKET, description="Order price mode: market vs limit"
     )
     limit_price: Optional[float] = Field(default=None)
     max_slippage_bps: Optional[float] = Field(default=None)
     meta: Optional[Dict[str, str | float]] = Field(
         default=None, description="Optional metadata for auditing"
     )
+
+
+class TxStatus(str, Enum):
+    """Execution status of a submitted instruction."""
+
+    FILLED = "filled"
+    PARTIAL = "partial"
+    REJECTED = "rejected"
+    ERROR = "error"
+
+
+class TxResult(BaseModel):
+    """Result of executing a TradeInstruction at a broker/exchange.
+
+    This captures execution-side details such as fills, effective price,
+    fees and slippage. The coordinator converts TxResult into TradeHistoryEntry.
+    """
+
+    instruction_id: str = Field(..., description="Originating instruction id")
+    instrument: InstrumentRef
+    side: TradeSide
+    requested_qty: float = Field(..., description="Requested order quantity")
+    filled_qty: float = Field(..., description="Filled quantity (<= requested)")
+    avg_exec_price: Optional[float] = Field(
+        default=None, description="Average execution price for the fills"
+    )
+    slippage_bps: Optional[float] = Field(
+        default=None, description="Observed slippage in basis points"
+    )
+    fee_cost: Optional[float] = Field(
+        default=None, description="Total fees charged in quote currency"
+    )
+    leverage: Optional[float] = Field(
+        default=None, description="Leverage applied, if any"
+    )
+    status: TxStatus = Field(default=TxStatus.FILLED)
+    reason: Optional[str] = Field(
+        default=None, description="Message for rejects/errors"
+    )
+    meta: Optional[Dict[str, str | float]] = Field(default=None)
 
 
 class MetricPoint(BaseModel):
@@ -408,9 +501,6 @@ class ComposeContext(BaseModel):
     prompt_text: str = Field(..., description="Strategy/style prompt text")
     market_snapshot: Optional[Dict[str, float]] = Field(
         default=None, description="Optional map symbol -> current reference price"
-    )
-    constraints: Optional[Dict[str, float | int]] = Field(
-        default=None, description="Optional extra constraints for guardrails"
     )
 
 
@@ -500,11 +590,14 @@ class StrategySummary(BaseModel):
     realized_pnl: Optional[float] = Field(
         default=None, description="Realized P&L in quote CCY"
     )
+    pnl_pct: Optional[float] = Field(
+        default=None, description="P&L as percent of equity or initial capital"
+    )
     unrealized_pnl: Optional[float] = Field(
         default=None, description="Unrealized P&L in quote CCY"
     )
-    pnl_pct: Optional[float] = Field(
-        default=None, description="P&L as percent of equity or initial capital"
+    unrealized_pnl_pct: Optional[float] = Field(
+        default=None, description="Unrealized P&L as a percent of position value"
     )
     last_updated_ts: Optional[int] = Field(default=None)
 

@@ -15,6 +15,7 @@ from .models import (
     ComposeContext,
     FeatureVector,
     HistoryRecord,
+    PortfolioView,
     StrategyStatus,
     StrategySummary,
     TradeDigest,
@@ -22,6 +23,7 @@ from .models import (
     TradeInstruction,
     TradeSide,
     TradeType,
+    TxResult,
     UserRequest,
 )
 from .portfolio.interfaces import PortfolioService
@@ -34,11 +36,12 @@ class DecisionCycleResult:
 
     compose_id: str
     timestamp_ms: int
-    summary: StrategySummary
+    strategy_summary: StrategySummary
     instructions: List[TradeInstruction]
     trades: List[TradeHistoryEntry]
     history_records: List[HistoryRecord]
     digest: TradeDigest
+    portfolio_view: PortfolioView
 
 
 # Core interfaces for orchestration and portfolio service.
@@ -59,7 +62,7 @@ class DecisionCoordinator(ABC):
     """
 
     @abstractmethod
-    def run_once(self) -> DecisionCycleResult:
+    async def run_once(self) -> DecisionCycleResult:
         """Execute one decision cycle and return the result."""
         raise NotImplementedError
 
@@ -125,12 +128,12 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         self._cycle_index: int = 0
         self._strategy_name = request.trading_config.strategy_name or strategy_id
 
-    def run_once(self) -> DecisionCycleResult:
+    async def run_once(self) -> DecisionCycleResult:
         timestamp_ms = int(self._clock().timestamp() * 1000)
         compose_id = generate_uuid("compose")
 
         portfolio = self._portfolio_service.get_view()
-        candles = self._market_data_source.get_recent_candles(
+        candles = await self._market_data_source.get_recent_candles(
             self._symbols, self._interval, self._lookback
         )
         features = self._feature_computer.compute_features(candles=candles)
@@ -146,15 +149,15 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             digest=digest,
             prompt_text=self._prompt_provider(self._request),
             market_snapshot=market_snapshot,
-            constraints=None,
         )
 
-        instructions = self._composer.compose(context)
-        self._execution_gateway.execute(instructions)
-
-        trades = self._create_trades(
-            instructions, market_snapshot, compose_id, timestamp_ms
+        instructions = await self._composer.compose(context)
+        # Execute instructions via async gateway to obtain execution results
+        tx_results = await self._execution_gateway.execute(
+            instructions, market_snapshot
         )
+
+        trades = self._create_trades(tx_results, compose_id, timestamp_ms)
         self._apply_trades_to_portfolio(trades, market_snapshot)
         summary = self._build_summary(timestamp_ms, trades)
 
@@ -172,14 +175,16 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         digest = self._digest_builder.build(list(self._history_records))
         self._cycle_index += 1
 
+        portfolio = self._portfolio_service.get_view()
         return DecisionCycleResult(
             compose_id=compose_id,
             timestamp_ms=timestamp_ms,
-            summary=summary,
+            strategy_summary=summary,
             instructions=instructions,
             trades=trades,
             history_records=history_records,
             digest=digest,
+            portfolio_view=portfolio,
         )
 
     def _default_prompt(self, request: UserRequest) -> str:
@@ -191,31 +196,30 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
 
     def _create_trades(
         self,
-        instructions: List[TradeInstruction],
-        market_snapshot: Dict[str, float],
+        tx_results: List[TxResult],
         compose_id: str,
         timestamp_ms: int,
     ) -> List[TradeHistoryEntry]:
         trades: List[TradeHistoryEntry] = []
-        for instruction in instructions:
-            symbol = instruction.instrument.symbol
-            price = market_snapshot.get(symbol, 0.0)
-            notional = price * instruction.quantity
-            realized_pnl = notional * (
-                0.001 if instruction.side == TradeSide.SELL else -0.001
-            )
+        for tx in tx_results:
+            qty = float(tx.filled_qty or 0.0)
+            price = float(tx.avg_exec_price or 0.0)
+            notional = (price * qty) if price and qty else None
+            # Immediate realized effect: fees are costs (negative PnL). Slippage already baked into exec price.
+            fee = float(tx.fee_cost or 0.0)
+            realized_pnl = -fee if notional else None
             trades.append(
                 TradeHistoryEntry(
                     trade_id=generate_uuid("trade"),
                     compose_id=compose_id,
-                    instruction_id=instruction.instruction_id,
+                    instruction_id=tx.instruction_id,
                     strategy_id=self.strategy_id,
-                    instrument=instruction.instrument,
-                    side=instruction.side,
+                    instrument=tx.instrument,
+                    side=tx.side,
                     type=TradeType.LONG
-                    if instruction.side == TradeSide.BUY
+                    if tx.side == TradeSide.BUY
                     else TradeType.SHORT,
-                    quantity=instruction.quantity,
+                    quantity=qty,
                     entry_price=price or None,
                     exit_price=None,
                     notional_entry=notional or None,
@@ -225,8 +229,10 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                     trade_ts=timestamp_ms,
                     holding_ms=None,
                     realized_pnl=realized_pnl,
-                    realized_pnl_pct=(realized_pnl / notional) if notional else None,
-                    leverage=None,
+                    realized_pnl_pct=((realized_pnl or 0.0) / notional)
+                    if notional
+                    else None,
+                    leverage=tx.leverage,
                     note=None,
                 )
             )
@@ -239,10 +245,12 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
     ) -> None:
         if not trades:
             return
-
-        apply_method = getattr(self._portfolio_service, "apply_trades", None)
-        if callable(apply_method):
-            apply_method(trades, market_snapshot)
+        # PortfolioService now exposes apply_trades; call directly to update state
+        try:
+            self._portfolio_service.apply_trades(trades, market_snapshot)
+        except NotImplementedError:
+            # service may be read-only; ignore
+            return
 
     def _build_summary(
         self,
