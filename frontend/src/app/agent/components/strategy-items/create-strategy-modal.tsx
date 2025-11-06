@@ -34,7 +34,7 @@ type StepNumber = 1 | 2 | 3;
 const step1Schema = z.object({
   modelProvider: z.string().min(1, "Model platform is required"),
   modelId: z.string().min(1, "Model selection is required"),
-  modelApiKey: z.string().min(1, "API key is required"),
+  apiKey: z.string().min(1, "API key is required"),
 });
 
 // Step 2 Schema: Exchanges (conditional validation with superRefine)
@@ -42,27 +42,27 @@ const step2Schema = z
   .object({
     tradingMode: z.enum(["live", "virtual"]),
     exchangeId: z.string(),
-    exchangeApiKey: z.string(),
-    exchangeSecretKey: z.string(),
+    apiKey: z.string(),
+    secretKey: z.string(),
   })
   .superRefine((data, ctx) => {
     // Only validate exchange credentials when live trading is selected
     if (data.tradingMode === "live") {
       const fields = [
         {
-          name: "exchangeId" as const,
+          name: "exchangeId",
           label: "Exchange",
           value: data.exchangeId,
         },
         {
-          name: "exchangeApiKey" as const,
+          name: "exchangeApiKey",
           label: "API key",
-          value: data.exchangeApiKey,
+          value: data.apiKey,
         },
         {
-          name: "exchangeSecretKey" as const,
+          name: "exchangeSecretKey",
           label: "Secret key",
-          value: data.exchangeSecretKey,
+          value: data.secretKey,
         },
       ];
 
@@ -184,7 +184,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
     defaultValues: {
       modelProvider: "openrouter",
       modelId: "deepseek-ai/DeepSeek-V3.1-Terminus",
-      modelApiKey: "",
+      apiKey: "",
     },
     validators: {
       onSubmit: step1Schema,
@@ -199,8 +199,8 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
     defaultValues: {
       tradingMode: "live" as "live" | "virtual",
       exchangeId: "okx",
-      exchangeApiKey: "",
-      exchangeSecretKey: "",
+      apiKey: "",
+      secretKey: "",
     },
     validators: {
       onSubmit: step2Schema,
@@ -225,17 +225,8 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
     },
     onSubmit: ({ value }) => {
       const payload = {
-        modelConfig: {
-          provider: form1.state.values.modelProvider,
-          modelId: form1.state.values.modelId,
-          apiKey: form1.state.values.modelApiKey,
-        },
-        exchangeConfig: {
-          exchangeId: form2.state.values.exchangeId,
-          tradingMode: form2.state.values.tradingMode,
-          apiKey: form2.state.values.exchangeApiKey,
-          secretKey: form2.state.values.exchangeSecretKey,
-        },
+        LLMModelConfig: form1.state.values,
+        exchangeConfig: form2.state.values,
         tradingConfig: {
           strategyName: value.strategyName,
           initialCapital: value.initialCapital,
@@ -266,6 +257,12 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
     resetAll();
   };
 
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep((prev) => (prev - 1) as StepNumber);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -277,7 +274,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
       </DialogTrigger>
 
       <DialogContent
-        className="h-full max-h-[90vh] overflow-hidden"
+        className="flex max-h-[90vh] flex-col overflow-hidden"
         showCloseButton={false}
       >
         {/* Header */}
@@ -372,7 +369,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
                     }}
                   </form1.Field>
 
-                  <form1.Field name="modelApiKey">
+                  <form1.Field name="apiKey">
                     {(field) => {
                       const isInvalid =
                         field.state.meta.isTouched &&
@@ -477,7 +474,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
                                 )}
                               </form2.Field>
 
-                              <form2.Field name="exchangeApiKey">
+                              <form2.Field name="apiKey">
                                 {(field) => (
                                   <Field>
                                     <FieldLabel className="font-medium text-base text-gray-950">
@@ -500,7 +497,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
                                 )}
                               </form2.Field>
 
-                              <form2.Field name="exchangeSecretKey">
+                              <form2.Field name="secretKey">
                                 {(field) => (
                                   <Field>
                                     <FieldLabel className="font-medium text-base text-gray-950">
@@ -708,10 +705,10 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
           <Button
             type="button"
             variant="outline"
-            onClick={handleCancel}
+            onClick={currentStep === 1 ? handleCancel : handleBack}
             className="flex-1 border-gray-100 py-4 font-semibold text-base"
           >
-            Cancel
+            {currentStep === 1 ? "Cancel" : "Back"}
           </Button>
           <Button
             type="button"
