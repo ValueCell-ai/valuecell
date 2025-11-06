@@ -345,88 +345,96 @@ class LlmComposer(Composer):
             target_qty = self._resolve_target_quantity(
                 item, current_qty, max_position_qty
             )
-            delta = target_qty - current_qty
+            # Enforce: single-lot per symbol and no direct flip. If target flips side,
+            # split into two sub-steps: first flat to 0, then open to target side.
+            sub_targets: List[float] = []
+            if current_qty * target_qty < 0:
+                sub_targets = [0.0, float(target_qty)]
+            else:
+                sub_targets = [float(target_qty)]
 
-            # skip no-ops
-            if abs(delta) <= self._quantity_precision:
-                logger.debug(
-                    "Skipping symbol {} because delta {} <= quantity_precision {}",
-                    symbol,
-                    delta,
-                    self._quantity_precision,
+            local_current = float(current_qty)
+            for sub_i, sub_target in enumerate(sub_targets):
+                delta = sub_target - local_current
+
+                if abs(delta) <= self._quantity_precision:
+                    continue
+
+                is_new_position = (
+                    abs(local_current) <= self._quantity_precision
+                    and abs(sub_target) > self._quantity_precision
                 )
-                continue
+                if (
+                    is_new_position
+                    and max_positions is not None
+                    and active_positions >= int(max_positions)
+                ):
+                    logger.warning(
+                        "Skipping symbol {} due to max_positions constraint (active={} max={})",
+                        symbol,
+                        active_positions,
+                        max_positions,
+                    )
+                    continue
 
-            is_new_position = (
-                abs(current_qty) <= self._quantity_precision
-                and abs(target_qty) > self._quantity_precision
-            )
-            if (
-                is_new_position
-                and max_positions is not None
-                and active_positions >= int(max_positions)
-            ):
-                logger.warning(
-                    "Skipping symbol {} due to max_positions constraint (active={} max={})",
-                    symbol,
-                    active_positions,
-                    max_positions,
+                side = TradeSide.BUY if delta > 0 else TradeSide.SELL
+                # requested leverage (default 1.0), clamped to constraints
+                requested_lev = (
+                    float(item.leverage)
+                    if getattr(item, "leverage", None) is not None
+                    else 1.0
                 )
-                continue
+                allowed_lev_item = (
+                    float(constraints.max_leverage)
+                    if constraints.max_leverage is not None
+                    else requested_lev
+                )
+                final_leverage = max(1.0, min(requested_lev, allowed_lev_item))
+                quantity = abs(delta)
 
-            side = TradeSide.BUY if delta > 0 else TradeSide.SELL
-            # requested leverage (default 1.0), clamped to constraints
-            requested_lev = (
-                float(item.leverage)
-                if getattr(item, "leverage", None) is not None
-                else 1.0
-            )
-            allowed_lev_item = (
-                float(constraints.max_leverage)
-                if constraints.max_leverage is not None
-                else requested_lev
-            )
-            final_leverage = max(1.0, min(requested_lev, allowed_lev_item))
-            quantity = abs(delta)
+                # Normalize quantity through all guardrails
+                quantity, consumed_bp = self._normalize_quantity(
+                    symbol,
+                    quantity,
+                    side,
+                    local_current,
+                    constraints,
+                    equity,
+                    allowed_lev,
+                    projected_gross,
+                    price_map,
+                )
 
-            # Normalize quantity through all guardrails
-            quantity, consumed_bp = self._normalize_quantity(
-                symbol,
-                quantity,
-                side,
-                current_qty,
-                constraints,
-                equity,
-                allowed_lev,
-                projected_gross,
-                price_map,
-            )
+                if quantity <= self._quantity_precision:
+                    continue
 
-            if quantity <= self._quantity_precision:
-                continue
+                # Update projected positions for subsequent guardrails
+                signed_delta = quantity if side is TradeSide.BUY else -quantity
+                projected_positions[symbol] = local_current + signed_delta
+                projected_gross += consumed_bp
 
-            # Update projected positions for subsequent guardrails
-            signed_delta = quantity if side is TradeSide.BUY else -quantity
-            projected_positions[symbol] = current_qty + signed_delta
-            projected_gross += consumed_bp
+                # active positions accounting
+                if is_new_position:
+                    active_positions += 1
+                if abs(projected_positions[symbol]) <= self._quantity_precision:
+                    active_positions = max(active_positions - 1, 0)
 
-            if is_new_position:
-                active_positions += 1
-            if abs(projected_positions[symbol]) <= self._quantity_precision:
-                active_positions = max(active_positions - 1, 0)
+                # Use a stable per-item sub-index to keep instruction ids unique
+                instr = self._create_instruction(
+                    context,
+                    idx * 10 + sub_i,
+                    item,
+                    symbol,
+                    side,
+                    quantity,
+                    final_leverage,
+                    local_current,
+                    sub_target,
+                )
+                instructions.append(instr)
 
-            instruction = self._create_instruction(
-                context,
-                idx,
-                item,
-                symbol,
-                side,
-                quantity,
-                final_leverage,
-                current_qty,
-                target_qty,
-            )
-            instructions.append(instruction)
+                # advance local_current for the next sub-step
+                local_current = projected_positions[symbol]
 
         return instructions
 
