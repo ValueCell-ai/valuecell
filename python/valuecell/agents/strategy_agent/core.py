@@ -225,7 +225,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                     ((realized_pnl or 0.0) / notional) if notional else None
                 ),
                 leverage=tx.leverage,
-                note=None,
+                note=(tx.meta.get("rationale") if tx.meta else None),
             )
 
             # If this tx likely closes an existing position (opposite side exists in pre_view),
@@ -285,7 +285,10 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
 
                 # if we found a paired trade, record the pairing in the new trade's note
                 if paired_id:
-                    trade.note = f"paired_exit_of:{paired_id}"
+                    # preserve LLM rationale (if any) and append pairing info
+                    existing = trade.note or ""
+                    suffix = f"paired_exit_of:{paired_id}"
+                    trade.note = f"{existing} {suffix}".strip()
 
             trades.append(trade)
         return trades

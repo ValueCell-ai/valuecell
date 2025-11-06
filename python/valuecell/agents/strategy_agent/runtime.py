@@ -338,7 +338,7 @@ class PaperExecutionGateway(ExecutionGateway):
                     slippage_bps=slip_bps or None,
                     fee_cost=fee_cost or None,
                     leverage=inst.leverage,
-                    meta=None,
+                    meta=inst.meta,
                 )
             )
 
