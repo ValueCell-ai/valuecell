@@ -1,13 +1,13 @@
 import asyncio
 import json
-
-import pytest
+import os
+from pprint import pprint
 
 from valuecell.agents.strategy_agent.agent import StrategyAgent
 
 
-@pytest.mark.asyncio
-async def test_strategy_agent_basic_stream():
+# @pytest.mark.asyncio
+async def strategy_agent_basic_stream():
     """Test basic functionality of StrategyAgent stream method."""
     agent = StrategyAgent()
 
@@ -15,9 +15,9 @@ async def test_strategy_agent_basic_stream():
     query = json.dumps(
         {
             "llm_model_config": {
-                "provider": "test-provider",
-                "model_id": "test-model",
-                "api_key": "test-api-key",
+                "provider": "openrouter",
+                "model_id": "deepseek/deepseek-v3.1-terminus",
+                "api_key": os.getenv("OPENROUTER_API_KEY"),
             },
             "exchange_config": {
                 "exchange_id": "binance",
@@ -27,17 +27,21 @@ async def test_strategy_agent_basic_stream():
             },
             "trading_config": {
                 "strategy_name": "Test Strategy",
-                "initial_capital": 1000.0,
-                "max_leverage": 1.0,
+                "initial_capital": 10000.0,
+                "max_leverage": 5.0,
                 "max_positions": 5,
-                "symbols": ["BTC/USDT"],
+                "symbols": ["BTC/USDT", "ETH/USDT", "SOL/USDT"],
                 "decide_interval": 60,
+                "template_id": "insane",
+                "custom_prompt": "no custom prompt",
             },
         }
     )
 
-    try:
-        async for response in agent.stream(query, "test-conversation", "test-task"):
-            print(response)
-    except asyncio.CancelledError:
-        pass  # Expected if we cancel
+    async for response in agent.stream(query, "test-conversation", "test-task"):
+        pprint(response.metadata)
+        pprint(json.loads(response.content))
+        print("\n\n")
+
+
+asyncio.run(strategy_agent_basic_stream())
