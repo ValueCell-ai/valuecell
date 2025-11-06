@@ -1,5 +1,6 @@
-import { Square } from "lucide-react";
 import type { FC } from "react";
+import { StrategyStatus } from "@/assets/svg";
+import SvgIcon from "@/components/valuecell/svg-icon";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import { formatChange, getChangeType } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
@@ -62,7 +63,7 @@ export const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
 
         {/* Status Badge */}
         <div className="flex items-center gap-2.5 rounded-md px-2.5 py-1">
-          <Square className="size-4 fill-gray-700 text-gray-700" />
+          <SvgIcon name={StrategyStatus} className="size-4" />
           <p className="font-medium text-gray-700 text-sm">
             {strategy.status === "running" ? "Running" : "Stopped"}
           </p>

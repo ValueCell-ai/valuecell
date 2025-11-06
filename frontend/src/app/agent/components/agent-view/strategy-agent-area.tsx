@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useGetStrategyList } from "@/api/strategy";
 import { Button } from "@/components/ui/button";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
+import { MOCK_STRATEGIES } from "@/mock/strategy-data";
 import type { AgentViewProps } from "@/types/agent";
 import { CreateStrategyModal } from "../strategy-items/create-strategy-modal";
 import { TradeStrategyCard } from "../strategy-items/trade-strategy-card";
@@ -23,7 +24,8 @@ const EmptyIllustration = () => (
 );
 
 const StrategyAgentArea: FC<AgentViewProps> = () => {
-  const { data: strategies, isLoading } = useGetStrategyList();
+  const { data: strategies = MOCK_STRATEGIES, isLoading } =
+    useGetStrategyList();
   const [selectedStrategyId, setSelectedStrategyId] = useState<string | null>(
     null,
   );
@@ -32,26 +34,15 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
 
   // Show empty state when there are no strategies
   return (
-    <div className="flex flex-1">
+    <div className="flex flex-1 overflow-hidden">
       {/* Left section: Strategy list empty state */}
-      <div className="flex w-96 flex-col gap-4 border-r p-6">
-        <div className="flex items-center justify-between">
-          <p className="font-semibold text-base">Trading Strategies</p>
-          {strategies && strategies.length > 0 && (
-            <CreateStrategyModal
-              trigger={
-                <Button variant="ghost" size="icon" className="size-8">
-                  <Plus className="size-5" />
-                </Button>
-              }
-            />
-          )}
-        </div>
+      <div className="flex w-96 flex-col gap-4 border-r py-6 *:px-6">
+        <p className="font-semibold text-base">Trading Strategies</p>
 
-        <div className="flex flex-1 flex-col gap-4">
-          {strategies && strategies.length > 0 ? (
+        {strategies && strategies.length > 0 ? (
+          <>
             <ScrollContainer className="flex-1">
-              <div className="flex flex-col gap-3 pr-2">
+              <div className="flex flex-col gap-3">
                 {strategies.map((strategy) => (
                   <TradeStrategyCard
                     key={strategy.strategy_id}
@@ -62,15 +53,7 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
                 ))}
               </div>
             </ScrollContainer>
-          ) : (
-            <div className="flex flex-1 flex-col items-center justify-center gap-4">
-              <EmptyIllustration />
-
-              <div className="flex flex-col gap-3 text-center text-base text-gray-400">
-                <p>No trading strategies</p>
-                <p>Create your first trading strategy</p>
-              </div>
-
+            <div>
               <CreateStrategyModal
                 trigger={
                   <Button
@@ -83,8 +66,29 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
                 }
               />
             </div>
-          )}
-        </div>
+          </>
+        ) : (
+          <div className="flex flex-1 flex-col items-center justify-center gap-4">
+            <EmptyIllustration />
+
+            <div className="flex flex-col gap-3 text-center text-base text-gray-400">
+              <p>No trading strategies</p>
+              <p>Create your first trading strategy</p>
+            </div>
+
+            <CreateStrategyModal
+              trigger={
+                <Button
+                  variant="outline"
+                  className="w-full gap-3 rounded-lg py-4 text-base"
+                >
+                  <Plus className="size-6" />
+                  Add trading strategy
+                </Button>
+              }
+            />
+          </div>
+        )}
       </div>
       {/* Right section: Strategy details empty state */}
       <div className="flex flex-1 items-center justify-center">

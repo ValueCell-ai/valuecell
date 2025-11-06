@@ -7,4 +7,5 @@ export { default as Logo } from "./logo.svg";
 export { default as NewsPush } from "./news-push.svg";
 export { default as ResearchReport } from "./research-report.svg";
 export { default as Setting } from "./setting.svg";
+export { default as StrategyStatus } from "./strategy-status.svg";
 export { default as User } from "./user.svg";
