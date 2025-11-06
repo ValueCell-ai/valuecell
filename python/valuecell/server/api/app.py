@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ...adapters.assets import get_adapter_manager
 from ..config.settings import get_settings
+from ..db import init_database
 from .exceptions import (
     APIException,
     api_exception_handler,
@@ -18,6 +19,7 @@ from .routers.agent import create_agent_router
 from .routers.agent_stream import create_agent_stream_router
 from .routers.conversation import create_conversation_router
 from .routers.i18n import create_i18n_router
+from .routers.models import create_models_router
 from .routers.strategy_agent import create_strategy_agent_router
 from .routers.system import create_system_router
 from .routers.task import create_task_router
@@ -36,6 +38,17 @@ def create_app() -> FastAPI:
         print(
             f"ValueCell Server starting up on {settings.API_HOST}:{settings.API_PORT}..."
         )
+
+        # Initialize database tables
+        try:
+            print("Initializing database tables...")
+            success = init_database(force=False)
+            if success:
+                print("✓ Database initialized")
+            else:
+                print("✗ Database initialization reported failure")
+        except Exception as e:
+            print(f"✗ Database initialization error: {e}")
 
         # Initialize and configure adapters
         try:
@@ -133,6 +146,9 @@ def _add_routes(app: FastAPI, settings) -> None:
 
     # Include system router
     app.include_router(create_system_router(), prefix=API_PREFIX)
+
+    # Include models router
+    app.include_router(create_models_router(), prefix=API_PREFIX)
 
     # Include watchlist router
     app.include_router(create_watchlist_router(), prefix=API_PREFIX)
