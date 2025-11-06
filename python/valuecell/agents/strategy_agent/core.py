@@ -259,11 +259,18 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
     ) -> StrategySummary:
         realized_delta = sum(trade.realized_pnl or 0.0 for trade in trades)
         self._realized_pnl += realized_delta
+        # Prefer authoritative unrealized PnL from the portfolio view when available.
+        try:
+            view = self._portfolio_service.get_view()
+            unrealized = float(view.total_unrealized_pnl or 0.0)
+            equity = float(view.total_value or 0.0)
+        except Exception:
+            # Fallback to internal tracking if portfolio service is unavailable
+            unrealized = float(self._unrealized_pnl or 0.0)
+            equity = float(self._request.trading_config.initial_capital or 0.0)
 
-        unrealized_delta = sum(
-            (trade.notional_entry or 0.0) * 0.0001 for trade in trades
-        )
-        self._unrealized_pnl = max(self._unrealized_pnl + unrealized_delta, 0.0)
+        # Keep internal state in sync (allow negative unrealized PnL)
+        self._unrealized_pnl = float(unrealized)
 
         initial_capital = self._request.trading_config.initial_capital or 0.0
         pnl_pct = (
@@ -271,6 +278,9 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             if initial_capital
             else None
         )
+
+        # Strategy-level unrealized percent: percent of equity (if equity is available)
+        unrealized_pnl_pct = (self._unrealized_pnl / equity * 100.0) if equity else None
 
         return StrategySummary(
             strategy_id=self.strategy_id,
@@ -282,6 +292,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             status=StrategyStatus.RUNNING,
             realized_pnl=self._realized_pnl,
             unrealized_pnl=self._unrealized_pnl,
+            unrealized_pnl_pct=unrealized_pnl_pct,
             pnl_pct=pnl_pct,
             last_updated_ts=timestamp_ms,
         )

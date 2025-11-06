@@ -616,8 +616,7 @@ class StrategyRuntime:
 
 
 def create_strategy_runtime(request: UserRequest) -> StrategyRuntime:
-    strategy_id = request.trading_config.strategy_name or generate_uuid("strategy")
-
+    strategy_id = generate_uuid("strategy")
     initial_capital = request.trading_config.initial_capital or 0.0
     constraints = Constraints(
         max_positions=request.trading_config.max_positions,

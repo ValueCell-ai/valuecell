@@ -262,12 +262,11 @@ class LlmComposer(Composer):
             final_qty = qty
         else:
             avail_bp = max(0.0, equity * allowed_lev - projected_gross)
-            if avail_bp <= 0:
-                logger.debug("No available buying power for {}", symbol)
-                return 0.0, 0.0
-
+            # When buying power is exhausted, we should still allow reductions/closures.
+            # Set additional purchasable units to 0 but proceed with piecewise logic
+            # so that de-risking trades are not blocked.
             a = abs(current_qty)
-            ap_units = avail_bp / float(px)
+            ap_units = (avail_bp / float(px)) if avail_bp > 0 else 0.0
 
             # Piecewise: additional gross consumption must fit into available BP
             if side is TradeSide.BUY:
@@ -491,9 +490,18 @@ class LlmComposer(Composer):
         current_qty: float,
         max_position_qty: Optional[float],
     ) -> float:
+        # If the composer requested NOOP, keep current quantity
         if item.action == LlmDecisionAction.NOOP:
             return current_qty
-        target = float(item.target_qty)
+
+        # Interpret target_qty as a magnitude; apply action to determine sign
+        mag = float(item.target_qty)
+        if item.action == LlmDecisionAction.SELL:
+            target = -abs(mag)
+        else:
+            # default to BUY semantics
+            target = abs(mag)
+
         if max_position_qty is not None:
             max_abs = abs(float(max_position_qty))
             target = max(-max_abs, min(max_abs, target))
