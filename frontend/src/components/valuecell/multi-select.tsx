@@ -24,7 +24,7 @@ export interface MultiSelectOption {
 }
 
 export interface MultiSelectProps {
-  options: MultiSelectOption[];
+  options: MultiSelectOption[] | string[];
   value?: string[];
   defaultValue?: string[];
   onValueChange?: (value: string[]) => void;
@@ -61,6 +61,16 @@ export const MultiSelect = React.forwardRef<
     const [internalValue, setInternalValue] =
       React.useState<string[]>(defaultValue);
 
+    // Normalize options to MultiSelectOption[]
+    const normalizedOptions = React.useMemo<MultiSelectOption[]>(() => {
+      return options.map((opt) => {
+        if (typeof opt === "string") {
+          return { value: opt, label: opt };
+        }
+        return opt;
+      });
+    }, [options]);
+
     // Use controlled value if provided, otherwise use internal state
     const selectedValues = controlledValue ?? internalValue;
 
@@ -95,7 +105,7 @@ export const MultiSelect = React.forwardRef<
       onValueChange?.([]);
     };
 
-    const selectedOptions = options.filter((opt) =>
+    const selectedOptions = normalizedOptions.filter((opt) =>
       selectedValues.includes(opt.value),
     );
 
@@ -194,7 +204,7 @@ export const MultiSelect = React.forwardRef<
             <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandList className="max-h-[300px]">
               <CommandGroup onWheel={(e) => e.stopPropagation()}>
-                {options.map((option) => {
+                {normalizedOptions.map((option) => {
                   const isSelected = selectedValues.includes(option.value);
                   const isDisabled =
                     option.disabled || (isMaxReached && !isSelected);

@@ -1,5 +1,5 @@
 import { useForm } from "@tanstack/react-form";
-import { MultiSelect, type MultiSelectOption } from "@valuecell/multi-select";
+import { MultiSelect } from "@valuecell/multi-select";
 import { Check, X } from "lucide-react";
 import type { FC } from "react";
 import { useState } from "react";
@@ -37,27 +37,15 @@ interface CreateStrategyModalProps {
 type StepNumber = 1 | 2 | 3;
 
 // Trading symbols options
-const TRADING_SYMBOLS: MultiSelectOption[] = [
-  { value: "BTC", label: "Bitcoin (BTC)" },
-  { value: "ETH", label: "Ethereum (ETH)" },
-  { value: "USDT", label: "Tether (USDT)" },
-  { value: "BNB", label: "Binance Coin (BNB)" },
-  { value: "SOL", label: "Solana (SOL)" },
-  { value: "XRP", label: "Ripple (XRP)" },
-  { value: "USDC", label: "USD Coin (USDC)" },
-  { value: "ADA", label: "Cardano (ADA)" },
-  { value: "DOGE", label: "Dogecoin (DOGE)" },
-  { value: "TRX", label: "TRON (TRX)" },
-  { value: "AVAX", label: "Avalanche (AVAX)" },
-  { value: "DOT", label: "Polkadot (DOT)" },
-  { value: "MATIC", label: "Polygon (MATIC)" },
-  { value: "LINK", label: "Chainlink (LINK)" },
-  { value: "UNI", label: "Uniswap (UNI)" },
-  { value: "ATOM", label: "Cosmos (ATOM)" },
-  { value: "LTC", label: "Litecoin (LTC)" },
-  { value: "ETC", label: "Ethereum Classic (ETC)" },
-  { value: "XLM", label: "Stellar (XLM)" },
-  { value: "BCH", label: "Bitcoin Cash (BCH)" },
+const TRADING_SYMBOLS: string[] = [
+  "BTC",
+  "ETH",
+  "USDT",
+  "BNB",
+  "SOL",
+  "XRP",
+  "USDC",
+  "BCH",
 ];
 
 // Step 1 Schema: AI Models
@@ -246,7 +234,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
       strategyName: "",
       initialCapital: 1000,
       maxLeverage: 8,
-      symbols: [] as string[],
+      symbols: TRADING_SYMBOLS,
       templateId: "default",
       customPrompt: "",
     },
@@ -257,14 +245,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
       const payload = {
         LLMModelConfig: form1.state.values,
         exchangeConfig: form2.state.values,
-        tradingConfig: {
-          strategyName: value.strategyName,
-          initialCapital: value.initialCapital,
-          maxLeverage: value.maxLeverage,
-          symbols: value.symbols,
-          templateId: value.templateId,
-          customPrompt: value.customPrompt,
-        },
+        tradingConfig: value,
       };
       console.log("Form submitted:", payload);
       setOpen(false);
