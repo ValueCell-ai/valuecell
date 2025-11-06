@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 import type { FC } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useGetStrategyList } from "@/api/strategy";
 import { Button } from "@/components/ui/button";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
@@ -29,6 +29,13 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
   const [selectedStrategyId, setSelectedStrategyId] = useState<string | null>(
     null,
   );
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only run on mount
+  useEffect(() => {
+    if (strategies && strategies.length > 0) {
+      setSelectedStrategyId(strategies[0].strategy_id);
+    }
+  }, []);
 
   if (isLoading) return null;
 
