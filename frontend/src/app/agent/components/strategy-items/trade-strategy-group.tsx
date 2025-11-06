@@ -1,10 +1,14 @@
-import type { FC } from "react";
+import { Plus } from "lucide-react";
+import { type FC, memo, useState } from "react";
 import { StrategyStatus } from "@/assets/svg";
+import { Button } from "@/components/ui/button";
+import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import SvgIcon from "@/components/valuecell/svg-icon";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import { formatChange, getChangeType } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
 import type { Strategy } from "@/types/strategy";
+import CreateStrategyModal from "./create-strategy-modal";
 
 interface TradeStrategyCardProps {
   strategy: Strategy;
@@ -12,7 +16,14 @@ interface TradeStrategyCardProps {
   onClick?: () => void;
 }
 
-export const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
+interface TradeStrategyGroupProps {
+  strategies: Strategy[];
+
+  isSelected?: boolean;
+  onClick?: () => void;
+}
+
+const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
   strategy,
   isSelected = false,
   onClick,
@@ -72,3 +83,39 @@ export const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
     </div>
   );
 };
+
+const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({ strategies }) => {
+  const [selectedStrategyId, setSelectedStrategyId] = useState<string | null>(
+    strategies[0]?.strategy_id || null,
+  );
+
+  return (
+    <>
+      <ScrollContainer className="flex-1">
+        <div className="flex flex-col gap-3">
+          {strategies.map((strategy) => (
+            <TradeStrategyCard
+              key={strategy.strategy_id}
+              strategy={strategy}
+              isSelected={selectedStrategyId === strategy.strategy_id}
+              onClick={() => setSelectedStrategyId(strategy.strategy_id)}
+            />
+          ))}
+        </div>
+      </ScrollContainer>
+      <div>
+        <CreateStrategyModal>
+          <Button
+            variant="outline"
+            className="w-full gap-3 rounded-lg py-4 text-base"
+          >
+            <Plus className="size-6" />
+            Add trading strategy
+          </Button>
+        </CreateStrategyModal>
+      </div>
+    </>
+  );
+};
+
+export default memo(TradeStrategyGroup);

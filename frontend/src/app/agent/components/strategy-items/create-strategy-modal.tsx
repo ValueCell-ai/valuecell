@@ -2,7 +2,7 @@ import { useForm } from "@tanstack/react-form";
 import { MultiSelect } from "@valuecell/multi-select";
 import { Check, X } from "lucide-react";
 import type { FC } from "react";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { z } from "zod";
 import { useCreateStrategy } from "@/api/strategy";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 
 interface CreateStrategyModalProps {
-  trigger?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 type StepNumber = 1 | 2 | 3;
@@ -192,9 +192,7 @@ const StepIndicator: FC<{ currentStep: StepNumber }> = ({ currentStep }) => {
   );
 };
 
-export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
-  trigger,
-}) => {
+const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState<StepNumber>(1);
   const createStrategyMutation = useCreateStrategy();
@@ -282,7 +280,7 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {trigger || (
+        {children || (
           <Button variant="outline" className="gap-3">
             Add trading strategy
           </Button>
@@ -750,3 +748,5 @@ export const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
     </Dialog>
   );
 };
+
+export default memo(CreateStrategyModal);

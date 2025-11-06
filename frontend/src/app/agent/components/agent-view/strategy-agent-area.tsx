@@ -1,13 +1,10 @@
 import { Plus } from "lucide-react";
 import type { FC } from "react";
-import { useEffect, useState } from "react";
 import { useGetStrategyList } from "@/api/strategy";
 import { Button } from "@/components/ui/button";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { MOCK_STRATEGIES } from "@/mock/strategy-data";
 import type { AgentViewProps } from "@/types/agent";
-import { CreateStrategyModal } from "../strategy-items/create-strategy-modal";
-import { TradeStrategyCard } from "../strategy-items/trade-strategy-card";
+import { CreateStrategyModal, TradeStrategyGroup } from "../strategy-items";
 
 const EmptyIllustration = () => (
   <svg
@@ -26,16 +23,6 @@ const EmptyIllustration = () => (
 const StrategyAgentArea: FC<AgentViewProps> = () => {
   const { data: strategies = MOCK_STRATEGIES, isLoading } =
     useGetStrategyList();
-  const [selectedStrategyId, setSelectedStrategyId] = useState<string | null>(
-    null,
-  );
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only run on mount
-  useEffect(() => {
-    if (strategies && strategies.length > 0) {
-      setSelectedStrategyId(strategies[0].strategy_id);
-    }
-  }, []);
 
   if (isLoading) return null;
 
@@ -47,33 +34,7 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
         <p className="font-semibold text-base">Trading Strategies</p>
 
         {strategies && strategies.length > 0 ? (
-          <>
-            <ScrollContainer className="flex-1">
-              <div className="flex flex-col gap-3">
-                {strategies.map((strategy) => (
-                  <TradeStrategyCard
-                    key={strategy.strategy_id}
-                    strategy={strategy}
-                    isSelected={selectedStrategyId === strategy.strategy_id}
-                    onClick={() => setSelectedStrategyId(strategy.strategy_id)}
-                  />
-                ))}
-              </div>
-            </ScrollContainer>
-            <div>
-              <CreateStrategyModal
-                trigger={
-                  <Button
-                    variant="outline"
-                    className="w-full gap-3 rounded-lg py-4 text-base"
-                  >
-                    <Plus className="size-6" />
-                    Add trading strategy
-                  </Button>
-                }
-              />
-            </div>
-          </>
+          <TradeStrategyGroup strategies={strategies} />
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-4">
             <EmptyIllustration />
@@ -83,25 +44,24 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
               <p>Create your first trading strategy</p>
             </div>
 
-            <CreateStrategyModal
-              trigger={
-                <Button
-                  variant="outline"
-                  className="w-full gap-3 rounded-lg py-4 text-base"
-                >
-                  <Plus className="size-6" />
-                  Add trading strategy
-                </Button>
-              }
-            />
+            <CreateStrategyModal>
+              <Button
+                variant="outline"
+                className="w-full gap-3 rounded-lg py-4 text-base"
+              >
+                <Plus className="size-6" />
+                Add trading strategy
+              </Button>
+            </CreateStrategyModal>
           </div>
         )}
       </div>
+
       {/* Right section: Strategy details empty state */}
-      <div className="flex flex-1 items-center justify-center">
-        <div className="flex flex-col items-center gap-[31px]">
+      <div className="flex flex-1">
+        <div className="flex size-full flex-col items-center justify-center gap-8">
           <EmptyIllustration />
-          <p className="text-[#9CA3AF] text-base leading-[22px]">
+          <p className="font-normal text-base text-gray-400">
             No running strategies
           </p>
         </div>
