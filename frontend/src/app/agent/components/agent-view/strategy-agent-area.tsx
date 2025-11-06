@@ -2,7 +2,7 @@ import { Plus } from "lucide-react";
 import { type FC, useEffect, useState } from "react";
 import { useGetStrategyList, useGetStrategyTrades } from "@/api/strategy";
 import { Button } from "@/components/ui/button";
-import { MOCK_STRATEGIES } from "@/mock/strategy-data";
+import { MOCK_STRATEGIES, MOCK_TRADES } from "@/mock/strategy-data";
 import type { AgentViewProps } from "@/types/agent";
 import type { Strategy } from "@/types/strategy";
 import {
@@ -32,9 +32,9 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
     null,
   );
 
-  const { data: trades = [] } = useGetStrategyTrades(
-    selectedStrategy?.strategy_id,
-  );
+  const {
+    data: trades = MOCK_TRADES[selectedStrategy?.strategy_id ?? ""] || [],
+  } = useGetStrategyTrades(selectedStrategy?.strategy_id);
 
   useEffect(() => {
     if (strategies && strategies.length > 0) {

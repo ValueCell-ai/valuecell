@@ -47,18 +47,10 @@ const TradeHistoryCard: FC<TradeHistoryCardProps> = ({ trade }) => {
               </p>
             </div>
             {/* Type Badge */}
-            <div
-              className={`flex items-center justify-center rounded-full border px-2.5 py-1 ${
-                trade.type === "LONG"
-                  ? "border-secondary-600"
-                  : "border-success-600"
-              }`}
-            >
+            <div className="flex items-center justify-center rounded-full border border-gray-200 px-2.5 py-1">
               <p
                 className={`font-semibold text-xs ${
-                  trade.type === "LONG"
-                    ? "text-secondary-600"
-                    : "text-success-600"
+                  trade.type === "LONG" ? "text-rose-600" : "text-emerald-600"
                 }`}
               >
                 {trade.type}
@@ -71,7 +63,7 @@ const TradeHistoryCard: FC<TradeHistoryCardProps> = ({ trade }) => {
           className="font-semibold text-base"
           style={{ color: stockColors[changeType] }}
         >
-          {formatChange(trade.unrealized_pnl, "$", 2)}
+          {formatChange(trade.unrealized_pnl, "", 2)}
         </p>
       </div>
 
