@@ -1,6 +1,17 @@
 import { Plus } from "lucide-react";
 import { type FC, memo } from "react";
 import { StrategyStatus } from "@/assets/svg";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import SvgIcon from "@/components/valuecell/svg-icon";
@@ -77,19 +88,38 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
         </div>
 
         {/* Status Badge */}
-        <Button
-          variant="ghost"
-          disabled={strategy.status === "stopped"}
-          onClick={onStop}
-          className="flex items-center gap-2.5 rounded-md px-2.5 py-1"
-        >
-          {strategy.status === "running" && (
-            <SvgIcon name={StrategyStatus} className="size-4" />
-          )}
-          <p className="font-medium text-gray-700 text-sm">
-            {strategy.status === "running" ? "Running" : "Stopped"}
-          </p>
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="ghost"
+              disabled={strategy.status === "stopped"}
+              className="flex items-center gap-2.5 rounded-md px-2.5 py-1"
+            >
+              {strategy.status === "running" && (
+                <SvgIcon name={StrategyStatus} className="size-4" />
+              )}
+              <p className="font-medium text-gray-700 text-sm">
+                {strategy.status === "running" ? "Running" : "Stopped"}
+              </p>
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Stop Trading Strategy?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to stop the strategy "
+                {strategy.strategy_name}"? <br /> This action will halt all
+                trading activities for this strategy.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={onStop}>
+                Confirm Stop
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
