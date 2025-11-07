@@ -157,8 +157,9 @@ def create_strategy_router() -> APIRouter:
         try:
             data = await StrategyService.get_strategy_holding(id)
             if not data:
-                raise HTTPException(
-                    status_code=404, detail="No holdings found for strategy"
+                return SuccessResponse.create(
+                    data=[],
+                    msg="No holdings found for strategy",
                 )
 
             items: List[StrategyHoldingFlatItem] = []
@@ -203,8 +204,10 @@ def create_strategy_router() -> APIRouter:
         try:
             data = await StrategyService.get_strategy_detail(id)
             if not data:
-                raise HTTPException(
-                    status_code=404, detail="No details found for strategy"
+                # Return empty list with success instead of 404
+                return SuccessResponse.create(
+                    data=[],
+                    msg="No details found for strategy",
                 )
             return SuccessResponse.create(
                 data=data,
@@ -244,7 +247,6 @@ def create_strategy_router() -> APIRouter:
 
                 strategy_name = strategy.name or f"Strategy-{id.split('-')[-1][:8]}"
                 created_at = strategy.created_at or datetime.utcnow()
-                created_time_str = created_at.strftime("%Y-%m-%d %H:%M:%S")
 
                 data = [["Time", strategy_name]]
 
@@ -284,7 +286,10 @@ def create_strategy_router() -> APIRouter:
                                 continue
                         data.append([time_str, total])
                     else:
-                        data.append([created_time_str, None])
+                        return SuccessResponse.create(
+                            data=[],
+                            msg="No holding price curve found for strategy",
+                        )
 
                 return SuccessResponse.create(
                     data=data,
@@ -365,15 +370,12 @@ def create_strategy_router() -> APIRouter:
                         row.append(v if v is not None else None)
                     data.append(row)
             else:
-                # No data across all strategies: one row at earliest create_time with nulls
-                if created_times:
-                    earliest = min(created_times)
-                    time_str = earliest.strftime("%Y-%m-%d %H:%M:%S")
-                else:
-                    time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-                data.append([time_str] + [None] * len(strategy_order))
+                # No data across all strategies: return empty array
+                return SuccessResponse.create(
+                    data=[],
+                    msg="No holding price curves found",
+                )
 
-            # For combined view, creation time is not singular; return null
             return SuccessResponse.create(
                 data=data,
                 msg="Fetched merged holding price curves successfully",
