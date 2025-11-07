@@ -23,3 +23,14 @@ class LLMModelConfigData(BaseModel):
     api_key: Optional[str] = Field(
         default=None, description="API key for the model provider (may be omitted)"
     )
+
+
+class LLMProviderConfigData(BaseModel):
+    """LLM provider configuration without model_id for /models/llm/config endpoint."""
+
+    provider: str = Field(
+        ..., description="Model provider, e.g. 'openrouter', 'google', 'openai'"
+    )
+    api_key: Optional[str] = Field(
+        default=None, description="API key for the model provider (may be omitted)"
+    )
