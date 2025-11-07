@@ -25,8 +25,6 @@ import {
 import {
   ChatConversationRenderer,
   MarkdownRenderer,
-  ModelTradeRenderer,
-  ModelTradeTableRenderer,
   ReportRenderer,
   ScheduledTaskControllerRenderer,
   ScheduledTaskRenderer,
@@ -37,11 +35,7 @@ import type { AgentComponentType, AgentInfo } from "@/types/agent";
 import type { RendererComponent } from "@/types/renderer";
 
 // component_type to section type
-export const AGENT_SECTION_COMPONENT_TYPE = [
-  "scheduled_task_result",
-  "filtered_line_chart",
-  "filtered_card_push_notification",
-] as const;
+export const AGENT_SECTION_COMPONENT_TYPE = ["scheduled_task_result"] as const;
 
 // multi section component type
 export const AGENT_MULTI_SECTION_COMPONENT_TYPE = ["report"] as const;
@@ -64,8 +58,6 @@ export const COMPONENT_RENDERER_MAP: {
 } = {
   scheduled_task_result: ScheduledTaskRenderer,
   scheduled_task_controller: ScheduledTaskControllerRenderer,
-  filtered_line_chart: ModelTradeRenderer,
-  filtered_card_push_notification: ModelTradeTableRenderer,
   report: ReportRenderer,
   markdown: MarkdownRenderer,
   tool_call: ToolCallRenderer,
