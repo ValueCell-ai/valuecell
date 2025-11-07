@@ -78,7 +78,7 @@ class SimpleMarketDataSource(MarketDataSource):
                     )
             except Exception:
                 logger.exception(
-                    "Failed to fetch candles for {} from {}, using synthetic data",
+                    "Failed to fetch candles for {} from {}, return empty candles",
                     symbol,
                     self._exchange_id,
                 )
