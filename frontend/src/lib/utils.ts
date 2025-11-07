@@ -22,6 +22,14 @@ function getCurrencySymbol(currencyCode: string): string {
   return currencyMap[currencyCode] || currencyCode;
 }
 
+export function numberFixed(number: number, decimals = 2): string {
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: decimals,
+    useGrouping: false,
+  }).format(number);
+}
+
 /**
  * Format price with currency symbol
  */
@@ -31,7 +39,7 @@ export function formatPrice(
   decimals = 2,
 ): string {
   const symbol = getCurrencySymbol(currency);
-  return `${symbol}${price.toFixed(decimals)}`;
+  return `${symbol}${numberFixed(price, decimals)}`;
 }
 
 /**
@@ -43,10 +51,11 @@ export function formatChange(
   decimals = 2,
 ): string {
   if (isNullOrUndefined(changePercent)) return "N/A";
-  if (changePercent === 0) return `${changePercent.toFixed(decimals)}${suffix}`;
+  if (changePercent === 0)
+    return `${numberFixed(changePercent, decimals)}${suffix}`;
 
   const sign = changePercent > 0 ? "+" : "-";
-  const value = Math.abs(changePercent).toFixed(decimals);
+  const value = numberFixed(Math.abs(changePercent), decimals);
   return `${sign}${value}${suffix}`;
 }
 

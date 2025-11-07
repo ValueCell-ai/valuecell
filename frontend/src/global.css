@@ -112,6 +112,30 @@
   .main-chat-area {
     @apply w-4/5 max-w-[1024px];
   }
+
+  .border-gradient {
+    background-image: linear-gradient(var(--color-background), var(--color-background));
+    background-clip: padding-box;
+    background-origin: border-box;
+    border: 1px solid var(--color-gray-100);
+    transition: border-color 0.2s ease-in-out;
+
+    &[data-active="true"] {
+      background-image:
+        linear-gradient(var(--color-background), var(--color-background)),
+        linear-gradient(to bottom right, #ff7080, #3e88ff, #ff7080);
+      background-clip: padding-box, border-box;
+      border-color: transparent;
+    }
+
+    &:hover {
+      background-image:
+        linear-gradient(var(--color-background), var(--color-background)),
+        linear-gradient(to bottom right, #ff7080, #3e88ff, #ff7080);
+      background-clip: padding-box, border-box;
+      border-color: transparent;
+    }
+  }
 }
 
 /* OverlayScrollbars custom styles */
