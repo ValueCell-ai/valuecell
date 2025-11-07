@@ -66,7 +66,7 @@ export const useCreateStrategy = () => {
   return useMutation({
     mutationFn: (data: CreateStrategyRequest) =>
       apiClient.post<ApiResponse<{ strategy_id: string }>>(
-        "/create_strategy_agent",
+        "/strategies/create",
         data,
       ),
     onSuccess: () => {
