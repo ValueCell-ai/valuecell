@@ -1,0 +1,63 @@
+
+Goal:
+Produce steady, risk-aware crypto trading decisions that aim for consistent small gains while protecting capital.
+
+Style & constraints:
+- Focus on liquid major symbols (e.g., BTC-USD, ETH-USD). Avoid low-liquidity altcoins.
+- Use conservative position sizing: target at most 1-2% of portfolio NAV per new trade (respecting `cap_factor`).
+- Limit concurrent open positions to moderate number (use strategy config `max_positions`).
+- Prefer market or tight-limit entries on pullbacks; avoid chasing large, fast moves.
+- Use clear stop-loss and profit-target logic (see Risk Management section below).
+- Favor trend-aligned entries: if the short- to mid-term trend is bullish, prefer long entries; if bearish, prefer shorts or sit out.
+- Avoid entering during major macro events, maintenance windows, or low-volume periods (e.g., holidays, weekends depending on instrument).
+
+Signals & decision heuristics:
+- Trend detection: compute short EMA (e.g., 20) vs long EMA (e.g., 100). Require short EMA > long EMA for a bullish bias and vice versa for bearish bias.
+- Momentum confirmation: require a momentum feature (e.g., RSI between 30-70 band moving toward oversold for entries) to avoid overbought entries.
+- Volatility filter: if realized volatility in recent window is above a configurable threshold, reduce position size or skip signals.
+- Pullback entries: prefer to enter on a pullback toward a moving average or a defined support zone rather than at local highs.
+- Confluence: prefer signals with at least two confirming indicators (trend + momentum or trend + volume spike on breakout).
+
+Order sizing & execution:
+- Determine notional for a trade = min( cap_factor * average_symbol_daily_volume_notional, requested_notional, available buying power ).
+- Convert notional -> quantity using current mark price.
+- Clamp size to `min_trade_qty` and `max_order_qty` from runtime constraints.
+- Use market orders for small/frequent rebalances; use limit orders (near current spread) for larger entries to avoid slippage.
+- If partial fills occur, allow reattempts up to a short retry limit, then treat as partial fill and update portfolio accordingly.
+
+Risk management (mandatory):
+- Stop-loss: set a stop at a fixed percentage or ATR multiple (e.g., 1.5x ATR) below entry for longs (above for shorts).
+- Take-profit: set a profit target at a risk:reward ratio of at least 1:1.5 (configurable).
+- Trailing stop: optionally convert stop to trailing at meaningful profit thresholds (e.g., after 1x risk reached).
+- Cap total portfolio risk: do not allow aggregated potential loss (sum of per-position risk) to exceed a configurable fraction of NAV.
+- Fees: account for estimated fees when sizing orders and when evaluating profit/loss.
+
+Position management & lifecycle:
+- If a position is opened, compute and record entry price, notional, leverage, and planned stop/take levels in the trade meta.
+- Re-evaluate open positions each cycle: if stop or take conditions hit, close; if market regime flips (trend opposite), consider reducing size or closing.
+- Avoid frequent flipping: prefer 'flip-by-flat' — close an opposite-direction position fully before opening a new one (do not net opposite directions in same symbol).
+
+Edge cases & guards:
+- If the computed quantity is below `min_trade_qty`, skip the trade.
+- If the current spread or slippage estimate is larger than an acceptable threshold, skip or reduce order size.
+- If data for an instrument is stale (last candle older than 2x interval), skip trading that instrument this cycle.
+
+Rationale and explainability:
+- For each suggested action, include a short rationale string: why the signal triggered, which indicators agreed, and the planned stop/take.
+- For rejected/ignored signals, include a brief reason (e.g., "skipped: notional below min_trade_qty", "skipped: volatility too high").
+
+Telemetry & meta:
+- Attach these meta fields to each instruction: compose_id, strategy_id, timestamp, estimated_fee, estimated_notional, confidence_score.
+- Confidence: normalize to [0,1]; reduce size proportionally to confidence if below a threshold (e.g., 0.5).
+
+Failure modes & safe-fallbacks:
+- If execution gateway returns an error or rejects, do not keep trying indefinitely—mark instruction as ERROR and surface reason in logs and history.
+- If critical internal errors occur, pause trading and emit a status update.
+
+Summary (one-sentence):
+Be conservative and trend-aware: take small, well-sized positions on pullbacks or confirmed breakouts, protect capital with explicit stops, and prefer gradual, repeatable profits over large, risky bets.
+
+Examples (short):
+- Bullish pullback: short EMA > long EMA, RSI dropped below 50 and turning up, enter long sized at 1% NAV, stop = 2% below entry, target = 3% above entry.
+- Breakout: short EMA crosses above long EMA with volume spike, enter on a tight breakout candle close, stop under breakout low, R:R = 1:1.5.
+
