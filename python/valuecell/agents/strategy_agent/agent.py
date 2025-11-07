@@ -115,6 +115,13 @@ class StrategyAgent(BaseAgent):
                         strategy_id,
                     )
 
+                logger.info(
+                    "Waiting for next decision cycle for strategy_id={}, interval={}seconds",
+                    strategy_id,
+                    request.trading_config.decide_interval,
+                )
+                await asyncio.sleep(request.trading_config.decide_interval)
+
         except asyncio.CancelledError:
             raise
         except Exception as err:  # noqa: BLE001
