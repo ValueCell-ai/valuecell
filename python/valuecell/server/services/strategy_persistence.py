@@ -141,3 +141,17 @@ def persist_strategy_summary(summary: agent_models.StrategySummary) -> bool:
     except Exception:
         logger.exception("persist_strategy_summary failed for {}", strategy_id)
         return False
+
+
+def strategy_running(strategy_id: str) -> bool:
+    """Check if a strategy with the given strategy_id exists."""
+    repo = get_strategy_repository()
+    try:
+        strategy = repo.get_strategy_by_strategy_id(strategy_id)
+        return (
+            strategy is not None
+            and strategy.status == agent_models.StrategyStatus.RUNNING.value
+        )
+    except Exception:
+        logger.exception("strategy_running check failed for {}", strategy_id)
+        return False

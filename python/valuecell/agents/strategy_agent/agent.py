@@ -1,18 +1,14 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
 from typing import AsyncGenerator, Dict, Optional
 
 from loguru import logger
 
 from valuecell.core.agent.responses import streaming
 from valuecell.core.types import BaseAgent, StreamResponse
-from valuecell.server.services.strategy_persistence import (
-    persist_portfolio_view,
-    persist_trade_history,
-    persist_strategy_summary,
-)
-
+from valuecell.server.services import strategy_persistence
 from .models import (
     ComponentType,
     StrategyStatus,
@@ -41,14 +37,15 @@ class StrategyAgent(BaseAgent):
             return
 
         runtime = create_strategy_runtime(request)
+        strategy_id = runtime.strategy_id
         logger.info(
             "Created runtime for strategy_id={} conversation={} task={}",
-            runtime.strategy_id,
+            strategy_id,
             conversation_id,
             task_id,
         )
         initial_payload = StrategyStatusContent(
-            strategy_id=runtime.strategy_id,
+            strategy_id=strategy_id,
             status=StrategyStatus.RUNNING,
         )
         yield streaming.component_generator(
@@ -56,41 +53,65 @@ class StrategyAgent(BaseAgent):
             component_type=ComponentType.STATUS.value,
         )
 
-        try:
+        # Wait until strategy is marked as running in persistence layer
+        since = datetime.now()
+        while not strategy_persistence.strategy_running(strategy_id):
+            if (datetime.now() - since).total_seconds() > 300:
+                logger.error(
+                    "Timeout waiting for strategy_id={} to be marked as running",
+                    strategy_id,
+                )
+                break
+
+            await asyncio.sleep(1)
             logger.info(
-                "Starting decision loop for strategy_id={}", runtime.strategy_id
+                "Waiting for strategy_id={} to be marked as running", strategy_id
             )
+
+        try:
+            logger.info("Starting decision loop for strategy_id={}", strategy_id)
             while True:
+                if not strategy_persistence.strategy_running(strategy_id):
+                    logger.info(
+                        "Strategy_id={} is no longer running, exiting decision loop",
+                        strategy_id,
+                    )
+                    break
+
                 result = await runtime.run_cycle()
                 logger.info(
                     "Run cycle completed for strategy={} trades_count={}",
-                    runtime.strategy_id,
+                    strategy_id,
                     len(result.trades),
                 )
                 # Persist and stream trades
                 for trade in result.trades:
-                    item = persist_trade_history(runtime.strategy_id, trade)
+                    item = strategy_persistence.persist_trade_history(
+                        strategy_id, trade
+                    )
                     if item:
                         logger.info(
                             "Persisted trade {} for strategy={}",
                             getattr(trade, "trade_id", None),
-                            runtime.strategy_id,
+                            strategy_id,
                         )
 
                 # Persist portfolio snapshot (positions)
-                ok = persist_portfolio_view(result.portfolio_view)
+                ok = strategy_persistence.persist_portfolio_view(result.portfolio_view)
                 if ok:
                     logger.info(
                         "Persisted portfolio view for strategy={}",
-                        runtime.strategy_id,
+                        strategy_id,
                     )
 
                 # Persist strategy summary
-                ok = persist_strategy_summary(result.strategy_summary)
+                ok = strategy_persistence.persist_strategy_summary(
+                    result.strategy_summary
+                )
                 if ok:
                     logger.info(
                         "Persisted strategy summary for strategy={}",
-                        runtime.strategy_id,
+                        strategy_id,
                     )
 
         except asyncio.CancelledError:
