@@ -12,7 +12,7 @@ export default function AgentChat() {
     <main className="relative flex flex-1 flex-col overflow-hidden">
       {(() => {
         switch (agentName) {
-          case "AutoTradingAgent":
+          case "StrategyAgent":
             return <StrategyAgentArea agentName={agentName} />;
           default:
             return <CommonAgentArea agentName={agentName} />;
