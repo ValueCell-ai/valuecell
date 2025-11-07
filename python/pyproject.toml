@@ -28,6 +28,7 @@ dependencies = [
     "loguru>=0.7.3",
     "aiofiles>=24.1.0",
     "crawl4ai>=0.7.4",
+    "ccxt>=4.5.15",
 ]
 
 [project.optional-dependencies]
