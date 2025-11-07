@@ -121,8 +121,6 @@ function processSSEEvent(draft: AgentConversationsStore, sseData: SSEData) {
 
       switch (component_type) {
         case "scheduled_task_result":
-        case "filtered_line_chart":
-        case "filtered_card_push_notification":
         case "subagent_conversation":
           handleChatItemEvent(
             draft,

@@ -88,62 +88,12 @@ const ScheduledTaskResultComponent: FC<{ tasks: Record<string, TaskView> }> = ({
   );
 };
 
-const ModelTradeComponent: FC<{ tasks: Record<string, TaskView> }> = ({
-  tasks,
-}) => {
-  const Component = COMPONENT_RENDERER_MAP.filtered_line_chart;
-
-  // Flatten all tasks' items into a single array
-  const items = Object.values(tasks).flatMap((task) => task.items);
-
-  return (
-    <ScrollContainer className="min-w-[540px] flex-2 border-gray-200 border-l px-1">
-      {items.length > 0 && (
-        <div className="h-full space-y-3">
-          {items.map(
-            (item) =>
-              item.payload && (
-                <Component key={item.item_id} content={item.payload.content} />
-              ),
-          )}
-        </div>
-      )}
-    </ScrollContainer>
-  );
-};
-
-const ModelTradeTableComponent: FC<{ tasks: Record<string, TaskView> }> = ({
-  tasks,
-}) => {
-  const Component = COMPONENT_RENDERER_MAP.filtered_card_push_notification;
-
-  // Flatten all tasks' items into a single array
-  const items = Object.values(tasks).flatMap((task) => task.items);
-
-  return (
-    <ScrollContainer className="w-[364px] shrink-0 overflow-hidden border-gray-200 border-l px-2">
-      {items.length > 0 && (
-        <div className="space-y-3">
-          {items.map(
-            (item) =>
-              item.payload && (
-                <Component key={item.item_id} content={item.payload.content} />
-              ),
-          )}
-        </div>
-      )}
-    </ScrollContainer>
-  );
-};
-
 // component mapping table
 const SECTION_COMPONENT_MAP: Record<
   SectionComponentType,
   FC<{ tasks: Record<string, TaskView> }>
 > = {
   scheduled_task_result: ScheduledTaskResultComponent,
-  filtered_line_chart: ModelTradeComponent,
-  filtered_card_push_notification: ModelTradeTableComponent,
 };
 
 interface ChatSectionComponentProps {
