@@ -111,11 +111,9 @@ def create_strategy_router() -> APIRouter:
                     strategy_name=s.name,
                     status=map_status(s.status),
                     trading_mode=normalize_trading_mode(meta, cfg),
-                    unrealized_pnl=to_optional_float(
-                        meta.get("unrealized_pnl") or cfg.get("unrealized_pnl")
-                    ),
+                    unrealized_pnl=to_optional_float(meta.get("unrealized_pnl")),
                     unrealized_pnl_pct=to_optional_float(
-                        meta.get("unrealized_pnl_pct") or cfg.get("unrealized_pnl_pct")
+                        meta.get("unrealized_pnl_pct")
                     ),
                     created_at=s.created_at,
                     exchange_id=(meta.get("exchange_id") or cfg.get("exchange_id")),
