@@ -1,3 +1,4 @@
+import { History } from "lucide-react";
 import { type FC, memo } from "react";
 import {
   Tooltip,
@@ -109,6 +110,8 @@ const TradeHistoryGroup: FC<TradeHistoryGroupProps> = ({
   trades,
   tradingMode = "live",
 }) => {
+  const hasTrades = trades.length > 0;
+
   return (
     <div className="flex w-[360px] flex-col gap-4 border-r bg-white py-6 *:px-6">
       {/* Header */}
@@ -120,13 +123,31 @@ const TradeHistoryGroup: FC<TradeHistoryGroupProps> = ({
       </div>
 
       {/* Trade List */}
-      <ScrollContainer className="flex-1">
-        <div className="flex flex-col gap-2">
-          {trades.map((trade) => (
-            <TradeHistoryCard key={trade.trade_id} trade={trade} />
-          ))}
+      {hasTrades ? (
+        <ScrollContainer className="flex-1">
+          <div className="flex flex-col gap-2">
+            {trades.map((trade) => (
+              <TradeHistoryCard key={trade.trade_id} trade={trade} />
+            ))}
+          </div>
+        </ScrollContainer>
+      ) : (
+        <div className="flex flex-1 items-center justify-center">
+          <div className="flex flex-col items-center gap-4 px-6 py-12 text-center">
+            <div className="flex size-14 items-center justify-center rounded-full bg-gray-100">
+              <History className="size-7 text-gray-400" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <p className="font-semibold text-base text-gray-700">
+                No trade history
+              </p>
+              <p className="max-w-[280px] text-gray-500 text-sm leading-relaxed">
+                Your completed trades will appear here
+              </p>
+            </div>
+          </div>
         </div>
-      </ScrollContainer>
+      )}
     </div>
   );
 };
