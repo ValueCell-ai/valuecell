@@ -7,12 +7,6 @@ import {
   useGetStrategyTrades,
 } from "@/api/strategy";
 import { Button } from "@/components/ui/button";
-import {
-  MOCK_PORTFOLIO_PRICE_CURVE,
-  MOCK_POSITIONS,
-  MOCK_STRATEGIES,
-  MOCK_TRADES,
-} from "@/mock/strategy-data";
 import type { AgentViewProps } from "@/types/agent";
 import type { Strategy } from "@/types/strategy";
 import {
@@ -37,25 +31,22 @@ const EmptyIllustration = () => (
 );
 
 const StrategyAgentArea: FC<AgentViewProps> = () => {
-  const { data: strategies = MOCK_STRATEGIES, isLoading } =
-    useGetStrategyList();
+  const { data: strategies = [], isLoading } = useGetStrategyList();
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(
     null,
   );
 
-  const {
-    data: trades = MOCK_TRADES[selectedStrategy?.strategy_id ?? ""] || [],
-  } = useGetStrategyTrades(selectedStrategy?.strategy_id);
+  const { data: trades = [] } = useGetStrategyTrades(
+    selectedStrategy?.strategy_id,
+  );
 
-  const {
-    data: priceCurve = MOCK_PORTFOLIO_PRICE_CURVE[
-      selectedStrategy?.strategy_id ?? ""
-    ],
-  } = useGetStrategyPriceCurve(selectedStrategy?.strategy_id);
+  const { data: priceCurve = [] } = useGetStrategyPriceCurve(
+    selectedStrategy?.strategy_id,
+  );
 
-  const {
-    data: positions = MOCK_POSITIONS[selectedStrategy?.strategy_id ?? ""] || [],
-  } = useGetStrategyHoldings(selectedStrategy?.strategy_id);
+  const { data: positions = [] } = useGetStrategyHoldings(
+    selectedStrategy?.strategy_id,
+  );
 
   useEffect(() => {
     if (strategies && strategies.length > 0) {
