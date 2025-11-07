@@ -1,8 +1,4 @@
 import { type FC, memo } from "react";
-import {
-  useGetStrategyHoldings,
-  useGetStrategyPriceCurve,
-} from "@/api/strategy";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -15,15 +11,12 @@ import {
 import MultiLineChart from "@/components/valuecell/charts/model-multi-line";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { formatChange, getChangeType } from "@/lib/utils";
-import {
-  MOCK_PORTFOLIO_PRICE_CURVE,
-  MOCK_POSITIONS,
-} from "@/mock/strategy-data";
 import { useStockColors } from "@/store/settings-store";
 import type { Position } from "@/types/strategy";
 
 interface PortfolioPositionsGroupProps {
-  strategyId?: string;
+  priceCurve: Array<Array<number | string>>;
+  positions: Position[];
 }
 
 interface PositionRowProps {
@@ -74,18 +67,9 @@ const PositionRow: FC<PositionRowProps> = ({ position }) => {
 };
 
 const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
-  strategyId,
+  priceCurve,
+  positions,
 }) => {
-  const {
-    data: priceCurve = MOCK_PORTFOLIO_PRICE_CURVE[strategyId ?? ""] || {
-      data: [],
-      create_time: "",
-    },
-  } = useGetStrategyPriceCurve(strategyId);
-
-  const { data: positions = MOCK_POSITIONS[strategyId ?? ""] || [] } =
-    useGetStrategyHoldings(strategyId);
-
   return (
     <div className="flex flex-1 flex-col gap-8 overflow-y-scroll p-6">
       {/* Portfolio Value History Section */}
@@ -94,8 +78,8 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
           Portfolio Value History
         </h3>
         <div className="min-h-[400px] flex-1">
-          {priceCurve.data.length > 0 && (
-            <MultiLineChart data={priceCurve.data} showLegend={false} />
+          {priceCurve.length > 0 && (
+            <MultiLineChart data={priceCurve} showLegend={false} />
           )}
         </div>
       </div>

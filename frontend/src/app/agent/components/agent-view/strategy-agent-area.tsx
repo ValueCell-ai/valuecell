@@ -1,8 +1,18 @@
 import { Plus } from "lucide-react";
 import { type FC, useEffect, useState } from "react";
-import { useGetStrategyList, useGetStrategyTrades } from "@/api/strategy";
+import {
+  useGetStrategyHoldings,
+  useGetStrategyList,
+  useGetStrategyPriceCurve,
+  useGetStrategyTrades,
+} from "@/api/strategy";
 import { Button } from "@/components/ui/button";
-import { MOCK_STRATEGIES, MOCK_TRADES } from "@/mock/strategy-data";
+import {
+  MOCK_PORTFOLIO_PRICE_CURVE,
+  MOCK_POSITIONS,
+  MOCK_STRATEGIES,
+  MOCK_TRADES,
+} from "@/mock/strategy-data";
 import type { AgentViewProps } from "@/types/agent";
 import type { Strategy } from "@/types/strategy";
 import {
@@ -36,6 +46,16 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
   const {
     data: trades = MOCK_TRADES[selectedStrategy?.strategy_id ?? ""] || [],
   } = useGetStrategyTrades(selectedStrategy?.strategy_id);
+
+  const {
+    data: priceCurve = MOCK_PORTFOLIO_PRICE_CURVE[
+      selectedStrategy?.strategy_id ?? ""
+    ],
+  } = useGetStrategyPriceCurve(selectedStrategy?.strategy_id);
+
+  const {
+    data: positions = MOCK_POSITIONS[selectedStrategy?.strategy_id ?? ""] || [],
+  } = useGetStrategyHoldings(selectedStrategy?.strategy_id);
 
   useEffect(() => {
     if (strategies && strategies.length > 0) {
@@ -83,12 +103,13 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
       <div className="flex flex-1">
         {selectedStrategy ? (
           <>
-          <TradeHistoryGroup
-            trades={trades}
-            tradingMode={selectedStrategy.trading_mode}
-          />
+            <TradeHistoryGroup
+              trades={trades}
+              tradingMode={selectedStrategy.trading_mode}
+            />
             <PortfolioPositionsGroup
-              strategyId={selectedStrategy.strategy_id}
+              priceCurve={priceCurve}
+              positions={positions}
             />
           </>
         ) : (
