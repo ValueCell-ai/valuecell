@@ -125,3 +125,14 @@ StrategyHoldingFlatResponse = SuccessResponse[List[StrategyHoldingFlatItem]]
 
 
 StrategyCurveResponse = SuccessResponse[List[List[str | float | None]]]
+
+
+class StrategyStatusUpdateResponse(BaseModel):
+    strategy_id: str = Field(..., description="Strategy identifier")
+    status: Literal["running", "stopped"] = Field(
+        ..., description="Updated strategy status"
+    )
+    message: str = Field(..., description="Status update message")
+
+
+StrategyStatusSuccessResponse = SuccessResponse[StrategyStatusUpdateResponse]

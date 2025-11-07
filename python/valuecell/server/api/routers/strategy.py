@@ -17,6 +17,8 @@ from valuecell.server.api.schemas.strategy import (
     StrategyHoldingFlatResponse,
     StrategyListData,
     StrategyListResponse,
+    StrategyStatusSuccessResponse,
+    StrategyStatusUpdateResponse,
     StrategySummaryData,
 )
 from valuecell.server.db import get_db
@@ -382,6 +384,43 @@ def create_strategy_router() -> APIRouter:
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to retrieve holding price curve: {str(e)}",
+            )
+
+    @router.post(
+        "/stop",
+        response_model=StrategyStatusSuccessResponse,
+        summary="Stop a strategy",
+        description="Set the strategy status to 'stopped' by ID (via query param 'id')",
+    )
+    async def stop_strategy(
+        id: str = Query(..., description="Strategy ID"),
+        db: Session = Depends(get_db),
+    ) -> StrategyStatusSuccessResponse:
+        try:
+            repo = get_strategy_repository(db_session=db)
+            strategy = repo.get_strategy_by_strategy_id(id)
+            if not strategy:
+                raise HTTPException(status_code=404, detail="Strategy not found")
+
+            # Update status to 'stopped' (idempotent)
+            repo.upsert_strategy(strategy_id=id, status="stopped")
+
+            response_data = StrategyStatusUpdateResponse(
+                strategy_id=id,
+                status="stopped",
+                message=f"Strategy '{id}' has been stopped",
+            )
+
+            return SuccessResponse.create(
+                data=response_data,
+                msg=f"Successfully stopped strategy '{id}'",
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to stop strategy: {str(e)}",
             )
 
     return router
