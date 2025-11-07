@@ -36,15 +36,25 @@ def persist_trade_history(
             side=side or ("BUY" if (trade.quantity or 0) > 0 else "SELL"),
             leverage=float(trade.leverage) if trade.leverage is not None else None,
             quantity=abs(float(trade.quantity or 0.0)),
-            entry_price=float(trade.entry_price)
-            if trade.entry_price is not None
-            else None,
-            exit_price=float(trade.exit_price)
-            if trade.exit_price is not None
-            else None,
-            unrealized_pnl=float(trade.realized_pnl)
-            if trade.realized_pnl is not None
-            else None,
+            entry_price=(
+                float(trade.entry_price) if trade.entry_price is not None else None
+            ),
+            exit_price=(
+                float(trade.exit_price) if trade.exit_price is not None else None
+            ),
+            unrealized_pnl=(
+                float(trade.unrealized_pnl)
+                if getattr(trade, "unrealized_pnl", None) is not None
+                else (
+                    float(trade.realized_pnl)
+                    if getattr(trade, "realized_pnl", None) is not None
+                    else None
+                )
+            ),
+            # Note: store unrealized_pnl separately if available on the DTO
+            # (some callers may populate unrealized vs realized differently)
+            # Keep backward-compatibility: prefer trade.unrealized_pnl when present
+            # If both present, the DTO should include both; StrategyDetail currently only stores unrealized_pnl.
             holding_ms=int(trade.holding_ms) if trade.holding_ms is not None else None,
             event_time=event_time,
             note=trade.note,
@@ -68,12 +78,13 @@ def persist_trade_history(
         return None
 
 
-def persist_portfolio_view(strategy_id: str, view: agent_models.PortfolioView) -> bool:
+def persist_portfolio_view(view: agent_models.PortfolioView) -> bool:
     """Persist PortfolioView.positions into strategy_holdings (one row per symbol snapshot).
 
     Writes each position as a `StrategyHolding` snapshot with current timestamp if not provided.
     """
     repo = get_strategy_repository()
+    strategy_id = view.strategy_id
     try:
         snapshot_ts = (
             datetime.fromtimestamp(view.ts / 1000.0, tz=timezone.utc)
@@ -94,12 +105,16 @@ def persist_portfolio_view(strategy_id: str, view: agent_models.PortfolioView) -
                 leverage=float(pos.leverage) if pos.leverage is not None else None,
                 entry_price=float(pos.avg_price) if pos.avg_price is not None else None,
                 quantity=abs(float(pos.quantity)),
-                unrealized_pnl=float(pos.unrealized_pnl)
-                if pos.unrealized_pnl is not None
-                else None,
-                unrealized_pnl_pct=float(pos.unrealized_pnl_pct)
-                if pos.unrealized_pnl_pct is not None
-                else None,
+                unrealized_pnl=(
+                    float(pos.unrealized_pnl)
+                    if pos.unrealized_pnl is not None
+                    else None
+                ),
+                unrealized_pnl_pct=(
+                    float(pos.unrealized_pnl_pct)
+                    if pos.unrealized_pnl_pct is not None
+                    else None
+                ),
                 snapshot_ts=snapshot_ts,
             )
         return True
@@ -108,44 +123,21 @@ def persist_portfolio_view(strategy_id: str, view: agent_models.PortfolioView) -
         return False
 
 
-def build_strategy_summary(strategy_id: str) -> Optional[agent_models.StrategySummary]:
-    """Build a StrategySummary by aggregating holdings and details.
+def persist_strategy_summary(summary: agent_models.StrategySummary) -> bool:
+    """Persist a StrategySummary into the Strategy.strategy_metadata JSON.
 
-    This is a simple implementation: sums realized_pnl from details and
-    unrealized from latest holdings. It does not attempt to compute pnl_pct
-    precisely (depends on how you define denominator); this function can be
-    extended to use initial capital or last known equity.
+    Returns True on success, False on failure.
     """
     repo = get_strategy_repository()
+    strategy_id = summary.strategy_id
     try:
-        details = repo.get_details(strategy_id, limit=1000) or []
-        holdings = repo.get_latest_holdings(strategy_id) or []
-
-        realized = 0.0
-        for d in details:
-            try:
-                # if stored realized_pnl exists on detail (not all rows may have), sum
-                if getattr(d, "realized_pnl", None) is not None:
-                    realized += float(d.realized_pnl)
-            except Exception:
-                continue
-
-        unreal = 0.0
-        for h in holdings:
-            try:
-                if h.unrealized_pnl is not None:
-                    unreal += float(h.unrealized_pnl)
-            except Exception:
-                continue
-
-        # Build minimal StrategySummary DTO. More fields can be filled from Strategy model.
-        summary = agent_models.StrategySummary(
-            strategy_id=strategy_id,
-            realized_pnl=realized,
-            unrealized_pnl=unreal,
-            last_updated_ts=int(datetime.now(timezone.utc).timestamp() * 1000),
+        strategy = repo.get_strategy_by_strategy_id(strategy_id)
+        existing_meta = (
+            (strategy.strategy_metadata or {}) if strategy is not None else {}
         )
-        return summary
+        meta = {**dict(existing_meta), **summary.model_dump(exclude_none=True)}
+        updated = repo.upsert_strategy(strategy_id, metadata=meta)
+        return updated is not None
     except Exception:
-        logger.exception("build_strategy_summary failed for {}", strategy_id)
-        return None
+        logger.exception("persist_strategy_summary failed for {}", strategy_id)
+        return False
