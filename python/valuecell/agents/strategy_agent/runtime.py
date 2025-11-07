@@ -64,7 +64,6 @@ def _make_prompt_provider(template_dir: Optional[Path] = None):
     return provider
 
 
-
 @dataclass
 class StrategyRuntime:
     request: UserRequest
@@ -89,12 +88,8 @@ def create_strategy_runtime(request: UserRequest) -> StrategyRuntime:
         strategy_id=strategy_id,
     )
 
-    base_prices = {
-        symbol: 120.0 + index * 15.0
-        for index, symbol in enumerate(request.trading_config.symbols)
-    }
     market_data_source = SimpleMarketDataSource(
-        base_prices=base_prices, exchange_id=request.exchange_config.exchange_id
+        exchange_id=request.exchange_config.exchange_id
     )
     feature_computer = SimpleFeatureComputer()
     composer = LlmComposer(request=request)

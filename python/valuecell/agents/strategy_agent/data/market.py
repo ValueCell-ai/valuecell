@@ -1,4 +1,3 @@
-from collections import defaultdict
 from typing import Dict, List, Optional
 
 import ccxt.pro as ccxtpro
@@ -20,12 +19,9 @@ class SimpleMarketDataSource(MarketDataSource):
 
     def __init__(
         self,
-        base_prices: Optional[Dict[str, float]] = None,
         exchange_id: Optional[str] = None,
         ccxt_options: Optional[Dict] = None,
     ) -> None:
-        self._base_prices = base_prices or {}
-        self._counters: Dict[str, int] = defaultdict(int)
         self._exchange_id = exchange_id or "binance"
         self._ccxt_options = ccxt_options or {}
 
