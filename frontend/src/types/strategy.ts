@@ -39,12 +39,6 @@ export interface Position {
   unrealized_pnl_pct: number;
 }
 
-// Portfolio price curve response
-export interface PortfolioPriceCurve {
-  data: Array<Array<string | number>>;
-  create_time: string;
-}
-
 // Create Strategy Request types
 export interface CreateStrategyRequest {
   // LLM Model Configuration

@@ -3,7 +3,6 @@ import { API_QUERY_KEYS } from "@/constants/api";
 import { type ApiResponse, apiClient } from "@/lib/api-client";
 import type {
   CreateStrategyRequest,
-  PortfolioPriceCurve,
   Position,
   Strategy,
   Trade,
@@ -50,7 +49,7 @@ export const useGetStrategyPriceCurve = (strategyId?: string) => {
   return useQuery({
     queryKey: API_QUERY_KEYS.STRATEGY.strategyPriceCurve([strategyId ?? ""]),
     queryFn: () =>
-      apiClient.get<PortfolioPriceCurve>(
+      apiClient.get<ApiResponse<{ data: Array<Array<string | number>> }>>(
         `/strategies/holding_price_curve?id=${strategyId}`,
       ),
     select: (data) => data,
