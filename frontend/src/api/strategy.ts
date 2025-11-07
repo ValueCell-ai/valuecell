@@ -88,3 +88,20 @@ export const useGetStrategyApiKey = () => {
     staleTime: 0,
   });
 };
+
+export const useStopStrategy = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (strategyId: string) =>
+      apiClient.post<ApiResponse<{ message: string }>>(
+        `/strategies/stop?id=${strategyId}`,
+      ),
+    onSuccess: () => {
+      // Invalidate strategy list to refetch
+      queryClient.invalidateQueries({
+        queryKey: API_QUERY_KEYS.STRATEGY.strategyList,
+      });
+    },
+  });
+};
