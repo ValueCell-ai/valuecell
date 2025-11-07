@@ -11,7 +11,6 @@ from sqlalchemy.orm import Session
 
 from valuecell.server.api.schemas.base import SuccessResponse
 from valuecell.server.api.schemas.strategy import (
-    StrategyCurveData,
     StrategyCurveResponse,
     StrategyDetailResponse,
     StrategyHoldingFlatItem,
@@ -286,8 +285,8 @@ def create_strategy_router() -> APIRouter:
                         data.append([created_time_str, None])
 
                 return SuccessResponse.create(
-                    data=StrategyCurveData(data=data),
-                    msg="Successfully retrieved strategy holding price curve",
+                    data=data,
+                    msg="Fetched holding price curve successfully",
                 )
 
             # Case 2: Combined curves for all strategies
@@ -374,8 +373,8 @@ def create_strategy_router() -> APIRouter:
 
             # For combined view, creation time is not singular; return null
             return SuccessResponse.create(
-                data=StrategyCurveData(data=data),
-                msg="Successfully retrieved holding price curves",
+                data=data,
+                msg="Fetched merged holding price curves successfully",
             )
         except HTTPException:
             raise

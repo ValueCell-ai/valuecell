@@ -124,10 +124,4 @@ class StrategyHoldingFlatItem(BaseModel):
 StrategyHoldingFlatResponse = SuccessResponse[List[StrategyHoldingFlatItem]]
 
 
-class StrategyCurveData(BaseModel):
-    data: List[List[str | float | None]] = Field(
-        ..., description="Matrix with header row and aligned time series values"
-    )
-
-
-StrategyCurveResponse = SuccessResponse[StrategyCurveData]
+StrategyCurveResponse = SuccessResponse[List[List[str | float | None]]]
