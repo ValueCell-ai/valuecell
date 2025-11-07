@@ -39,6 +39,13 @@ export interface Position {
   unrealized_pnl_pct: number;
 }
 
+// LLM Config API
+export interface LlmConfig {
+  provider: string;
+  model_id: string;
+  api_key: string;
+}
+
 // Create Strategy Request types
 export interface CreateStrategyRequest {
   // LLM Model Configuration
