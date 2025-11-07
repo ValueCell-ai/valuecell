@@ -1,4 +1,9 @@
 import { type FC, memo } from "react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import { formatChange, getChangeType, numberFixed } from "@/lib/utils";
@@ -83,6 +88,15 @@ const TradeHistoryCard: FC<TradeHistoryCardProps> = ({ trade }) => {
         <div className="flex items-center justify-between text-gray-500 text-sm">
           <p>Holding time</p>
           <p>{formatHoldingTime(trade.holding_ms)}</p>
+        </div>
+        <div className="flex items-center justify-between text-gray-500 text-sm">
+          <p>Reasoning</p>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="cursor-pointer">View Detail</span>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">{trade.note}</TooltipContent>
+          </Tooltip>
         </div>
       </div>
     </div>
