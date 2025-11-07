@@ -51,10 +51,10 @@ export const useGetStrategyPriceCurve = (strategyId?: string) => {
   return useQuery({
     queryKey: API_QUERY_KEYS.STRATEGY.strategyPriceCurve([strategyId ?? ""]),
     queryFn: () =>
-      apiClient.get<ApiResponse<{ data: Array<Array<string | number>> }>>(
+      apiClient.get<ApiResponse<Array<Array<string | number>>>>(
         `/strategies/holding_price_curve?id=${strategyId}`,
       ),
-    select: (data) => data,
+    select: (data) => data.data,
     refetchInterval: 15 * 1000,
     enabled: !!strategyId,
   });
