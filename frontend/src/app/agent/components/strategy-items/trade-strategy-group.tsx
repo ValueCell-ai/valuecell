@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, TrendingUp } from "lucide-react";
 import { type FC, memo } from "react";
 import { StrategyStatus } from "@/assets/svg";
 import {
@@ -132,23 +132,43 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
   onStrategySelect,
   onStrategyStop,
 }) => {
+  const hasStrategies = strategies.length > 0;
+
   return (
     <>
-      <ScrollContainer className="min-w-80 flex-1">
-        <div className="flex flex-col gap-3">
-          {strategies.map((strategy) => (
-            <TradeStrategyCard
-              key={strategy.strategy_id}
-              strategy={strategy}
-              isSelected={
-                selectedStrategy?.strategy_id === strategy.strategy_id
-              }
-              onClick={() => onStrategySelect?.(strategy)}
-              onStop={() => onStrategyStop?.(strategy.strategy_id)}
-            />
-          ))}
+      {hasStrategies ? (
+        <ScrollContainer className="min-w-80 flex-1">
+          <div className="flex flex-col gap-3">
+            {strategies.map((strategy) => (
+              <TradeStrategyCard
+                key={strategy.strategy_id}
+                strategy={strategy}
+                isSelected={
+                  selectedStrategy?.strategy_id === strategy.strategy_id
+                }
+                onClick={() => onStrategySelect?.(strategy)}
+                onStop={() => onStrategyStop?.(strategy.strategy_id)}
+              />
+            ))}
+          </div>
+        </ScrollContainer>
+      ) : (
+        <div className="flex min-w-80 flex-1 items-center justify-center rounded-xl border-2 border-gray-200 border-dashed bg-gray-50/50">
+          <div className="flex flex-col items-center gap-4 px-6 py-12 text-center">
+            <div className="flex size-14 items-center justify-center rounded-full bg-gray-100">
+              <TrendingUp className="size-7 text-gray-400" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <p className="font-semibold text-base text-gray-700">
+                No trading strategies
+              </p>
+              <p className="max-w-xs text-gray-500 text-sm leading-relaxed">
+                Create your first strategy to start trading
+              </p>
+            </div>
+          </div>
         </div>
-      </ScrollContainer>
+      )}
       <div>
         <CreateStrategyModal>
           <Button
