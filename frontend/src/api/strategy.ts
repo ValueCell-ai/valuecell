@@ -29,6 +29,7 @@ export const useGetStrategyTrades = (strategyId?: string) => {
         `/strategies/detail?id=${strategyId}`,
       ),
     select: (data) => data.data,
+    refetchInterval: 15 * 1000,
     enabled: !!strategyId,
   });
 };
@@ -41,6 +42,7 @@ export const useGetStrategyHoldings = (strategyId?: string) => {
         `/strategies/holding?id=${strategyId}`,
       ),
     select: (data) => data.data,
+    refetchInterval: 15 * 1000,
     enabled: !!strategyId,
   });
 };
@@ -53,6 +55,7 @@ export const useGetStrategyPriceCurve = (strategyId?: string) => {
         `/strategies/holding_price_curve?id=${strategyId}`,
       ),
     select: (data) => data,
+    refetchInterval: 15 * 1000,
     enabled: !!strategyId,
   });
 };
