@@ -93,7 +93,9 @@ const TradeHistoryCard: FC<TradeHistoryCardProps> = ({ trade }) => {
           <p>Reasoning</p>
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="cursor-pointer">View Detail</span>
+              <span className="cursor-pointer hover:text-gray-700">
+                View Detail
+              </span>
             </TooltipTrigger>
             <TooltipContent className="max-w-xs">{trade.note}</TooltipContent>
           </Tooltip>
