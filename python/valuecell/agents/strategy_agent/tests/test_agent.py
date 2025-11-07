@@ -32,7 +32,7 @@ async def strategy_agent_basic_stream():
                 "max_positions": 5,
                 "symbols": ["BTC/USDT", "ETH/USDT", "SOL/USDT"],
                 "decide_interval": 60,
-                "template_id": "insane",
+                "template_id": "aggressive",
                 "custom_prompt": "no custom prompt",
             },
         }
