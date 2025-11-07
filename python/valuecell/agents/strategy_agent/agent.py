@@ -71,6 +71,37 @@ class StrategyAgent(BaseAgent):
 
         try:
             logger.info("Starting decision loop for strategy_id={}", strategy_id)
+            # Persist initial portfolio snapshot and strategy summary before entering the loop
+            try:
+                # Get current portfolio view from the coordinator's portfolio service
+                initial_portfolio = runtime.coordinator._portfolio_service.get_view()
+                # ensure strategy_id present on the view
+                try:
+                    initial_portfolio.strategy_id = strategy_id
+                except Exception:
+                    pass
+
+                ok = strategy_persistence.persist_portfolio_view(initial_portfolio)
+                if ok:
+                    logger.info(
+                        "Persisted initial portfolio view for strategy={}",
+                        strategy_id,
+                    )
+
+                # Build and persist an initial strategy summary (no trades yet)
+                timestamp_ms = int(runtime.coordinator._clock().timestamp() * 1000)
+                initial_summary = runtime.coordinator._build_summary(timestamp_ms, [])
+                ok = strategy_persistence.persist_strategy_summary(initial_summary)
+                if ok:
+                    logger.info(
+                        "Persisted initial strategy summary for strategy={}",
+                        strategy_id,
+                    )
+            except Exception:
+                logger.exception(
+                    "Failed to persist initial portfolio/summary for {}",
+                    strategy_id,
+                )
             while True:
                 if not strategy_persistence.strategy_running(strategy_id):
                     logger.info(
