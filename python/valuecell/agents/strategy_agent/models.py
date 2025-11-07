@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from .constants import (
     DEFAULT_AGENT_MODEL,
@@ -45,7 +45,11 @@ class ComponentType(str, Enum):
 
 
 class LLMModelConfig(BaseModel):
-    """AI model configuration for strategy."""
+    """AI model configuration for strategy.
+
+    Defaults are harmonized with backend ConfigManager so that
+    Strategy creation uses the same provider/model as GET /models/llm/config.
+    """
 
     provider: str = Field(
         default=DEFAULT_MODEL_PROVIDER,
@@ -56,6 +60,52 @@ class LLMModelConfig(BaseModel):
         description="Model identifier (e.g., 'deepseek-ai/deepseek-v3.1', 'gpt-4o')",
     )
     api_key: str = Field(..., description="API key for the model provider")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _fill_defaults(cls, data):
+        # Allow requests to omit provider/model/api_key and backfill from ConfigManager
+        if not isinstance(data, dict):
+            return data
+        values = dict(data)
+        try:
+            from valuecell.config.manager import get_config_manager
+
+            manager = get_config_manager()
+            resolved_provider = (
+                values.get("provider")
+                or getattr(manager, "primary_provider", None)
+                or DEFAULT_MODEL_PROVIDER
+            )
+            provider_cfg = manager.get_provider_config(resolved_provider)
+            if provider_cfg:
+                values.setdefault(
+                    "provider", values.get("provider") or provider_cfg.name
+                )
+                values.setdefault(
+                    "model_id",
+                    values.get("model_id")
+                    or provider_cfg.default_model
+                    or DEFAULT_AGENT_MODEL,
+                )
+                # If api_key not provided by client, use provider config api_key
+                if values.get("api_key") is None and getattr(
+                    provider_cfg, "api_key", None
+                ):
+                    values["api_key"] = provider_cfg.api_key
+            else:
+                values.setdefault("provider", resolved_provider)
+                values.setdefault(
+                    "model_id", values.get("model_id") or DEFAULT_AGENT_MODEL
+                )
+        except Exception:
+            # Fall back to constants if config manager unavailable
+            values.setdefault(
+                "provider", values.get("provider") or DEFAULT_MODEL_PROVIDER
+            )
+            values.setdefault("model_id", values.get("model_id") or DEFAULT_AGENT_MODEL)
+
+        return values
 
 
 class ExchangeConfig(BaseModel):

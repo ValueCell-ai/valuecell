@@ -1,6 +1,7 @@
 {
   "name": "StrategyAgent",
   "display_name": "Strategy Agent",
+  "url": "http://localhost:10004/",
   "description": "LLM-driven strategy composer that turns market features into normalized trade instructions. Includes a simple runtime for demo and testing.",
   "capabilities": {
     "streaming": true,
