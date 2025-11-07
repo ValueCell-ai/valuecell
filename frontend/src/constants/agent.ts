@@ -135,3 +135,12 @@ export const MODEL_PROVIDER_MAP: Record<
   ],
   siliconflow: ["deepseek-ai/DeepSeek-V3.2-Exp", "Qwen/Qwen3-235B-A22B"],
 };
+
+// Trading symbols options
+export const TRADING_SYMBOLS: string[] = [
+  "BTC/USDT",
+  "ETH/USDT",
+  "SOL/USDT",
+  "DOGE/USDT",
+  "XRP/USDT",
+];

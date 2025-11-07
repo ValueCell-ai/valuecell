@@ -28,27 +28,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
-import { MODEL_PROVIDER_MAP, MODEL_PROVIDERS } from "@/constants/agent";
+import {
+  MODEL_PROVIDER_MAP,
+  MODEL_PROVIDERS,
+  TRADING_SYMBOLS,
+} from "@/constants/agent";
 
 interface CreateStrategyModalProps {
   children?: React.ReactNode;
 }
 
 type StepNumber = 1 | 2 | 3;
-
-// Trading symbols options
-const TRADING_SYMBOLS: string[] = [
-  "BTC",
-  "ETH",
-  "USDT",
-  "BNB",
-  "SOL",
-  "XRP",
-  "USDC",
-  "BCH",
-];
 
 // Step 1 Schema: AI Models
 const step1Schema = z.object({
@@ -492,9 +483,6 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                                         <SelectItem value="binance">
                                           Binance
                                         </SelectItem>
-                                        <SelectItem value="coinbase">
-                                          Coinbase
-                                        </SelectItem>
                                       </SelectContent>
                                     </Select>
                                     {field.state.meta.errors.length > 0 && (
@@ -671,7 +659,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                   </div>
 
                   {/* Trading Strategy Prompt */}
-                  <div className="flex flex-col gap-6">
+                  {/* <div className="flex flex-col gap-6">
                     <div className="flex items-center gap-2">
                       <div className="h-4 w-1 rounded-[1px] bg-black" />
                       <h3 className="font-semibold text-lg leading-[26px]">
@@ -729,7 +717,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                         )}
                       </form3.Field>
                     </div>
-                  </div>
+                  </div> */}
                 </FieldGroup>
               </form>
             )}
