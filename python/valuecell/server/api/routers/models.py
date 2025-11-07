@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 
 from valuecell.config.manager import get_config_manager
 
-from ..schemas import LLMModelConfigData, SuccessResponse
+from ..schemas import LLMProviderConfigData, SuccessResponse
 
 # Optional fallback constants from StrategyAgent
 try:
@@ -26,14 +26,14 @@ def create_models_router() -> APIRouter:
 
     @router.get(
         "/llm/config",
-        response_model=SuccessResponse[List[LLMModelConfigData]],
+        response_model=SuccessResponse[List[LLMProviderConfigData]],
         summary="Get available LLMModelConfigs",
         description=(
             "Return a list of LLM model configurations for the primary provider "
             "and any enabled fallback providers. API keys may be omitted if not configured."
         ),
     )
-    async def get_llm_model_config() -> SuccessResponse[List[LLMModelConfigData]]:
+    async def get_llm_model_config() -> SuccessResponse[List[LLMProviderConfigData]]:
         try:
             manager = get_config_manager()
 
@@ -43,23 +43,20 @@ def create_models_router() -> APIRouter:
             seen = set()
             ordered = [p for p in providers if not (p in seen or seen.add(p))]
 
-            configs: List[LLMModelConfigData] = []
+            configs: List[LLMProviderConfigData] = []
             for provider in ordered:
                 provider_cfg = manager.get_provider_config(provider)
                 if provider_cfg is None:
                     configs.append(
-                        LLMModelConfigData(
+                        LLMProviderConfigData(
                             provider=DEFAULT_MODEL_PROVIDER,
-                            model_id=DEFAULT_AGENT_MODEL,
                             api_key=None,
                         )
                     )
                 else:
-                    model_id = provider_cfg.default_model or DEFAULT_AGENT_MODEL
                     configs.append(
-                        LLMModelConfigData(
+                        LLMProviderConfigData(
                             provider=provider_cfg.name,
-                            model_id=model_id,
                             api_key=provider_cfg.api_key,
                         )
                     )
@@ -67,15 +64,14 @@ def create_models_router() -> APIRouter:
             # If no providers were detected, return a single default entry
             if not configs:
                 configs.append(
-                    LLMModelConfigData(
+                    LLMProviderConfigData(
                         provider=DEFAULT_MODEL_PROVIDER,
-                        model_id=DEFAULT_AGENT_MODEL,
                         api_key=None,
                     )
                 )
 
             return SuccessResponse.create(
-                data=configs, msg=f"Retrieved {len(configs)} LLMModelConfigs"
+                data=configs, msg=f"Retrieved {len(configs)} LLM provider configs"
             )
         except Exception as e:
             raise HTTPException(

@@ -9,6 +9,7 @@ from loguru import logger
 from valuecell.core.agent.responses import streaming
 from valuecell.core.types import BaseAgent, StreamResponse
 from valuecell.server.services import strategy_persistence
+
 from .models import (
     ComponentType,
     StrategyStatus,
