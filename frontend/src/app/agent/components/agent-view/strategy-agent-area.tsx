@@ -5,6 +5,7 @@ import {
   useGetStrategyList,
   useGetStrategyPriceCurve,
   useGetStrategyTrades,
+  useStopStrategy,
 } from "@/api/strategy";
 import { Button } from "@/components/ui/button";
 import type { AgentViewProps } from "@/types/agent";
@@ -48,6 +49,8 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
     selectedStrategy?.strategy_id,
   );
 
+  const { mutateAsync: stopStrategy } = useStopStrategy();
+
   useEffect(() => {
     if (strategies && strategies.length > 0) {
       setSelectedStrategy(strategies[0]);
@@ -67,6 +70,9 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
             strategies={strategies}
             selectedStrategy={selectedStrategy}
             onStrategySelect={setSelectedStrategy}
+            onStrategyStop={async (strategyId) =>
+              await stopStrategy(strategyId)
+            }
           />
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-4">

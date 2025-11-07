@@ -98,7 +98,6 @@ function ModelMultiLine({
         right: 20,
         top: 0,
         bottom: showLegend ? 80 : 0,
-        containLabel: true,
       },
       xAxis: {
         type: "category",

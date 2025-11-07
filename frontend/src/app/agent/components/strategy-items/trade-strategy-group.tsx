@@ -14,22 +14,24 @@ interface TradeStrategyCardProps {
   strategy: Strategy;
   isSelected?: boolean;
   onClick?: () => void;
+  onStop?: () => void;
 }
 
 interface TradeStrategyGroupProps {
   strategies: Strategy[];
   selectedStrategy?: Strategy | null;
   onStrategySelect?: (strategy: Strategy) => void;
+  onStrategyStop?: (strategyId: string) => void;
 }
 
 const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
   strategy,
   isSelected = false,
   onClick,
+  onStop,
 }) => {
   const stockColors = useStockColors();
   const changeType = getChangeType(strategy.unrealized_pnl_pct);
-
   return (
     <div
       onClick={onClick}
@@ -72,12 +74,20 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
         </div>
 
         {/* Status Badge */}
-        <div className="flex items-center gap-2.5 rounded-md px-2.5 py-1">
-          <SvgIcon name={StrategyStatus} className="size-4" />
+        <Button
+          variant="ghost"
+          disabled={strategy.status === "stopped"}
+          size={"sm"}
+          onClick={onStop}
+          className="flex items-center gap-2.5 rounded-md px-2.5 py-1"
+        >
+          {strategy.status === "running" && (
+            <SvgIcon name={StrategyStatus} className="size-4" />
+          )}
           <p className="font-medium text-gray-700 text-sm">
             {strategy.status === "running" ? "Running" : "Stopped"}
           </p>
-        </div>
+        </Button>
       </div>
     </div>
   );
@@ -87,6 +97,7 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
   strategies,
   selectedStrategy,
   onStrategySelect,
+  onStrategyStop,
 }) => {
   return (
     <>
@@ -100,6 +111,7 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
                 selectedStrategy?.strategy_id === strategy.strategy_id
               }
               onClick={() => onStrategySelect?.(strategy)}
+              onStop={() => onStrategyStop?.(strategy.strategy_id)}
             />
           ))}
         </div>
