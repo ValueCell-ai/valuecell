@@ -42,14 +42,14 @@ export interface Position {
 // Create Strategy Request types
 export interface CreateStrategyRequest {
   // LLM Model Configuration
-  LLMModelConfig: {
+  llm_model_config: {
     provider: string; // e.g. 'openrouter'
     model_id: string; // e.g. 'deepseek-ai/deepseek-v3.1'
     api_key: string;
   };
 
   // Exchange Configuration
-  exchangeConfig: {
+  exchange_config: {
     exchange_id: string; // e.g. 'okx'
     trading_mode: "live" | "virtual";
     api_key?: string;
@@ -57,7 +57,7 @@ export interface CreateStrategyRequest {
   };
 
   // Trading Strategy Configuration
-  tradingConfig: {
+  trading_config: {
     strategy_name: string;
     initial_capital: number;
     max_leverage: number;
