@@ -4,7 +4,7 @@ import { Check, X } from "lucide-react";
 import type { FC } from "react";
 import { memo, useState } from "react";
 import { z } from "zod";
-import { useCreateStrategy } from "@/api/strategy";
+import { useCreateStrategy, useGetStrategyApiKey } from "@/api/strategy";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -188,13 +188,16 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState<StepNumber>(1);
   const createStrategyMutation = useCreateStrategy();
+  const { data: llmConfigs } = useGetStrategyApiKey();
 
   // Step 1 Form: AI Models
   const form1 = useForm({
     defaultValues: {
       provider: "openrouter",
       model_id: MODEL_PROVIDER_MAP.openrouter[0],
-      api_key: "",
+      api_key:
+        llmConfigs?.find((config) => config.provider === "openrouter")
+          ?.api_key || "",
     },
     validators: {
       onSubmit: step1Schema,
@@ -327,6 +330,12 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                                   value as keyof typeof MODEL_PROVIDER_MAP
                                 ][0],
                               );
+                              const apikey = llmConfigs?.find(
+                                (config) => config.provider === value,
+                              )?.api_key;
+                              if (apikey) {
+                                form1.setFieldValue("api_key", apikey);
+                              }
                             }}
                           >
                             <SelectTrigger>
@@ -392,7 +401,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                     }}
                   </form1.Field>
 
-                  <form1.Field name="api_key">
+                  <form1.Field key={form1.state.values.provider} name="api_key">
                     {(field) => {
                       const isInvalid =
                         field.state.meta.isTouched &&
