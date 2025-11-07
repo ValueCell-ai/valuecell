@@ -235,9 +235,9 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
     },
     onSubmit: async ({ value }) => {
       const payload = {
-        LLMModelConfig: form1.state.values,
-        exchangeConfig: form2.state.values,
-        tradingConfig: value,
+        llm_model_config: form1.state.values,
+        exchange_config: form2.state.values,
+        trading_config: value,
       };
 
       try {
