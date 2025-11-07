@@ -70,7 +70,7 @@ const TradeHistoryCard: FC<TradeHistoryCardProps> = ({ trade }) => {
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between text-gray-500 text-sm">
           <p>Time</p>
-          <p>{TimeUtils.format(trade.time, TIME_FORMATS.DATETIME_SHORT)}</p>
+          <p>{TimeUtils.formatUTC(trade.time, TIME_FORMATS.DATETIME_SHORT)}</p>
         </div>
         <div className="flex items-center justify-between text-gray-500 text-sm">
           <p>Price</p>

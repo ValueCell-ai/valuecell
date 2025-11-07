@@ -18,7 +18,7 @@ const ScheduledTaskRenderer: FC<ScheduledTaskRendererProps> = ({
       onClick={() => onOpen?.(result)}
     >
       <p className="whitespace-nowrap text-gray-400 text-sm">
-        {TimeUtils.fromUTC(create_time).format(TIME_FORMATS.DATETIME_SHORT)}
+        {TimeUtils.formatUTC(create_time, TIME_FORMATS.DATETIME_SHORT)}
       </p>
       {/* content */}
       <div className="relative z-10 line-clamp-2 w-full">{result}</div>
