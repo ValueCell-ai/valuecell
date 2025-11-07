@@ -2,6 +2,7 @@
 Strategy API router for handling strategy-related endpoints.
 """
 
+from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -10,6 +11,8 @@ from sqlalchemy.orm import Session
 
 from valuecell.server.api.schemas.base import SuccessResponse
 from valuecell.server.api.schemas.strategy import (
+    StrategyCurveData,
+    StrategyCurveResponse,
     StrategyDetailResponse,
     StrategyHoldingFlatItem,
     StrategyHoldingFlatResponse,
@@ -19,6 +22,7 @@ from valuecell.server.api.schemas.strategy import (
 )
 from valuecell.server.db import get_db
 from valuecell.server.db.models.strategy import Strategy
+from valuecell.server.db.repositories import get_strategy_repository
 from valuecell.server.services.strategy_service import StrategyService
 
 
@@ -210,6 +214,175 @@ def create_strategy_router() -> APIRouter:
         except Exception as e:
             raise HTTPException(
                 status_code=500, detail=f"Failed to retrieve details: {str(e)}"
+            )
+
+    @router.get(
+        "/holding_price_curve",
+        response_model=StrategyCurveResponse,
+        summary="Get strategy holding price curve (single or all)",
+        description="If id is provided, return single strategy curve. If omitted, return combined curves for all strategies with nulls for missing data.",
+    )
+    async def get_strategy_holding_price_curve(
+        id: Optional[str] = Query(None, description="Strategy ID (optional)"),
+        limit: Optional[int] = Query(
+            None,
+            description="Limit number of strategies when id omitted (most recent first)",
+            ge=1,
+            le=200,
+        ),
+        db: Session = Depends(get_db),
+    ) -> StrategyCurveResponse:
+        try:
+            repo = get_strategy_repository(db_session=db)
+
+            # Case 1: Single strategy
+            if id:
+                strategy = repo.get_strategy_by_strategy_id(id)
+                if not strategy:
+                    raise HTTPException(status_code=404, detail="Strategy not found")
+
+                strategy_name = strategy.name or f"Strategy-{id.split('-')[-1][:8]}"
+                created_at = strategy.created_at or datetime.utcnow()
+                created_time_str = created_at.strftime("%Y-%m-%d %H:%M:%S")
+
+                data = [["Time", strategy_name]]
+
+                details = repo.get_details(id)
+                if details:
+                    for d in reversed(details):
+                        t = d.event_time or created_at
+                        time_str = t.strftime("%Y-%m-%d %H:%M:%S")
+                        try:
+                            if d.unrealized_pnl is not None:
+                                v = float(d.unrealized_pnl)
+                            elif d.entry_price is not None and d.quantity is not None:
+                                v = float(d.entry_price) * float(d.quantity)
+                            else:
+                                v = None
+                        except Exception:
+                            v = None
+                        data.append([time_str, v])
+                else:
+                    holdings = repo.get_latest_holdings(id)
+                    if holdings:
+                        snap_ts = holdings[0].snapshot_ts or created_at
+                        time_str = snap_ts.strftime("%Y-%m-%d %H:%M:%S")
+                        total = 0.0
+                        for h in holdings:
+                            try:
+                                qty = (
+                                    float(h.quantity) if h.quantity is not None else 0.0
+                                )
+                                avg = (
+                                    float(h.entry_price)
+                                    if h.entry_price is not None
+                                    else 0.0
+                                )
+                                total += abs(qty) * avg
+                            except Exception:
+                                continue
+                        data.append([time_str, total])
+                    else:
+                        data.append([created_time_str, None])
+
+                return SuccessResponse.create(
+                    data=StrategyCurveData(data=data),
+                    msg="Successfully retrieved strategy holding price curve",
+                )
+
+            # Case 2: Combined curves for all strategies
+            query = db.query(Strategy).order_by(Strategy.created_at.desc())
+            if limit:
+                query = query.limit(limit)
+            strategies = query.all()
+
+            # Build series per strategy: {strategy_id: {time_str: value}}
+            series_map = {}
+            strategy_order = []  # Keep consistent header order
+            name_map = {}
+            created_times = []
+
+            for s in strategies:
+                sid = s.strategy_id
+                sname = s.name or f"Strategy-{sid.split('-')[-1][:8]}"
+                strategy_order.append(sid)
+                name_map[sid] = sname
+                created_at = s.created_at or datetime.utcnow()
+                created_times.append(created_at)
+
+                entries = {}
+                details = repo.get_details(sid)
+                if details:
+                    for d in reversed(details):
+                        t = d.event_time or created_at
+                        time_str = t.strftime("%Y-%m-%d %H:%M:%S")
+                        try:
+                            if d.unrealized_pnl is not None:
+                                v = float(d.unrealized_pnl)
+                            elif d.entry_price is not None and d.quantity is not None:
+                                v = float(d.entry_price) * float(d.quantity)
+                            else:
+                                v = None
+                        except Exception:
+                            v = None
+                        entries[time_str] = v
+                else:
+                    holdings = repo.get_latest_holdings(sid)
+                    if holdings:
+                        snap_ts = holdings[0].snapshot_ts or created_at
+                        time_str = snap_ts.strftime("%Y-%m-%d %H:%M:%S")
+                        total = 0.0
+                        for h in holdings:
+                            try:
+                                qty = (
+                                    float(h.quantity) if h.quantity is not None else 0.0
+                                )
+                                avg = (
+                                    float(h.entry_price)
+                                    if h.entry_price is not None
+                                    else 0.0
+                                )
+                                total += abs(qty) * avg
+                            except Exception:
+                                continue
+                        entries[time_str] = total
+                series_map[sid] = entries
+
+            # Union of all timestamps
+            all_times = set()
+            for entries in series_map.values():
+                for ts in entries.keys():
+                    all_times.add(ts)
+
+            data = [["Time"] + [name_map[sid] for sid in strategy_order]]
+
+            if all_times:
+                for time_str in sorted(all_times):
+                    row = [time_str]
+                    for sid in strategy_order:
+                        v = series_map.get(sid, {}).get(time_str)
+                        row.append(v if v is not None else None)
+                    data.append(row)
+            else:
+                # No data across all strategies: one row at earliest create_time with nulls
+                if created_times:
+                    earliest = min(created_times)
+                    time_str = earliest.strftime("%Y-%m-%d %H:%M:%S")
+                else:
+                    time_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                data.append([time_str] + [None] * len(strategy_order))
+
+            # For combined view, creation time is not singular; return null
+            return SuccessResponse.create(
+                data=StrategyCurveData(data=data),
+                msg="Successfully retrieved holding price curves",
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to retrieve holding price curve: {str(e)}",
             )
 
     return router

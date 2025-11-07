@@ -64,7 +64,6 @@ def _make_prompt_provider(template_dir: Optional[Path] = None):
     return provider
 
 
-
 @dataclass
 class StrategyRuntime:
     request: UserRequest

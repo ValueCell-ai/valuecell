@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional
 
-from ..models import TradeInstruction, TxResult, TradeSide
+from ..models import TradeInstruction, TradeSide, TxResult
 from .interfaces import ExecutionGateway
 
 

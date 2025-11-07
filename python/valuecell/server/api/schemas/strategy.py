@@ -122,3 +122,12 @@ class StrategyHoldingFlatItem(BaseModel):
 
 # Response type for compact holdings array
 StrategyHoldingFlatResponse = SuccessResponse[List[StrategyHoldingFlatItem]]
+
+
+class StrategyCurveData(BaseModel):
+    data: List[List[str | float | None]] = Field(
+        ..., description="Matrix with header row and aligned time series values"
+    )
+
+
+StrategyCurveResponse = SuccessResponse[StrategyCurveData]
