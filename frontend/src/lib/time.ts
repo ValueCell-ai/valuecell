@@ -16,6 +16,7 @@ export const TIME_FORMATS = {
   DATETIME_SHORT: "YYYY-MM-DD HH:mm",
   MARKET: "MM/DD HH:mm",
   MODAL_TRADE_TIME: "MMM DD HH:mm",
+  STOCK_TIME: "MMM DD, YYYY h:mm:ss A",
 } as const;
 
 /**
@@ -43,15 +44,6 @@ export class TimeUtils {
   }
 
   /**
-   * Convert UTC time to local time
-   * @param time - UTC time input
-   * @returns Local time as Dayjs instance
-   */
-  static fromUTC(time: TimeInput): Dayjs {
-    return dayjs.utc(time).local();
-  }
-
-  /**
    * Format time with specified format
    * @param time - Time input to format
    * @param fmt - Format string (defaults to DATETIME)
@@ -71,7 +63,7 @@ export class TimeUtils {
     time: TimeInput,
     fmt: string = TIME_FORMATS.DATETIME,
   ): string {
-    return dayjs.utc(time).format(fmt);
+    return dayjs.utc(time).local().format(fmt);
   }
 
   /**

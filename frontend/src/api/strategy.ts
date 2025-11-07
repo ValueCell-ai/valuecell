@@ -19,6 +19,7 @@ export const useGetStrategyList = () => {
         }>
       >("/strategies"),
     select: (data) => data.data.strategies,
+    refetchInterval: 15 * 1000,
   });
 };
 

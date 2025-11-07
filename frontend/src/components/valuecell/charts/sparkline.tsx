@@ -121,8 +121,8 @@ function Sparkline({
           const value = param.data[1];
 
           // Format UTC millisecond timestamp to local time for display
-          const formatDate = TimeUtils.format(timestamp, "MMM D");
-          const formatTime = TimeUtils.format(timestamp, "h:mm:ss A");
+          const formatDate = TimeUtils.formatUTC(timestamp, "MMM D");
+          const formatTime = TimeUtils.formatUTC(timestamp, "h:mm:ss A");
 
           return `
             <div style="font-weight: 500; font-size: 12px; margin-bottom: 8px; letter-spacing: -0.42px;">

@@ -103,7 +103,7 @@ function ModelMultiLine({
         type: "category",
         axisLabel: {
           formatter: (value: string) =>
-            TimeUtils.format(value, TIME_FORMATS.MODAL_TRADE_TIME),
+            TimeUtils.formatUTC(value, TIME_FORMATS.MODAL_TRADE_TIME),
         },
       },
       yAxis: {
@@ -115,7 +115,7 @@ function ModelMultiLine({
         formatter: (params: unknown) => {
           if (!Array.isArray(params) || params.length === 0) return "";
 
-          const date = TimeUtils.format(
+          const date = TimeUtils.formatUTC(
             params[0].axisValue,
             TIME_FORMATS.MODAL_TRADE_TIME,
           );

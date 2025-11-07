@@ -34,7 +34,7 @@ const ReportRenderer: FC<ReportRendererProps> = ({
             {title}
           </p>
           <p className="whitespace-nowrap text-gray-400 text-xs leading-4">
-            {`Created at: ${TimeUtils.fromUTC(create_time).format(TIME_FORMATS.DATE)}`}
+            {`Created at: ${TimeUtils.formatUTC(create_time, TIME_FORMATS.DATE)}`}
           </p>
         </div>
       </div>

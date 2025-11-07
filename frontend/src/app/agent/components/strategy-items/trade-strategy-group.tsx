@@ -44,7 +44,10 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
           {strategy.strategy_name}
         </p>
         <p className="font-normal text-gray-400 text-xs">
-          {TimeUtils.format(strategy.created_at, TIME_FORMATS.DATETIME_SHORT)}
+          {TimeUtils.formatUTC(
+            strategy.created_at,
+            TIME_FORMATS.DATETIME_SHORT,
+          )}
         </p>
       </div>
 
@@ -100,7 +103,7 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
 }) => {
   return (
     <>
-      <ScrollContainer className="flex-1">
+      <ScrollContainer className="min-w-80 flex-1">
         <div className="flex flex-col gap-3">
           {strategies.map((strategy) => (
             <TradeStrategyCard
