@@ -14,6 +14,7 @@ from .base import Base
 from .strategy import Strategy
 from .strategy_detail import StrategyDetail
 from .strategy_holding import StrategyHolding
+from .strategy_portfolio import StrategyPortfolioView
 from .user_profile import ProfileCategory, UserProfile
 from .watchlist import Watchlist, WatchlistItem
 
@@ -29,4 +30,5 @@ __all__ = [
     "ProfileCategory",
     "StrategyHolding",
     "StrategyDetail",
+    "StrategyPortfolioView",
 ]

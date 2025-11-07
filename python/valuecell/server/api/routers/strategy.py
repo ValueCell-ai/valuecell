@@ -250,46 +250,23 @@ def create_strategy_router() -> APIRouter:
 
                 data = [["Time", strategy_name]]
 
-                details = repo.get_details(id)
-                if details:
-                    for d in reversed(details):
-                        t = d.event_time or created_at
+                # Build series from aggregated portfolio snapshots (StrategyPortfolioView).
+                snapshots = repo.get_portfolio_snapshots(id)
+                if snapshots:
+                    # repository returns desc order; present oldest->newest
+                    for s in reversed(snapshots):
+                        t = s.snapshot_ts or created_at
                         time_str = t.strftime("%Y-%m-%d %H:%M:%S")
                         try:
-                            if d.unrealized_pnl is not None:
-                                v = float(d.unrealized_pnl)
-                            elif d.entry_price is not None and d.quantity is not None:
-                                v = float(d.entry_price) * float(d.quantity)
-                            else:
-                                v = None
+                            v = float(s.total_value) if s.total_value is not None else None
                         except Exception:
                             v = None
                         data.append([time_str, v])
                 else:
-                    holdings = repo.get_latest_holdings(id)
-                    if holdings:
-                        snap_ts = holdings[0].snapshot_ts or created_at
-                        time_str = snap_ts.strftime("%Y-%m-%d %H:%M:%S")
-                        total = 0.0
-                        for h in holdings:
-                            try:
-                                qty = (
-                                    float(h.quantity) if h.quantity is not None else 0.0
-                                )
-                                avg = (
-                                    float(h.entry_price)
-                                    if h.entry_price is not None
-                                    else 0.0
-                                )
-                                total += abs(qty) * avg
-                            except Exception:
-                                continue
-                        data.append([time_str, total])
-                    else:
-                        return SuccessResponse.create(
-                            data=[],
-                            msg="No holding price curve found for strategy",
-                        )
+                    return SuccessResponse.create(
+                        data=[],
+                        msg="No holding price curve found for strategy",
+                    )
 
                 return SuccessResponse.create(
                     data=data,
@@ -316,42 +293,18 @@ def create_strategy_router() -> APIRouter:
                 created_at = s.created_at or datetime.utcnow()
                 created_times.append(created_at)
 
+                # Build per-strategy entries from aggregated portfolio snapshots
                 entries = {}
-                details = repo.get_details(sid)
-                if details:
-                    for d in reversed(details):
-                        t = d.event_time or created_at
+                snapshots = repo.get_portfolio_snapshots(sid)
+                if snapshots:
+                    for s in reversed(snapshots):
+                        t = s.snapshot_ts or created_at
                         time_str = t.strftime("%Y-%m-%d %H:%M:%S")
                         try:
-                            if d.unrealized_pnl is not None:
-                                v = float(d.unrealized_pnl)
-                            elif d.entry_price is not None and d.quantity is not None:
-                                v = float(d.entry_price) * float(d.quantity)
-                            else:
-                                v = None
+                            v = float(s.total_value) if s.total_value is not None else None
                         except Exception:
                             v = None
                         entries[time_str] = v
-                else:
-                    holdings = repo.get_latest_holdings(sid)
-                    if holdings:
-                        snap_ts = holdings[0].snapshot_ts or created_at
-                        time_str = snap_ts.strftime("%Y-%m-%d %H:%M:%S")
-                        total = 0.0
-                        for h in holdings:
-                            try:
-                                qty = (
-                                    float(h.quantity) if h.quantity is not None else 0.0
-                                )
-                                avg = (
-                                    float(h.entry_price)
-                                    if h.entry_price is not None
-                                    else 0.0
-                                )
-                                total += abs(qty) * avg
-                            except Exception:
-                                continue
-                        entries[time_str] = total
                 series_map[sid] = entries
 
             # Union of all timestamps

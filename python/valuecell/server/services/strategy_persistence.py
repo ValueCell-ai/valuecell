@@ -86,11 +86,36 @@ def persist_portfolio_view(view: agent_models.PortfolioView) -> bool:
     repo = get_strategy_repository()
     strategy_id = view.strategy_id
     try:
+        if not strategy_id:
+            logger.error("persist_portfolio_view missing strategy_id on view")
+            return False
+
         snapshot_ts = (
             datetime.fromtimestamp(view.ts / 1000.0, tz=timezone.utc)
             if view.ts
             else None
         )
+
+        cash = float(view.cash)
+        total_value = float(view.total_value) if view.total_value is not None else cash
+        total_unrealized = (
+            float(view.total_unrealized_pnl)
+            if view.total_unrealized_pnl is not None
+            else None
+        )
+
+        portfolio_item = repo.add_portfolio_snapshot(
+            strategy_id=strategy_id,
+            cash=cash,
+            total_value=total_value,
+            total_unrealized_pnl=total_unrealized,
+            snapshot_ts=snapshot_ts,
+        )
+        if portfolio_item is None:
+            logger.warning(
+                "Failed to persist strategy portfolio snapshot for {}", strategy_id
+            )
+
         for symbol, pos in view.positions.items():
             # pos is PositionSnapshot
             ttype = (

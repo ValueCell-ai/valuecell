@@ -15,6 +15,7 @@ from ..connection import get_database_manager
 from ..models.strategy import Strategy
 from ..models.strategy_detail import StrategyDetail
 from ..models.strategy_holding import StrategyHolding
+from ..models.strategy_portfolio import StrategyPortfolioView
 
 
 class StrategyRepository:
@@ -136,6 +137,36 @@ class StrategyRepository:
             if not self.db_session:
                 session.close()
 
+    def add_portfolio_snapshot(
+        self,
+        strategy_id: str,
+        cash: float,
+        total_value: float,
+        total_unrealized_pnl: Optional[float],
+        snapshot_ts: Optional[datetime] = None,
+    ) -> Optional[StrategyPortfolioView]:
+        """Insert one aggregated portfolio snapshot."""
+        session = self._get_session()
+        try:
+            item = StrategyPortfolioView(
+                strategy_id=strategy_id,
+                cash=cash,
+                total_value=total_value,
+                total_unrealized_pnl=total_unrealized_pnl,
+                snapshot_ts=snapshot_ts or datetime.utcnow(),
+            )
+            session.add(item)
+            session.commit()
+            session.refresh(item)
+            session.expunge(item)
+            return item
+        except Exception:
+            session.rollback()
+            return None
+        finally:
+            if not self.db_session:
+                session.close()
+
     def get_latest_holdings(self, strategy_id: str) -> List[StrategyHolding]:
         """Get holdings for the latest snapshot of a strategy."""
         session = self._get_session()
@@ -164,6 +195,32 @@ class StrategyRepository:
         finally:
             if not self.db_session:
                 session.close()
+
+    def get_portfolio_snapshots(
+        self, strategy_id: str, limit: Optional[int] = None
+    ) -> List[StrategyPortfolioView]:
+        """Get aggregated portfolio snapshots for a strategy ordered by snapshot_ts desc."""
+        session = self._get_session()
+        try:
+            query = (
+                session.query(StrategyPortfolioView)
+                .filter(StrategyPortfolioView.strategy_id == strategy_id)
+                .order_by(desc(StrategyPortfolioView.snapshot_ts))
+            )
+            if limit:
+                query = query.limit(limit)
+            items = query.all()
+            for item in items:
+                session.expunge(item)
+            return items
+        finally:
+            if not self.db_session:
+                session.close()
+
+    def get_latest_portfolio_snapshot(self, strategy_id: str) -> Optional[StrategyPortfolioView]:
+        """Convenience: return the most recent portfolio snapshot or None."""
+        items = self.get_portfolio_snapshots(strategy_id, limit=1)
+        return items[0] if items else None
 
     def get_holdings_by_snapshot(
         self, strategy_id: str, snapshot_ts: datetime
