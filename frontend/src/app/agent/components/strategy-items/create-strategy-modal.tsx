@@ -187,7 +187,7 @@ const StepIndicator: FC<{ currentStep: StepNumber }> = ({ currentStep }) => {
 const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState<StepNumber>(1);
-  const createStrategyMutation = useCreateStrategy();
+  const { mutateAsync: createStrategy } = useCreateStrategy();
   const { data: llmConfigs } = useGetStrategyApiKey();
 
   // Step 1 Form: AI Models
@@ -243,14 +243,9 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
         trading_config: value,
       };
 
-      try {
-        await createStrategyMutation.mutateAsync(payload);
-        setOpen(false);
-        resetAll();
-      } catch (error) {
-        console.error("Failed to create strategy:", error);
-        // TODO: Show error message to user
-      }
+      await createStrategy(payload);
+      setOpen(false);
+      resetAll();
     },
   });
 
