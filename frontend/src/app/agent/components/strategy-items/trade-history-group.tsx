@@ -1,7 +1,7 @@
 import { type FC, memo } from "react";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
-import { formatChange, getChangeType } from "@/lib/utils";
+import { formatChange, getChangeType, numberFixed } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
 import type { Trade } from "@/types/strategy";
 
@@ -18,9 +18,6 @@ const TradeHistoryCard: FC<TradeHistoryCardProps> = ({ trade }) => {
   const stockColors = useStockColors();
   const changeType = getChangeType(trade.unrealized_pnl);
 
-  // Extract symbol name (e.g., "BTC" from "BTC-USDT")
-  const symbolName = trade.symbol.split("-")[0];
-
   // Format holding time from milliseconds to "XH XM" format
   const formatHoldingTime = (ms: number) => {
     const hours = Math.floor(ms / (1000 * 60 * 60));
@@ -30,15 +27,17 @@ const TradeHistoryCard: FC<TradeHistoryCardProps> = ({ trade }) => {
 
   // Format price range
   const priceRange = trade.exit_price
-    ? `$${trade.entry_price.toFixed(4)} → $${trade.exit_price.toFixed(4)}`
-    : `$${trade.entry_price.toFixed(4)}`;
+    ? `$${numberFixed(trade.entry_price, 2)} → $${numberFixed(trade.exit_price, 2)}`
+    : `$${numberFixed(trade.entry_price, 2)}`;
 
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
       {/* Header: Symbol, Side/Type badges, and PnL */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <p className="font-semibold text-base text-gray-950">{symbolName}</p>
+          <p className="font-semibold text-base text-gray-950">
+            {trade.symbol}
+          </p>
           <div className="flex items-center gap-1">
             {/* Side Badge */}
             <div className="flex items-center justify-center rounded-full bg-gray-100 px-2.5 py-1">
@@ -95,15 +94,13 @@ const TradeHistoryGroup: FC<TradeHistoryGroupProps> = ({
   tradingMode = "live",
 }) => {
   return (
-    <div className="flex size-full flex-col gap-4 border-r bg-white p-6">
+    <div className="flex w-[360px] flex-col gap-4 border-r bg-white py-6 *:px-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <p className="font-semibold text-base text-gray-950">Trade History</p>
-        <div className="flex h-[27px] items-center justify-center rounded-lg bg-gray-100 px-2.5 py-1.5">
-          <p className="font-medium text-gray-950 text-sm">
-            {tradingMode === "live" ? "Live Trading" : "Virtual Trading"}
-          </p>
-        </div>
+        <p className="rounded-lg bg-gray-100 px-2.5 py-1 font-medium text-gray-950 text-sm">
+          {tradingMode === "live" ? "Live Trading" : "Virtual Trading"}
+        </p>
       </div>
 
       {/* Trade List */}

@@ -87,7 +87,7 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
     useGetStrategyHoldings(strategyId);
 
   return (
-    <div className="flex size-full flex-col gap-8 overflow-hidden p-6">
+    <div className="flex flex-1 flex-col gap-8 overflow-hidden p-6">
       {/* Portfolio Value History Section */}
       <div className="flex flex-1 flex-col gap-6">
         <h3 className="font-semibold text-base text-gray-950">
