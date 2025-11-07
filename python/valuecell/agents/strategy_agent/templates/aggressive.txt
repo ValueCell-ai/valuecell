@@ -1,0 +1,70 @@
+Aggressive Trading Strategy
+
+Overview
+- Style: Aggressive momentum / breakout trader. High conviction, high turnover, uses leverage where available. Targets rapid capture of directional moves and volatility spikes.
+- Objective: Maximize short-term returns by taking large, time-limited positions around breakouts, trend accelerations, and catalyst-driven moves. Accept higher drawdown and frequency of small losses for larger win potential.
+
+Trading Regime & Timeframes
+- Primary timeframes: 5m, 15m, 1h (entry/exit). Use 1m for micro-execution and slippage control when needed.
+- Market types: Liquid equities, crypto, futures, or FX where tight spreads and sufficient depth exist.
+
+Signals & Indicators
+- Trend / Momentum:
+  - EMA(8), EMA(21), EMA(50) for short-term trend alignment.
+  - MACD(12,26,9) for momentum acceleration signals.
+- Volatility / breakout:
+  - ATR(14) for dynamic stop sizing and identifying volatility expansion.
+  - Bollinger Bands (20, 2.0) for breakout confirmation.
+- Confirmation:
+  - Volume spike (current volume > 1.5x average) near breakout.
+  - Price closing beyond recent consolidation (range breakout).
+
+Entry Rules (Aggressive)
+- Primary entry (breakout momentum):
+  1. Price closes above the consolidation high (e.g., prior 20-period high) on 5m or 15m timeframe.
+  2. EMA(8) > EMA(21) and EMA(21) > EMA(50) (trend alignment) OR MACD histogram > 0 and rising.
+  3. Volume >= 1.5x average volume over the consolidation window OR ATR expansion > recent ATR.
+  4. Enter with market or aggressive limit (tight) order sized per position-sizing rules below.
+
+- Aggressive intraday add-on:
+  - If momentum continues and price breaks a subsequent micro-high on 1m with supporting volume, add up to a fixed add-on fraction of initial position (scale-in). Respect max_position_qty.
+
+Exit Rules
+- Profit target: use a trailing stop based on ATR (e.g., trail = 1.5 * ATR(14)) or lock partial profits at predefined multiples (1st take: +1.5*ATR, scale out 25-50%).
+- Hard stop: initial stop at entry_price - (stop_multiplier * ATR) for longs (reverse sign for shorts). Typical stop_multiplier=1.0–2.5 depending on aggressiveness.
+- Time stop: exit any position that fails to reach profit target within a fixed time window (e.g., 6–12 candles on the entry timeframe).
+- Flip / fast reversal: if the price rapidly reverses and crosses key EMAs in the opposite direction, flatten and consider re-entry in the new direction only if filters re-align.
+
+Position Sizing & Risk
+- Base risk per trade: aggressive (e.g., 1.0%–3.0% of account equity) per open position. Use higher risk when confidence is high.
+- Leverage: allowed if product supports it, but cap net leverage at the trading_config.max_leverage.
+- Scaling: initial entry = 60% of target position; add-ons up to 40% on confirmed continuation moves.
+- Max exposure: enforce max_positions and max_position_qty constraints.
+- Min notional: ensure each order meets minimum notional and exchange limits.
+
+Execution & Slippage Control
+- Use market orders when momentum is fast and limit orders when liquidity allows. Prefer immediate-or-cancel aggressive limits around breakouts.
+- Respect quantity_step and exchange min increments.
+- If slippage exceeds max_slippage_bps threshold repeatedly, reduce position sizing or widen stop targets.
+
+Risk Controls & Guardrails
+- Max concurrent positions: obey `max_positions` provided in trading config.
+- Per-instrument max notional and position cap: obey `max_position_qty` and `min_notional`.
+- Daily drawdown kill-switch: if daily drawdown > X% (configurable), stop new entries until manual review.
+- Rate-limit entries to avoid overtrading during noise: minimum time between new full-size entries for the same symbol (e.g., 15m).
+
+Parameters (example defaults)
+- EMA periods: 8, 21, 50
+- MACD: 12,26,9
+- ATR period: 14
+- Stop multiplier: 1.5
+- Trail multiplier: 1.5
+- Volume spike multiplier: 1.5
+- Initial size fraction: 0.6 (60%)
+- Add-on fraction: 0.4 (40%)
+- Time stop window: 12 candles
+
+Operational Notes
+- Backtest thoroughly across market regimes (bull, bear, sideways) and on multiple symbols before live deployment.
+- Use paper trading first; expect frequent small losses and occasional large gains.
+- Log all entries/exits with reasons (signal that triggered, indicators values, volume) for post-trade analysis and strategy tuning.

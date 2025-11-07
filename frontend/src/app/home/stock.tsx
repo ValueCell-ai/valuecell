@@ -9,7 +9,7 @@ import {
   useRemoveStockFromWatchlist,
 } from "@/api/stock";
 import { Button } from "@/components/ui/button";
-import { TimeUtils } from "@/lib/time";
+import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import { formatChange, getChangeType } from "@/lib/utils";
 import { useStockBadgeColors } from "@/store/settings-store";
 import type { SparklineData } from "@/types/chart";
@@ -184,8 +184,9 @@ function Stock() {
           </div>
           <p className="font-medium text-muted-foreground text-xs">
             {/* Convert UTC timestamp to local time for display */}
-            {TimeUtils.fromUTC(stockPriceData.timestamp).format(
-              "MMM DD, YYYY h:mm:ss A",
+            {TimeUtils.formatUTC(
+              stockPriceData.timestamp,
+              TIME_FORMATS.STOCK_TIME,
             )}{" "}
             . {stockPriceData.source} . Disclaimer
           </p>

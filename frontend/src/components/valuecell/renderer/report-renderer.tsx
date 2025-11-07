@@ -4,7 +4,6 @@ import { type FC, memo } from "react";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import type { ReportRendererProps } from "@/types/renderer";
-import styles from "./index.module.css";
 
 const ReportRenderer: FC<ReportRendererProps> = ({
   content,
@@ -18,8 +17,7 @@ const ReportRenderer: FC<ReportRendererProps> = ({
       data-active={isActive}
       className={cn(
         "flex h-full min-w-96 items-center justify-between gap-2 rounded-xl px-4 py-5",
-        "cursor-pointer transition-all duration-200",
-        styles["border-gradient"],
+        "cursor-pointer border-gradient transition-all duration-200",
       )}
       onClick={() => onOpen?.(data)}
     >
@@ -36,7 +34,7 @@ const ReportRenderer: FC<ReportRendererProps> = ({
             {title}
           </p>
           <p className="whitespace-nowrap text-gray-400 text-xs leading-4">
-            {`Created at: ${TimeUtils.fromUTC(create_time).format(TIME_FORMATS.DATE)}`}
+            {`Created at: ${TimeUtils.formatUTC(create_time, TIME_FORMATS.DATE)}`}
           </p>
         </div>
       </div>

@@ -1,5 +1,4 @@
 export { default as AswathDamodaranPng } from "./agents/AswathDamodaran.png";
-export { default as AutoTradingAgentPng } from "./agents/AutoTradingAgent.png";
 export { default as BenGrahamPng } from "./agents/BenGraham.png";
 export { default as BillAckmanPng } from "./agents/BillAckman.png";
 export { default as CathieWoodPng } from "./agents/CathieWood.png";
@@ -17,6 +16,7 @@ export { default as ResearchAgentPng } from "./agents/ResearchAgent.png";
 export { default as RiskManagerPng } from "./agents/RiskManager.png";
 export { default as SecAgentPng } from "./agents/SecAgent.png";
 export { default as StanleyDruckenmillerPng } from "./agents/StanleyDruckenmiller.png";
+export { default as StrategyAgentPng } from "./agents/StrategyAgent.png";
 export { default as TechnicalAgencyPng } from "./agents/TechnicalAgency.png";
 export { default as ValuationAgencyPng } from "./agents/ValuationAgency.png";
 export { default as ValueCellAgentPng } from "./agents/ValueCellAgent.png";

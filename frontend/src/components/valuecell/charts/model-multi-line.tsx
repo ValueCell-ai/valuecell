@@ -29,12 +29,14 @@ interface ModelMultiLineProps {
   width?: number | string;
   height?: number | string;
   className?: string;
+  showLegend?: boolean;
 }
 
 function ModelMultiLine({
   data,
   width = "100%",
   height = "100%",
+  showLegend = true,
   className,
 }: ModelMultiLineProps) {
   const chartRef = useRef<HTMLDivElement>(null);
@@ -58,6 +60,7 @@ function ModelMultiLine({
         source: data,
       },
       legend: {
+        show: showLegend,
         type: "scroll",
         bottom: 10,
         itemGap: 20,
@@ -94,14 +97,13 @@ function ModelMultiLine({
         left: 0,
         right: 20,
         top: 0,
-        bottom: 80,
-        containLabel: true,
+        bottom: showLegend ? 80 : 0,
       },
       xAxis: {
         type: "category",
         axisLabel: {
           formatter: (value: string) =>
-            TimeUtils.format(value, TIME_FORMATS.MODAL_TRADE_TIME),
+            TimeUtils.formatUTC(value, TIME_FORMATS.MODAL_TRADE_TIME),
         },
       },
       yAxis: {
@@ -113,7 +115,7 @@ function ModelMultiLine({
         formatter: (params: unknown) => {
           if (!Array.isArray(params) || params.length === 0) return "";
 
-          const date = TimeUtils.format(
+          const date = TimeUtils.formatUTC(
             params[0].axisValue,
             TIME_FORMATS.MODAL_TRADE_TIME,
           );
@@ -143,7 +145,7 @@ function ModelMultiLine({
         emphasis: { focus: "series" },
       })),
     };
-  }, [data]);
+  }, [data, showLegend]);
 
   useChartResize(chartInstance);
 

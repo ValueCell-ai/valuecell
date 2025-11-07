@@ -13,7 +13,6 @@ export default function AgentConfig() {
   const { data: agent, isLoading: isLoadingAgent } = useGetAgentInfo({
     agentName: agentName ?? "",
   });
-  console.log("🚀 ~ AgentConfig ~ agent:", agent);
   const { mutateAsync } = useEnableAgent();
 
   if (!agentName && !isLoadingAgent) return <Navigate to="/" replace />;

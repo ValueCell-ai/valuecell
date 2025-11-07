@@ -9,7 +9,6 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import type { ToolCallRendererProps } from "@/types/renderer";
-import styles from "./index.module.css";
 import MarkdownRenderer from "./markdown-renderer";
 
 const ToolCallRenderer: FC<ToolCallRendererProps> = ({ content }) => {
@@ -21,7 +20,7 @@ const ToolCallRenderer: FC<ToolCallRendererProps> = ({ content }) => {
     <Collapsible
       open={isOpen}
       onOpenChange={setIsOpen}
-      className={cn("min-w-96 rounded-lg p-3", styles["border-gradient"])}
+      className={cn("min-w-96 rounded-lg border-gradient p-3")}
       data-active={isOpen}
     >
       <CollapsibleTrigger

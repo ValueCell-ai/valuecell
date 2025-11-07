@@ -630,10 +630,39 @@ class ModelFactory:
         if not provider_config:
             raise ValueError(f"Provider configuration not found: {provider}")
 
-        # Validate provider
-        is_valid, error_msg = self.config_manager.validate_provider(provider)
-        if not is_valid:
-            raise ValueError(f"Provider validation failed: {error_msg}")
+        # Support per-call API key override via kwargs
+        override_api_key = kwargs.pop("api_key", None)
+        if override_api_key is not None:
+            # Create a copy of provider_config with overridden api_key
+            provider_config = ProviderConfig(
+                name=provider_config.name,
+                enabled=provider_config.enabled,
+                api_key=override_api_key,
+                base_url=provider_config.base_url,
+                default_model=provider_config.default_model,
+                models=provider_config.models,
+                parameters=provider_config.parameters,
+                default_embedding_model=provider_config.default_embedding_model,
+                embedding_models=provider_config.embedding_models,
+                embedding_parameters=provider_config.embedding_parameters,
+                extra_config=provider_config.extra_config,
+            )
+            # Inline validation with override applied
+            if not provider_config.enabled:
+                raise ValueError(f"Provider '{provider}' is disabled in config")
+            if provider != "ollama" and not provider_config.api_key:
+                raise ValueError(
+                    f"API key override missing/empty for provider '{provider}'."
+                )
+            if provider == "azure" and not provider_config.base_url:
+                raise ValueError(
+                    "Azure endpoint not configured. Please set AZURE_OPENAI_ENDPOINT"
+                )
+        else:
+            # Validate provider using default manager rules
+            is_valid, error_msg = self.config_manager.validate_provider(provider)
+            if not is_valid:
+                raise ValueError(f"Provider validation failed: {error_msg}")
 
         # Create provider instance
         provider_class = self._providers[provider]
@@ -1004,10 +1033,37 @@ class ModelFactory:
                 f"Please configure embedding models in providers/{provider}.yaml"
             )
 
-        # Validate provider
-        is_valid, error_msg = self.config_manager.validate_provider(provider)
-        if not is_valid:
-            raise ValueError(f"Provider validation failed: {error_msg}")
+        # Support per-call API key override via kwargs
+        override_api_key = kwargs.pop("api_key", None)
+        if override_api_key is not None:
+            provider_config = ProviderConfig(
+                name=provider_config.name,
+                enabled=provider_config.enabled,
+                api_key=override_api_key,
+                base_url=provider_config.base_url,
+                default_model=provider_config.default_model,
+                models=provider_config.models,
+                parameters=provider_config.parameters,
+                default_embedding_model=provider_config.default_embedding_model,
+                embedding_models=provider_config.embedding_models,
+                embedding_parameters=provider_config.embedding_parameters,
+                extra_config=provider_config.extra_config,
+            )
+            if not provider_config.enabled:
+                raise ValueError(f"Provider '{provider}' is disabled in config")
+            if provider != "ollama" and not provider_config.api_key:
+                raise ValueError(
+                    f"API key override missing/empty for provider '{provider}'."
+                )
+            if provider == "azure" and not provider_config.base_url:
+                raise ValueError(
+                    "Azure endpoint not configured. Please set AZURE_OPENAI_ENDPOINT"
+                )
+        else:
+            # Validate provider using default manager rules
+            is_valid, error_msg = self.config_manager.validate_provider(provider)
+            if not is_valid:
+                raise ValueError(f"Provider validation failed: {error_msg}")
 
         # Create provider instance
         provider_class = self._providers[provider]

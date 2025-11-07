@@ -19,7 +19,7 @@ class MarketDataSource(ABC):
     """
 
     @abstractmethod
-    def get_recent_candles(
+    async def get_recent_candles(
         self, symbols: List[str], interval: str, lookback: int
     ) -> List[Candle]:
         """Return recent candles (OHLCV) for the given symbols/interval.
