@@ -258,7 +258,11 @@ def create_strategy_router() -> APIRouter:
                         t = s.snapshot_ts or created_at
                         time_str = t.strftime("%Y-%m-%d %H:%M:%S")
                         try:
-                            v = float(s.total_value) if s.total_value is not None else None
+                            v = (
+                                float(s.total_value)
+                                if s.total_value is not None
+                                else None
+                            )
                         except Exception:
                             v = None
                         data.append([time_str, v])
@@ -301,7 +305,11 @@ def create_strategy_router() -> APIRouter:
                         t = s.snapshot_ts or created_at
                         time_str = t.strftime("%Y-%m-%d %H:%M:%S")
                         try:
-                            v = float(s.total_value) if s.total_value is not None else None
+                            v = (
+                                float(s.total_value)
+                                if s.total_value is not None
+                                else None
+                            )
                         except Exception:
                             v = None
                         entries[time_str] = v

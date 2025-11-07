@@ -217,7 +217,9 @@ class StrategyRepository:
             if not self.db_session:
                 session.close()
 
-    def get_latest_portfolio_snapshot(self, strategy_id: str) -> Optional[StrategyPortfolioView]:
+    def get_latest_portfolio_snapshot(
+        self, strategy_id: str
+    ) -> Optional[StrategyPortfolioView]:
         """Convenience: return the most recent portfolio snapshot or None."""
         items = self.get_portfolio_snapshots(strategy_id, limit=1)
         return items[0] if items else None
