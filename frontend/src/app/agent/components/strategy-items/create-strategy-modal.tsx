@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
+import { MODEL_PROVIDER_MAP, MODEL_PROVIDERS } from "@/constants/agent";
 
 interface CreateStrategyModalProps {
   children?: React.ReactNode;
@@ -201,7 +202,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
   const form1 = useForm({
     defaultValues: {
       provider: "openrouter",
-      model_id: "deepseek-ai/DeepSeek-V3.1-Terminus",
+      model_id: MODEL_PROVIDER_MAP.openrouter[0],
       api_key: "",
     },
     validators: {
@@ -327,19 +328,25 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                           </FieldLabel>
                           <Select
                             value={field.state.value}
-                            onValueChange={field.handleChange}
+                            onValueChange={(value) => {
+                              field.handleChange(value);
+                              form1.setFieldValue(
+                                "model_id",
+                                MODEL_PROVIDER_MAP[
+                                  value as keyof typeof MODEL_PROVIDER_MAP
+                                ][0],
+                              );
+                            }}
                           >
-                            <SelectTrigger className="h-[58px] justify-between rounded-[10px] border-gray-200 px-4">
+                            <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="openrouter">
-                                Openrouter
-                              </SelectItem>
-                              <SelectItem value="openai">OpenAI</SelectItem>
-                              <SelectItem value="anthropic">
-                                Anthropic
-                              </SelectItem>
+                              {MODEL_PROVIDERS.map((provider) => (
+                                <SelectItem key={provider} value={provider}>
+                                  {provider}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                           {isInvalid && (
@@ -355,8 +362,13 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                       const isInvalid =
                         field.state.meta.isTouched &&
                         field.state.meta.errors.length > 0;
+                      const currentProvider = form1.state.values
+                        .provider as keyof typeof MODEL_PROVIDER_MAP;
+                      const availableModels =
+                        MODEL_PROVIDER_MAP[currentProvider] || [];
+
                       return (
-                        <Field data-invalid={isInvalid}>
+                        <Field key={currentProvider} data-invalid={isInvalid}>
                           <FieldLabel className="font-medium text-base text-gray-950">
                             Select Model
                           </FieldLabel>
@@ -364,15 +376,21 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                             value={field.state.value}
                             onValueChange={field.handleChange}
                           >
-                            <SelectTrigger className="h-[58px] justify-between rounded-[10px] border-gray-200 px-4">
+                            <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="deepseek-ai/DeepSeek-V3.1-Terminus">
-                                Deepseek-ai/DeepSeek-V3.1-Terminus
-                              </SelectItem>
-                              <SelectItem value="gpt-4">GPT-4</SelectItem>
-                              <SelectItem value="claude-3">Claude 3</SelectItem>
+                              {availableModels.length > 0 ? (
+                                availableModels.map((model) => (
+                                  <SelectItem key={model} value={model}>
+                                    {model}
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <SelectItem value="" disabled>
+                                  No models available
+                                </SelectItem>
+                              )}
                             </SelectContent>
                           </Select>
                           {isInvalid && (
