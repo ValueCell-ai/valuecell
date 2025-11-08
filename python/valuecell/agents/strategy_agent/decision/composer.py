@@ -56,17 +56,16 @@ class LlmComposer(Composer):
         )
         try:
             plan = await self._call_llm(prompt)
+            if not plan.items:
+                logger.error(
+                    "LLM returned empty plan for compose_id={}", context.compose_id
+                )
+                return []
         except ValidationError as exc:
             logger.error("LLM output failed validation: {}", exc)
             return []
         except Exception:  # noqa: BLE001
             logger.exception("LLM invocation failed")
-            return []
-
-        if not plan.items:
-            logger.debug(
-                "LLM returned empty plan for compose_id={}", context.compose_id
-            )
             return []
 
         return self._normalize_plan(context, plan)
