@@ -55,6 +55,7 @@ const step2Schema = z
     exchange_id: z.string(),
     api_key: z.string(),
     secret_key: z.string(),
+    passphrase: z.string(), // Required string, but can be empty for non-OKX exchanges
   })
   .superRefine((data, ctx) => {
     // Only validate exchange credentials when live trading is selected
@@ -85,6 +86,15 @@ const step2Schema = z
             path: [field.name],
           });
         }
+      }
+
+      // OKX requires passphrase
+      if (data.exchange_id === "okx" && !data.passphrase?.trim()) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Password is required for OKX",
+          path: ["passphrase"],
+        });
       }
     }
     // Virtual trading mode: no validation needed for exchange fields
@@ -214,6 +224,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
       exchange_id: "okx",
       api_key: "",
       secret_key: "",
+      passphrase: "",
     },
     validators: {
       onSubmit: step2Schema,
@@ -542,6 +553,37 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                                     )}
                                   </Field>
                                 )}
+                              </form2.Field>
+
+                              {/* Password field - only shown for OKX */}
+                              <form2.Field name="exchange_id">
+                                {(exchangeField) =>
+                                  exchangeField.state.value === "okx" ? (
+                                    <form2.Field name="passphrase">
+                                      {(field) => (
+                                        <Field>
+                                          <FieldLabel className="font-medium text-base text-gray-950">
+                                            Password
+                                          </FieldLabel>
+                                          <Input
+                                            value={field.state.value}
+                                            onChange={(e) =>
+                                              field.handleChange(e.target.value)
+                                            }
+                                            onBlur={field.handleBlur}
+                                            placeholder="Enter Password (Required for OKX)"
+                                          />
+                                          {field.state.meta.errors.length >
+                                            0 && (
+                                            <FieldError
+                                              errors={field.state.meta.errors}
+                                            />
+                                          )}
+                                        </Field>
+                                      )}
+                                    </form2.Field>
+                                  ) : null
+                                }
                               </form2.Field>
                             </>
                           )}

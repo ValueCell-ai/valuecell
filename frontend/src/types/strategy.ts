@@ -61,6 +61,7 @@ export interface CreateStrategyRequest {
     trading_mode: "live" | "virtual";
     api_key?: string;
     secret_key?: string;
+    passphrase?: string; // Required for some exchanges like OKX
   };
 
   // Trading Strategy Configuration
