@@ -108,11 +108,27 @@ class LLMModelConfig(BaseModel):
         return values
 
 
+class MarketType(str, Enum):
+    """Market type for trading."""
+
+    SPOT = "spot"
+    FUTURE = "future"
+    SWAP = "swap"  # Perpetual futures
+
+
+class MarginMode(str, Enum):
+    """Margin mode for leverage trading."""
+
+    ISOLATED = "isolated"  # Isolated margin (逐仓)
+    CROSS = "cross"  # Cross margin (全仓)
+
+
 class ExchangeConfig(BaseModel):
     """Exchange configuration for trading."""
 
     exchange_id: Optional[str] = Field(
-        default=None, description="Exchange identifier (e.g., 'okx', 'binance')"
+        default=None,
+        description="Exchange identifier (e.g., 'okx', 'binance', 'bybit')",
     )
     trading_mode: TradingMode = Field(
         default=TradingMode.VIRTUAL, description="Trading mode for this strategy"
@@ -122,6 +138,26 @@ class ExchangeConfig(BaseModel):
     )
     secret_key: Optional[str] = Field(
         default=None, description="Exchange secret key (required for live trading)"
+    )
+    passphrase: Optional[str] = Field(
+        default=None,
+        description="API passphrase (required for some exchanges like OKX)",
+    )
+    testnet: bool = Field(
+        default=False, description="Use testnet/sandbox mode for testing"
+    )
+    market_type: MarketType = Field(
+        default=MarketType.SPOT,
+        description="Market type: spot, future (delivery), or swap (perpetual)",
+    )
+    margin_mode: MarginMode = Field(
+        default=MarginMode.ISOLATED,
+        description="Margin mode: isolated (逐仓) or cross (全仓)",
+    )
+    fee_bps: float = Field(
+        default=10.0,
+        description="Trading fee in basis points (default 10 bps = 0.1%) for paper trading",
+        gt=0,
     )
 
 
