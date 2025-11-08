@@ -38,19 +38,6 @@ uv sync --group dev
 uv sync
 ```
 
-## Third Party Agents Integration
-
-⚠️ **Caution**: Isolate third‑party libraries in separate virtual environments (uv, venv, virtualenv, or conda) to prevent dependency conflicts between components.
-
-```bash
-# ai-hedge-fund
-cd third_party/ai-hedge-fund
-echo "uv: $(which uv)"
-echo "python: $(which python)"
-
-uv venv --python 3.12 && uv sync && uv pip list
-```
-
 ## Requirements
 
 - Python >= 3.12
