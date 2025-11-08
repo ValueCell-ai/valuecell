@@ -196,7 +196,9 @@ def set_strategy_status(strategy_id: str, status: str) -> bool:
 def mark_strategy_stopped(strategy_id: str) -> bool:
     """Mark a strategy as stopped."""
     try:
-        return set_strategy_status(strategy_id, agent_models.StrategyStatus.STOPPED.value)
+        return set_strategy_status(
+            strategy_id, agent_models.StrategyStatus.STOPPED.value
+        )
     except Exception:
         logger.exception("mark_strategy_stopped failed for {}", strategy_id)
         return False
