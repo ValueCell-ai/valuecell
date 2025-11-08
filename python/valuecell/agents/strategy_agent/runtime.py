@@ -7,9 +7,10 @@ from valuecell.utils.uuid import generate_uuid
 from .core import DecisionCycleResult, DefaultDecisionCoordinator
 from .data.market import SimpleMarketDataSource
 from .decision.composer import LlmComposer
-from .execution.paper_trading import PaperExecutionGateway
+from .execution.factory import create_execution_gateway, create_execution_gateway_sync
+from .execution.interfaces import ExecutionGateway
 from .features.simple import SimpleFeatureComputer
-from .models import Constraints, UserRequest
+from .models import Constraints, TradingMode, UserRequest
 from .portfolio.in_memory import InMemoryPortfolioService
 from .trading_history.digest import RollingDigestBuilder
 from .trading_history.recorder import InMemoryHistoryRecorder
@@ -74,7 +75,27 @@ class StrategyRuntime:
         return await self.coordinator.run_once()
 
 
-def create_strategy_runtime(request: UserRequest) -> StrategyRuntime:
+def create_strategy_runtime(
+    request: UserRequest,
+    execution_gateway: Optional[ExecutionGateway] = None,
+) -> StrategyRuntime:
+    """Create a strategy runtime with synchronous initialization.
+
+    Note: This function only supports paper trading by default. For live trading,
+    use create_strategy_runtime_async() instead, which properly initializes
+    the CCXT exchange connection.
+
+    Args:
+        request: User request with strategy configuration
+        execution_gateway: Optional pre-initialized execution gateway.
+                          If None, will be created based on request.exchange_config.
+
+    Returns:
+        StrategyRuntime instance
+
+    Raises:
+        RuntimeError: If live trading is requested without providing a gateway
+    """
     strategy_id = generate_uuid("strategy")
     initial_capital = request.trading_config.initial_capital or 0.0
     constraints = Constraints(
@@ -97,7 +118,16 @@ def create_strategy_runtime(request: UserRequest) -> StrategyRuntime:
     )
     feature_computer = SimpleFeatureComputer()
     composer = LlmComposer(request=request)
-    execution_gateway = PaperExecutionGateway()
+
+    # Create execution gateway if not provided
+    if execution_gateway is None:
+        if request.exchange_config.trading_mode == TradingMode.LIVE:
+            raise RuntimeError(
+                "Live trading requires async initialization. "
+                "Use create_strategy_runtime_async() or provide a pre-initialized gateway."
+            )
+        execution_gateway = create_execution_gateway_sync(request.exchange_config)
+
     history_recorder = InMemoryHistoryRecorder()
     digest_builder = RollingDigestBuilder()
 
@@ -119,3 +149,42 @@ def create_strategy_runtime(request: UserRequest) -> StrategyRuntime:
         strategy_id=strategy_id,
         coordinator=coordinator,
     )
+
+
+async def create_strategy_runtime_async(request: UserRequest) -> StrategyRuntime:
+    """Create a strategy runtime with async initialization (supports live trading).
+
+    This function properly initializes CCXT exchange connections for live trading.
+    It can also be used for paper trading.
+
+    Args:
+        request: User request with strategy configuration
+
+    Returns:
+        StrategyRuntime instance with initialized execution gateway
+
+    Example:
+        >>> request = UserRequest(
+        ...     exchange_config=ExchangeConfig(
+        ...         exchange_id='binance',
+        ...         trading_mode=TradingMode.LIVE,
+        ...         api_key='YOUR_KEY',
+        ...         secret_key='YOUR_SECRET',
+        ...         market_type=MarketType.SWAP,
+        ...         margin_mode=MarginMode.ISOLATED,
+        ...         testnet=True,
+        ...     ),
+        ...     trading_config=TradingConfig(
+        ...         symbols=['BTC-USDT', 'ETH-USDT'],
+        ...         initial_capital=10000.0,
+        ...         max_leverage=10.0,
+        ...         max_positions=5,
+        ...     )
+        ... )
+        >>> runtime = await create_strategy_runtime_async(request)
+    """
+    # Create execution gateway asynchronously
+    execution_gateway = await create_execution_gateway(request.exchange_config)
+
+    # Use the sync function with the pre-initialized gateway
+    return create_strategy_runtime(request, execution_gateway=execution_gateway)

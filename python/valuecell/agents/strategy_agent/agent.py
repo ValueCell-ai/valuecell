@@ -16,7 +16,7 @@ from .models import (
     StrategyStatusContent,
     UserRequest,
 )
-from .runtime import create_strategy_runtime
+from .runtime import create_strategy_runtime_async
 
 
 class StrategyAgent(BaseAgent):
@@ -122,7 +122,7 @@ class StrategyAgent(BaseAgent):
             yield streaming.done()
             return
 
-        runtime = create_strategy_runtime(request)
+        runtime = await create_strategy_runtime_async(request)
         strategy_id = runtime.strategy_id
         logger.info(
             "Created runtime for strategy_id={} conversation={} task={}",
