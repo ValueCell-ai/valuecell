@@ -38,10 +38,6 @@ uv sync --group dev
 uv sync
 ```
 
-## External Agents
-
-本仓库不再包含 third_party 相关内容。如需集成外部代理，请直接参考其各自的官方仓库与文档进行安装与使用。
-
 ## Requirements
 
 - Python >= 3.12
