@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Callable, Dict, List
 
+from loguru import logger
+
 from valuecell.utils.uuid import generate_uuid
 
 from .data.interfaces import MarketDataSource
@@ -24,6 +26,7 @@ from .models import (
     TradeSide,
     TradeType,
     TxResult,
+    TxStatus,
     UserRequest,
 )
 from .portfolio.interfaces import PortfolioService
@@ -148,10 +151,27 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         )
 
         instructions = await self._composer.compose(context)
+        logger.info(f"🔍 Composer returned {len(instructions)} instructions")
+        for idx, inst in enumerate(instructions):
+            logger.info(
+                f"  📝 Instruction {idx}: {inst.instrument.symbol} {inst.side.value} qty={inst.quantity}"
+            )
+
         # Execute instructions via async gateway to obtain execution results
+        logger.info(
+            f"🚀 Calling execution_gateway.execute() with {len(instructions)} instructions"
+        )
+        logger.info(
+            f"  ExecutionGateway type: {type(self._execution_gateway).__name__}"
+        )
         tx_results = await self._execution_gateway.execute(
             instructions, market_snapshot
         )
+        logger.info(f"✅ ExecutionGateway returned {len(tx_results)} results")
+        for idx, tx in enumerate(tx_results):
+            logger.info(
+                f"  📊 TxResult {idx}: {tx.instrument.symbol} status={tx.status.value} filled_qty={tx.filled_qty}"
+            )
 
         trades = self._create_trades(tx_results, compose_id, timestamp_ms)
         self._portfolio_service.apply_trades(trades, market_snapshot)
@@ -197,7 +217,16 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             pre_view = None
 
         for tx in tx_results:
+            # Skip failed or rejected trades - only create history entries for successful fills
+            # (including partial fills which may still have filled_qty > 0)
+            if tx.status in (TxStatus.ERROR, TxStatus.REJECTED):
+                continue
+
             qty = float(tx.filled_qty or 0.0)
+            # Skip trades with zero filled quantity
+            if qty == 0:
+                continue
+
             price = float(tx.avg_exec_price or 0.0)
             notional = (price * qty) if price and qty else None
             # Immediate realized effect: fees are costs (negative PnL). Slippage already baked into exec price.

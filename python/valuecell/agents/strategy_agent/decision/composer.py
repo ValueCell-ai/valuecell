@@ -194,6 +194,7 @@ class LlmComposer(Composer):
         qty = quantity
 
         # Step 1: per-order filters (step size, min notional, max order qty)
+        logger.debug(f"_normalize_quantity Step 1: {symbol} qty={qty} before filters")
         qty = self._apply_quantity_filters(
             symbol,
             qty,
@@ -203,13 +204,11 @@ class LlmComposer(Composer):
             constraints.min_notional,
             price_map,
         )
+        logger.debug(f"_normalize_quantity Step 1: {symbol} qty={qty} after filters")
 
         if qty <= self._quantity_precision:
-            logger.debug(
-                "Post-filter quantity for {} is {} <= precision {} -> skipping",
-                symbol,
-                qty,
-                self._quantity_precision,
+            logger.warning(
+                f"Post-filter quantity for {symbol} is {qty} <= precision {self._quantity_precision} -> returning 0"
             )
             return 0.0, 0.0
 
@@ -402,6 +401,7 @@ class LlmComposer(Composer):
                 quantity = abs(delta)
 
                 # Normalize quantity through all guardrails
+                logger.debug(f"Before normalize: {symbol} quantity={quantity}")
                 quantity, consumed_bp = self._normalize_quantity(
                     symbol,
                     quantity,
@@ -413,8 +413,14 @@ class LlmComposer(Composer):
                     projected_gross,
                     price_map,
                 )
+                logger.debug(
+                    f"After normalize: {symbol} quantity={quantity}, consumed_bp={consumed_bp}"
+                )
 
                 if quantity <= self._quantity_precision:
+                    logger.warning(
+                        f"SKIPPED: {symbol} quantity={quantity} <= precision={self._quantity_precision} after normalization"
+                    )
                     continue
 
                 # Update projected positions for subsequent guardrails
@@ -529,24 +535,40 @@ class LlmComposer(Composer):
         market_snapshot: Dict[str, float],
     ) -> float:
         qty = quantity
+        logger.debug(f"Filtering {symbol}: initial qty={qty}")
 
         if max_order_qty is not None:
             qty = min(qty, float(max_order_qty))
+            logger.debug(f"After max_order_qty filter: qty={qty}")
 
         if quantity_step > 0:
             qty = math.floor(qty / quantity_step) * quantity_step
+            logger.debug(f"After quantity_step filter: qty={qty}")
 
         if qty <= 0:
+            logger.warning(f"FILTERED: {symbol} qty={qty} <= 0")
             return 0.0
 
         if qty < min_trade_qty:
+            logger.warning(
+                f"FILTERED: {symbol} qty={qty} < min_trade_qty={min_trade_qty}"
+            )
             return 0.0
 
         if min_notional is not None:
             price = market_snapshot.get(symbol)
             if price is None:
+                logger.warning(f"FILTERED: {symbol} no price in market_snapshot")
                 return 0.0
-            if qty * price < float(min_notional):
+            notional = qty * price
+            if notional < float(min_notional):
+                logger.warning(
+                    f"FILTERED: {symbol} notional={notional:.4f} < min_notional={min_notional}"
+                )
                 return 0.0
+            logger.debug(
+                f"Passed min_notional check: notional={notional:.4f} >= {min_notional}"
+            )
 
+        logger.debug(f"Final qty for {symbol}: {qty}")
         return qty

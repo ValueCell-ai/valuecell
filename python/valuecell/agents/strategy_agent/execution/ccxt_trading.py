@@ -9,9 +9,11 @@ Supports:
 
 from __future__ import annotations
 
+import asyncio
 from typing import Dict, List, Optional
 
 import ccxt.async_support as ccxt
+from loguru import logger
 
 from ..models import (
     PriceMode,
@@ -215,12 +217,19 @@ class CCXTExecutionGateway(ExecutionGateway):
             List of transaction results with fill details
         """
         if not instructions:
+            logger.warning("⚠️ CCXTExecutionGateway: No instructions to execute")
             return []
 
+        logger.info(
+            f"💰 CCXTExecutionGateway: Executing {len(instructions)} instructions"
+        )
         exchange = await self._get_exchange()
         results: List[TxResult] = []
 
         for inst in instructions:
+            logger.info(
+                f"  📤 Processing {inst.instrument.symbol} {inst.side.value} qty={inst.quantity}"
+            )
             try:
                 result = await self._execute_single(inst, exchange)
                 results.append(result)
@@ -274,6 +283,9 @@ class CCXTExecutionGateway(ExecutionGateway):
 
         # Create order
         try:
+            logger.info(
+                f"  🔨 Creating {order_type} order: {side} {amount} {symbol} @ {price if price else 'market'}"
+            )
             order = await exchange.create_order(
                 symbol=symbol,
                 type=order_type,
@@ -282,13 +294,44 @@ class CCXTExecutionGateway(ExecutionGateway):
                 price=price,
                 params=params,
             )
+            logger.info(
+                f"  ✓ Order created: id={order.get('id')}, status={order.get('status')}, filled={order.get('filled')}"
+            )
         except Exception as e:
+            logger.error(f"  ❌ ERROR creating order for {symbol}: {e}")
             raise RuntimeError(f"Failed to create order for {symbol}: {e}") from e
+
+        # For market orders, wait for fill and fetch final order status
+        # Many exchanges don't immediately return filled quantities for market orders
+        if order_type == "market":
+            order_id = order.get("id")
+            if order_id and exchange.has.get("fetchOrder"):
+                try:
+                    # Wait a short time for market order to fill
+                    logger.info(
+                        f"  ⏳ Waiting 0.5s for market order {order_id} to fill..."
+                    )
+                    await asyncio.sleep(0.5)
+
+                    # Fetch updated order status
+                    order = await exchange.fetch_order(order_id, symbol)
+                    logger.info(
+                        f"  📈 Order status after fetch: filled={order.get('filled')}, average={order.get('average')}, status={order.get('status')}"
+                    )
+                except Exception as e:
+                    # If fetch fails, use original order response
+                    logger.warning(
+                        f"  ⚠️ Could not fetch order status for {symbol}: {e}"
+                    )
 
         # Parse order response
         filled_qty = float(order.get("filled", 0.0))
         avg_price = float(order.get("average") or 0.0)
         fee_cost = 0.0
+
+        logger.info(
+            f"  📊 Final parsed: filled_qty={filled_qty}, avg_price={avg_price}"
+        )
 
         # Extract fee information
         if "fee" in order and order["fee"]:
