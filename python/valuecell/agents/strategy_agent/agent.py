@@ -22,7 +22,9 @@ from .runtime import create_strategy_runtime
 class StrategyAgent(BaseAgent):
     """Top-level Strategy Agent integrating the decision coordinator."""
 
-    async def _wait_until_marked_running(self, strategy_id: str, timeout_s: int = 300) -> None:
+    async def _wait_until_marked_running(
+        self, strategy_id: str, timeout_s: int = 300
+    ) -> None:
         """Wait until persistence marks the strategy as running or timeout.
 
         This helper logs progress and returns when either the strategy is running
@@ -64,15 +66,21 @@ class StrategyAgent(BaseAgent):
 
             ok = strategy_persistence.persist_portfolio_view(initial_portfolio)
             if ok:
-                logger.info("Persisted initial portfolio view for strategy={}", strategy_id)
+                logger.info(
+                    "Persisted initial portfolio view for strategy={}", strategy_id
+                )
 
             timestamp_ms = int(runtime.coordinator._clock().timestamp() * 1000)
             initial_summary = runtime.coordinator._build_summary(timestamp_ms, [])
             ok = strategy_persistence.persist_strategy_summary(initial_summary)
             if ok:
-                logger.info("Persisted initial strategy summary for strategy={}", strategy_id)
+                logger.info(
+                    "Persisted initial strategy summary for strategy={}", strategy_id
+                )
         except Exception:
-            logger.exception("Failed to persist initial portfolio/summary for {}", strategy_id)
+            logger.exception(
+                "Failed to persist initial portfolio/summary for {}", strategy_id
+            )
 
     def _persist_cycle_results(self, strategy_id: str, result) -> None:
         """Persist trades, portfolio view and strategy summary for a cycle.
@@ -98,7 +106,6 @@ class StrategyAgent(BaseAgent):
                 logger.info("Persisted strategy summary for strategy={}", strategy_id)
         except Exception:
             logger.exception("Error persisting cycle results for {}", strategy_id)
-
 
     async def stream(
         self,
