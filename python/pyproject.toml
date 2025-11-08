@@ -29,6 +29,7 @@ dependencies = [
     "aiofiles>=24.1.0",
     "crawl4ai>=0.7.4",
     "ccxt>=4.5.15",
+    "httpx[socks]>=0.28.1",
 ]
 
 [project.optional-dependencies]

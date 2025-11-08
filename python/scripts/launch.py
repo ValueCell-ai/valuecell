@@ -40,7 +40,7 @@ STRATEGY_AGENT_NAME = "StrategyAgent"
 # ]
 AGENTS = [
     RESEARCH_AGENT_NAME,
-    AUTO_TRADING_AGENT_NAME,
+    # AUTO_TRADING_AGENT_NAME,  # Deprecated - agent card removed
     NEWS_AGENT_NAME,
     STRATEGY_AGENT_NAME,
 ]

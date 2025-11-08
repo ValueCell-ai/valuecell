@@ -35,7 +35,8 @@ dependencies = [
     "tushare>=1.4.21",
     "typing-extensions>=4.14.0",
     "yfinance>=0.2.63",
-    "valuecell"
+    "valuecell",
+    "httpx[socks]>=0.28.1",
 ]
 
 [tool.uv.sources]
