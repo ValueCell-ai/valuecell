@@ -24,8 +24,10 @@ const TradeHistoryCard: FC<TradeHistoryCardProps> = ({ trade }) => {
   const stockColors = useStockColors();
   const changeType = getChangeType(trade.unrealized_pnl);
 
-  // Format holding time from milliseconds to "XH XM" format
-  const formatHoldingTime = (ms: number) => {
+  // Format holding time from milliseconds to "XH XM" format.
+  // If holding_ms is null/undefined, show a dash placeholder instead of "0H 0M".
+  const formatHoldingTime = (ms?: number | null) => {
+    if (ms === null || ms === undefined) return "-";
     const hours = Math.floor(ms / (1000 * 60 * 60));
     const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
     return `${hours}H ${minutes}M`;
