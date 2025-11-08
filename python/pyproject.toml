@@ -71,7 +71,6 @@ exclude = [
     "dist",
     "node_modules",
     "site-packages",
-    "third_party",
 ]
 
 [tool.ruff.format]
@@ -85,8 +84,6 @@ include = [
     "valuecell",
 ]
 exclude = [
-    "third_party/**",
-    "**/third_party/**",
     "tests/**",
     "**/tests/**",
     "examples/**",
@@ -102,7 +99,6 @@ norecursedirs = [
     "build",
     "dist",
     "logs",
-    "third_party",
     "examples",
     "docs",
 ]
@@ -110,8 +106,6 @@ norecursedirs = [
 [tool.isort]
 profile = "black"
 skip_glob = [
-    "third_party/**",
-    "**/third_party/**",
     "tests/**",
     "**/tests/**",
     "docs/**",
