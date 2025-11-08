@@ -154,9 +154,28 @@ class StrategyAgent(BaseAgent):
                 await asyncio.sleep(request.trading_config.decide_interval)
 
         except asyncio.CancelledError:
+            # Ensure strategy is marked stopped on cancellation
+            try:
+                strategy_persistence.mark_strategy_stopped(strategy_id)
+                logger.info(
+                    "Marked strategy {} as stopped due to cancellation", strategy_id
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to mark strategy stopped for {} on cancellation",
+                    strategy_id,
+                )
             raise
         except Exception as err:  # noqa: BLE001
             logger.exception("StrategyAgent stream failed: {}", err)
             yield streaming.message_chunk(f"StrategyAgent error: {err}")
         finally:
+            # Always mark strategy as stopped when stream ends for any reason
+            try:
+                strategy_persistence.mark_strategy_stopped(strategy_id)
+                logger.info("Marked strategy {} as stopped in finalizer", strategy_id)
+            except Exception:
+                logger.exception(
+                    "Failed to mark strategy stopped for {} in finalizer", strategy_id
+                )
             yield streaming.done()

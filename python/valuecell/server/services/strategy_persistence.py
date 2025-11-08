@@ -180,3 +180,23 @@ def strategy_running(strategy_id: str) -> bool:
     except Exception:
         logger.exception("strategy_running check failed for {}", strategy_id)
         return False
+
+
+def set_strategy_status(strategy_id: str, status: str) -> bool:
+    """Set the status field for a strategy (convenience wrapper around upsert)."""
+    repo = get_strategy_repository()
+    try:
+        updated = repo.upsert_strategy(strategy_id, status=status)
+        return updated is not None
+    except Exception:
+        logger.exception("set_strategy_status failed for {}", strategy_id)
+        return False
+
+
+def mark_strategy_stopped(strategy_id: str) -> bool:
+    """Mark a strategy as stopped."""
+    try:
+        return set_strategy_status(strategy_id, agent_models.StrategyStatus.STOPPED.value)
+    except Exception:
+        logger.exception("mark_strategy_stopped failed for {}", strategy_id)
+        return False
