@@ -228,6 +228,20 @@ class CCXTExecutionGateway(ExecutionGateway):
             # Log but don't fail
             print(f"Warning: Could not set margin mode for {symbol}: {e}")
 
+    def _sanitize_client_order_id(self, raw_id: str) -> str:
+        """Sanitize client order id to satisfy exchange constraints.
+
+        - Remove non-alphanumeric characters (safe for OKX 'clOrdId')
+        - Truncate to 32 characters (common OKX limit)
+        - If empty after sanitization, derive a short hash
+        """
+        safe = "".join(ch for ch in (raw_id or "") if ch.isalnum())
+        if not safe:
+            import hashlib
+
+            safe = hashlib.sha1((raw_id or "").encode()).hexdigest()[:16]
+        return safe[:32]
+
     def _build_order_params(self, inst: TradeInstruction, order_type: str) -> Dict:
         """Build exchange-specific order params with safe defaults.
 
@@ -238,10 +252,17 @@ class CCXTExecutionGateway(ExecutionGateway):
         """
         params: Dict = dict(inst.meta or {})
 
-        # Idempotency / client order id (CCXT unified param)
-        params.setdefault("clientOrderId", inst.instruction_id)
-
         exid = self.exchange_id
+
+        # Idempotency / client order id (sanitize for OKX)
+        raw_client_id = params.get("clientOrderId", inst.instruction_id)
+        if raw_client_id:
+            client_id = (
+                self._sanitize_client_order_id(raw_client_id)
+                if exid == "okx"
+                else raw_client_id
+            )
+            params["clientOrderId"] = client_id
 
         # Default tdMode for OKX on all orders
         if exid == "okx":
@@ -266,6 +287,88 @@ class CCXTExecutionGateway(ExecutionGateway):
         # Users can override via inst.meta if needed
 
         return params
+
+    async def _enforce_minimums(
+        self,
+        exchange: ccxt.Exchange,
+        symbol: str,
+        amount: float,
+        price: Optional[float],
+    ) -> float:
+        """Ensure amount satisfies exchange minimums (amount and notional).
+
+        - Checks markets[symbol].limits.amount.min and info.minSz (OKX)
+        - If limits.cost.min exists, uses price or fetches ticker to lift amount
+        - Returns adjusted amount aligned to precision
+        """
+        markets = getattr(exchange, "markets", {}) or {}
+        market = markets.get(symbol, {})
+        limits = market.get("limits") or {}
+
+        # Minimum amount (contracts)
+        min_amount = None
+        amt_limits = limits.get("amount") or {}
+        if amt_limits.get("min") is not None:
+            try:
+                min_amount = float(amt_limits["min"])
+            except Exception:
+                min_amount = None
+        if min_amount is None:
+            info = market.get("info") or {}
+            min_sz = info.get("minSz")
+            if min_sz is not None:
+                try:
+                    min_amount = float(min_sz)
+                except Exception:
+                    min_amount = None
+
+        if min_amount is not None and amount < min_amount:
+            logger.info(
+                f"  ↗️ Amount {amount} below min {min_amount}; aligning to minimum"
+            )
+            amount = min_amount
+            try:
+                amount = float(exchange.amount_to_precision(symbol, amount))
+            except Exception:
+                pass
+
+        # Minimum notional (cost)
+        min_cost = None
+        cost_limits = limits.get("cost") or {}
+        if cost_limits.get("min") is not None:
+            try:
+                min_cost = float(cost_limits["min"])
+            except Exception:
+                min_cost = None
+
+        if min_cost is not None:
+            est_price = price
+            if est_price is None and exchange.has.get("fetchTicker"):
+                try:
+                    ticker = await exchange.fetch_ticker(symbol)
+                    est_price = float(
+                        ticker.get("last")
+                        or ticker.get("bid")
+                        or ticker.get("ask")
+                        or 0.0
+                    )
+                except Exception:
+                    est_price = None
+            if est_price and est_price > 0:
+                notional = amount * est_price
+                if notional < min_cost:
+                    required_amount = min_cost / est_price
+                    logger.info(
+                        f"  ↗️ Notional {notional:.4f} below minCost {min_cost}; lifting amount"
+                    )
+                    try:
+                        amount = float(
+                            exchange.amount_to_precision(symbol, required_amount)
+                        )
+                    except Exception:
+                        amount = required_amount
+
+        return amount
 
     async def execute(
         self,
@@ -376,6 +479,12 @@ class CCXTExecutionGateway(ExecutionGateway):
                 price = float(exchange.price_to_precision(symbol, price))
             except Exception:
                 pass
+
+        # Enforce exchange minimums (amount and notional)
+        try:
+            amount = await self._enforce_minimums(exchange, symbol, amount, price)
+        except Exception as e:
+            logger.warning(f"⚠️ Could not align to minimums for {symbol}: {e}")
 
         # Build order params with exchange-specific defaults
         params = self._build_order_params(inst, order_type)
