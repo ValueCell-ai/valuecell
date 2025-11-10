@@ -51,11 +51,12 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
 
   const { mutateAsync: stopStrategy } = useStopStrategy();
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only run once
   useEffect(() => {
     if (strategies && strategies.length > 0) {
       setSelectedStrategy(strategies[0]);
     }
-  }, [strategies]);
+  }, []);
 
   if (isLoading) return null;
 

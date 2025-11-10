@@ -24,7 +24,7 @@ export default function AgentMarket() {
           {agents.map((agent) => (
             <div key={agent.agent_name} className="break-inside-avoid">
               <Link to={`/agent/${agent.agent_name}/config`}>
-                <AgentCard agent={agent} className="h-full" />
+                <AgentCard agent={agent} />
               </Link>
             </div>
           ))}
