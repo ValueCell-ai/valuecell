@@ -43,8 +43,8 @@ class CCXTExecutionGateway(ExecutionGateway):
         secret_key: str,
         passphrase: Optional[str] = None,
         testnet: bool = False,
-        default_type: str = "spot",
-        margin_mode: str = "isolated",
+        default_type: str = "margin",
+        margin_mode: str = "cross",
         ccxt_options: Optional[Dict] = None,
     ) -> None:
         """Initialize CCXT exchange gateway.
@@ -55,7 +55,7 @@ class CCXTExecutionGateway(ExecutionGateway):
             secret_key: Secret key for authentication
             passphrase: Optional passphrase (required for OKX)
             testnet: Whether to use testnet/sandbox mode
-            default_type: Default market type ('spot', 'future', 'swap')
+            default_type: Default market type ('spot', 'future', 'swap', "margin")
             margin_mode: Default margin mode ('isolated' or 'cross')
             ccxt_options: Additional CCXT exchange options
         """
@@ -142,7 +142,10 @@ class CCXTExecutionGateway(ExecutionGateway):
         base_symbol = symbol.replace("-", "/")
 
         # For futures/swap, append settlement currency
-        if mtype in ("future", "swap"):
+        if mtype in (
+            "future",
+            "swap",
+        ):
             # If symbol is like BTC/USDT, make it BTC/USDT:USDT
             if ":" not in base_symbol:
                 parts = base_symbol.split("/")
