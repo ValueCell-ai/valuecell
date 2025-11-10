@@ -458,6 +458,9 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                               onValueChange={(value) => {
                                 const newMode = value as "live" | "virtual";
                                 form2.reset();
+                                if (newMode === "virtual") {
+                                  form2.setFieldValue("exchange_id", "");
+                                }
 
                                 field.handleChange(newMode);
                               }}
@@ -480,7 +483,10 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
 
                           {isLiveTrading && (
                             <>
-                              <form2.Field name="exchange_id">
+                              <form2.Field
+                                name="exchange_id"
+                                key={form2.state.values.trading_mode}
+                              >
                                 {(field) => (
                                   <Field>
                                     <FieldLabel className="font-medium text-base text-gray-950">
