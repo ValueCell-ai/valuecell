@@ -147,11 +147,11 @@ class ExchangeConfig(BaseModel):
         default=False, description="Use testnet/sandbox mode for testing"
     )
     market_type: MarketType = Field(
-        default=MarketType.SPOT,
+        default=MarketType.SWAP,
         description="Market type: spot, future (delivery), or swap (perpetual)",
     )
     margin_mode: MarginMode = Field(
-        default=MarginMode.ISOLATED,
+        default=MarginMode.CROSS,
         description="Margin mode: isolated (逐仓) or cross (全仓)",
     )
     fee_bps: float = Field(

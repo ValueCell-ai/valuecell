@@ -43,8 +43,9 @@ class CCXTExecutionGateway(ExecutionGateway):
         secret_key: str,
         passphrase: Optional[str] = None,
         testnet: bool = False,
-        default_type: str = "spot",
-        margin_mode: str = "isolated",
+        default_type: str = "swap",
+        margin_mode: str = "cross",
+        position_mode: str = "oneway",
         ccxt_options: Optional[Dict] = None,
     ) -> None:
         """Initialize CCXT exchange gateway.
@@ -55,8 +56,9 @@ class CCXTExecutionGateway(ExecutionGateway):
             secret_key: Secret key for authentication
             passphrase: Optional passphrase (required for OKX)
             testnet: Whether to use testnet/sandbox mode
-            default_type: Default market type ('spot', 'future', 'swap')
+            default_type: Default market type ('spot', 'future', 'swap', "margin")
             margin_mode: Default margin mode ('isolated' or 'cross')
+            position_mode: Position mode ('oneway' or 'hedged'), default 'oneway'
             ccxt_options: Additional CCXT exchange options
         """
         self.exchange_id = exchange_id.lower()
@@ -66,6 +68,7 @@ class CCXTExecutionGateway(ExecutionGateway):
         self.testnet = testnet
         self.default_type = default_type
         self.margin_mode = margin_mode
+        self.position_mode = position_mode
         self._ccxt_options = ccxt_options or {}
 
         # Track leverage settings per symbol to avoid redundant calls
@@ -74,6 +77,16 @@ class CCXTExecutionGateway(ExecutionGateway):
 
         # Exchange instance (lazy-initialized)
         self._exchange: Optional[ccxt.Exchange] = None
+
+    def _choose_default_type_for_exchange(self) -> str:
+        """Return a safe defaultType for the selected exchange.
+
+        - Binance: map 'swap' to 'future' (USDT-M futures)
+        - Others: keep configured default_type
+        """
+        if self.exchange_id == "binance" and self.default_type == "swap":
+            return "future"
+        return self.default_type
 
     async def _get_exchange(self) -> ccxt.Exchange:
         """Get or create the CCXT exchange instance."""
@@ -95,7 +108,7 @@ class CCXTExecutionGateway(ExecutionGateway):
             "secret": self.secret_key,
             "enableRateLimit": True,  # Respect rate limits
             "options": {
-                "defaultType": self.default_type,
+                "defaultType": self._choose_default_type_for_exchange(),
                 **self._ccxt_options,
             },
         }
@@ -110,6 +123,16 @@ class CCXTExecutionGateway(ExecutionGateway):
         # Enable sandbox/testnet mode if requested
         if self.testnet:
             self._exchange.set_sandbox_mode(True)
+
+        # Optionally set position mode (oneway/hedged) for exchanges that support it
+        try:
+            if self._exchange.has.get("setPositionMode"):
+                hedged = self.position_mode.lower() in ("hedged", "dual", "hedge")
+                await self._exchange.set_position_mode(hedged)
+        except Exception as e:
+            logger.warning(
+                f"⚠️ Could not set position mode ({self.position_mode}) on {self.exchange_id}: {e}"
+            )
 
         # Load markets
         try:
@@ -126,8 +149,8 @@ class CCXTExecutionGateway(ExecutionGateway):
 
         Examples:
             BTC-USD -> BTC/USD (spot)
-            BTC-USDT -> BTC/USDT:USDT (USDT futures)
-            ETH-USD -> ETH/USD:USD (USD futures)
+            BTC-USDT -> BTC/USDT:USDT (USDT futures on colon exchanges)
+            ETH-USD -> ETH/USD:USD (USD futures on colon exchanges)
 
         Args:
             symbol: Symbol in format 'BTC-USD', 'BTC-USDT', etc.
@@ -141,9 +164,8 @@ class CCXTExecutionGateway(ExecutionGateway):
         # Replace dash with slash
         base_symbol = symbol.replace("-", "/")
 
-        # For futures/swap, append settlement currency
-        if mtype in ("future", "swap"):
-            # If symbol is like BTC/USDT, make it BTC/USDT:USDT
+        # For futures/swap, only append settlement currency for non-Binance exchanges
+        if mtype in ("future", "swap") and self.exchange_id not in ("binance",):
             if ":" not in base_symbol:
                 parts = base_symbol.split("/")
                 if len(parts) == 2:
@@ -173,7 +195,11 @@ class CCXTExecutionGateway(ExecutionGateway):
             return
 
         try:
-            await exchange.set_leverage(int(leverage), symbol)
+            # Pass marginMode for exchanges that require it (e.g., OKX)
+            params = {}
+            if self.exchange_id == "okx":
+                params["marginMode"] = self.margin_mode  # 'cross' or 'isolated'
+            await exchange.set_leverage(int(leverage), symbol, params)
             self._leverage_cache[symbol] = leverage
         except Exception as e:
             # Some exchanges don't support leverage on certain symbols
@@ -201,6 +227,148 @@ class CCXTExecutionGateway(ExecutionGateway):
         except Exception as e:
             # Log but don't fail
             print(f"Warning: Could not set margin mode for {symbol}: {e}")
+
+    def _sanitize_client_order_id(self, raw_id: str) -> str:
+        """Sanitize client order id to satisfy exchange constraints.
+
+        - Remove non-alphanumeric characters (safe for OKX 'clOrdId')
+        - Truncate to 32 characters (common OKX limit)
+        - If empty after sanitization, derive a short hash
+        """
+        safe = "".join(ch for ch in (raw_id or "") if ch.isalnum())
+        if not safe:
+            import hashlib
+
+            safe = hashlib.sha1((raw_id or "").encode()).hexdigest()[:16]
+        return safe[:32]
+
+    def _build_order_params(self, inst: TradeInstruction, order_type: str) -> Dict:
+        """Build exchange-specific order params with safe defaults.
+
+        - Attach clientOrderId for idempotency where supported
+        - Provide default time-in-force for limit orders
+        - Provide reduceOnly defaults for derivatives
+        - Provide tdMode for OKX if not specified
+        """
+        params: Dict = dict(inst.meta or {})
+
+        exid = self.exchange_id
+
+        # Idempotency / client order id (sanitize for OKX)
+        raw_client_id = params.get("clientOrderId", inst.instruction_id)
+        if raw_client_id:
+            client_id = (
+                self._sanitize_client_order_id(raw_client_id)
+                if exid == "okx"
+                else raw_client_id
+            )
+            params["clientOrderId"] = client_id
+
+        # Default tdMode for OKX on all orders
+        if exid == "okx":
+            params.setdefault(
+                "tdMode", "isolated" if self.margin_mode == "isolated" else "cross"
+            )
+
+        # Default time-in-force for limit orders
+        if order_type == "limit":
+            if exid == "binance":
+                params.setdefault("timeInForce", "GTC")
+            elif exid == "bybit":
+                params.setdefault("time_in_force", "GoodTillCancel")
+
+        # reduceOnly default for derivatives (oneway mode defaults to False)
+        if exid in ("binance", "okx"):
+            params.setdefault("reduceOnly", False)
+        elif exid == "bybit":
+            params.setdefault("reduce_only", False)
+
+        # In oneway mode, do not add positionSide/posSide by default
+        # Users can override via inst.meta if needed
+
+        return params
+
+    async def _enforce_minimums(
+        self,
+        exchange: ccxt.Exchange,
+        symbol: str,
+        amount: float,
+        price: Optional[float],
+    ) -> float:
+        """Ensure amount satisfies exchange minimums (amount and notional).
+
+        - Checks markets[symbol].limits.amount.min and info.minSz (OKX)
+        - If limits.cost.min exists, uses price or fetches ticker to lift amount
+        - Returns adjusted amount aligned to precision
+        """
+        markets = getattr(exchange, "markets", {}) or {}
+        market = markets.get(symbol, {})
+        limits = market.get("limits") or {}
+
+        # Minimum amount (contracts)
+        min_amount = None
+        amt_limits = limits.get("amount") or {}
+        if amt_limits.get("min") is not None:
+            try:
+                min_amount = float(amt_limits["min"])
+            except Exception:
+                min_amount = None
+        if min_amount is None:
+            info = market.get("info") or {}
+            min_sz = info.get("minSz")
+            if min_sz is not None:
+                try:
+                    min_amount = float(min_sz)
+                except Exception:
+                    min_amount = None
+
+        if min_amount is not None and amount < min_amount:
+            logger.info(
+                f"  ↗️ Amount {amount} below min {min_amount}; aligning to minimum"
+            )
+            amount = min_amount
+            try:
+                amount = float(exchange.amount_to_precision(symbol, amount))
+            except Exception:
+                pass
+
+        # Minimum notional (cost)
+        min_cost = None
+        cost_limits = limits.get("cost") or {}
+        if cost_limits.get("min") is not None:
+            try:
+                min_cost = float(cost_limits["min"])
+            except Exception:
+                min_cost = None
+
+        if min_cost is not None:
+            est_price = price
+            if est_price is None and exchange.has.get("fetchTicker"):
+                try:
+                    ticker = await exchange.fetch_ticker(symbol)
+                    est_price = float(
+                        ticker.get("last")
+                        or ticker.get("bid")
+                        or ticker.get("ask")
+                        or 0.0
+                    )
+                except Exception:
+                    est_price = None
+            if est_price and est_price > 0:
+                notional = amount * est_price
+                if notional < min_cost:
+                    required_amount = min_cost / est_price
+                    logger.info(
+                        f"  ↗️ Notional {notional:.4f} below minCost {min_cost}; lifting amount"
+                    )
+                    try:
+                        amount = float(
+                            exchange.amount_to_precision(symbol, required_amount)
+                        )
+                    except Exception:
+                        amount = required_amount
+
+        return amount
 
     async def execute(
         self,
@@ -265,6 +433,32 @@ class CCXTExecutionGateway(ExecutionGateway):
         # Normalize symbol for CCXT
         symbol = self._normalize_symbol(inst.instrument.symbol)
 
+        # Resolve symbol against loaded markets with simple fallbacks
+        markets = getattr(exchange, "markets", {}) or {}
+        if symbol not in markets:
+            # Try alternate format without/with colon
+            if ":" in symbol:
+                alt = symbol.split(":")[0]
+                if alt in markets:
+                    symbol = alt
+            else:
+                parts = symbol.split("/")
+                if len(parts) == 2:
+                    base, quote = parts
+                    alt = f"{base}/{quote}:{quote}"
+                    if alt in markets:
+                        symbol = alt
+                    else:
+                        # Try USD<->USDT swap
+                        if quote in ("USD", "USDT"):
+                            alt_quote = "USDT" if quote == "USD" else "USD"
+                            alt2 = f"{base}/{alt_quote}"
+                            alt3 = f"{base}/{alt_quote}:{alt_quote}"
+                            if alt2 in markets:
+                                symbol = alt2
+                            elif alt3 in markets:
+                                symbol = alt3
+
         # Setup leverage and margin mode
         await self._setup_leverage(symbol, inst.leverage, exchange)
         await self._setup_margin_mode(symbol, exchange)
@@ -275,11 +469,25 @@ class CCXTExecutionGateway(ExecutionGateway):
         amount = float(inst.quantity)
         price = float(inst.limit_price) if inst.limit_price else None
 
-        # Build order params
-        params = {}
-        if inst.meta:
-            # Pass through any exchange-specific parameters
-            params.update(inst.meta)
+        # Align precision if supported
+        try:
+            amount = float(exchange.amount_to_precision(symbol, amount))
+        except Exception:
+            pass
+        if price is not None:
+            try:
+                price = float(exchange.price_to_precision(symbol, price))
+            except Exception:
+                pass
+
+        # Enforce exchange minimums (amount and notional)
+        try:
+            amount = await self._enforce_minimums(exchange, symbol, amount, price)
+        except Exception as e:
+            logger.warning(f"⚠️ Could not align to minimums for {symbol}: {e}")
+
+        # Build order params with exchange-specific defaults
+        params = self._build_order_params(inst, order_type)
 
         # Create order
         try:
@@ -454,8 +662,9 @@ async def create_ccxt_gateway(
     secret_key: str,
     passphrase: Optional[str] = None,
     testnet: bool = False,
-    market_type: str = "spot",
-    margin_mode: str = "isolated",
+    market_type: str = "swap",
+    margin_mode: str = "cross",
+    position_mode: str = "oneway",
     **ccxt_options,
 ) -> CCXTExecutionGateway:
     """Factory function to create and initialize a CCXT execution gateway.
@@ -468,6 +677,7 @@ async def create_ccxt_gateway(
         testnet: Whether to use testnet/sandbox mode
         market_type: Market type ('spot', 'future', 'swap')
         margin_mode: Margin mode ('isolated' or 'cross')
+        position_mode: Optional position mode ('oneway' or 'hedged')
         **ccxt_options: Additional CCXT exchange options
 
     Returns:
@@ -480,6 +690,7 @@ async def create_ccxt_gateway(
         ...     secret_key='YOUR_SECRET',
         ...     market_type='swap',  # For perpetual futures
         ...     margin_mode='isolated',
+        ...     position_mode='oneway',
         ...     testnet=True
         ... )
     """
@@ -491,6 +702,7 @@ async def create_ccxt_gateway(
         testnet=testnet,
         default_type=market_type,
         margin_mode=margin_mode,
+        position_mode=position_mode,
         ccxt_options=ccxt_options,
     )
 
