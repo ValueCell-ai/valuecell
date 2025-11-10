@@ -15,10 +15,11 @@ export const agentSuggestions: AgentSuggestion[] = [
     decorativeGraphics: <img src={IconGroupPng} alt="IconGroup" />,
   },
   {
-    id: "AutoTradingAgent",
-    title: "Auto Trading",
+    id: "StrategyAgent",
+    title: "Automated Trading",
     icon: <SvgIcon name={AutoTrade} />,
-    description: "Multiple crypto assets and AI-powered trading strategies",
+    description:
+      "Multi-strategy smart trading, automatically execute your strategies",
     bgColor:
       "bg-gradient-to-r from-[#FFFFFF]/70 from-[5.05%] to-[#EAE8FF]/70 to-[100%]",
     decorativeGraphics: <img src={TrendPng} alt="Trend" />,
