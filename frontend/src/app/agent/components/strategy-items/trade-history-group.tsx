@@ -7,7 +7,12 @@ import {
 } from "@/components/ui/tooltip";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
-import { formatChange, getChangeType, numberFixed } from "@/lib/utils";
+import {
+  formatChange,
+  getChangeType,
+  isNullOrUndefined,
+  numberFixed,
+} from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
 import type { Trade } from "@/types/strategy";
 
@@ -25,9 +30,8 @@ const TradeHistoryCard: FC<TradeHistoryCardProps> = ({ trade }) => {
   const changeType = getChangeType(trade.unrealized_pnl);
 
   // Format holding time from milliseconds to "XH XM" format.
-  // If holding_ms is null/undefined, show a dash placeholder instead of "0H 0M".
-  const formatHoldingTime = (ms?: number | null) => {
-    if (ms === null || ms === undefined) return "-";
+  const formatHoldingTime = (ms?: number) => {
+    if (isNullOrUndefined(ms)) return "-";
     const hours = Math.floor(ms / (1000 * 60 * 60));
     const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
     return `${hours}H ${minutes}M`;
@@ -35,8 +39,8 @@ const TradeHistoryCard: FC<TradeHistoryCardProps> = ({ trade }) => {
 
   // Format price range
   const priceRange = trade.exit_price
-    ? `$${numberFixed(trade.entry_price, 2)} → $${numberFixed(trade.exit_price, 2)}`
-    : `$${numberFixed(trade.entry_price, 2)}`;
+    ? `$${numberFixed(trade.entry_price, 4)} → $${numberFixed(trade.exit_price, 4)}`
+    : `$${numberFixed(trade.entry_price, 4)}`;
 
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
@@ -70,7 +74,7 @@ const TradeHistoryCard: FC<TradeHistoryCardProps> = ({ trade }) => {
           className="font-semibold text-base"
           style={{ color: stockColors[changeType] }}
         >
-          {formatChange(trade.unrealized_pnl, "", 2)}
+          {formatChange(trade.unrealized_pnl, "", 4)}
         </p>
       </div>
 

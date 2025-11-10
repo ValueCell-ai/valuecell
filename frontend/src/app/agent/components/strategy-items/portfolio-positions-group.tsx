@@ -60,7 +60,7 @@ const PositionRow: FC<PositionRowProps> = ({ position }) => {
           style={{ color: stockColors[changeType] }}
         >
           {formatChange(position.unrealized_pnl, "", 2)} (
-          {formatChange(position.unrealized_pnl_pct, "", 1)}%)
+          {formatChange(position.unrealized_pnl_pct, "", 2)}%)
         </p>
       </TableCell>
     </TableRow>
