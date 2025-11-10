@@ -114,7 +114,6 @@ class MarketType(str, Enum):
     SPOT = "spot"
     FUTURE = "future"
     SWAP = "swap"  # Perpetual futures
-    MARGIN = "margin"
 
 
 class MarginMode(str, Enum):
@@ -148,7 +147,7 @@ class ExchangeConfig(BaseModel):
         default=False, description="Use testnet/sandbox mode for testing"
     )
     market_type: MarketType = Field(
-        default=MarketType.MARGIN,
+        default=MarketType.SWAP,
         description="Market type: spot, future (delivery), or swap (perpetual)",
     )
     margin_mode: MarginMode = Field(
