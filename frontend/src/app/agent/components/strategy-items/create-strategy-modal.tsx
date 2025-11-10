@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import {
   MODEL_PROVIDER_MAP,
@@ -197,7 +198,8 @@ const StepIndicator: FC<{ currentStep: StepNumber }> = ({ currentStep }) => {
 const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState<StepNumber>(1);
-  const { mutateAsync: createStrategy } = useCreateStrategy();
+  const { mutateAsync: createStrategy, isPending: isCreatingStrategy } =
+    useCreateStrategy();
   const { data: llmConfigs } = useGetStrategyApiKey();
 
   // Step 1 Form: AI Models
@@ -788,17 +790,19 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
           </Button>
           <Button
             type="button"
-            onClick={() => {
+            disabled={isCreatingStrategy}
+            onClick={async () => {
               if (currentStep === 1) {
-                form1.handleSubmit();
+                await form1.handleSubmit();
               } else if (currentStep === 2) {
-                form2.handleSubmit();
+                await form2.handleSubmit();
               } else {
-                form3.handleSubmit();
+                await form3.handleSubmit();
               }
             }}
             className="flex-1 py-4 font-semibold text-base text-white hover:bg-gray-800"
           >
+            {isCreatingStrategy && <Spinner />}{" "}
             {currentStep === 3 ? "Confirm" : "Next"}
           </Button>
         </div>

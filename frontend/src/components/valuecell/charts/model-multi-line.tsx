@@ -153,7 +153,9 @@ function ModelMultiLine({
     if (!chartRef.current) return;
 
     chartInstance.current = echarts.init(chartRef.current);
-    chartInstance.current.setOption(option);
+    chartInstance.current.setOption(option, {
+      lazyUpdate: true,
+    });
 
     return () => {
       chartInstance.current?.dispose();
