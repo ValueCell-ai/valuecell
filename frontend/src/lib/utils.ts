@@ -51,11 +51,9 @@ export function formatChange(
   decimals = 2,
 ): string {
   if (isNullOrUndefined(changePercent)) return "N/A";
-  if (changePercent === 0)
-    return `${numberFixed(changePercent, decimals)}${suffix}`;
-
   const sign = changePercent > 0 ? "+" : "-";
   const value = numberFixed(Math.abs(changePercent), decimals);
+  if (value === "0") return `${value}${suffix}`;
   return `${sign}${value}${suffix}`;
 }
 

@@ -76,7 +76,7 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
             style={{ color: stockColors[changeType] }}
           >
             {formatChange(strategy.unrealized_pnl, "", 2)} (
-            {formatChange(strategy.unrealized_pnl_pct, "%", 1)})
+            {formatChange(strategy.unrealized_pnl_pct, "%", 2)})
           </p>
 
           {/* Trading Mode Badge */}
