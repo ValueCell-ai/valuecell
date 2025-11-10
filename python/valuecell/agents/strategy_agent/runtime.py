@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Optional
 
 from valuecell.utils.uuid import generate_uuid
@@ -16,53 +15,25 @@ from .trading_history.digest import RollingDigestBuilder
 from .trading_history.recorder import InMemoryHistoryRecorder
 
 
-def _make_prompt_provider(template_dir: Optional[Path] = None):
-    """Return a prompt_provider callable that builds prompts from templates.
+def _simple_prompt_provider(request: UserRequest) -> str:
+    """Return a resolved prompt text by fusing custom_prompt and prompt_text.
 
-    Behavior:
-    - If request.trading_config.template_id matches a file under templates dir
-      (try extensions .txt, .md, or exact name), the file content is used.
-    - If request.trading_config.custom_prompt is present, it is appended after
-      the template content (separated by two newlines).
-    - If neither is present, fall back to a simple generated prompt mentioning
-      the symbols.
+    Fusion logic:
+    - If custom_prompt exists, use it as base
+    - If prompt_text also exists, append it after custom_prompt
+    - If only prompt_text exists, use it
+    - Fallback: simple generated mention of symbols
     """
-    base = Path(__file__).parent / "templates" if template_dir is None else template_dir
-
-    def provider(request: UserRequest) -> str:
-        tid = request.trading_config.template_id
-        custom = request.trading_config.custom_prompt
-
-        template_text = ""
-        if tid:
-            # safe-resolve candidate files
-            candidates = [tid, f"{tid}.txt", f"{tid}.md"]
-            for name in candidates:
-                try_path = base / name
-                try:
-                    resolved = try_path.resolve()
-                    # ensure resolved path is inside base
-                    if base.resolve() in resolved.parents or resolved == base.resolve():
-                        if resolved.exists() and resolved.is_file():
-                            template_text = resolved.read_text(encoding="utf-8")
-                            break
-                except Exception:
-                    continue
-
-        parts = []
-        if template_text:
-            parts.append(template_text.strip())
-        if custom:
-            parts.append(custom.strip())
-
-        if parts:
-            return "\n\n".join(parts)
-
-        # fallback: simple generated prompt referencing symbols
-        symbols = ", ".join(request.trading_config.symbols)
-        return f"Compose trading instructions for symbols: {symbols}."
-
-    return provider
+    custom = request.trading_config.custom_prompt
+    prompt = request.trading_config.prompt_text
+    if custom and prompt:
+        return f"{prompt}\n\n{custom}"
+    elif custom:
+        return custom
+    elif prompt:
+        return prompt
+    symbols = ", ".join(request.trading_config.symbols)
+    return f"Compose trading instructions for symbols: {symbols}."
 
 
 @dataclass
@@ -141,7 +112,7 @@ def create_strategy_runtime(
         execution_gateway=execution_gateway,
         history_recorder=history_recorder,
         digest_builder=digest_builder,
-        prompt_provider=_make_prompt_provider(),
+        prompt_provider=_simple_prompt_provider,
     )
 
     return StrategyRuntime(

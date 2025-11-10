@@ -136,3 +136,25 @@ class StrategyStatusUpdateResponse(BaseModel):
 
 
 StrategyStatusSuccessResponse = SuccessResponse[StrategyStatusUpdateResponse]
+
+
+# =====================
+# Prompt Schemas (strategy namespace)
+# =====================
+
+
+class PromptItem(BaseModel):
+    id: str = Field(..., description="Prompt UUID")
+    name: str = Field(..., description="Prompt name")
+    content: str = Field(..., description="Prompt content text")
+    created_at: Optional[datetime] = Field(None, description="Creation timestamp")
+    updated_at: Optional[datetime] = Field(None, description="Update timestamp")
+
+
+class PromptCreateRequest(BaseModel):
+    name: str = Field(..., description="Prompt name")
+    content: str = Field(..., description="Prompt content text")
+
+
+PromptListResponse = SuccessResponse[list[PromptItem]]
+PromptCreateResponse = SuccessResponse[PromptItem]

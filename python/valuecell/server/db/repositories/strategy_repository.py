@@ -16,6 +16,7 @@ from ..models.strategy import Strategy
 from ..models.strategy_detail import StrategyDetail
 from ..models.strategy_holding import StrategyHolding
 from ..models.strategy_portfolio import StrategyPortfolioView
+from ..models.strategy_prompt import StrategyPrompt
 
 
 class StrategyRepository:
@@ -311,6 +312,60 @@ class StrategyRepository:
             for item in items:
                 session.expunge(item)
             return items
+        finally:
+            if not self.db_session:
+                session.close()
+
+    # Prompts operations (kept under strategy namespace)
+    def list_prompts(self) -> List[StrategyPrompt]:
+        """Return all prompts ordered by updated_at desc."""
+        session = self._get_session()
+        try:
+            items = (
+                session.query(StrategyPrompt)
+                .order_by(StrategyPrompt.updated_at.desc())
+                .all()
+            )
+            for item in items:
+                session.expunge(item)
+            return items
+        finally:
+            if not self.db_session:
+                session.close()
+
+    def create_prompt(self, name: str, content: str) -> Optional[StrategyPrompt]:
+        """Create a new prompt."""
+        session = self._get_session()
+        try:
+            item = StrategyPrompt(name=name, content=content)
+            session.add(item)
+            session.commit()
+            session.refresh(item)
+            session.expunge(item)
+            return item
+        except Exception:
+            session.rollback()
+            return None
+        finally:
+            if not self.db_session:
+                session.close()
+
+    def get_prompt_by_id(self, prompt_id: str) -> Optional[StrategyPrompt]:
+        """Fetch one prompt by UUID string."""
+        session = self._get_session()
+        try:
+            try:
+                # Rely on DB to cast string to UUID
+                item = (
+                    session.query(StrategyPrompt)
+                    .filter(StrategyPrompt.id == prompt_id)
+                    .first()
+                )
+            except Exception:
+                item = None
+            if item:
+                session.expunge(item)
+            return item
         finally:
             if not self.db_session:
                 session.close()

@@ -64,6 +64,36 @@ def create_strategy_agent_router() -> APIRouter:
                 # Best-effort override; continue even if config update fails
                 pass
 
+            # Prepare repository with injected session (used below and for prompt resolution)
+            repo = get_strategy_repository(db_session=db)
+
+            # If a prompt_id (previously template_id) is provided but prompt_text is empty,
+            # attempt to resolve it from the prompts table and populate trading_config.prompt_text.
+            try:
+                prompt_id = user_request.trading_config.template_id
+                if prompt_id and not user_request.trading_config.prompt_text:
+                    try:
+                        prompt_item = repo.get_prompt_by_id(prompt_id)
+                        if prompt_item is not None:
+                            # prompt_item may be an ORM object or dict-like; use attribute or key access
+                            content = prompt_item.content
+                            if content:
+                                user_request.trading_config.prompt_text = content
+                                logger.info(
+                                    "Resolved prompt_id=%s to prompt_text for strategy creation",
+                                    prompt_id,
+                                )
+                    except Exception:
+                        logger.exception(
+                            "Failed to load prompt for prompt_id=%s; continuing without resolved prompt",
+                            prompt_id,
+                        )
+            except Exception:
+                # Defensive: any unexpected error here should not block strategy creation
+                logger.exception(
+                    "Unexpected error while resolving prompt_id before strategy creation"
+                )
+
             query = user_request.model_dump_json()
 
             agent_name = "StrategyAgent"

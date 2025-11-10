@@ -192,11 +192,14 @@ class TradingConfig(BaseModel):
         gt=0,
     )
     template_id: Optional[str] = Field(
-        default=None, description="Strategy template identifier to guide the agent"
+        default=None, description="Saved prompt template id to use for this strategy"
+    )
+    prompt_text: Optional[str] = Field(
+        default=None,
+        description="Direct prompt text to use (overrides template_id if provided)",
     )
     custom_prompt: Optional[str] = Field(
-        default=None,
-        description="Optional custom prompt to customize strategy behavior",
+        default=None, description="Custom prompt text to use alongside prompt_text"
     )
 
     cap_factor: float = Field(
