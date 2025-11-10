@@ -73,10 +73,8 @@ Welcome to join our Discord community to share feedback and issues you encounter
 
 ## Multi-Agent System
 - **DeepResearch Agent**: Automatically retrieve and analyze fundamental documents to generate accurate data insights and interpretable summaries
-- **Auto Trading Agent**: Support for multiple crypto assets and AI-powered trading strategies, creating automated trading based on technical indicators
+- **Strategy Agent**: Supports multiple crypto assets and multi-strategy smart trading, automatically executing your strategies
 - **News Retrieval Agent**: Supports personalized scheduled news delivery to track key information in real time
-- **Trading Agents**: Agents work for market analysis, sentiment analysis, news analysis, and fundamentals analysis 
-- **AI-Hedge-Fund**: Agents collaborate to provide comprehensive financial insights
 - **Others**: More agents are in planning...
 
 ## Flexible Integrations
@@ -172,7 +170,7 @@ Once the application is running, you can explore the web interface to interact w
 
 ## 🤖 Enhanced Agent Capabilities
 ### Trading Capabilities
-- **Crypto**: Support more exchanges
+- **Crypto**: Supports OKX and Binance exchanges, with more exchanges planned for integration...
 - **Securities**: Gradually support AI securities trading
 
 ### Market Expansion
