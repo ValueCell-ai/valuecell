@@ -80,6 +80,7 @@ ValueCell 是一個社群驅動的多智能體金融應用產品，我們的計�
 - **多家大型語言模型供應商**：支援 OpenRouter、SiliconFlow、Google 與 OpenAI
 - **熱門市場資料**：涵蓋美國市場、加密貨幣、香港市場、中國市場等
 - **多智能體框架相容**：透過 A2A 協議，支援 LangChain、Agno 等主流 Agent 框架，進行研發整合
+**交易所連接**：支援即時路由至 OKX 和 Binance，並內建安全防護機制
 
 # 快速開始
 
@@ -142,9 +143,16 @@ bash start.sh
 - **Web UI**：於瀏覽器開啟 [http://localhost:1420](http://localhost:1420)
 - **日誌**：在 `logs/{timestamp}/*.log` 檢視應用程式日誌，追蹤後端服務與各智能體的詳細執行資訊
 
-## 最後
+## 下一步
 
-應用程式啟動後，您可以透過 Web 介面使用整合於 ValueCell 的各種 Agents。
+應用程式啟動後，你可以透過網頁介面探索並使用 ValueCell 的各項功能與能力
+
+## 实盘交易 (OKX/Binance)
+
+- 配置 AI 模型: 透過網頁介面新增你的 AI 模型 API Key
+- 配置交易所: 設定 OKX / Binance 的 API 憑證
+- 建立策略: 將 AI 模型與交易所組合，建立自訂交易策略
+- 監控與控制: 实时启动/停止策略，并监控交易表现
 
 ---
 

@@ -81,7 +81,7 @@ Welcome to join our Discord community to share feedback and issues you encounter
 - **Multiple LLM Providers**: Support OpenRouter, SiliconFlow, Google and OpenAI 
 - **Popular Market Data**: Cover US market, Crypto market, Hong Kong market, China market and more
 - **Multi-Agent Framework Compatible**: Support Langchain, Agno by A2A Protocol for research and development integration
-- **Exchange Connectivity**: Optional live routing to OKX with built-in guardrails
+- **Exchange Connectivity**: Live routing to OKX and Binance, featuring built-in guardrails
 
 # Quick Start
 
@@ -146,25 +146,26 @@ bash start.sh
 - **Web UI**: Navigate to [http://localhost:1420](http://localhost:1420) in your browser
 - **Logs**: Monitor application logs at `logs/{timestamp}/*.log` for detailed runtime information of backend services and individual agents
 
-## Note
-
-Before running the application, ensure all prerequisites are installed and environment variables are properly configured.
-If it has been a long time since the last update, you can delete the database files in the project (`lancedb/`, `valuecell.db`, `.knowledgebase/`) and start again.
 
 ## Next Steps
 
 Once the application is running, you can explore the web interface to interact with ValueCell's features and capabilities.
 
-## Live Trading (OKX Preview)
+## Live Trading (OKX/Binance)
 
-- Set `AUTO_TRADING_EXCHANGE=okx` and populate the required `OKX_*` credentials in `.env` (see [Configuration Guide](docs/CONFIGURATION_GUIDE.md) and [OKX Setup](docs/OKX_SETUP.md)).
-- Start the stack with `./start.sh` after configuring the environment.
-- Keep `OKX_ALLOW_LIVE_TRADING=false` until strategies pass paper trading validation and stakeholders approve mainnet deployment.
+- Configure AI Models: Add your AI Model API Key through the web interface.
+- Configure Exchanges: Set up OKX/Binance API credentials
+- Create Strategies: Combine AI model with exchange to create custom strategies
+- Monitor & Control: Start/stop traders and monitor performance in real-time
 
 ---
+**Note**：Before running the application, ensure all prerequisites are installed and environment variables are properly configured. If it has been a long time since the last update, you can delete the database files in the project`lancedb/`,`valuecell.db`, `.knowledgebase/`and start again
 
-**Note**: Ensure all prerequisites are installed and environment variables are properly configured before running the application.
+# Developers
 
+We sincerely invite all developers to join our Discord discussion group, where we regularly share the community roadmap and upcoming contributor benefit plans.
+
+Details on development processes and standards are provided below:[CONTRIBUTING.md](.github/CONTRIBUTING.md)
 
 # Roadmap
 
