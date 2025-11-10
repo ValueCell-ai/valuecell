@@ -457,8 +457,8 @@ async def create_ccxt_gateway(
     secret_key: str,
     passphrase: Optional[str] = None,
     testnet: bool = False,
-    market_type: str = "spot",
-    margin_mode: str = "isolated",
+    market_type: str = "margin",
+    margin_mode: str = "cross",
     **ccxt_options,
 ) -> CCXTExecutionGateway:
     """Factory function to create and initialize a CCXT execution gateway.
