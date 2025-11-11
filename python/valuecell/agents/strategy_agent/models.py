@@ -355,6 +355,9 @@ class PositionSnapshot(BaseModel):
     entry_ts: Optional[int] = Field(
         default=None, description="Entry timestamp (ms) for the current position"
     )
+    closed_ts: Optional[int] = Field(
+        default=None, description="Close timestamp (ms) for recently closed positions"
+    )
     pnl_pct: Optional[float] = Field(
         default=None, description="Unrealized P&L as a percent of position value"
     )
