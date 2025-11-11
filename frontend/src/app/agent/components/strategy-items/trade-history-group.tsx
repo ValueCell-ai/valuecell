@@ -123,7 +123,7 @@ const TradeHistoryGroup: FC<TradeHistoryGroupProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <p className="font-semibold text-base text-gray-950">Trade History</p>
-        <p className="rounded-lg bg-gray-100 px-2.5 py-1 font-medium text-gray-950 text-sm">
+        <p className="rounded-md bg-gray-100 px-2.5 py-1 font-medium text-gray-950 text-sm">
           {tradingMode === "live" ? "Live Trading" : "Virtual Trading"}
         </p>
       </div>

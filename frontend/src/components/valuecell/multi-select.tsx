@@ -229,7 +229,7 @@ export const MultiSelect = React.forwardRef<
                             : "border-input",
                         )}
                       >
-                        {isSelected && <CheckIcon className="size-3" />}
+                        {isSelected && <CheckIcon className="size-4 text-xl" />}
                       </div>
                       <span
                         className={cn(
