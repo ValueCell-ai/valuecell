@@ -24,9 +24,13 @@ const ViewStrategyModal: FC<ViewStrategyModalProps> = ({
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-h-[90vh]" showCloseButton={false}>
-        <DialogTitle className="flex items-center justify-between">
-          <h2 className="font-medium text-gray-950 text-lg">{prompt.name}</h2>
+      <DialogContent
+        className="max-h-[90vh]"
+        showCloseButton={false}
+        aria-describedby={undefined}
+      >
+        <DialogTitle className="flex items-center justify-between font-medium text-gray-950 text-lg">
+          {prompt.name}
           <DialogClose asChild>
             <CloseButton />
           </DialogClose>

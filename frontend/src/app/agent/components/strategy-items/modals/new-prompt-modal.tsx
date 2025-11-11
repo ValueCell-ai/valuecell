@@ -16,7 +16,10 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
 import CloseButton from "@/components/valuecell/button/close-button";
+import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 
 interface NewPromptModalProps {
   onSave: (value: { name: string; content: string }) => void;
@@ -31,6 +34,7 @@ const promptSchema = z.object({
 
 const NewPromptModal: FC<NewPromptModalProps> = ({ onSave, children }) => {
   const [open, setOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const form = useForm({
     defaultValues: {
@@ -40,8 +44,10 @@ const NewPromptModal: FC<NewPromptModalProps> = ({ onSave, children }) => {
     validators: {
       onSubmit: promptSchema,
     },
-    onSubmit: ({ value }) => {
-      onSave(value);
+    onSubmit: async ({ value }) => {
+      setIsSaving(true);
+      await onSave(value);
+      setIsSaving(false);
       form.reset();
       setOpen(false);
     },
@@ -55,79 +61,77 @@ const NewPromptModal: FC<NewPromptModalProps> = ({ onSave, children }) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-h-[90vh]" showCloseButton={false}>
-        <DialogTitle className="flex items-center justify-between">
-          <span className="font-medium text-gray-950 text-lg">
-            Create New Prompt
-          </span>
+      <DialogContent
+        className="flex max-h-[90vh] flex-col"
+        showCloseButton={false}
+        aria-describedby={undefined}
+      >
+        <DialogTitle className="flex items-center justify-between font-medium text-gray-950 text-lg">
+          Create New Prompt
           <CloseButton onClick={handleCancel} />
         </DialogTitle>
 
-        {/* Form */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            form.handleSubmit();
-          }}
-        >
-          <FieldGroup className="gap-6">
-            {/* Prompt Name */}
-            <form.Field name="name">
-              {(field) => (
-                <Field>
-                  <FieldLabel className="font-medium text-base text-gray-950">
-                    Prompt Name
-                  </FieldLabel>
-                  <Input
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    placeholder="Enter prompt name..."
-                    className="rounded-xl border-gray-200"
-                  />
-                  <FieldError errors={field.state.meta.errors} />
-                </Field>
-              )}
-            </form.Field>
+        <ScrollContainer>
+          <form>
+            <FieldGroup className="gap-6 py-2">
+              {/* Prompt Name */}
+              <form.Field name="name">
+                {(field) => (
+                  <Field>
+                    <FieldLabel className="font-medium text-base text-gray-950">
+                      Prompt Name
+                    </FieldLabel>
+                    <Input
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      placeholder="Enter prompt name..."
+                    />
+                    <FieldError errors={field.state.meta.errors} />
+                  </Field>
+                )}
+              </form.Field>
 
-            {/* Prompt Content */}
-            <form.Field name="content">
-              {(field) => (
-                <Field>
-                  <FieldLabel className="font-medium text-base text-gray-950">
-                    Prompt Template
-                  </FieldLabel>
-                  <textarea
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    placeholder="Enter your prompt template..."
-                    className="min-h-[300px] w-full resize-none rounded-xl border border-gray-200 p-4 text-sm placeholder:text-gray-400 focus:border-gray-300 focus:outline-none"
-                  />
-                  <FieldError errors={field.state.meta.errors} />
-                </Field>
-              )}
-            </form.Field>
-          </FieldGroup>
-
-          {/* Footer */}
-          <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCancel}
-              className="rounded-xl border-gray-200 hover:bg-gray-50"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              className="rounded-xl bg-gray-950 hover:bg-gray-800"
-            >
-              Save Prompt
-            </Button>
-          </div>
-        </form>
+              {/* Prompt Content */}
+              <form.Field name="content">
+                {(field) => (
+                  <Field>
+                    <FieldLabel className="font-medium text-base text-gray-950">
+                      Prompt Template
+                    </FieldLabel>
+                    <Textarea
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      placeholder="Enter your prompt template..."
+                      className="min-h-[300px]"
+                    />
+                    <FieldError errors={field.state.meta.errors} />
+                  </Field>
+                )}
+              </form.Field>
+            </FieldGroup>
+          </form>
+        </ScrollContainer>
+        {/* Footer */}
+        <div className="mt-auto flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleCancel}
+            className="flex-1 py-4 font-semibold text-base"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            className="flex-1 py-4 font-semibold text-base text-white hover:bg-gray-800"
+            onClick={form.handleSubmit}
+            disabled={isSaving}
+          >
+            {isSaving && <Spinner />} Save Prompt
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

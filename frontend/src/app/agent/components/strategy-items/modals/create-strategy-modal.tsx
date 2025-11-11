@@ -116,7 +116,6 @@ const step3Schema = z.object({
   max_leverage: z.number().min(1, "Leverage must be at least 1"),
   symbols: z.array(z.string()).min(1, "At least one symbol is required"),
   template_id: z.string().min(1, "Template selection is required"),
-  custom_prompt: z.string(),
 });
 
 const STEPS = [
@@ -255,8 +254,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
       initial_capital: 1000,
       max_leverage: 8,
       symbols: TRADING_SYMBOLS,
-      template_id: "default",
-      custom_prompt: "",
+      template_id: prompts.length > 0 ? prompts[0].id : "",
     },
     validators: {
       onSubmit: step3Schema,
@@ -306,7 +304,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
         <DialogTitle className="flex flex-col gap-4 px-1">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-lg">Add trading strategy</h2>
-            <CloseButton onClick={() => setOpen(false)} />
+            <CloseButton onClick={resetAll} />
           </div>
 
           <StepIndicator currentStep={currentStep} />
@@ -703,6 +701,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                             </FieldLabel>
                             <div className="flex items-center gap-3">
                               <Select
+                                key={selectedTemplateId}
                                 value={field.state.value}
                                 onValueChange={(value) => {
                                   field.handleChange(value);
@@ -725,10 +724,20 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                                     ))}
                                   <NewPromptModal
                                     onSave={async (value) => {
-                                      await createStrategyPrompt(value);
+                                      const { data: prompt } =
+                                        await createStrategyPrompt(value);
+                                      form3.setFieldValue(
+                                        "template_id",
+                                        prompt.id,
+                                      );
+                                      setSelectedTemplateId(prompt.id);
                                     }}
                                   >
-                                    <Button type="button" variant="outline">
+                                    <Button
+                                      className="w-full"
+                                      type="button"
+                                      variant="outline"
+                                    >
                                       <Plus />
                                       New Prompt
                                     </Button>
