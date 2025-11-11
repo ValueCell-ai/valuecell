@@ -184,12 +184,19 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         if self._request.exchange_config.trading_mode == TradingMode.VIRTUAL:
             if self._request.exchange_config.market_type == MarketType.SPOT:
                 portfolio.buying_power = max(0.0, float(portfolio.cash))
+
+        # Use fixed 1-second interval and lookback of 3 minutes (60 * 3 seconds)
+        candles = await self._market_data_source.get_recent_candles(
+            self._symbols, "1s", 60 * 3
+        )
+        features = self._feature_computer.compute_features(candles=candles)
+        market_snapshot = _build_market_snapshot(features)
         # Use fixed 1-minute interval and lookback of 4 hours (60 * 4 minutes)
         candles = await self._market_data_source.get_recent_candles(
             self._symbols, "1m", 60 * 4
         )
-        features = self._feature_computer.compute_features(candles=candles)
-        market_snapshot = _build_market_snapshot(features)
+        features.extend(self._feature_computer.compute_features(candles=candles))
+
         digest = self._digest_builder.build(list(self._history_records))
 
         context = ComposeContext(

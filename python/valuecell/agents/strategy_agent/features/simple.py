@@ -12,7 +12,9 @@ class SimpleFeatureComputer(FeatureComputer):
     """Computes basic momentum and volume features."""
 
     def compute_features(
-        self, candles: Optional[List[Candle]] = None
+        self,
+        candles: Optional[List[Candle]] = None,
+        meta: Optional[Dict[str, object]] = None,
     ) -> List[FeatureVector]:
         if not candles:
             return []
@@ -127,13 +129,26 @@ class SimpleFeatureComputer(FeatureComputer):
                 ),
             }
 
+            # Build feature meta
+            window_start_ts = int(rows[0]["ts"]) if rows else int(last["ts"])
+            window_end_ts = int(last["ts"])
+            fv_meta = {
+                "interval": series[-1].interval,
+                "count": len(series),
+                "window_start_ts": window_start_ts,
+                "window_end_ts": window_end_ts,
+            }
+            if meta:
+                # Merge provided meta (doesn't overwrite core keys unless intended)
+                for k, v in meta.items():
+                    fv_meta.setdefault(k, v)
+
             features.append(
                 FeatureVector(
                     ts=int(last["ts"]),
                     instrument=series[-1].instrument,
                     values=values,
-                    meta={"interval": series[-1].interval, "count": len(series)},
+                    meta=fv_meta,
                 )
             )
-
         return features

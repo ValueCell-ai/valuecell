@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from ..models import Candle, FeatureVector
 
@@ -20,11 +20,15 @@ class FeatureComputer(ABC):
     def compute_features(
         self,
         candles: Optional[List[Candle]] = None,
+        meta: Optional[Dict[str, Any]] = None,
     ) -> List[FeatureVector]:
         """Build feature vectors from the given inputs.
 
         Args:
             candles: optional window of candles
+            meta: optional metadata about the input window (e.g., interval,
+                window_start_ts, window_end_ts, num_points). Implementations may
+                use this to populate FeatureVector.meta.
         Returns:
             A list of FeatureVector items, one or more per instrument.
         """

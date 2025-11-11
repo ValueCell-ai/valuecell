@@ -316,7 +316,13 @@ class FeatureVector(BaseModel):
         default_factory=dict, description="Feature name to numeric value"
     )
     meta: Optional[Dict[str, float | int | str]] = Field(
-        default=None, description="Optional metadata (e.g., window lengths)"
+        default=None,
+        description=(
+            "Optional metadata about the source window: keys MAY include interval, "
+            "window_start_ts, window_end_ts (ms), count/num_points, and any feature "
+            "family identifiers. Feature computers SHOULD populate these so downstream "
+            "components can reason about freshness and coverage."
+        ),
     )
 
 
@@ -475,6 +481,9 @@ class LlmPlanProposal(BaseModel):
 
     ts: int
     items: List[LlmDecisionItem] = Field(default_factory=list)
+    rationale: Optional[str] = Field(
+        default=None, description="Optional natural language rationale"
+    )
 
 
 class PriceMode(str, Enum):
