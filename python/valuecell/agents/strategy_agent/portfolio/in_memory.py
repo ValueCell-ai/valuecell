@@ -220,10 +220,14 @@ class InMemoryPortfolioService(PortfolioService):
         self._view.total_value = equity
 
         # Approximate buying power using max leverage constraint
-        max_lev = (
-            float(self._view.constraints.max_leverage)
-            if (self._view.constraints and self._view.constraints.max_leverage)
-            else 1.0
-        )
-        buying_power = max(0.0, equity * max_lev - gross)
-        self._view.buying_power = buying_power
+        if self._trading_mode == TradingMode.LIVE:
+            # In LIVE mode, disallow financing: buying power is remaining cash only
+            self._view.buying_power = max(0.0, float(self._view.cash))
+        else:
+            max_lev = (
+                float(self._view.constraints.max_leverage)
+                if (self._view.constraints and self._view.constraints.max_leverage)
+                else 1.0
+            )
+            buying_power = max(0.0, equity * max_lev - gross)
+            self._view.buying_power = buying_power

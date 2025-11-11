@@ -15,6 +15,7 @@ from ..models import (
     PriceMode,
     TradeInstruction,
     TradeSide,
+    TradingMode,
     UserRequest,
 )
 from .interfaces import Composer
@@ -146,19 +147,26 @@ class LlmComposer(Composer):
             max_leverage=self._request.trading_config.max_leverage,
         )
 
-        # Compute equity (prefer total_value, fallback to cash + net_exposure)
-        if getattr(context.portfolio, "total_value", None) is not None:
-            equity = float(context.portfolio.total_value or 0.0)
+        # Compute equity. In LIVE mode, treat equity as available cash (no financing).
+        if self._request.exchange_config.trading_mode == TradingMode.LIVE:
+            equity = float(getattr(context.portfolio, "cash", 0.0) or 0.0)
         else:
-            cash = float(getattr(context.portfolio, "cash", 0.0) or 0.0)
-            net = float(getattr(context.portfolio, "net_exposure", 0.0) or 0.0)
-            equity = cash + net
+            if getattr(context.portfolio, "total_value", None) is not None:
+                equity = float(context.portfolio.total_value or 0.0)
+            else:
+                cash = float(getattr(context.portfolio, "cash", 0.0) or 0.0)
+                net = float(getattr(context.portfolio, "net_exposure", 0.0) or 0.0)
+                equity = cash + net
 
-        allowed_lev = (
-            float(constraints.max_leverage)
-            if constraints.max_leverage is not None
-            else 1.0
-        )
+        # In LIVE mode, disallow financing: cap leverage to 1.0
+        if self._request.exchange_config.trading_mode == TradingMode.LIVE:
+            allowed_lev = 1.0
+        else:
+            allowed_lev = (
+                float(constraints.max_leverage)
+                if constraints.max_leverage is not None
+                else 1.0
+            )
 
         # Initialize projected gross exposure
         price_map = context.market_snapshot or {}
@@ -263,7 +271,11 @@ class LlmComposer(Composer):
             )
             final_qty = qty
         else:
-            avail_bp = max(0.0, equity * allowed_lev - projected_gross)
+            if self._request.exchange_config.trading_mode == TradingMode.LIVE:
+                # In LIVE mode, disallow financing: additional exposure limited by remaining cash
+                avail_bp = max(0.0, equity)
+            else:
+                avail_bp = max(0.0, equity * allowed_lev - projected_gross)
             # When buying power is exhausted, we should still allow reductions/closures.
             # Set additional purchasable units to 0 but proceed with piecewise logic
             # so that de-risking trades are not blocked.
