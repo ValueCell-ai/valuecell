@@ -148,7 +148,7 @@ const StepIndicator: FC<{ currentStep: StepNumber }> = ({ currentStep }) => {
       <div className="relative flex size-6 items-center justify-center">
         <div
           className={`absolute inset-0 rounded-full border-2 ${
-            isCurrent ? "border-gray-950 bg-gray-700" : "border-black/40"
+            isCurrent ? "border-gray-950 bg-gray-950" : "border-black/40"
           }`}
         />
         <span
@@ -487,7 +487,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                                       value={field.state.value}
                                       onValueChange={field.handleChange}
                                     >
-                                      <SelectTrigger className="h-14 justify-between rounded-xl border-gray-200 px-4">
+                                      <SelectTrigger>
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent>
