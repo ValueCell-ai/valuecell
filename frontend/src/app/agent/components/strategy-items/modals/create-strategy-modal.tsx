@@ -35,12 +35,14 @@ import {
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import CloseButton from "@/components/valuecell/button/close-button";
+import PngIcon from "@/components/valuecell/png-icon";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import {
   MODEL_PROVIDER_MAP,
   MODEL_PROVIDERS,
   TRADING_SYMBOLS,
 } from "@/constants/agent";
+import { EXCHANGE_ICONS, MODEL_PROVIDER_ICONS } from "@/constants/icons";
 import NewPromptModal from "./new-prompt-modal";
 import ViewStrategyModal from "./view-strategy-modal";
 
@@ -148,7 +150,7 @@ const StepIndicator: FC<{ currentStep: StepNumber }> = ({ currentStep }) => {
       <div className="relative flex size-6 items-center justify-center">
         <div
           className={`absolute inset-0 rounded-full border-2 ${
-            isCurrent ? "border-gray-950 bg-gray-700" : "border-black/40"
+            isCurrent ? "border-gray-950 bg-gray-950" : "border-black/40"
           }`}
         />
         <span
@@ -353,7 +355,13 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                             <SelectContent>
                               {MODEL_PROVIDERS.map((provider) => (
                                 <SelectItem key={provider} value={provider}>
-                                  {provider}
+                                  <div className="flex items-center gap-2">
+                                    <PngIcon
+                                      src={MODEL_PROVIDER_ICONS[provider]}
+                                      className="size-4"
+                                    />
+                                    {provider}
+                                  </div>
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -487,13 +495,23 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                                       value={field.state.value}
                                       onValueChange={field.handleChange}
                                     >
-                                      <SelectTrigger className="h-14 justify-between rounded-xl border-gray-200 px-4">
+                                      <SelectTrigger>
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="okx">OKX</SelectItem>
+                                        <SelectItem value="okx">
+                                          <div className="flex items-center gap-2">
+                                            <PngIcon src={EXCHANGE_ICONS.okx} />
+                                            OKX
+                                          </div>
+                                        </SelectItem>
                                         <SelectItem value="binance">
-                                          Binance
+                                          <div className="flex items-center gap-2">
+                                            <PngIcon
+                                              src={EXCHANGE_ICONS.binance}
+                                            />
+                                            Binance
+                                          </div>
                                         </SelectItem>
                                       </SelectContent>
                                     </Select>
