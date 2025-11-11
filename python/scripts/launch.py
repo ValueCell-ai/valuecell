@@ -71,34 +71,32 @@ MAP_NAME_COMMAND: Dict[str, str] = {}
 # Remove external agent entries
 # for name, analyst in MAP_NAME_ANALYST.items():
 #     MAP_NAME_COMMAND[name] = (
-#         f"uv run --env-file {ENV_PATH_STR} -m adapter --analyst {analyst}"
+#         f"uv run --env-file '{ENV_PATH_STR}' -m adapter --analyst {analyst}"
 #     )
 # MAP_NAME_COMMAND[TRADING_AGENTS_NAME] = (
-#     f"uv run --env-file {ENV_PATH_STR} -m adapter"
+#     f"uv run --env-file '{ENV_PATH_STR}' -m adapter"
 # )
 # Keep only first-party agents
 MAP_NAME_COMMAND[RESEARCH_AGENT_NAME] = (
-    f"uv run --env-file {ENV_PATH_STR} -m valuecell.agents.research_agent"
+    f"uv run --env-file '{ENV_PATH_STR}' -m valuecell.agents.research_agent"
 )
 MAP_NAME_COMMAND[AUTO_TRADING_AGENT_NAME] = (
-    f"{AUTO_TRADING_ENV_PREFIX}uv run --env-file {ENV_PATH_STR} -m valuecell.agents.auto_trading_agent"
+    f"{AUTO_TRADING_ENV_PREFIX}uv run --env-file '{ENV_PATH_STR}' -m valuecell.agents.auto_trading_agent"
 )
 MAP_NAME_COMMAND[NEWS_AGENT_NAME] = (
-    f"uv run --env-file {ENV_PATH_STR} -m valuecell.agents.news_agent"
+    f"uv run --env-file '{ENV_PATH_STR}' -m valuecell.agents.news_agent"
 )
 MAP_NAME_COMMAND[STRATEGY_AGENT_NAME] = (
-    f"uv run --env-file {ENV_PATH_STR} -m valuecell.agents.strategy_agent"
+    f"uv run --env-file '{ENV_PATH_STR}' -m valuecell.agents.strategy_agent"
 )
-BACKEND_COMMAND = (
-    f"cd {PYTHON_DIR_STR} && uv run --env-file {ENV_PATH_STR} -m valuecell.server.main"
-)
+BACKEND_COMMAND = f"cd '{PYTHON_DIR_STR}' && uv run --env-file '{ENV_PATH_STR}' -m valuecell.server.main"
 FRONTEND_URL = "http://localhost:1420"
 
 
 def check_envfile_is_set():
     if not ENV_PATH.exists():
         print(
-            f".env file not found at {ENV_PATH}. Please create it with necessary environment variables. "
+            f".env file not found at '{ENV_PATH}'. Please create it with necessary environment variables. "
             "check python/.env.example for reference."
         )
         exit(1)
@@ -123,6 +121,20 @@ def main():
     os.makedirs(log_dir, exist_ok=True)
     print(f"Logs will be saved to {log_dir}/")
 
+    # Load environment variables from .env file to avoid path issues
+    env_vars = os.environ.copy()
+    if ENV_PATH.exists():
+        try:
+            with open(ENV_PATH, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        key, value = line.split("=", 1)
+                        env_vars[key.strip()] = value.strip().strip('"').strip("'")
+            print("✓ Environment variables loaded from .env file")
+        except Exception as e:
+            print(f"⚠ Warning: Could not load .env file: {e}")
+
     processes = []
     logfiles = []
     for selected_agent in selected_agents:
@@ -134,8 +146,12 @@ def main():
         logfiles.append(logfile)
 
         # Launch command using Popen with output redirected to logfile
+        # Remove --env-file flag to avoid path issues with spaces
+        command = MAP_NAME_COMMAND[selected_agent].replace(
+            f"--env-file '{ENV_PATH_STR}' ", ""
+        )
         process = subprocess.Popen(
-            MAP_NAME_COMMAND[selected_agent], shell=True, stdout=logfile, stderr=logfile
+            command, shell=True, stdout=logfile, stderr=logfile, env=env_vars
         )
         processes.append(process)
     print("All agents launched. Waiting for tasks...")
@@ -151,8 +167,10 @@ def main():
     print(f"Frontend available at {FRONTEND_URL}")
     logfile = open(logfile_path, "w")
     logfiles.append(logfile)
+    # Remove --env-file flag to avoid path issues with spaces
+    backend_cmd = BACKEND_COMMAND.replace(f"--env-file '{ENV_PATH_STR}' ", "")
     process = subprocess.Popen(
-        BACKEND_COMMAND, shell=True, stdout=logfile, stderr=logfile
+        backend_cmd, shell=True, stdout=logfile, stderr=logfile, env=env_vars
     )
     processes.append(process)
 
