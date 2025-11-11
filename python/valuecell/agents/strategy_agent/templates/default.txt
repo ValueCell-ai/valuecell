@@ -33,6 +33,12 @@ Position management & lifecycle
 - On open: record entry price, notional, leverage, and planned stop/target in trade meta.
 - Re-evaluate each cycle: close on stop/target hit or regime flip; avoid frequent flip-flopping.
 - Flip-by-flat: fully close before reversing direction on the same symbol.
+- cautious full deployment
+    - Purpose: staged scale‑in for high‑conviction, well‑liquid opportunities.
+    - Entry criteria: high digest/win_rate + strong multi‑factor confluence; sufficient buying_power; no blocking risk_flags.
+    - Execution: scale in 2–3 tranches (e.g., 50/30/20); require confirmation between tranches; start with lower leverage.
+    - Safety: ensure liquidation distance > configured margin; abort remaining tranches on large slippage or failed fills.
+    - Post‑deploy: enable trailing stops and de‑risk if risk_flags flip.
 
 Edge cases & guards
 - If computed quantity < min_trade_qty, skip.
