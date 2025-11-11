@@ -4,8 +4,12 @@ import json
 import math
 from typing import Dict, List, Optional
 
+from agno.agent import Agent as AgnoAgent
 from loguru import logger
 from pydantic import ValidationError
+
+from valuecell.utils import env as env_utils
+from valuecell.utils import model as model_utils
 
 from ..models import (
     ComposeContext,
@@ -18,6 +22,7 @@ from ..models import (
     UserRequest,
 )
 from .interfaces import Composer
+from .system_prompt import SYSTEM_PROMPT
 
 
 class LlmComposer(Composer):
@@ -49,11 +54,6 @@ class LlmComposer(Composer):
 
     async def compose(self, context: ComposeContext) -> List[TradeInstruction]:
         prompt = self._build_llm_prompt(context)
-        logger.debug(
-            "Built LLM prompt for compose_id={}: {}",
-            context.compose_id,
-            prompt,
-        )
         try:
             plan = await self._call_llm(prompt)
             if not plan.items:
@@ -74,32 +74,227 @@ class LlmComposer(Composer):
     # Prompt + LLM helpers
 
     def _build_llm_prompt(self, context: ComposeContext) -> str:
-        """Serialize compose context into a textual prompt for the LLM."""
+        """Serialize a concise, structured prompt for the LLM (low-noise).
 
-        payload = {
-            "strategy_prompt": context.prompt_text,
-            "compose_id": context.compose_id,
-            "timestamp": context.ts,
-            "portfolio": context.portfolio.model_dump(mode="json"),
-            "market_snapshot": context.market_snapshot or {},
-            "digest": context.digest.model_dump(mode="json"),
-            "features": [vector.model_dump(mode="json") for vector in context.features],
-            # Constraints live on the portfolio view; prefer typed model_dump when present
-            "constraints": (
-                context.portfolio.constraints.model_dump(mode="json", exclude_none=True)
-                if context.portfolio and context.portfolio.constraints
-                else {}
-            ),
-        }
+        Design goals (inspired by the prompt doc):
+        - Keep only the most actionable state: prices, compact tech signals, positions, constraints
+        - Avoid verbose/raw dumps; drop nulls and unused fields
+        - Encourage risk-aware decisions and allow NOOP when no edge
+        - Preserve our output contract (LlmPlanProposal)
+        """
 
-        instructions = (
-            "You are a trading strategy planner. Analyze the JSON context and "
-            "produce a structured plan that aligns with the LlmPlanProposal "
-            "schema (items array with instrument, action, target_qty, rationale, "
-            "confidence). Focus on risk-aware, executable decisions."
+        # Helper: recursively drop keys with None values and empty dict/list
+        def _prune_none(obj):
+            if isinstance(obj, dict):
+                pruned = {k: _prune_none(v) for k, v in obj.items() if v is not None}
+                return {k: v for k, v in pruned.items() if v not in (None, {}, [])}
+            if isinstance(obj, list):
+                pruned = [_prune_none(v) for v in obj]
+                return [v for v in pruned if v not in (None, {}, [])]
+            return obj
+
+        # Market snapshot map (symbol -> price)
+        price_map: Dict[str, float] = context.market_snapshot or {}
+
+        # Compact per-symbol technicals from FeatureVectors (latest only per symbol)
+        # SimpleFeatureComputer already provides a single FeatureVector per symbol
+        market: Dict[str, dict] = {}
+        for fv in context.features:
+            sym = fv.instrument.symbol
+            vals = fv.values or {}
+            market[sym] = _prune_none(
+                {
+                    "price": float(price_map.get(sym) or vals.get("close") or 0.0),
+                    "change_pct": vals.get("change_pct"),
+                    "ema": {
+                        "ema_12": vals.get("ema_12"),
+                        "ema_26": vals.get("ema_26"),
+                        "ema_50": vals.get("ema_50"),
+                    },
+                    "macd": {
+                        "macd": vals.get("macd"),
+                        "signal": vals.get("macd_signal"),
+                        "hist": vals.get("macd_histogram"),
+                    },
+                    "rsi": vals.get("rsi"),
+                    "bb": {
+                        "upper": vals.get("bb_upper"),
+                        "mid": vals.get("bb_middle"),
+                        "lower": vals.get("bb_lower"),
+                    },
+                }
+            )
+
+        # Compact portfolio snapshot
+        pv = context.portfolio
+        positions = []
+        for sym, snap in pv.positions.items():
+            positions.append(
+                _prune_none(
+                    {
+                        "symbol": sym,
+                        "qty": float(snap.quantity),
+                        "avg_px": snap.avg_price,
+                        "mark_px": snap.mark_price,
+                        "unrealized_pnl": snap.unrealized_pnl,
+                        "lev": snap.leverage,
+                        "entry_ts": snap.entry_ts,
+                        "type": getattr(snap, "trade_type", None),
+                    }
+                )
+            )
+
+        # Constraints (only non-empty)
+        constraints = (
+            pv.constraints.model_dump(mode="json", exclude_none=True)
+            if pv and pv.constraints
+            else {}
         )
 
-        return f"{instructions}\n\nContext:\n{json.dumps(payload, ensure_ascii=False, indent=2)}"
+        # --- Summary & Risk Flags ---
+        # Aggregate win_rate across instruments (weighted by trade_count)
+        total_trades = 0
+        weighted_win = 0.0
+        for entry in (context.digest.by_instrument or {}).values():
+            tc = int(getattr(entry, "trade_count", 0) or 0)
+            wr = getattr(entry, "win_rate", None)
+            if tc and wr is not None:
+                total_trades += tc
+                weighted_win += float(wr) * tc
+        agg_win_rate = (weighted_win / total_trades) if total_trades > 0 else None
+
+        # Active positions
+        active_positions = sum(
+            1
+            for snap in pv.positions.values()
+            if abs(float(getattr(snap, "quantity", 0.0) or 0.0)) > 0.0
+        )
+
+        # Unrealized pnl pct relative to total_value (if available)
+        unrealized = getattr(pv, "total_unrealized_pnl", None)
+        total_value = getattr(pv, "total_value", None)
+        unrealized_pct = (
+            (float(unrealized) / float(total_value) * 100.0)
+            if (unrealized is not None and total_value)
+            else None
+        )
+
+        # Buying power and leverage risk assessment
+        risk_flags: List[str] = []
+        try:
+            equity, allowed_lev, constraints_typed, projected_gross, price_map2 = (
+                self._init_buying_power_context(context)
+            )
+            max_positions_cfg = constraints.get("max_positions")
+            if max_positions_cfg:
+                try:
+                    if active_positions / float(max_positions_cfg) >= 0.8:
+                        risk_flags.append("approaching_max_positions")
+                except Exception:
+                    pass
+
+            avail_bp = max(
+                0.0, float(equity) * float(allowed_lev) - float(projected_gross)
+            )
+            denom = (
+                float(equity) * float(allowed_lev) if equity and allowed_lev else None
+            )
+            if denom and denom > 0:
+                bp_ratio = avail_bp / denom
+                if bp_ratio <= 0.1:
+                    risk_flags.append("low_buying_power")
+
+            # High leverage usage check per-position against max_leverage
+            max_lev_cfg = constraints.get("max_leverage")
+            if max_lev_cfg:
+                try:
+                    max_used_ratio = 0.0
+                    for snap in pv.positions.values():
+                        lev = getattr(snap, "leverage", None)
+                        if lev is not None and float(max_lev_cfg) > 0:
+                            max_used_ratio = max(
+                                max_used_ratio, float(lev) / float(max_lev_cfg)
+                            )
+                    if max_used_ratio >= 0.8:
+                        risk_flags.append("high_leverage_usage")
+                except Exception:
+                    pass
+        except Exception:
+            # If any issue computing context, skip risk flags additions silently
+            pass
+
+        summary = _prune_none(
+            {
+                "active_positions": active_positions,
+                "max_positions": constraints.get("max_positions"),
+                "total_value": total_value,
+                "cash": pv.cash,
+                "unrealized_pnl": unrealized,
+                "unrealized_pnl_pct": unrealized_pct,
+                "win_rate": agg_win_rate,
+                "trade_count": total_trades,
+                # Include available buying power if computed
+                # This helps the model adjust aggressiveness
+            }
+        )
+
+        # Digest (minimal useful stats)
+        digest_compact: Dict[str, dict] = {}
+        for sym, entry in (context.digest.by_instrument or {}).items():
+            digest_compact[sym] = _prune_none(
+                {
+                    "trade_count": entry.trade_count,
+                    "realized_pnl": entry.realized_pnl,
+                    "win_rate": entry.win_rate,
+                    "avg_holding_ms": entry.avg_holding_ms,
+                    "last_trade_ts": entry.last_trade_ts,
+                }
+            )
+
+        # Environment summary
+        env = _prune_none(
+            {
+                "exchange_id": self._request.exchange_config.exchange_id,
+                "trading_mode": str(self._request.exchange_config.trading_mode),
+                "max_leverage": constraints.get("max_leverage"),
+                "max_positions": constraints.get("max_positions"),
+            }
+        )
+
+        payload = _prune_none(
+            {
+                "strategy_prompt": context.prompt_text,
+                "summary": summary,
+                "risk_flags": risk_flags or None,
+                "env": env,
+                "compose_id": context.compose_id,
+                "ts": context.ts,
+                "symbols": list(market.keys()),
+                "market": market,
+                "portfolio": _prune_none(
+                    {
+                        "strategy_id": context.strategy_id,
+                        "cash": pv.cash,
+                        "total_value": getattr(pv, "total_value", None),
+                        "total_unrealized_pnl": getattr(
+                            pv, "total_unrealized_pnl", None
+                        ),
+                        "positions": positions,
+                    }
+                ),
+                "constraints": constraints,
+                "digest": digest_compact,
+            }
+        )
+
+        instructions = (
+            "Per-cycle guidance: Read the Context JSON and form a concise plan. "
+            "If any arrays appear, they are ordered OLDEST → NEWEST (last = most recent). "
+            "Respect constraints, buying power, and risk_flags; prefer NOOP when edge is unclear. "
+            "Manage existing positions first; propose new exposure only with clear, trend-aligned confluence and within limits. Keep rationale brief."
+        )
+
+        return f"{instructions}\n\nContext:\n{json.dumps(payload, ensure_ascii=False)}"
 
     async def _call_llm(self, prompt: str) -> LlmPlanProposal:
         """Invoke an LLM asynchronously and parse the response into LlmPlanProposal.
@@ -111,19 +306,22 @@ class LlmComposer(Composer):
         `LlmPlanProposal`.
         """
 
-        from agno.agent import Agent as AgnoAgent
-
-        from valuecell.utils.model import create_model_with_provider
-
         cfg = self._request.llm_model_config
-        model = create_model_with_provider(
+        model = model_utils.create_model_with_provider(
             provider=cfg.provider,
             model_id=cfg.model_id,
             api_key=cfg.api_key,
         )
 
         # Wrap model in an Agent (consistent with parser_agent usage)
-        agent = AgnoAgent(model=model, output_schema=LlmPlanProposal, markdown=False)
+        agent = AgnoAgent(
+            model=model,
+            output_schema=LlmPlanProposal,
+            markdown=False,
+            instructions=[SYSTEM_PROMPT],
+            use_json_mode=model_utils.model_should_use_json_mode(model),
+            debug_mode=env_utils.agent_debug_mode_enabled(),
+        )
         response = await agent.arun(prompt)
         content = getattr(response, "content", None) or response
         logger.debug("Received LLM response {}", content)
