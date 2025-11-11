@@ -18,7 +18,7 @@ enabled: true
 models:
   # Primary model for news analysis, summarization, and query processing
   primary:
-    model_id: "anthropic/claude-haiku-4.5"
+    model_id: "google/gemini-2.5-pro"
     provider: "openrouter"  # Must explicitly specify provider (not null)
 
     # Provider-specific model mappings for fallback
