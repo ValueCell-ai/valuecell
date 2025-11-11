@@ -28,7 +28,10 @@ class StrategyService:
         for h in holdings:
             try:
                 t = h.type
-                qty = float(h.quantity) if h.quantity is not None else 0.0
+                if h.quantity is None or h.quantity == 0.0:
+                    # Skip fully closed positions
+                    continue
+                qty = float(h.quantity)
                 positions.append(
                     PositionHoldingItem(
                         symbol=h.symbol,

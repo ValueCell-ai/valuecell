@@ -98,8 +98,16 @@ class InMemoryPortfolioService(PortfolioService):
 
             # Handle position quantity transitions and avg price
             if new_qty == 0.0:
-                # Fully closed
-                self._view.positions.pop(symbol, None)
+                # Fully closed — do NOT remove the position immediately.
+                # Keep a tombstone snapshot so downstream callers (UI / API)
+                # that poll holdings immediately after execution can still see
+                # the just-closed position. Mark it closed with a timestamp.
+                position.quantity = 0.0
+                position.mark_price = price
+                # preserve avg_price and entry_ts for auditing; record closed_ts
+                position.closed_ts = int(datetime.now(timezone.utc).timestamp() * 1000)
+                position.unrealized_pnl = 0.0
+                position.unrealized_pnl_pct = None
             elif current_qty == 0.0:
                 # Opening new position
                 position.quantity = new_qty
