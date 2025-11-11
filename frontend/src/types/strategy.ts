@@ -39,6 +39,13 @@ export interface Position {
   unrealized_pnl_pct: number;
 }
 
+// Strategy Prompt types
+export interface StrategyPrompt {
+  id: string;
+  name: string;
+  content: string;
+}
+
 // LLM Config API
 export interface LlmConfig {
   provider: string;

@@ -32,7 +32,8 @@ const EmptyIllustration = () => (
 );
 
 const StrategyAgentArea: FC<AgentViewProps> = () => {
-  const { data: strategies = [], isLoading } = useGetStrategyList();
+  const { data: strategies = [], isLoading: isLoadingStrategies } =
+    useGetStrategyList();
   const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(
     null,
   );
@@ -51,14 +52,12 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
 
   const { mutateAsync: stopStrategy } = useStopStrategy();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only run once
   useEffect(() => {
-    if (strategies && strategies.length > 0) {
-      setSelectedStrategy(strategies[0]);
-    }
-  }, []);
+    if (strategies.length === 0 || selectedStrategy) return;
+    setSelectedStrategy(strategies[0]);
+  }, [strategies, selectedStrategy]);
 
-  if (isLoading) return null;
+  if (isLoadingStrategies) return null;
 
   return (
     <div className="flex flex-1 overflow-hidden">
