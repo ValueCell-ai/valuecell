@@ -105,6 +105,7 @@ def create_strategy_runtime(
     portfolio_service = InMemoryPortfolioService(
         initial_capital=initial_capital,
         trading_mode=request.exchange_config.trading_mode,
+        market_type=request.exchange_config.market_type,
         constraints=constraints,
         strategy_id=strategy_id,
     )

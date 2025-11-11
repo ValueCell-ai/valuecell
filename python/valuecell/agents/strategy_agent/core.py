@@ -17,6 +17,7 @@ from .models import (
     ComposeContext,
     FeatureVector,
     HistoryRecord,
+    MarketType,
     PortfolioView,
     StrategyStatus,
     StrategySummary,
@@ -174,10 +175,15 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                     for q in ("USDT", "USD", "USDC"):
                         free_cash += float(free_map.get(q, 0.0) or 0.0)
                 portfolio.cash = float(free_cash)
-                portfolio.buying_power = max(0.0, float(portfolio.cash))
+                if self._request.exchange_config.market_type == MarketType.SPOT:
+                    portfolio.buying_power = max(0.0, float(portfolio.cash))
         except Exception:
             # If syncing fails, continue with existing portfolio view
             pass
+        # VIRTUAL mode: cash-only for spot; derivatives keep margin-based buying power
+        if self._request.exchange_config.trading_mode == TradingMode.VIRTUAL:
+            if self._request.exchange_config.market_type == MarketType.SPOT:
+                portfolio.buying_power = max(0.0, float(portfolio.cash))
         # Use fixed 1-minute interval and lookback of 4 hours (60 * 4 minutes)
         candles = await self._market_data_source.get_recent_candles(
             self._symbols, "1m", 60 * 4

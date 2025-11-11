@@ -233,6 +233,39 @@ class UserRequest(BaseModel):
         ..., description="Trading strategy configuration"
     )
 
+    @model_validator(mode="before")
+    @classmethod
+    def _infer_market_type(cls, data):
+        """Infer market_type from trading_config.max_leverage when not provided.
+
+        Rule: if market_type is missing (not present in request), then
+        - max_leverage <= 1.0 -> SPOT
+        - max_leverage > 1.0  -> SWAP
+        """
+        if not isinstance(data, dict):
+            return data
+        values = dict(data)
+        ex_cfg = dict(values.get("exchange_config") or {})
+        # Only infer when market_type is not provided by the user
+        mt_value = ex_cfg.get("market_type")
+        mt_missing = (
+            ("market_type" not in ex_cfg)
+            or (mt_value is None)
+            or (str(mt_value).strip() == "")
+        )
+        if mt_missing:
+            tr_cfg = dict(values.get("trading_config") or {})
+            ml_raw = tr_cfg.get("max_leverage")
+            try:
+                ml = (
+                    float(ml_raw) if ml_raw is not None else float(DEFAULT_MAX_LEVERAGE)
+                )
+            except Exception:
+                ml = float(DEFAULT_MAX_LEVERAGE)
+            ex_cfg["market_type"] = MarketType.SPOT if ml <= 1.0 else MarketType.SWAP
+            values["exchange_config"] = ex_cfg
+        return values
+
 
 # =========================
 # Minimal DTOs for Strategy Agent (LLM-driven composer, no StrategyHint)

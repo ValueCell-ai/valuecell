@@ -3,6 +3,7 @@ from typing import Dict, List, Optional
 
 from ..models import (
     Constraints,
+    MarketType,
     PortfolioView,
     PositionSnapshot,
     TradeHistoryEntry,
@@ -30,6 +31,7 @@ class InMemoryPortfolioService(PortfolioService):
         self,
         initial_capital: float,
         trading_mode: TradingMode,
+        market_type: MarketType,
         constraints: Optional[Constraints] = None,
         strategy_id: Optional[str] = None,
     ) -> None:
@@ -49,6 +51,7 @@ class InMemoryPortfolioService(PortfolioService):
             buying_power=initial_capital,
         )
         self._trading_mode = trading_mode
+        self._market_type = market_type
 
     def get_view(self) -> PortfolioView:
         self._view.ts = int(datetime.now(timezone.utc).timestamp() * 1000)
@@ -219,11 +222,12 @@ class InMemoryPortfolioService(PortfolioService):
         equity = self._view.cash + net
         self._view.total_value = equity
 
-        # Approximate buying power using max leverage constraint
-        if self._trading_mode == TradingMode.LIVE:
-            # In LIVE mode, disallow financing: buying power is remaining cash only
+        # Approximate buying power using market type policy
+        if self._market_type == MarketType.SPOT:
+            # Spot: cash-only buying power
             self._view.buying_power = max(0.0, float(self._view.cash))
         else:
+            # Derivatives: margin-based buying power
             max_lev = (
                 float(self._view.constraints.max_leverage)
                 if (self._view.constraints and self._view.constraints.max_leverage)
