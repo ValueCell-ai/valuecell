@@ -10,7 +10,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import MultiLineChart from "@/components/valuecell/charts/model-multi-line";
+import { PngIcon } from "@/components/valuecell/png-icon";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
+import { SYMBOL_ICONS } from "@/constants/icons";
 import { formatChange, getChangeType } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
 import type { Position } from "@/types/strategy";
@@ -28,13 +30,15 @@ const PositionRow: FC<PositionRowProps> = ({ position }) => {
   const stockColors = useStockColors();
   const changeType = getChangeType(position.unrealized_pnl);
 
-  // Extract symbol name (e.g., "BTC" from "BTC-USDT")
-  const symbolName = position.symbol.split("-")[0];
-
   return (
     <TableRow>
       <TableCell>
-        <p className="font-medium text-gray-950 text-sm">{symbolName}</p>
+        <div className="flex items-center gap-2">
+          <PngIcon
+            src={SYMBOL_ICONS[position.symbol as keyof typeof SYMBOL_ICONS]}
+          />
+          <p className="font-medium text-gray-950 text-sm">{position.symbol}</p>
+        </div>
       </TableCell>
       <TableCell>
         <Badge
