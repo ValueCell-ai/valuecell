@@ -2,7 +2,7 @@ import { useForm } from "@tanstack/react-form";
 import { MultiSelect } from "@valuecell/multi-select";
 import { Check, Eye, Plus } from "lucide-react";
 import type { FC } from "react";
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { z } from "zod";
 import {
   useCreateStrategy,
@@ -39,7 +39,6 @@ import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import {
   MODEL_PROVIDER_MAP,
   MODEL_PROVIDERS,
-  type STRATEGY_TEMPLATES,
   TRADING_SYMBOLS,
 } from "@/constants/agent";
 import NewPromptModal from "./new-prompt-modal";
@@ -207,8 +206,7 @@ const StepIndicator: FC<{ currentStep: StepNumber }> = ({ currentStep }) => {
 const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState<StepNumber>(1);
-  const [selectedTemplateId, setSelectedTemplateId] =
-    useState<keyof typeof STRATEGY_TEMPLATES>("default");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
 
   const { data: llmConfigs } = useGetStrategyApiKey();
   const { data: prompts = [] } = useGetStrategyPrompts();
@@ -289,6 +287,12 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
       setCurrentStep((prev) => (prev - 1) as StepNumber);
     }
   };
+
+  useEffect(() => {
+    if (!selectedTemplateId && prompts.length > 0) {
+      setSelectedTemplateId(prompts[0].id);
+    }
+  }, [selectedTemplateId, prompts]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -702,43 +706,30 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                                 value={field.state.value}
                                 onValueChange={(value) => {
                                   field.handleChange(value);
-                                  setSelectedTemplateId(
-                                    value as keyof typeof STRATEGY_TEMPLATES,
-                                  );
+                                  setSelectedTemplateId(value);
                                 }}
                               >
                                 <SelectTrigger className="flex-1">
                                   <SelectValue />
                                 </SelectTrigger>
+
                                 <SelectContent>
-                                  <SelectItem value="default">
-                                    Default
-                                  </SelectItem>
-                                  <SelectItem value="aggressive">
-                                    Aggressive
-                                  </SelectItem>
-                                  <SelectItem value="conservative">
-                                    Conservative
-                                  </SelectItem>
-                                  {prompts.map((prompt) => (
-                                    <SelectItem
-                                      key={prompt.id}
-                                      value={prompt.id}
-                                    >
-                                      {prompt.name}
-                                    </SelectItem>
-                                  ))}
+                                  {prompts.length > 0 &&
+                                    prompts.map((prompt) => (
+                                      <SelectItem
+                                        key={prompt.id}
+                                        value={prompt.id}
+                                      >
+                                        {prompt.name}
+                                      </SelectItem>
+                                    ))}
                                   <NewPromptModal
                                     onSave={async (value) => {
                                       await createStrategyPrompt(value);
                                     }}
                                   >
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      className="gap-3"
-                                    >
-                                      <Plus className="size-4" />
+                                    <Button type="button" variant="outline">
+                                      <Plus />
                                       New Prompt
                                     </Button>
                                   </NewPromptModal>

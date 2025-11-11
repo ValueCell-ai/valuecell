@@ -57,9 +57,9 @@ const NewPromptModal: FC<NewPromptModalProps> = ({ onSave, children }) => {
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-h-[90vh]" showCloseButton={false}>
         <DialogTitle className="flex items-center justify-between">
-          <h2 className="font-medium text-gray-950 text-lg">
+          <span className="font-medium text-gray-950 text-lg">
             Create New Prompt
-          </h2>
+          </span>
           <CloseButton onClick={handleCancel} />
         </DialogTitle>
 
