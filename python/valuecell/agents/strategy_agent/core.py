@@ -17,6 +17,7 @@ from .models import (
     ComposeContext,
     FeatureVector,
     HistoryRecord,
+    MarketType,
     PortfolioView,
     StrategyStatus,
     StrategySummary,
@@ -25,6 +26,7 @@ from .models import (
     TradeInstruction,
     TradeSide,
     TradeType,
+    TradingMode,
     TxResult,
     TxStatus,
     UserRequest,
@@ -131,6 +133,57 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         compose_id = generate_uuid("compose")
 
         portfolio = self._portfolio_service.get_view()
+        # LIVE mode: sync cash from exchange free balance; set buying power to cash
+        try:
+            if (
+                self._request.exchange_config.trading_mode == TradingMode.LIVE
+                and hasattr(self._execution_gateway, "fetch_balance")
+            ):
+                balance = await self._execution_gateway.fetch_balance()
+                free_map = {}
+                free_section = (
+                    balance.get("free") if isinstance(balance, dict) else None
+                )
+                if isinstance(free_section, dict):
+                    free_map = {
+                        str(k).upper(): float(v or 0.0) for k, v in free_section.items()
+                    }
+                else:
+                    # Handle nested per-currency dict shapes
+                    iterable = balance.items() if isinstance(balance, dict) else []
+                    for k, v in iterable:
+                        if isinstance(v, dict) and "free" in v:
+                            try:
+                                free_map[str(k).upper()] = float(v.get("free") or 0.0)
+                            except Exception:
+                                continue
+                # Derive quote currencies from symbols, fallback to common USD-stable quotes
+                quotes = []
+                for sym in self._symbols or []:
+                    s = str(sym).upper()
+                    if "/" in s and len(s.split("/")) == 2:
+                        quotes.append(s.split("/")[1])
+                    elif "-" in s and len(s.split("-")) == 2:
+                        quotes.append(s.split("-")[1])
+                # Deduplicate preserving order
+                quotes = list(dict.fromkeys(quotes))
+                free_cash = 0.0
+                if quotes:
+                    for q in quotes:
+                        free_cash += float(free_map.get(q, 0.0) or 0.0)
+                else:
+                    for q in ("USDT", "USD", "USDC"):
+                        free_cash += float(free_map.get(q, 0.0) or 0.0)
+                portfolio.cash = float(free_cash)
+                if self._request.exchange_config.market_type == MarketType.SPOT:
+                    portfolio.buying_power = max(0.0, float(portfolio.cash))
+        except Exception:
+            # If syncing fails, continue with existing portfolio view
+            pass
+        # VIRTUAL mode: cash-only for spot; derivatives keep margin-based buying power
+        if self._request.exchange_config.trading_mode == TradingMode.VIRTUAL:
+            if self._request.exchange_config.market_type == MarketType.SPOT:
+                portfolio.buying_power = max(0.0, float(portfolio.cash))
         # Use fixed 1-minute interval and lookback of 4 hours (60 * 4 minutes)
         candles = await self._market_data_source.get_recent_candles(
             self._symbols, "1m", 60 * 4
@@ -414,10 +467,19 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         try:
             view = self._portfolio_service.get_view()
             unrealized = float(view.total_unrealized_pnl or 0.0)
-            equity = float(view.total_value or 0.0)
+            # In LIVE mode, treat equity as available cash (disallow financing)
+            try:
+                mode = getattr(self._request.exchange_config, "trading_mode", None)
+            except Exception:
+                mode = None
+            if str(mode).upper() == "LIVE":
+                equity = float(getattr(view, "cash", None) or 0.0)
+            else:
+                equity = float(view.total_value or 0.0)
         except Exception:
             # Fallback to internal tracking if portfolio service is unavailable
             unrealized = float(self._unrealized_pnl or 0.0)
+            # Fallback equity uses initial capital when view is unavailable
             equity = float(self._request.trading_config.initial_capital or 0.0)
 
         # Keep internal state in sync (allow negative unrealized PnL)

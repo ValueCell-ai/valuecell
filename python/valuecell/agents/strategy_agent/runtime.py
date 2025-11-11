@@ -76,6 +76,7 @@ def create_strategy_runtime(
     portfolio_service = InMemoryPortfolioService(
         initial_capital=initial_capital,
         trading_mode=request.exchange_config.trading_mode,
+        market_type=request.exchange_config.market_type,
         constraints=constraints,
         strategy_id=strategy_id,
     )
@@ -128,6 +129,11 @@ async def create_strategy_runtime_async(request: UserRequest) -> StrategyRuntime
     This function properly initializes CCXT exchange connections for live trading.
     It can also be used for paper trading.
 
+    In LIVE mode, it fetches the exchange balance and sets the
+    initial capital to the available (free) cash for the strategy's
+    quote currencies. Opening positions will therefore draw down cash
+    and cannot borrow (no financing).
+
     Args:
         request: User request with strategy configuration
 
@@ -156,6 +162,59 @@ async def create_strategy_runtime_async(request: UserRequest) -> StrategyRuntime
     """
     # Create execution gateway asynchronously
     execution_gateway = await create_execution_gateway(request.exchange_config)
+
+    # In LIVE mode, fetch exchange balance and set initial capital from free cash
+    try:
+        if request.exchange_config.trading_mode == TradingMode.LIVE and hasattr(
+            execution_gateway, "fetch_balance"
+        ):
+            balance = await execution_gateway.fetch_balance()
+            free_map = {}
+            # ccxt balance may be shaped as: {'free': {...}, 'used': {...}, 'total': {...}}
+            try:
+                free_section = (
+                    balance.get("free") if isinstance(balance, dict) else None
+                )
+            except Exception:
+                free_section = None
+            if isinstance(free_section, dict):
+                free_map = {
+                    str(k).upper(): float(v or 0.0) for k, v in free_section.items()
+                }
+            else:
+                # fallback: per-ccy dicts: balance['USDT'] = {'free': x, 'used': y, 'total': z}
+                for k, v in balance.items() if isinstance(balance, dict) else []:
+                    if isinstance(v, dict) and "free" in v:
+                        try:
+                            free_map[str(k).upper()] = float(v.get("free") or 0.0)
+                        except Exception:
+                            continue
+            # collect quote currencies from configured symbols
+            quotes: list[str] = []
+            for sym in request.trading_config.symbols or []:
+                s = str(sym).upper()
+                if "/" in s:
+                    parts = s.split("/")
+                    if len(parts) == 2:
+                        quotes.append(parts[1])
+                elif "-" in s:
+                    parts = s.split("-")
+                    if len(parts) == 2:
+                        quotes.append(parts[1])
+            quotes = list(dict.fromkeys(quotes))  # unique order-preserving
+            free_cash = 0.0
+            if quotes:
+                for q in quotes:
+                    free_cash += float(free_map.get(q, 0.0) or 0.0)
+            else:
+                # fallback to common stablecoins
+                for q in ("USDT", "USD", "USDC"):
+                    free_cash += float(free_map.get(q, 0.0) or 0.0)
+            # Set initial capital to exchange free cash
+            request.trading_config.initial_capital = float(free_cash)
+    except Exception:
+        # Do not fail runtime creation if balance fetch or parsing fails
+        pass
 
     # Use the sync function with the pre-initialized gateway
     return create_strategy_runtime(request, execution_gateway=execution_gateway)

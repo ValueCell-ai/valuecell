@@ -288,24 +288,18 @@ class CCXTExecutionGateway(ExecutionGateway):
 
         return params
 
-    async def _enforce_minimums(
+    async def _check_minimums(
         self,
         exchange: ccxt.Exchange,
         symbol: str,
         amount: float,
         price: Optional[float],
-    ) -> float:
-        """Ensure amount satisfies exchange minimums (amount and notional).
-
-        - Checks markets[symbol].limits.amount.min and info.minSz (OKX)
-        - If limits.cost.min exists, uses price or fetches ticker to lift amount
-        - Returns adjusted amount aligned to precision
-        """
+    ) -> Optional[str]:
         markets = getattr(exchange, "markets", {}) or {}
         market = markets.get(symbol, {})
         limits = market.get("limits") or {}
 
-        # Minimum amount (contracts)
+        # amount minimum
         min_amount = None
         amt_limits = limits.get("amount") or {}
         if amt_limits.get("min") is not None:
@@ -321,18 +315,10 @@ class CCXTExecutionGateway(ExecutionGateway):
                     min_amount = float(min_sz)
                 except Exception:
                     min_amount = None
-
         if min_amount is not None and amount < min_amount:
-            logger.info(
-                f"  ↗️ Amount {amount} below min {min_amount}; aligning to minimum"
-            )
-            amount = min_amount
-            try:
-                amount = float(exchange.amount_to_precision(symbol, amount))
-            except Exception:
-                pass
+            return f"amount<{min_amount}"
 
-        # Minimum notional (cost)
+        # notional minimum
         min_cost = None
         cost_limits = limits.get("cost") or {}
         if cost_limits.get("min") is not None:
@@ -340,7 +326,6 @@ class CCXTExecutionGateway(ExecutionGateway):
                 min_cost = float(cost_limits["min"])
             except Exception:
                 min_cost = None
-
         if min_cost is not None:
             est_price = price
             if est_price is None and exchange.has.get("fetchTicker"):
@@ -357,18 +342,8 @@ class CCXTExecutionGateway(ExecutionGateway):
             if est_price and est_price > 0:
                 notional = amount * est_price
                 if notional < min_cost:
-                    required_amount = min_cost / est_price
-                    logger.info(
-                        f"  ↗️ Notional {notional:.4f} below minCost {min_cost}; lifting amount"
-                    )
-                    try:
-                        amount = float(
-                            exchange.amount_to_precision(symbol, required_amount)
-                        )
-                    except Exception:
-                        amount = required_amount
-
-        return amount
+                    return f"notional<{min_cost}"
+        return None
 
     async def execute(
         self,
@@ -480,11 +455,24 @@ class CCXTExecutionGateway(ExecutionGateway):
             except Exception:
                 pass
 
-        # Enforce exchange minimums (amount and notional)
+        # Reject orders below exchange minimums (do not lift to min)
         try:
-            amount = await self._enforce_minimums(exchange, symbol, amount, price)
+            reject_reason = await self._check_minimums(exchange, symbol, amount, price)
         except Exception as e:
-            logger.warning(f"⚠️ Could not align to minimums for {symbol}: {e}")
+            logger.warning(f"⚠️ Minimum check failed for {symbol}: {e}")
+            reject_reason = f"minimum_check_failed:{e}"
+        if reject_reason is not None:
+            logger.warning(f"  🚫 Skipping order due to {reject_reason}")
+            return TxResult(
+                instruction_id=inst.instruction_id,
+                instrument=inst.instrument,
+                side=inst.side,
+                requested_qty=float(inst.quantity),
+                filled_qty=0.0,
+                status=TxStatus.REJECTED,
+                reason=reject_reason,
+                meta=inst.meta,
+            )
 
         # Build order params with exchange-specific defaults
         params = self._build_order_params(inst, order_type)
