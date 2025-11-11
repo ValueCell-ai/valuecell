@@ -1,10 +1,15 @@
 import { useForm } from "@tanstack/react-form";
 import { MultiSelect } from "@valuecell/multi-select";
-import { Check, X } from "lucide-react";
+import { Check, Eye, Plus } from "lucide-react";
 import type { FC } from "react";
 import { memo, useState } from "react";
 import { z } from "zod";
-import { useCreateStrategy, useGetStrategyApiKey } from "@/api/strategy";
+import {
+  useCreateStrategy,
+  useCreateStrategyPrompt,
+  useGetStrategyApiKey,
+  useGetStrategyPrompts,
+} from "@/api/strategy";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,12 +34,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import CloseButton from "@/components/valuecell/button/close-button";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import {
   MODEL_PROVIDER_MAP,
   MODEL_PROVIDERS,
+  type STRATEGY_TEMPLATES,
   TRADING_SYMBOLS,
 } from "@/constants/agent";
+import NewPromptModal from "./new-prompt-modal";
+import ViewStrategyModal from "./view-strategy-modal";
 
 interface CreateStrategyModalProps {
   children?: React.ReactNode;
@@ -198,9 +207,14 @@ const StepIndicator: FC<{ currentStep: StepNumber }> = ({ currentStep }) => {
 const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState<StepNumber>(1);
+  const [selectedTemplateId, setSelectedTemplateId] =
+    useState<keyof typeof STRATEGY_TEMPLATES>("default");
+
+  const { data: llmConfigs } = useGetStrategyApiKey();
+  const { data: prompts = [] } = useGetStrategyPrompts();
   const { mutateAsync: createStrategy, isPending: isCreatingStrategy } =
     useCreateStrategy();
-  const { data: llmConfigs } = useGetStrategyApiKey();
+  const { mutateAsync: createStrategyPrompt } = useCreateStrategyPrompt();
 
   // Step 1 Form: AI Models
   const form1 = useForm({
@@ -257,21 +271,17 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
       };
 
       await createStrategy(payload);
-      setOpen(false);
       resetAll();
     },
   });
 
   const resetAll = () => {
     setCurrentStep(1);
+    setSelectedTemplateId("default");
     form1.reset();
     form2.reset();
     form3.reset();
-  };
-
-  const handleCancel = () => {
     setOpen(false);
-    resetAll();
   };
 
   const handleBack = () => {
@@ -282,13 +292,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {children || (
-          <Button variant="outline" className="gap-3">
-            Add trading strategy
-          </Button>
-        )}
-      </DialogTrigger>
+      <DialogTrigger asChild>{children}</DialogTrigger>
 
       <DialogContent
         className="flex max-h-[90vh] min-h-96 flex-col"
@@ -298,9 +302,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
         <DialogTitle className="flex flex-col gap-4 px-1">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-lg">Add trading strategy</h2>
-            <Button variant="ghost" size="icon" onClick={handleCancel}>
-              <X />
-            </Button>
+            <CloseButton onClick={() => setOpen(false)} />
           </div>
 
           <StepIndicator currentStep={currentStep} />
@@ -320,11 +322,8 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                 <FieldGroup className="gap-6">
                   <form1.Field name="provider">
                     {(field) => {
-                      const isInvalid =
-                        field.state.meta.isTouched &&
-                        field.state.meta.errors.length > 0;
                       return (
-                        <Field data-invalid={isInvalid}>
+                        <Field>
                           <FieldLabel className="font-medium text-base text-gray-950">
                             Model Platform
                           </FieldLabel>
@@ -357,9 +356,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                               ))}
                             </SelectContent>
                           </Select>
-                          {isInvalid && (
-                            <FieldError errors={field.state.meta.errors} />
-                          )}
+                          <FieldError errors={field.state.meta.errors} />
                         </Field>
                       );
                     }}
@@ -367,16 +364,13 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
 
                   <form1.Field name="model_id">
                     {(field) => {
-                      const isInvalid =
-                        field.state.meta.isTouched &&
-                        field.state.meta.errors.length > 0;
                       const currentProvider = form1.state.values
                         .provider as keyof typeof MODEL_PROVIDER_MAP;
                       const availableModels =
                         MODEL_PROVIDER_MAP[currentProvider] || [];
 
                       return (
-                        <Field key={currentProvider} data-invalid={isInvalid}>
+                        <Field key={currentProvider}>
                           <FieldLabel className="font-medium text-base text-gray-950">
                             Select Model
                           </FieldLabel>
@@ -401,9 +395,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                               )}
                             </SelectContent>
                           </Select>
-                          {isInvalid && (
-                            <FieldError errors={field.state.meta.errors} />
-                          )}
+                          <FieldError errors={field.state.meta.errors} />
                         </Field>
                       );
                     }}
@@ -411,11 +403,8 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
 
                   <form1.Field key={form1.state.values.provider} name="api_key">
                     {(field) => {
-                      const isInvalid =
-                        field.state.meta.isTouched &&
-                        field.state.meta.errors.length > 0;
                       return (
-                        <Field data-invalid={isInvalid}>
+                        <Field>
                           <FieldLabel className="font-medium text-base text-gray-950">
                             API key
                           </FieldLabel>
@@ -425,9 +414,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                             onBlur={field.handleBlur}
                             placeholder="Enter API Key"
                           />
-                          {isInvalid && (
-                            <FieldError errors={field.state.meta.errors} />
-                          )}
+                          <FieldError errors={field.state.meta.errors} />
                         </Field>
                       );
                     }}
@@ -498,7 +485,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                                       value={field.state.value}
                                       onValueChange={field.handleChange}
                                     >
-                                      <SelectTrigger className="h-[58px] justify-between rounded-[10px] border-gray-200 px-4">
+                                      <SelectTrigger className="h-14 justify-between rounded-xl border-gray-200 px-4">
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent>
@@ -508,11 +495,9 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                                         </SelectItem>
                                       </SelectContent>
                                     </Select>
-                                    {field.state.meta.errors.length > 0 && (
-                                      <FieldError
-                                        errors={field.state.meta.errors}
-                                      />
-                                    )}
+                                    <FieldError
+                                      errors={field.state.meta.errors}
+                                    />
                                   </Field>
                                 )}
                               </form2.Field>
@@ -531,11 +516,9 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                                       onBlur={field.handleBlur}
                                       placeholder="Enter API Key"
                                     />
-                                    {field.state.meta.errors.length > 0 && (
-                                      <FieldError
-                                        errors={field.state.meta.errors}
-                                      />
-                                    )}
+                                    <FieldError
+                                      errors={field.state.meta.errors}
+                                    />
                                   </Field>
                                 )}
                               </form2.Field>
@@ -554,11 +537,9 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                                       onBlur={field.handleBlur}
                                       placeholder="Enter Secret Key"
                                     />
-                                    {field.state.meta.errors.length > 0 && (
-                                      <FieldError
-                                        errors={field.state.meta.errors}
-                                      />
-                                    )}
+                                    <FieldError
+                                      errors={field.state.meta.errors}
+                                    />
                                   </Field>
                                 )}
                               </form2.Field>
@@ -566,12 +547,12 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                               {/* Password field - only shown for OKX */}
                               <form2.Field name="exchange_id">
                                 {(exchangeField) =>
-                                  exchangeField.state.value === "okx" ? (
+                                  exchangeField.state.value === "okx" && (
                                     <form2.Field name="passphrase">
                                       {(field) => (
                                         <Field>
                                           <FieldLabel className="font-medium text-base text-gray-950">
-                                            Password
+                                            Passphrase
                                           </FieldLabel>
                                           <Input
                                             value={field.state.value}
@@ -579,18 +560,15 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                                               field.handleChange(e.target.value)
                                             }
                                             onBlur={field.handleBlur}
-                                            placeholder="Enter Password (Required for OKX)"
+                                            placeholder="Enter Passphrase (Required for OKX)"
                                           />
-                                          {field.state.meta.errors.length >
-                                            0 && (
-                                            <FieldError
-                                              errors={field.state.meta.errors}
-                                            />
-                                          )}
+                                          <FieldError
+                                            errors={field.state.meta.errors}
+                                          />
                                         </Field>
                                       )}
                                     </form2.Field>
-                                  ) : null
+                                  )
                                 }
                               </form2.Field>
                             </>
@@ -624,23 +602,21 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                           onBlur={field.handleBlur}
                           placeholder="Enter strategy name"
                         />
-                        {field.state.meta.errors.length > 0 && (
-                          <FieldError errors={field.state.meta.errors} />
-                        )}
+                        <FieldError errors={field.state.meta.errors} />
                       </Field>
                     )}
                   </form3.Field>
 
                   {/* Transaction Configuration */}
-                  <div className="flex flex-col gap-6">
+                  <div className="space-y-6">
                     <div className="flex items-center gap-2">
-                      <div className="h-4 w-1 rounded-[1px] bg-black" />
-                      <h3 className="font-semibold text-lg leading-[26px]">
+                      <div className="h-4 w-1 rounded-sm bg-black" />
+                      <h3 className="font-semibold text-lg leading-tight">
                         Transaction configuration
                       </h3>
                     </div>
 
-                    <div className="flex flex-col gap-4">
+                    <div className="space-y-4">
                       <div className="flex gap-4">
                         <form3.Field name="initial_capital">
                           {(field) => (
@@ -656,9 +632,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                                 }
                                 onBlur={field.handleBlur}
                               />
-                              {field.state.meta.errors.length > 0 && (
-                                <FieldError errors={field.state.meta.errors} />
-                              )}
+                              <FieldError errors={field.state.meta.errors} />
                             </Field>
                           )}
                         </form3.Field>
@@ -677,9 +651,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                                 }
                                 onBlur={field.handleBlur}
                               />
-                              {field.state.meta.errors.length > 0 && (
-                                <FieldError errors={field.state.meta.errors} />
-                              )}
+                              <FieldError errors={field.state.meta.errors} />
                             </Field>
                           )}
                         </form3.Field>
@@ -701,11 +673,8 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                               searchPlaceholder="Search symbols..."
                               emptyText="No symbols found."
                               maxDisplayed={5}
-                              className="h-[58px] rounded-[10px] border-gray-200"
                             />
-                            {field.state.meta.errors.length > 0 && (
-                              <FieldError errors={field.state.meta.errors} />
-                            )}
+                            <FieldError errors={field.state.meta.errors} />
                           </Field>
                         )}
                       </form3.Field>
@@ -713,65 +682,90 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                   </div>
 
                   {/* Trading Strategy Prompt */}
-                  {/* <div className="flex flex-col gap-6">
+                  <div className="space-y-6">
                     <div className="flex items-center gap-2">
-                      <div className="h-4 w-1 rounded-[1px] bg-black" />
-                      <h3 className="font-semibold text-lg leading-[26px]">
+                      <div className="h-4 w-1 rounded-sm bg-black" />
+                      <h3 className="font-semibold text-lg leading-tight">
                         Trading strategy prompt
                       </h3>
                     </div>
 
-                    <div className="flex flex-col gap-4">
+                    <div className="space-y-4">
                       <form3.Field name="template_id">
                         {(field) => (
                           <Field>
                             <FieldLabel className="font-medium text-base text-gray-950">
                               System Prompt Template
                             </FieldLabel>
-                            <Select
-                              value={field.state.value}
-                              onValueChange={field.handleChange}
-                            >
-                              <SelectTrigger className="h-[58px] justify-between rounded-[10px] border-gray-200 px-4">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="default">Default</SelectItem>
-                                <SelectItem value="aggressive">
-                                  Aggressive
-                                </SelectItem>
-                                <SelectItem value="conservative">
-                                  Conservative
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                            {field.state.meta.errors.length > 0 && (
-                              <FieldError errors={field.state.meta.errors} />
-                            )}
-                          </Field>
-                        )}
-                      </form3.Field>
+                            <div className="flex items-center gap-3">
+                              <Select
+                                value={field.state.value}
+                                onValueChange={(value) => {
+                                  field.handleChange(value);
+                                  setSelectedTemplateId(
+                                    value as keyof typeof STRATEGY_TEMPLATES,
+                                  );
+                                }}
+                              >
+                                <SelectTrigger className="flex-1">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="default">
+                                    Default
+                                  </SelectItem>
+                                  <SelectItem value="aggressive">
+                                    Aggressive
+                                  </SelectItem>
+                                  <SelectItem value="conservative">
+                                    Conservative
+                                  </SelectItem>
+                                  {prompts.map((prompt) => (
+                                    <SelectItem
+                                      key={prompt.id}
+                                      value={prompt.id}
+                                    >
+                                      {prompt.name}
+                                    </SelectItem>
+                                  ))}
+                                  <NewPromptModal
+                                    onSave={async (value) => {
+                                      await createStrategyPrompt(value);
+                                    }}
+                                  >
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      className="gap-3"
+                                    >
+                                      <Plus className="size-4" />
+                                      New Prompt
+                                    </Button>
+                                  </NewPromptModal>
+                                </SelectContent>
+                              </Select>
 
-                      <form3.Field name="custom_prompt">
-                        {(field) => (
-                          <Field>
-                            <FieldLabel className="font-medium text-base text-gray-950">
-                              Custom Prompt
-                            </FieldLabel>
-                            <Textarea
-                              value={field.state.value}
-                              onChange={(e) =>
-                                field.handleChange(e.target.value)
-                              }
-                              onBlur={field.handleBlur}
-                              placeholder="Additional custom prompt..."
-                              className="min-h-[117px] rounded-[10px] border-gray-200 px-4 py-4 text-base placeholder:text-gray-400"
-                            />
+                              <ViewStrategyModal
+                                prompt={prompts.find(
+                                  (prompt) => prompt.id === selectedTemplateId,
+                                )}
+                              >
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="hover:bg-gray-50"
+                                >
+                                  <Eye />
+                                  View Strategy
+                                </Button>
+                              </ViewStrategyModal>
+                            </div>
+                            <FieldError errors={field.state.meta.errors} />
                           </Field>
                         )}
                       </form3.Field>
                     </div>
-                  </div> */}
+                  </div>
                 </FieldGroup>
               </form>
             )}
@@ -783,7 +777,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
           <Button
             type="button"
             variant="outline"
-            onClick={currentStep === 1 ? handleCancel : handleBack}
+            onClick={currentStep === 1 ? resetAll : handleBack}
             className="flex-1 border-gray-100 py-4 font-semibold text-base"
           >
             {currentStep === 1 ? "Cancel" : "Back"}
@@ -792,12 +786,15 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
             type="button"
             disabled={isCreatingStrategy}
             onClick={async () => {
-              if (currentStep === 1) {
-                await form1.handleSubmit();
-              } else if (currentStep === 2) {
-                await form2.handleSubmit();
-              } else {
-                await form3.handleSubmit();
+              switch (currentStep) {
+                case 1:
+                  await form1.handleSubmit();
+                  break;
+                case 2:
+                  await form2.handleSubmit();
+                  break;
+                case 3:
+                  await form3.handleSubmit();
               }
             }}
             className="flex-1 py-4 font-semibold text-base text-white hover:bg-gray-800"

@@ -6,6 +6,7 @@ import type {
   LlmConfig,
   Position,
   Strategy,
+  StrategyPrompt,
   Trade,
 } from "@/types/strategy";
 
@@ -102,6 +103,33 @@ export const useStopStrategy = () => {
       // Invalidate strategy list to refetch
       queryClient.invalidateQueries({
         queryKey: API_QUERY_KEYS.STRATEGY.strategyList,
+      });
+    },
+  });
+};
+
+export const useGetStrategyPrompts = () => {
+  return useQuery({
+    queryKey: API_QUERY_KEYS.STRATEGY.strategyPrompts,
+    queryFn: () =>
+      apiClient.get<ApiResponse<StrategyPrompt[]>>("/strategies/prompts"),
+    select: (data) => data.data,
+    staleTime: 0,
+  });
+};
+
+export const useCreateStrategyPrompt = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: Pick<StrategyPrompt, "name" | "content">) =>
+      apiClient.post<ApiResponse<StrategyPrompt>>(
+        "/strategies/prompts/create",
+        data,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: API_QUERY_KEYS.STRATEGY.strategyPrompts,
       });
     },
   });

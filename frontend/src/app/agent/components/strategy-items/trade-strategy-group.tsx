@@ -19,7 +19,7 @@ import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import { formatChange, getChangeType } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
 import type { Strategy } from "@/types/strategy";
-import CreateStrategyModal from "./create-strategy-modal";
+import CreateStrategyModal from "./modals/create-strategy-modal";
 
 interface TradeStrategyCardProps {
   strategy: Strategy;
