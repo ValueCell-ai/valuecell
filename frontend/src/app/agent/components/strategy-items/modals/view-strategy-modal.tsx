@@ -25,7 +25,7 @@ const ViewStrategyModal: FC<ViewStrategyModalProps> = ({
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent
-        className="max-h-[90vh]"
+        className="flex max-h-[90vh] flex-col"
         showCloseButton={false}
         aria-describedby={undefined}
       >
