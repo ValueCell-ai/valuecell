@@ -57,8 +57,10 @@ class LlmComposer(Composer):
         try:
             plan = await self._call_llm(prompt)
             if not plan.items:
-                logger.error(
-                    "LLM returned empty plan for compose_id={}", context.compose_id
+                logger.info(
+                    "LLM returned empty plan for compose_id={} with rationale={}",
+                    context.compose_id,
+                    plan.rationale,
                 )
                 return []
         except ValidationError as exc:
@@ -92,38 +94,6 @@ class LlmComposer(Composer):
                 pruned = [_prune_none(v) for v in obj]
                 return [v for v in pruned if v not in (None, {}, [])]
             return obj
-
-        # Market snapshot map (symbol -> price)
-        price_map: Dict[str, float] = context.market_snapshot or {}
-
-        # Compact per-symbol technicals from FeatureVectors (latest only per symbol)
-        # SimpleFeatureComputer already provides a single FeatureVector per symbol
-        market: Dict[str, dict] = {}
-        for fv in context.features:
-            sym = fv.instrument.symbol
-            vals = fv.values or {}
-            market[sym] = _prune_none(
-                {
-                    "price": float(price_map.get(sym) or vals.get("close") or 0.0),
-                    "change_pct": vals.get("change_pct"),
-                    "ema": {
-                        "ema_12": vals.get("ema_12"),
-                        "ema_26": vals.get("ema_26"),
-                        "ema_50": vals.get("ema_50"),
-                    },
-                    "macd": {
-                        "macd": vals.get("macd"),
-                        "signal": vals.get("macd_signal"),
-                        "hist": vals.get("macd_histogram"),
-                    },
-                    "rsi": vals.get("rsi"),
-                    "bb": {
-                        "upper": vals.get("bb_upper"),
-                        "mid": vals.get("bb_middle"),
-                        "lower": vals.get("bb_lower"),
-                    },
-                }
-            )
 
         # Compact portfolio snapshot
         pv = context.portfolio
@@ -261,6 +231,9 @@ class LlmComposer(Composer):
             }
         )
 
+        # Preserve original feature structure (do not prune fields inside FeatureVector)
+        features_payload = [fv.model_dump(mode="json") for fv in context.features]
+
         payload = _prune_none(
             {
                 "strategy_prompt": context.prompt_text,
@@ -269,8 +242,8 @@ class LlmComposer(Composer):
                 "env": env,
                 "compose_id": context.compose_id,
                 "ts": context.ts,
-                "symbols": list(market.keys()),
-                "market": market,
+                "market": context.market_snapshot,
+                "features": features_payload,
                 "portfolio": _prune_none(
                     {
                         "strategy_id": context.strategy_id,
