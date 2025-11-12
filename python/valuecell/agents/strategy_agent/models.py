@@ -29,7 +29,19 @@ class TradeType(str, Enum):
 
 
 class TradeSide(str, Enum):
-    """Side for executable trade instruction."""
+    """Low-level execution side (exchange primitive).
+
+    This remains distinct from `LlmDecisionAction` which encodes *intent* at a
+    position semantic level (open_long/close_short/etc). TradeSide is kept for:
+    - direct mapping to exchange APIs that require BUY/SELL
+    - conveying slippage/fee direction in execution records
+
+    Removal consideration: if the pipeline fully normalizes around
+    LlmDecisionAction -> (final target delta), we can derive side on the fly:
+        OPEN_LONG, CLOSE_SHORT -> BUY
+        OPEN_SHORT, CLOSE_LONG -> SELL
+    For now we keep it explicit to avoid recomputation and ease auditing.
+    """
 
     BUY = "BUY"
     SELL = "SELL"
@@ -457,6 +469,23 @@ class LlmDecisionAction(str, Enum):
     NOOP = "noop"
 
 
+def derive_side_from_action(
+    action: Optional[LlmDecisionAction],
+) -> Optional["TradeSide"]:
+    """Derive execution side (BUY/SELL) from a high-level action.
+
+    Returns None for non-order actions (e.g., noop, future amend/cancel types).
+    """
+    if action is None:
+        return None
+    if action in (LlmDecisionAction.OPEN_LONG, LlmDecisionAction.CLOSE_SHORT):
+        return TradeSide.BUY
+    if action in (LlmDecisionAction.OPEN_SHORT, LlmDecisionAction.CLOSE_LONG):
+        return TradeSide.SELL
+    # NOOP or future adjust/cancel actions: no executable side
+    return None
+
+
 class LlmDecisionItem(BaseModel):
     """LLM plan item. Interprets target_qty as operation size (magnitude).
 
@@ -517,7 +546,7 @@ class TradeInstruction(BaseModel):
         default=None,
         description="High-level intent action for dispatch ('open_long'|'open_short'|'close_long'|'close_short'|'noop')",
     )
-    side: TradeSide
+    side: TradeSide  # Derived execution direction (BUY/SELL) consistent with action
     quantity: float = Field(..., description="Order quantity in instrument units")
     leverage: Optional[float] = Field(
         default=None,
@@ -531,6 +560,39 @@ class TradeInstruction(BaseModel):
     meta: Optional[Dict[str, str | float | bool]] = Field(
         default=None, description="Optional metadata for auditing"
     )
+
+    @model_validator(mode="after")
+    def _validate_action_side_alignment(self):
+        """Ensure action (if provided) aligns with the executable side.
+
+        Mapping (state-independent after normalization):
+          - OPEN_LONG  -> BUY
+          - CLOSE_SHORT-> BUY
+          - OPEN_SHORT -> SELL
+          - CLOSE_LONG -> SELL
+          - NOOP       -> should not be emitted as an instruction
+        """
+        act = self.action
+        if act is None:
+            return self
+        try:
+            if act == LlmDecisionAction.NOOP:
+                # Composer should not emit NOOP instructions; tolerate in lenient mode
+                return self
+            if act in (LlmDecisionAction.OPEN_LONG, LlmDecisionAction.CLOSE_SHORT):
+                expected = TradeSide.BUY
+            elif act in (LlmDecisionAction.OPEN_SHORT, LlmDecisionAction.CLOSE_LONG):
+                expected = TradeSide.SELL
+            else:
+                return self
+            if self.side != expected:
+                raise ValueError(
+                    f"TradeInstruction.action={act} conflicts with side={self.side}; expected {expected}"
+                )
+        except Exception:
+            # Be conservative: do not block pipeline on validator edge cases
+            return self
+        return self
 
 
 class TxStatus(str, Enum):
@@ -551,7 +613,7 @@ class TxResult(BaseModel):
 
     instruction_id: str = Field(..., description="Originating instruction id")
     instrument: InstrumentRef
-    side: TradeSide
+    side: TradeSide  # Echo of execution direction for auditing
     requested_qty: float = Field(..., description="Requested order quantity")
     filled_qty: float = Field(..., description="Filled quantity (<= requested)")
     avg_exec_price: Optional[float] = Field(

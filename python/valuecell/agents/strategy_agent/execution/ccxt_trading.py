@@ -21,6 +21,7 @@ from ..models import (
     TradeSide,
     TxResult,
     TxStatus,
+    derive_side_from_action,
 )
 from .interfaces import ExecutionGateway
 
@@ -385,8 +386,13 @@ class CCXTExecutionGateway(ExecutionGateway):
         results: List[TxResult] = []
 
         for inst in instructions:
+            side = (
+                getattr(inst, "side", None)
+                or derive_side_from_action(getattr(inst, "action", None))
+                or TradeSide.BUY
+            )
             logger.info(
-                f"  📤 Processing {inst.instrument.symbol} {inst.side.value} qty={inst.quantity}"
+                f"  📤 Processing {inst.instrument.symbol} {side.value} qty={inst.quantity}"
             )
             try:
                 result = await self._execute_single(inst, exchange)
@@ -397,7 +403,7 @@ class CCXTExecutionGateway(ExecutionGateway):
                     TxResult(
                         instruction_id=inst.instruction_id,
                         instrument=inst.instrument,
-                        side=inst.side,
+                        side=side,
                         requested_qty=float(inst.quantity),
                         filled_qty=0.0,
                         status=TxStatus.ERROR,
@@ -478,7 +484,12 @@ class CCXTExecutionGateway(ExecutionGateway):
         await self._setup_margin_mode(symbol, exchange)
 
         # Map instruction to CCXT parameters
-        side = "buy" if inst.side == TradeSide.BUY else "sell"
+        local_side = (
+            getattr(inst, "side", None)
+            or derive_side_from_action(getattr(inst, "action", None))
+            or TradeSide.BUY
+        )
+        side = "buy" if local_side == TradeSide.BUY else "sell"
         order_type = "limit" if inst.price_mode == PriceMode.LIMIT else "market"
         amount = float(inst.quantity)
         price = float(inst.limit_price) if inst.limit_price else None
@@ -505,7 +516,7 @@ class CCXTExecutionGateway(ExecutionGateway):
             return TxResult(
                 instruction_id=inst.instruction_id,
                 instrument=inst.instrument,
-                side=inst.side,
+                side=local_side,
                 requested_qty=float(inst.quantity),
                 filled_qty=0.0,
                 status=TxStatus.REJECTED,
@@ -613,7 +624,7 @@ class CCXTExecutionGateway(ExecutionGateway):
         return TxResult(
             instruction_id=inst.instruction_id,
             instrument=inst.instrument,
-            side=inst.side,
+            side=local_side,
             requested_qty=amount,
             filled_qty=filled_qty,
             avg_exec_price=avg_price if avg_price > 0 else None,
@@ -653,10 +664,15 @@ class CCXTExecutionGateway(ExecutionGateway):
 
     async def _exec_noop(self, inst: TradeInstruction) -> TxResult:
         # No-op: return a rejected result with reason
+        side = (
+            getattr(inst, "side", None)
+            or derive_side_from_action(getattr(inst, "action", None))
+            or TradeSide.BUY
+        )
         return TxResult(
             instruction_id=inst.instruction_id,
             instrument=inst.instrument,
-            side=inst.side,
+            side=side,
             requested_qty=float(inst.quantity),
             filled_qty=0.0,
             status=TxStatus.REJECTED,
