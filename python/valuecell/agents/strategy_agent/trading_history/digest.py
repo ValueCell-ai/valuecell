@@ -6,8 +6,11 @@ import numpy as np
 from ..models import HistoryRecord, InstrumentRef, TradeDigest, TradeDigestEntry
 from .interfaces import DigestBuilder
 
-# Risk-free rate for Sharpe Ratio calculation (annualized, typically 0 for crypto)
-RISK_FREE_RATE = 0.0
+# Risk-free rate for Sharpe Ratio calculation (annualized, 3% for this example)
+RISK_FREE_RATE = 0.03
+
+# Number of seconds per year (365 days * 24 hours * 3600 seconds/hour)
+SECONDS_PER_YEAR = 365 * 24 * 3600
 
 
 class RollingDigestBuilder(DigestBuilder):
@@ -162,8 +165,9 @@ class RollingDigestBuilder(DigestBuilder):
         if len(records) < 2:
             return None
 
-        # Extract equity values from compose records
+        # Extract equity values and timestamps from compose records
         equities: List[float] = []
+        timestamps: List[int] = []
         for record in records:
             if record.kind == "compose":
                 payload = record.payload or {}
@@ -184,11 +188,27 @@ class RollingDigestBuilder(DigestBuilder):
                         eq_val = float(equity)
                         if eq_val > 0:
                             equities.append(eq_val)
+                            timestamps.append(record.ts)
                     except (ValueError, TypeError):
                         pass
 
-        if len(equities) < 2:
+        if len(equities) < 2 or len(timestamps) < 2:
             return None
+
+        # Calculate average period in seconds
+        intervals = []
+        for i in range(1, len(timestamps)):
+            interval = (
+                timestamps[i] - timestamps[i - 1]
+            ) / 1000.0  # Convert ms to seconds
+            if interval > 0:
+                intervals.append(interval)
+        if not intervals:
+            return None
+        avg_period_seconds = sum(intervals) / len(intervals)
+
+        # Calculate periods per year
+        periods_per_year = SECONDS_PER_YEAR / avg_period_seconds
 
         # Calculate period returns
         returns: List[float] = []
@@ -207,8 +227,8 @@ class RollingDigestBuilder(DigestBuilder):
 
         # Sharpe Ratio
         if std_return > 0:
-            # For intra-day trading (3-min cycles), risk-free rate per period is negligible
-            period_rf = 0.0  # Could be RISK_FREE_RATE / (periods_per_year) if needed
+            # Adjust risk-free rate per period based on actual check interval
+            period_rf = RISK_FREE_RATE / periods_per_year
             sharpe_ratio = (mean_return - period_rf) / std_return
             return float(sharpe_ratio)
 
