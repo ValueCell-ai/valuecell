@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use std::fs::{create_dir_all, File};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
@@ -15,6 +15,41 @@ pub struct BackendManager {
 }
 
 impl BackendManager {
+    fn spawn_uv_module(&self, module_name: &str, log_name: &str) -> Result<Child> {
+        let log_file = self
+            .log_dir
+            .join(format!("{}.log", log_name.replace(' ', "_")));
+        let stdout_file = File::create(&log_file)
+            .with_context(|| format!("Failed to create log file for {}", log_name))?;
+        let stderr_file = stdout_file
+            .try_clone()
+            .context("Failed to clone log file handle")?;
+
+        log::info!("Starting {} with log file: {:?}", log_name, log_file);
+        log::info!(
+            "Command: {} run --env-file {:?} -m {}",
+            "uv",
+            self.env_path,
+            module_name
+        );
+        log::info!("Working directory: {:?}", self.backend_path);
+
+        let child = Command::new("uv")
+            .arg("run")
+            .arg("--env-file")
+            .arg(&self.env_path)
+            .arg("-m")
+            .arg(module_name)
+            .current_dir(&self.backend_path)
+            .stdout(Stdio::from(stdout_file))
+            .stderr(Stdio::from(stderr_file))
+            .spawn()
+            .with_context(|| format!("Failed to spawn {}", log_name))?;
+
+        log::info!("✓ {} spawned with PID: {}", log_name, child.id());
+        Ok(child)
+    }
+
     pub fn new(app: AppHandle) -> Result<Self> {
         let resource_root = app
             .path()
@@ -45,6 +80,10 @@ impl BackendManager {
             .context("Failed to get parent directory")?
             .join(".env");
 
+        if !env_path.exists() {
+            return Err(anyhow::anyhow!("Env file does not exist: {:?}", env_path));
+        }
+
         // Create log directory in app's log directory
         let log_dir = app
             .path()
@@ -66,295 +105,93 @@ impl BackendManager {
         })
     }
 
-    /// Check if .env file exists, if not, copy from template
-    pub fn ensure_env_file(&self) -> Result<()> {
-        if !self.env_path.exists() {
-            // .env.example is in Resources root (same level as backend/)
-            let template_path = self
-                .backend_path
-                .parent()
-                .ok_or_else(|| anyhow::anyhow!("Cannot get parent directory"))?
-                .join(".env.example");
-
-            if template_path.exists() {
-                std::fs::copy(&template_path, &self.env_path)
-                    .context("Failed to copy .env.example template")?;
-
-                log::warn!("═══════════════════════════════════════════════");
-                log::warn!("⚠️  IMPORTANT: Please configure your .env file");
-                log::warn!("📁 Location: {:?}", self.env_path);
-                log::warn!("🔑 Add your API keys (OPENAI_API_KEY, etc.)");
-                log::warn!("🔄 Restart the application after configuration");
-                log::warn!("═══════════════════════════════════════════════");
-            } else {
-                log::error!("❌ .env.example template not found at: {:?}", template_path);
-                log::error!("Please create a .env file manually at: {:?}", self.env_path);
-            }
+    fn find_uv(&self) -> Result<()> {
+        if Command::new("uv")
+            .arg("--version")
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .is_ok()
+        {
+            return Ok(());
         }
-        Ok(())
-    }
-
-    /// Find Python interpreter (system Python or bundled)
-    fn find_python(&self) -> Result<String> {
-        // For now, use system Python
-        // In the future, we could bundle Python with the app
-
-        // Try common Python commands
-        let python_commands = vec!["python3", "python"];
-
-        for cmd in python_commands {
-            if Command::new(cmd)
-                .arg("--version")
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .status()
-                .is_ok()
-            {
-                return Ok(cmd.to_string());
-            }
-        }
-
         Err(anyhow::anyhow!(
-            "Python not found. Please install Python 3.12+"
+            "uv not found on PATH. Please install uv: https://docs.astral.sh/uv/getting-started/installation/"
         ))
     }
 
-    /// Find or install uv
-    fn find_uv(&self) -> Result<String> {
-        // Common uv installation paths (with ~ for home directory)
-        let uv_paths = vec![
-            "uv",              // Try PATH first
-            "~/.local/bin/uv", // uv default install location (Linux/macOS)
-            "/usr/local/bin/uv",
-            "~/.cargo/bin/uv", // Cargo install location
-        ];
-
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
-
-        for uv_cmd in &uv_paths {
-            // Expand ~ to home directory
-            let expanded_path = uv_cmd.replace("~", &home);
-
-            if Command::new(&expanded_path)
-                .arg("--version")
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .status()
-                .is_ok()
-            {
-                log::info!("Found uv at: {}", expanded_path);
-                return Ok(expanded_path);
-            }
-        }
-
-        Err(anyhow::anyhow!("uv not found. Please install uv: https://docs.astral.sh/uv/getting-started/installation/\nSearched paths: {:?}", uv_paths))
-    }
-
-    /// Start a single agent
-    fn start_agent(&self, agent_name: &str, uv_cmd: &str) -> Result<Child> {
-        let module_name = match agent_name {
-            "ResearchAgent" => "valuecell.agents.research_agent",
-            "AutoTradingAgent" => "valuecell.agents.auto_trading_agent",
-            "NewsAgent" => "valuecell.agents.news_agent",
-            _ => return Err(anyhow::anyhow!("Unknown agent: {}", agent_name)),
-        };
-
-        // Verify backend path exists
-        if !self.backend_path.exists() {
-            return Err(anyhow::anyhow!(
-                "Backend path does not exist: {:?}",
-                self.backend_path
-            ));
-        }
-
-        // Verify env file exists
-        if !self.env_path.exists() {
-            return Err(anyhow::anyhow!(
-                "Env file does not exist: {:?}",
-                self.env_path
-            ));
-        }
-
-        // Create log files for stdout and stderr
-        let log_file = self.log_dir.join(format!("{}.log", agent_name));
-        let stdout_file = File::create(&log_file)
-            .context(format!("Failed to create log file for {}", agent_name))?;
-        let stderr_file = stdout_file
-            .try_clone()
-            .context("Failed to clone log file handle")?;
-
-        log::info!("Starting {} with log file: {:?}", agent_name, log_file);
-        log::info!(
-            "Command: {} run --env-file {:?} -m {}",
-            uv_cmd,
-            self.env_path,
-            module_name
-        );
-        log::info!("Working directory: {:?}", self.backend_path);
-
-        // First, test if the command works by doing a dry run
-        log::info!("Testing command availability...");
-        let test_result = Command::new(uv_cmd).arg("--version").output();
-
-        match test_result {
-            Ok(output) => {
-                log::info!(
-                    "UV version check: {:?}",
-                    String::from_utf8_lossy(&output.stdout)
-                );
-            }
-            Err(e) => {
-                log::error!("UV command test failed: {}", e);
-            }
-        }
-
-        // Run agent in backend directory (python/)
-        let mut command = Command::new(uv_cmd);
-        command
-            .arg("run")
-            .arg("--env-file")
-            .arg(&self.env_path)
-            .arg("-m")
-            .arg(module_name)
-            .current_dir(&self.backend_path)
-            .stdout(Stdio::from(stdout_file))
-            .stderr(Stdio::from(stderr_file));
-
-        log::info!("Spawning process...");
-        let child = command
-            .spawn()
-            .context(format!("Failed to spawn {}", agent_name))?;
-
-        let pid = child.id();
-        log::info!("✓ {} spawned with PID: {}", agent_name, pid);
-
-        // Wait a moment to see if the process exits immediately
-        std::thread::sleep(std::time::Duration::from_millis(500));
-
-        Ok(child)
-    }
-
-    /// Start backend server
-    fn start_backend_server(&self, uv_cmd: &str) -> Result<Child> {
-        // Create log files for stdout and stderr
-        let log_file = self.log_dir.join("backend_server.log");
-        let stdout_file =
-            File::create(&log_file).context("Failed to create log file for backend server")?;
-        let stderr_file = stdout_file
-            .try_clone()
-            .context("Failed to clone log file handle")?;
-
-        log::info!("Starting backend server with log file: {:?}", log_file);
-        log::info!(
-            "Command: {} run --env-file {:?} -m valuecell.server.main",
-            uv_cmd,
-            self.env_path
-        );
-        log::info!("Working directory: {:?}", self.backend_path);
-
-        // Run backend server in backend directory (python/)
-        let child = Command::new(uv_cmd)
-            .arg("run")
-            .arg("--env-file")
-            .arg(&self.env_path)
-            .arg("-m")
-            .arg("valuecell.server.main")
-            .current_dir(&self.backend_path)
-            .stdout(Stdio::from(stdout_file))
-            .stderr(Stdio::from(stderr_file))
-            .spawn()
-            .context("Failed to start backend server")?;
-
-        log::info!("✓ Backend server started with PID: {}", child.id());
-        Ok(child)
-    }
-
-    /// Install dependencies using uv sync
-    fn install_dependencies(&self, uv_cmd: &str) -> Result<()> {
-        log::info!("Checking Python dependencies...");
-
-        // Run uv sync to install dependencies
-        let output = Command::new(uv_cmd)
+    fn install_dependencies(&self) -> Result<()> {
+        let status = Command::new("uv")
             .arg("sync")
-            .arg("--frozen") // Use exact versions from uv.lock
+            .arg("--frozen")
             .current_dir(&self.backend_path)
-            .output()
-            .context("Failed to run uv sync")?;
+            .status()
+            .context("Failed to install dependencies")?;
 
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            log::error!("uv sync failed: {}", stderr);
-            return Err(anyhow::anyhow!("Failed to sync dependencies: {}", stderr));
+        if !status.success() {
+            return Err(anyhow::anyhow!("Failed to sync dependencies"));
         }
 
         log::info!("✓ Dependencies installed/verified");
         Ok(())
     }
 
-    /// Initialize database
-    fn init_database(&self, uv_cmd: &str) -> Result<()> {
-        log::info!("Initializing database...");
-
+    fn init_database(&self) -> Result<()> {
         let init_db_script = self.backend_path.join("valuecell/server/db/init_db.py");
 
         // Check if init_db.py exists
         if !init_db_script.exists() {
             log::warn!("Database init script not found at: {:?}", init_db_script);
-            log::warn!("Skipping database initialization");
             return Ok(());
         }
 
-        // Run database initialization
-        let output = Command::new(uv_cmd)
+        // Run database initialization and surface output directly
+        let status = Command::new("uv")
             .arg("run")
             .arg("--env-file")
             .arg(&self.env_path)
             .arg(&init_db_script)
             .current_dir(&self.backend_path)
-            .output()
+            .status()
             .context("Failed to run database initialization")?;
 
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            log::warn!("Database initialization output: {}", stdout);
-            log::warn!("Database initialization stderr: {}", stderr);
-            // Don't fail if database already initialized
-            log::warn!("Database initialization had warnings, but continuing...");
-        } else {
-            log::info!("✓ Database initialized");
+        if !status.success() {
+            return Err(anyhow::anyhow!("Database initialization had warnings"));
         }
 
+        log::info!("✓ Database initialized");
         Ok(())
     }
 
-    /// Start all backend processes (agents + server)
+    fn start_agent(&self, agent_name: &str) -> Result<Child> {
+        let module_name = match agent_name {
+            "ResearchAgent" => "valuecell.agents.research_agent",
+            "AutoTradingAgent" => "valuecell.agents.auto_trading_agent",
+            "NewsAgent" => "valuecell.agents.news_agent",
+            _ => bail!("Unknown agent: {}", agent_name),
+        };
+
+        let child = self.spawn_uv_module(module_name, agent_name)?;
+
+        std::thread::sleep(std::time::Duration::from_millis(500));
+
+        Ok(child)
+    }
+
+    fn start_backend_server(&self) -> Result<Child> {
+        self.spawn_uv_module("valuecell.server.main", "backend_server")
+    }
+
     pub fn start_all(&self) -> Result<()> {
-        log::info!("Starting ValueCell backend...");
-        log::info!("📁 Backend logs will be saved to: {:?}", self.log_dir);
-
-        // Check Python
-        self.find_python()?;
-
-        // Check uv
-        let uv_cmd = self.find_uv()?;
-        log::info!("Found uv: {}", uv_cmd);
-
-        // Ensure .env exists
-        self.ensure_env_file()?;
-
-        // Install dependencies if not already installed
-        self.install_dependencies(&uv_cmd)?;
-
-        // Initialize database
-        self.init_database(&uv_cmd)?;
+        self.find_uv()?;
+        self.install_dependencies()?;
+        self.init_database()?;
 
         let mut processes = self.processes.lock().unwrap();
 
-        // Start agents
         let agents = vec!["ResearchAgent", "AutoTradingAgent", "NewsAgent"];
         for agent_name in agents {
-            match self.start_agent(agent_name, &uv_cmd) {
+            match self.start_agent(agent_name) {
                 Ok(child) => {
                     log::info!("Process {} added to process list", child.id());
                     processes.push(child);
@@ -363,8 +200,7 @@ impl BackendManager {
             }
         }
 
-        // Start backend server
-        match self.start_backend_server(&uv_cmd) {
+        match self.start_backend_server() {
             Ok(child) => {
                 log::info!("Process {} added to process list", child.id());
                 processes.push(child);
@@ -376,9 +212,6 @@ impl BackendManager {
             "✓ All backend processes started (total: {})",
             processes.len()
         );
-
-        // Check if processes are still alive after a short delay
-        std::thread::sleep(std::time::Duration::from_secs(1));
 
         let mut alive_count = 0;
         for process in processes.iter_mut() {

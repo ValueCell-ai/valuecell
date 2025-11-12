@@ -15,13 +15,16 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle().clone();
 
-            let Ok(manager) = BackendManager::new(handle) else {
-                log::error!("❌ Failed to create backend manager");
-                return Ok(());
+            let manager = match BackendManager::new(handle) {
+                Ok(manager) => manager,
+                Err(e) => {
+                    log::error!("❌ Failed to create backend manager: {e:#}");
+                    return Ok(());
+                }
             };
 
             if let Err(e) = manager.start_all() {
-                log::error!("❌ Failed to start backend: {}", e);
+                log::error!("❌ Failed to start backend: {e:#}");
             }
 
             app.manage(manager);
