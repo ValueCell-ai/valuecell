@@ -289,9 +289,9 @@ class InstrumentRef(BaseModel):
     exchange_id: Optional[str] = Field(
         default=None, description="exchange identifier (e.g., binance)"
     )
-    quote_ccy: Optional[str] = Field(
-        default=None, description="Quote currency (e.g., USDT)"
-    )
+    # quote_ccy: Optional[str] = Field(
+    #     default=None, description="Quote currency (e.g., USDT)"
+    # )
 
 
 class Candle(BaseModel):

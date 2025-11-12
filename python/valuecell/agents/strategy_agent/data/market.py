@@ -1,10 +1,10 @@
 from collections import defaultdict
 from typing import Dict, List, Optional
 
-import ccxt.pro as ccxtpro
 from loguru import logger
 
 from ..models import Candle, InstrumentRef
+from ..utils import get_exchange_cls, normalize_symbol
 from .interfaces import MarketDataSource
 
 
@@ -34,11 +34,7 @@ class SimpleMarketDataSource(MarketDataSource):
     ) -> List[Candle]:
         async def _fetch(symbol: str) -> List[List]:
             # instantiate exchange class by name (e.g., ccxtpro.kraken)
-            exchange_cls = getattr(ccxtpro, self._exchange_id, None)
-            if exchange_cls is None:
-                raise RuntimeError(
-                    f"Exchange '{self._exchange_id}' not found in ccxt.pro"
-                )
+            exchange_cls = get_exchange_cls(self._exchange_id)
             exchange = exchange_cls({"newUpdates": False, **self._ccxt_options})
             try:
                 # ccxt.pro uses async fetch_ohlcv
@@ -56,7 +52,7 @@ class SimpleMarketDataSource(MarketDataSource):
         # Run fetch for each symbol sequentially
         for symbol in symbols:
             try:
-                raw = await _fetch(symbol)
+                raw = await _fetch(normalize_symbol(symbol))
                 # raw is list of [ts, open, high, low, close, volume]
                 for row in raw:
                     ts, open_v, high_v, low_v, close_v, vol = row
@@ -66,7 +62,7 @@ class SimpleMarketDataSource(MarketDataSource):
                             instrument=InstrumentRef(
                                 symbol=symbol,
                                 exchange_id=self._exchange_id,
-                                quote_ccy="USD",
+                                # quote_ccy="USD",
                             ),
                             open=float(open_v),
                             high=float(high_v),
