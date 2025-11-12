@@ -78,17 +78,6 @@ def _default_clock() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _build_market_snapshot(features: List[FeatureVector]) -> Dict[str, float]:
-    """Derive latest market snapshot from feature vectors."""
-
-    snapshot: Dict[str, float] = {}
-    for vector in features:
-        price = vector.values.get("close")
-        if price is not None:
-            snapshot[vector.instrument.symbol] = float(price)
-    return snapshot
-
-
 class DefaultDecisionCoordinator(DecisionCoordinator):
     """Default implementation that wires the full decision pipeline."""
 
@@ -524,6 +513,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             unrealized_pnl=self._unrealized_pnl,
             unrealized_pnl_pct=unrealized_pnl_pct,
             pnl_pct=pnl_pct,
+            total_value=equity,
             last_updated_ts=timestamp_ms,
         )
 

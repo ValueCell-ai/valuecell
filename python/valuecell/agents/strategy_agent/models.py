@@ -667,6 +667,15 @@ class TradeDigest(BaseModel):
 
     ts: int
     by_instrument: Dict[str, TradeDigestEntry] = Field(default_factory=dict)
+    sharpe_ratio: Optional[float] = Field(
+        default=None,
+        description=(
+            "Sharpe Ratio computed from recent equity curve. "
+            "Formula: (avg_return - risk_free_rate) / std_dev_returns. "
+            "Interpretation: <0 losing; 0-1 positive but volatile; "
+            "1-2 good; >2 excellent risk-adjusted performance."
+        ),
+    )
 
 
 class StrategySummary(BaseModel):
@@ -695,6 +704,10 @@ class StrategySummary(BaseModel):
     )
     unrealized_pnl_pct: Optional[float] = Field(
         default=None, description="Unrealized P&L as a percent of position value"
+    )
+    total_value: Optional[float] = Field(
+        default=None,
+        description="Total portfolio value (equity) including cash and positions",
     )
     last_updated_ts: Optional[int] = Field(default=None)
 

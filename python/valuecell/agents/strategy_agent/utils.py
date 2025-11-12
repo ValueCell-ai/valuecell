@@ -1,4 +1,40 @@
+from typing import Dict
+
 import ccxt.pro as ccxtpro
+from loguru import logger
+
+
+def extract_price_map(market_snapshot: Dict) -> Dict[str, float]:
+    """Extract a simple symbol -> price mapping from market snapshot structure.
+
+    The market snapshot structure is:
+    {
+      "BTC/USDT:USDT": {
+        "price": {ticker dict with "last", "close", etc.},
+        "open_interest": {...},
+        "funding_rate": {...}
+      }
+    }
+
+    Returns:
+        Dict[symbol, last_price] for internal use in quantity normalization.
+    """
+    price_map: Dict[str, float] = {}
+    for symbol, data in market_snapshot.items():
+        if not isinstance(data, dict):
+            continue
+        price_obj = data.get("price")
+        if isinstance(price_obj, dict):
+            # Prefer "last" over "close" for real-time pricing
+            last_price = price_obj.get("last") or price_obj.get("close")
+            if last_price is not None:
+                try:
+                    price_map[symbol] = float(last_price)
+                except (ValueError, TypeError):
+                    logger.warning(
+                        "Failed to parse price for {}: {}", symbol, last_price
+                    )
+    return price_map
 
 
 def normalize_symbol(symbol: str) -> str:

@@ -1,8 +1,13 @@
 from datetime import datetime, timezone
 from typing import Dict, List
 
+import numpy as np
+
 from ..models import HistoryRecord, InstrumentRef, TradeDigest, TradeDigestEntry
 from .interfaces import DigestBuilder
+
+# Risk-free rate for Sharpe Ratio calculation (annualized, typically 0 for crypto)
+RISK_FREE_RATE = 0.0
 
 
 class RollingDigestBuilder(DigestBuilder):
@@ -135,4 +140,77 @@ class RollingDigestBuilder(DigestBuilder):
                 except Exception:
                     entry.avg_holding_ms = None
 
-        return TradeDigest(ts=timestamp, by_instrument=by_instrument)
+        # Calculate Sharpe Ratio from equity curve
+        sharpe_ratio = self._calculate_sharpe_ratio(recent)
+
+        return TradeDigest(
+            ts=timestamp, by_instrument=by_instrument, sharpe_ratio=sharpe_ratio
+        )
+
+    def _calculate_sharpe_ratio(self, records: List[HistoryRecord]) -> float | None:
+        """Calculate Sharpe Ratio from equity curve in history records.
+
+        Extracts portfolio equity from compose records and computes risk-adjusted
+        return as: (mean_return - risk_free_rate) / std_dev_returns.
+
+        Args:
+            records: Recent history records (should include compose records)
+
+        Returns:
+            Sharpe Ratio (float) or None if insufficient data
+        """
+        if len(records) < 2:
+            return None
+
+        # Extract equity values from compose records
+        equities: List[float] = []
+        for record in records:
+            if record.kind == "compose":
+                payload = record.payload or {}
+                summary = payload.get("summary") or {}
+                # StrategySummary may have total_value in different representations
+                # Try to extract equity (total portfolio value)
+                equity = None
+                # Attempt 1: summary is already a dict with total_value
+                if isinstance(summary, dict):
+                    equity = summary.get("total_value")
+                # Attempt 2: summary might be serialized; check for equity-like fields
+                if equity is None and isinstance(summary, dict):
+                    # Fallback: try to compute from realized + unrealized + initial
+                    # For now, we'll rely on total_value being present
+                    pass
+                if equity is not None:
+                    try:
+                        eq_val = float(equity)
+                        if eq_val > 0:
+                            equities.append(eq_val)
+                    except (ValueError, TypeError):
+                        pass
+
+        if len(equities) < 2:
+            return None
+
+        # Calculate period returns
+        returns: List[float] = []
+        for i in range(1, len(equities)):
+            if equities[i - 1] > 0:
+                period_return = (equities[i] - equities[i - 1]) / equities[i - 1]
+                returns.append(period_return)
+
+        if len(returns) < 2:
+            return None
+
+        # Compute mean and standard deviation
+        returns_arr = np.array(returns)
+        mean_return = float(np.mean(returns_arr))
+        std_return = float(np.std(returns_arr, ddof=1))  # Sample std deviation
+
+        # Sharpe Ratio
+        if std_return > 0:
+            # For intra-day trading (3-min cycles), risk-free rate per period is negligible
+            period_rf = 0.0  # Could be RISK_FREE_RATE / (periods_per_year) if needed
+            sharpe_ratio = (mean_return - period_rf) / std_return
+            return float(sharpe_ratio)
+
+        # If std is zero, no volatility -> undefined Sharpe
+        return None

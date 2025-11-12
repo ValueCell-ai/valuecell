@@ -87,6 +87,79 @@ class SimpleMarketDataSource(MarketDataSource):
         `fetch_open_interest` / `fetch_funding_rate` when available) to build
         a mapping symbol -> last price. On any failure for a symbol, it will
         fall back to `base_prices` if provided or omit the symbol.
+        Example:
+        ```
+        "BTC/USDT": {
+            "price": {
+                "symbol": "BTC/USDT:USDT",
+                "timestamp": 1762930517943,
+                "datetime": "2025-11-12T06:55:17.943Z",
+                "high": 105464.2,
+                "low": 102400.0,
+                "vwap": 103748.56,
+                "open": 105107.1,
+                "close": 103325.0,
+                "last": 103325.0,
+                "change": -1782.1,
+                "percentage": -1.696,
+                "average": 104216.0,
+                "baseVolume": 105445.427,
+                "quoteVolume": 10939811519.57,
+                "info": {
+                    "symbol": "BTCUSDT",
+                    "priceChange": "-1782.10",
+                    "priceChangePercent": "-1.696",
+                    "weightedAvgPrice": "103748.56",
+                    "lastPrice": "103325.00",
+                    "lastQty": "0.002",
+                    "openPrice": "105107.10",
+                    "highPrice": "105464.20",
+                    "lowPrice": "102400.00",
+                    "volume": "105445.427",
+                    "quoteVolume": "10939811519.57",
+                    "openTime": 1762844100000,
+                    "closeTime": 1762930517943,
+                    "firstId": 6852533393,
+                    "lastId": 6856484055,
+                    "count": 3942419
+                }
+            },
+            "open_interest": {
+                "symbol": "BTC/USDT:USDT",
+                "baseVolume": 85179.147,
+                "openInterestAmount": 85179.147,
+                "timestamp": 1762930517944,
+                "datetime": "2025-11-12T06:55:17.944Z",
+                "info": {
+                    "symbol": "BTCUSDT",
+                    "openInterest": "85179.147",
+                    "time": 1762930517944
+                }
+            },
+            "funding_rate": {
+                "info": {
+                    "symbol": "BTCUSDT",
+                    "markPrice": "103325.10000000",
+                    "indexPrice": "103382.54282609",
+                    "estimatedSettlePrice": "103477.58650543",
+                    "lastFundingRate": "0.00000967",
+                    "interestRate": "0.00010000",
+                    "nextFundingTime": 1762934400000,
+                    "time": 1762930523000
+                },
+                "symbol": "BTC/USDT:USDT",
+                "markPrice": 103325.1,
+                "indexPrice": 103382.54282609,
+                "interestRate": 0.0001,
+                "estimatedSettlePrice": 103477.58650543,
+                "timestamp": 1762930523000,
+                "datetime": "2025-11-12T06:55:23.000Z",
+                "fundingRate": 9.67e-06,
+                "fundingTimestamp": 1762934400000,
+                "fundingDatetime": "2025-11-12T08:00:00.000Z"
+            }
+        }
+        ```
         """
         snapshot = defaultdict(dict)
 

@@ -20,7 +20,7 @@ ACTION SEMANTICS
 CONSTRAINTS & VALIDATION
 - Respect max_positions, max_leverage, max_position_qty, quantity_step, min_trade_qty, max_order_qty, min_notional, and available buying power.
 - Keep leverage positive if provided. Confidence must be in [0,1].
-- If arrays appear in Context, they are ordered: OLDEST → NEWEST (last isthe most recent).
+- If arrays appear in Context, they are ordered: OLDEST - NEWEST (last isthe most recent).
 - If risk_flags contain low_buying_power or high_leverage_usage, prefer reducing size or choosing noop. If approaching_max_positions is set, prioritize managing existing positions over opening new ones.
 - When estimating quantity, account for estimated fees (e.g., 1%) and potential market movement; reserve a small buffer so executed size does not exceed intended risk after fees/slippage.
 
@@ -36,4 +36,36 @@ The `market_snapshot` provided in the Context is an authoritative, per-cycle ref
 - `price`: a price ticker, a statistical calculation with the information calculated over the past 24 hours for a specific market
 - `open_interest`: open interest value (float) when available from the exchange (contracts or quote-ccy depending on exchange). Use it as a signal for liquidity and positioning interest, but treat units as exchange-specific.
 - `funding_rate`: latest funding rate (decimal, e.g., 0.0001) when available. Use it to reason about carry costs for leveraged positions.
+
+PERFORMANCE FEEDBACK & ADAPTIVE BEHAVIOR
+You will receive a Sharpe Ratio at each invocation (in Context.summary.sharpe_ratio):
+
+Sharpe Ratio = (Average Return - Risk-Free Rate) / Standard Deviation of Returns
+
+Interpretation:
+- < 0: Losing money on average (net negative after risk adjustment)
+- 0 to 1: Positive returns but high volatility relative to gains
+- 1 to 2: Good risk-adjusted performance
+- > 2: Excellent risk-adjusted performance
+
+Behavioral Guidelines Based on Sharpe Ratio:
+- Sharpe < -0.5:
+  - STOP trading immediately. Choose noop for at least 6 cycles (18+ minutes).
+  - Reflect deeply: Are you overtrading (>2 trades/hour)? Exiting too early (<30min hold)? Using weak signals (confidence <75)?
+
+- Sharpe -0.5 to 0:
+  - Tighten entry criteria: only trade when confidence >80.
+  - Reduce frequency: max 1 new position per hour.
+  - Hold positions longer: aim for 30+ minute hold times before considering exit.
+
+- Sharpe 0 to 0.7:
+  - Maintain current discipline. Do not overtrade.
+
+- Sharpe > 0.7:
+  - Current strategy is working well. Maintain discipline and consider modest size increases
+    within constraints.
+
+Key Insight: Sharpe Ratio naturally penalizes overtrading and premature exits. 
+High-frequency, small P&L trades increase volatility without proportional return gains,
+directly harming your Sharpe. Patience and selectivity are rewarded.
 """

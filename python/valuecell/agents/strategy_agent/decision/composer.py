@@ -22,6 +22,7 @@ from ..models import (
     TradeSide,
     UserRequest,
 )
+from ..utils import extract_price_map
 from .interfaces import Composer
 from .system_prompt import SYSTEM_PROMPT
 
@@ -204,6 +205,7 @@ class LlmComposer(Composer):
                 "unrealized_pnl_pct": unrealized_pct,
                 "win_rate": agg_win_rate,
                 "trade_count": total_trades,
+                "sharpe_ratio": getattr(context.digest, "sharpe_ratio", None),
                 # Include available buying power if computed
                 # This helps the model adjust aggressiveness
             }
@@ -342,7 +344,7 @@ class LlmComposer(Composer):
             )
 
         # Initialize projected gross exposure
-        price_map = context.market_snapshot or {}
+        price_map = extract_price_map(context.market_snapshot or {})
         if getattr(context.portfolio, "gross_exposure", None) is not None:
             projected_gross = float(context.portfolio.gross_exposure or 0.0)
         else:

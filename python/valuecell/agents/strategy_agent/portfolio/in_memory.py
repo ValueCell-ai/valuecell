@@ -1,8 +1,9 @@
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from ..models import (
     Constraints,
+    MarketSnapShotType,
     MarketType,
     PortfolioView,
     PositionSnapshot,
@@ -11,6 +12,7 @@ from ..models import (
     TradeType,
     TradingMode,
 )
+from ..utils import extract_price_map
 from .interfaces import PortfolioService
 
 
@@ -64,7 +66,7 @@ class InMemoryPortfolioService(PortfolioService):
         return self._view
 
     def apply_trades(
-        self, trades: List[TradeHistoryEntry], market_snapshot: Dict[str, float]
+        self, trades: List[TradeHistoryEntry], market_snapshot: MarketSnapShotType
     ) -> None:
         """Apply trades and update portfolio positions and aggregates.
 
@@ -75,9 +77,12 @@ class InMemoryPortfolioService(PortfolioService):
           backward compatibility)
         - portfolio aggregates: gross_exposure, net_exposure, total_value (equity), total_unrealized_pnl, buying_power
         """
+        # Extract price map from new market snapshot structure
+        price_map = extract_price_map(market_snapshot)
+
         for trade in trades:
             symbol = trade.instrument.symbol
-            price = float(trade.entry_price or market_snapshot.get(symbol, 0.0) or 0.0)
+            price = float(trade.entry_price or price_map.get(symbol, 0.0) or 0.0)
             delta = float(trade.quantity or 0.0)
             quantity_delta = delta if trade.side == TradeSide.BUY else -delta
 
@@ -199,8 +204,8 @@ class InMemoryPortfolioService(PortfolioService):
                 sym = pos.instrument.symbol
             except Exception:
                 sym = None
-            if sym and sym in market_snapshot:
-                snap_px = float(market_snapshot.get(sym) or 0.0)
+            if sym and sym in price_map:
+                snap_px = float(price_map.get(sym) or 0.0)
                 if snap_px > 0:
                     pos.mark_price = snap_px
 

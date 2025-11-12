@@ -1,6 +1,7 @@
-from typing import Dict, List, Optional
+from typing import List, Optional
 
-from ..models import TradeInstruction, TradeSide, TxResult
+from ..models import MarketSnapShotType, TradeInstruction, TradeSide, TxResult
+from ..utils import extract_price_map
 from .interfaces import ExecutionGateway
 
 
@@ -19,10 +20,10 @@ class PaperExecutionGateway(ExecutionGateway):
     async def execute(
         self,
         instructions: List[TradeInstruction],
-        market_snapshot: Optional[Dict[str, float]] = None,
+        market_snapshot: Optional[MarketSnapShotType] = None,
     ) -> List[TxResult]:
         results: List[TxResult] = []
-        price_map = market_snapshot or {}
+        price_map = extract_price_map(market_snapshot or {})
         for inst in instructions:
             self.executed.append(inst)
             ref_price = float(price_map.get(inst.instrument.symbol, 0.0) or 0.0)
