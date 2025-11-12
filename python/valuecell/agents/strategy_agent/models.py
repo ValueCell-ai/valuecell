@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -573,6 +573,9 @@ class PortfolioValueSeries(BaseModel):
     points: List[MetricPoint] = Field(default_factory=list)
 
 
+MarketSnapShotType = Dict[str, Dict[str, Any]]
+
+
 class ComposeContext(BaseModel):
     """Context assembled for the LLM-driven composer."""
 
@@ -589,7 +592,7 @@ class ComposeContext(BaseModel):
     portfolio: PortfolioView
     digest: "TradeDigest"
     prompt_text: str = Field(..., description="Strategy/style prompt text")
-    market_snapshot: Optional[Dict[str, float]] = Field(
+    market_snapshot: MarketSnapShotType = Field(
         default=None, description="Optional map symbol -> current reference price"
     )
 

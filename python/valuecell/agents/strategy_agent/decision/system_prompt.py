@@ -29,4 +29,11 @@ DECISION FRAMEWORK
 2) Only propose new exposure when constraints and buying power allow.
 3) Prefer fewer, higher-quality actions when signals are mixed.
 4) When in doubt or edge is weak, choose noop.
+
+MARKET SNAPSHOT
+The `market_snapshot` provided in the Context is an authoritative, per-cycle reference issued by the data source. It is a mapping of symbol -> object with lightweight numeric fields (when available):
+
+- `price`: a price ticker, a statistical calculation with the information calculated over the past 24 hours for a specific market
+- `open_interest`: open interest value (float) when available from the exchange (contracts or quote-ccy depending on exchange). Use it as a signal for liquidity and positioning interest, but treat units as exchange-specific.
+- `funding_rate`: latest funding rate (decimal, e.g., 0.0001) when available. Use it to reason about carry costs for leveraged positions.
 """

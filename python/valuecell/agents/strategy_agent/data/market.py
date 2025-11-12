@@ -3,7 +3,7 @@ from typing import Dict, List, Optional
 
 from loguru import logger
 
-from ..models import Candle, InstrumentRef
+from ..models import Candle, InstrumentRef, MarketSnapShotType
 from ..utils import get_exchange_cls, normalize_symbol
 from .interfaces import MarketDataSource
 
@@ -52,7 +52,7 @@ class SimpleMarketDataSource(MarketDataSource):
         # Run fetch for each symbol sequentially
         for symbol in symbols:
             try:
-                raw = await _fetch(normalize_symbol(symbol))
+                raw = await _fetch(symbol)
                 # raw is list of [ts, open, high, low, close, volume]
                 for row in raw:
                     ts, open_v, high_v, low_v, close_v, vol = row
@@ -79,3 +79,59 @@ class SimpleMarketDataSource(MarketDataSource):
                     self._exchange_id,
                 )
         return candles
+
+    async def get_market_snapshot(self, symbols: List[str]) -> MarketSnapShotType:
+        """Fetch latest prices for the given symbols using exchange endpoints.
+
+        The method tries to use the exchange's `fetch_ticker` (and optionally
+        `fetch_open_interest` / `fetch_funding_rate` when available) to build
+        a mapping symbol -> last price. On any failure for a symbol, it will
+        fall back to `base_prices` if provided or omit the symbol.
+        """
+        snapshot = defaultdict(dict)
+
+        exchange_cls = get_exchange_cls(self._exchange_id)
+        exchange = exchange_cls({"newUpdates": False, **self._ccxt_options})
+        try:
+            for symbol in symbols:
+                sym = normalize_symbol(symbol)
+                try:
+                    ticker = await exchange.fetch_ticker(sym)
+                    snapshot[symbol]["price"] = ticker
+
+                    # best-effort: warm other endpoints (open interest / funding)
+                    try:
+                        oi = await exchange.fetch_open_interest(sym)
+                        snapshot[symbol]["open_interest"] = oi
+                    except Exception:
+                        logger.exception(
+                            "Failed to fetch open interest for {} at {}",
+                            symbol,
+                            self._exchange_id,
+                        )
+
+                    try:
+                        fr = await exchange.fetch_funding_rate(sym)
+                        snapshot[symbol]["funding_rate"] = fr
+                    except Exception:
+                        logger.exception(
+                            "Failed to fetch funding rate for {} at {}",
+                            symbol,
+                            self._exchange_id,
+                        )
+                except Exception:
+                    logger.exception(
+                        "Failed to fetch market snapshot for {} at {}",
+                        symbol,
+                        self._exchange_id,
+                    )
+        finally:
+            try:
+                await exchange.close()
+            except Exception:
+                logger.exception(
+                    "Failed to close exchange connection for {}",
+                    self._exchange_id,
+                )
+
+        return dict(snapshot)
