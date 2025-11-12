@@ -119,8 +119,8 @@ class MarketType(str, Enum):
 class MarginMode(str, Enum):
     """Margin mode for leverage trading."""
 
-    ISOLATED = "isolated"  # Isolated margin (逐仓)
-    CROSS = "cross"  # Cross margin (全仓)
+    ISOLATED = "isolated"  # Isolated margin
+    CROSS = "cross"  # Cross margin
 
 
 class ExchangeConfig(BaseModel):
@@ -152,7 +152,7 @@ class ExchangeConfig(BaseModel):
     )
     margin_mode: MarginMode = Field(
         default=MarginMode.CROSS,
-        description="Margin mode: isolated (逐仓) or cross (全仓)",
+        description="Margin mode: isolated or cross",
     )
     fee_bps: float = Field(
         default=10.0,
@@ -440,33 +440,40 @@ class PortfolioView(BaseModel):
 
 
 class LlmDecisionAction(str, Enum):
-    """Normalized high-level action from LLM plan item.
+    """Position-oriented high-level actions produced by the LLM plan.
 
     Semantics:
-    - BUY/SELL: directional intent; final TradeSide is decided by delta (target - current)
-    - NOOP: target equals current (delta == 0), no instruction should be emitted
+    - OPEN_LONG: open/increase long; if currently short, flatten then open long
+    - OPEN_SHORT: open/increase short; if currently long, flatten then open short
+    - CLOSE_LONG: reduce/close long toward 0
+    - CLOSE_SHORT: reduce/close short toward 0
+    - NOOP: no operation
     """
 
-    BUY = "buy"
-    SELL = "sell"
+    OPEN_LONG = "open_long"
+    OPEN_SHORT = "open_short"
+    CLOSE_LONG = "close_long"
+    CLOSE_SHORT = "close_short"
     NOOP = "noop"
 
 
 class LlmDecisionItem(BaseModel):
-    """One LLM plan item. Uses target_qty only (no delta).
+    """LLM plan item. Interprets target_qty as operation size (magnitude).
 
-    The composer will compute order quantity as: target_qty - current_qty.
+    Unlike the previous "final target position" semantics, target_qty here
+    is the size to operate (same unit as position quantity). The composer
+    derives the final target from the action and current quantity.
     """
 
     instrument: InstrumentRef
     action: LlmDecisionAction
     target_qty: float = Field(
-        ..., description="Desired position quantity after execution"
+        ...,
+        description="Operation size for this action (units), e.g., open/close long/short",
     )
     leverage: Optional[float] = Field(
         default=None,
-        description="Requested leverage multiple for this target (e.g., 1.0 = no leverage)."
-        " Composer will clamp to allowed constraints.",
+        description="Requested leverage multiple for this action (e.g., 1.0 = no leverage). The composer clamps to constraints.",
     )
     confidence: Optional[float] = Field(
         default=None, description="Optional confidence score [0,1]"
@@ -494,7 +501,10 @@ class PriceMode(str, Enum):
 
 
 class TradeInstruction(BaseModel):
-    """Executable instruction emitted by the composer after normalization."""
+    """Executable instruction emitted by the composer after normalization.
+
+    Includes optional action for executor dispatch (open_long/open_short/close_long/close_short/noop).
+    """
 
     instruction_id: str = Field(
         ..., description="Deterministic id for idempotency (e.g., compose_id+symbol)"
@@ -503,6 +513,10 @@ class TradeInstruction(BaseModel):
         ..., description="Decision cycle id to correlate instructions and history"
     )
     instrument: InstrumentRef
+    action: Optional[LlmDecisionAction] = Field(
+        default=None,
+        description="High-level intent action for dispatch ('open_long'|'open_short'|'close_long'|'close_short'|'noop')",
+    )
     side: TradeSide
     quantity: float = Field(..., description="Order quantity in instrument units")
     leverage: Optional[float] = Field(
@@ -514,7 +528,7 @@ class TradeInstruction(BaseModel):
     )
     limit_price: Optional[float] = Field(default=None)
     max_slippage_bps: Optional[float] = Field(default=None)
-    meta: Optional[Dict[str, str | float]] = Field(
+    meta: Optional[Dict[str, str | float | bool]] = Field(
         default=None, description="Optional metadata for auditing"
     )
 
@@ -556,7 +570,7 @@ class TxResult(BaseModel):
     reason: Optional[str] = Field(
         default=None, description="Message for rejects/errors"
     )
-    meta: Optional[Dict[str, str | float]] = Field(default=None)
+    meta: Optional[Dict[str, str | float | bool]] = Field(default=None)
 
 
 class MetricPoint(BaseModel):

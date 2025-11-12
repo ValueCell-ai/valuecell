@@ -283,8 +283,23 @@ class CCXTExecutionGateway(ExecutionGateway):
         elif exid == "bybit":
             params.setdefault("reduce_only", False)
 
-        # In oneway mode, do not add positionSide/posSide by default
-        # Users can override via inst.meta if needed
+        # Enforce single-sided mode: strip positionSide/posSide if present
+        try:
+            mode = (self.position_mode or "oneway").lower()
+            if mode in ("oneway", "single", "net"):
+                removed = []
+                if "positionSide" in params:
+                    params.pop("positionSide", None)
+                    removed.append("positionSide")
+                if "posSide" in params:
+                    params.pop("posSide", None)
+                    removed.append("posSide")
+                if removed:
+                    logger.debug(
+                        f"🧹 Oneway mode: stripped {removed} from order params"
+                    )
+        except Exception:
+            pass
 
         return params
 
@@ -405,6 +420,30 @@ class CCXTExecutionGateway(ExecutionGateway):
         Returns:
             Transaction result with execution details
         """
+        # Dispatch by high-level action if provided (prefer structured field)
+        action = (inst.action.value if getattr(inst, "action", None) else None) or str(
+            (inst.meta or {}).get("action") or ""
+        ).lower()
+        if action == "open_long":
+            return await self._exec_open_long(inst, exchange)
+        if action == "open_short":
+            return await self._exec_open_short(inst, exchange)
+        if action == "close_long":
+            return await self._exec_close_long(inst, exchange)
+        if action == "close_short":
+            return await self._exec_close_short(inst, exchange)
+        if action == "noop":
+            return await self._exec_noop(inst)
+
+        # Fallback to generic submission
+        return await self._submit_order(inst, exchange)
+
+    async def _submit_order(
+        self,
+        inst: TradeInstruction,
+        exchange: ccxt.Exchange,
+        params_override: Optional[Dict] = None,
+    ) -> TxResult:
         # Normalize symbol for CCXT
         symbol = self._normalize_symbol(inst.instrument.symbol)
 
@@ -476,6 +515,29 @@ class CCXTExecutionGateway(ExecutionGateway):
 
         # Build order params with exchange-specific defaults
         params = self._build_order_params(inst, order_type)
+        if params_override:
+            try:
+                params.update(params_override)
+            except Exception:
+                pass
+
+        # Enforce single-sided mode again after overrides
+        try:
+            mode = (self.position_mode or "oneway").lower()
+            if mode in ("oneway", "single", "net"):
+                removed = []
+                if "positionSide" in params:
+                    params.pop("positionSide", None)
+                    removed.append("positionSide")
+                if "posSide" in params:
+                    params.pop("posSide", None)
+                    removed.append("posSide")
+                if removed:
+                    logger.debug(
+                        f"🧹 Oneway mode (post-override): stripped {removed} from order params"
+                    )
+        except Exception:
+            pass
 
         # Create order
         try:
@@ -560,11 +622,46 @@ class CCXTExecutionGateway(ExecutionGateway):
             leverage=inst.leverage,
             status=status,
             reason=order.get("status") if status != TxStatus.FILLED else None,
-            meta={
-                "order_id": order.get("id"),
-                "exchange_symbol": symbol,
-                **(inst.meta or {}),
-            },
+            meta=inst.meta,
+        )
+
+    async def _exec_open_long(
+        self, inst: TradeInstruction, exchange: ccxt.Exchange
+    ) -> TxResult:
+        # Ensure we do not mark reduceOnly on open
+        overrides = {"reduceOnly": False, "reduce_only": False}
+        return await self._submit_order(inst, exchange, overrides)
+
+    async def _exec_open_short(
+        self, inst: TradeInstruction, exchange: ccxt.Exchange
+    ) -> TxResult:
+        overrides = {"reduceOnly": False, "reduce_only": False}
+        return await self._submit_order(inst, exchange, overrides)
+
+    async def _exec_close_long(
+        self, inst: TradeInstruction, exchange: ccxt.Exchange
+    ) -> TxResult:
+        # Force reduceOnly flags for closes
+        overrides = {"reduceOnly": True, "reduce_only": True}
+        return await self._submit_order(inst, exchange, overrides)
+
+    async def _exec_close_short(
+        self, inst: TradeInstruction, exchange: ccxt.Exchange
+    ) -> TxResult:
+        overrides = {"reduceOnly": True, "reduce_only": True}
+        return await self._submit_order(inst, exchange, overrides)
+
+    async def _exec_noop(self, inst: TradeInstruction) -> TxResult:
+        # No-op: return a rejected result with reason
+        return TxResult(
+            instruction_id=inst.instruction_id,
+            instrument=inst.instrument,
+            side=inst.side,
+            requested_qty=float(inst.quantity),
+            filled_qty=0.0,
+            status=TxStatus.REJECTED,
+            reason="noop",
+            meta=inst.meta,
         )
 
     async def close(self) -> None:
