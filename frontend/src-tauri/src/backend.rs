@@ -3,6 +3,7 @@ use std::fs::{create_dir_all, File};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
+use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Manager};
 
 /// Backend process manager
@@ -14,59 +15,35 @@ pub struct BackendManager {
 }
 
 impl BackendManager {
-    /// Create a new backend manager
     pub fn new(app: AppHandle) -> Result<Self> {
-        // In development mode, use the actual project's python directory
-        // In production, use the bundled backend directory
-        let backend_path = if cfg!(debug_assertions) {
-            // Development mode: find project root by looking for pyproject.toml
-            let exe_path = std::env::current_exe().context("Failed to get executable path")?;
+        let resource_root = app
+            .path()
+            .resolve(".", BaseDirectory::Resource)
+            .context("Failed to resolve resource root")?;
 
-            log::info!("Executable path: {:?}", exe_path);
-
-            // Start from exe and walk up to find project root (has python/ directory and .env.example)
-            let mut current = exe_path.parent();
-            let mut project_root = None;
-
-            while let Some(dir) = current {
-                let python_dir = dir.join("python");
-                let pyproject = python_dir.join("pyproject.toml");
-
-                log::info!("Checking directory: {:?}", dir);
-                log::info!("  Python dir exists: {}", python_dir.exists());
-                log::info!("  pyproject.toml exists: {}", pyproject.exists());
-
-                if python_dir.exists() && pyproject.exists() {
-                    project_root = Some(dir);
-                    break;
-                }
-                current = dir.parent();
-            }
-
-            let project_root = project_root
-                .context("Could not find project root (looking for python/pyproject.toml)")?;
-
-            log::info!("Found project root: {:?}", project_root);
-            project_root.join("python")
+        let backend_path = if resource_root.join("backend").exists() {
+            resource_root.join("backend")
         } else {
-            // Production mode: use bundled backend
-            let resource_path = app
-                .path()
-                .resource_dir()
-                .context("Failed to get resource directory")?;
-            resource_path.join("backend")
+            let project_root = resource_root
+                .ancestors()
+                .find(|dir| {
+                    let python_dir = dir.join("python");
+                    log::info!(
+                        "Checking directory: {:?}, exists python dir: {:?}",
+                        dir,
+                        python_dir.exists()
+                    );
+                    python_dir.exists()
+                })
+                .context("Could not find project root (looking for python directory)")?;
+
+            project_root.to_path_buf().join("python")
         };
 
-        let env_path = if cfg!(debug_assertions) {
-            // Development: .env is in project root
-            backend_path
-                .parent()
-                .context("Failed to get parent directory")?
-                .join(".env")
-        } else {
-            // Production: .env is in backend directory
-            backend_path.join(".env")
-        };
+        let env_path = backend_path
+            .parent()
+            .context("Failed to get parent directory")?
+            .join(".env");
 
         // Create log directory in app's log directory
         let log_dir = app
@@ -77,14 +54,6 @@ impl BackendManager {
 
         create_dir_all(&log_dir).context("Failed to create log directory")?;
 
-        log::info!(
-            "Mode: {}",
-            if cfg!(debug_assertions) {
-                "Development"
-            } else {
-                "Production"
-            }
-        );
         log::info!("Backend path: {:?}", backend_path);
         log::info!("Env path: {:?}", env_path);
         log::info!("Log directory: {:?}", log_dir);
