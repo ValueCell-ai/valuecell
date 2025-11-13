@@ -17,7 +17,6 @@ from ..models import (
     LlmDecisionAction,
     LlmPlanProposal,
     MarketType,
-    PriceMode,
     TradeInstruction,
     TradeSide,
     UserRequest,
@@ -164,10 +163,11 @@ class LlmComposer(Composer):
                 for snap in pv.positions.values()
                 if abs(float(getattr(snap, "quantity", 0.0) or 0.0)) > 0.0
             ),
-            "total_value": getattr(pv, "total_value", None),
-            "cash": pv.cash,
-            "unrealized_pnl": getattr(pv, "total_unrealized_pnl", None),
-            "sharpe_ratio": getattr(context.digest, "sharpe_ratio", None),
+            "total_value": pv.total_value,
+            "account_balance": pv.account_balance,
+            "free_cash": pv.free_cash,
+            "unrealized_pnl": pv.total_unrealized_pnl,
+            "sharpe_ratio": context.digest.sharpe_ratio,
         }
 
     def _build_llm_prompt(self, context: ComposeContext) -> str:
@@ -631,15 +631,28 @@ class LlmComposer(Composer):
         if item.rationale:
             meta["rationale"] = item.rationale
 
+        # For derivatives/perpetual markets, mark reduceOnly when instruction reduces absolute exposure to avoid accidental reverse opens
+        try:
+            if self._request.exchange_config.market_type != MarketType.SPOT:
+                if abs(final_target) < abs(current_qty):
+                    meta["reduceOnly"] = True
+                    # Bybit uses a different param key
+                    if (
+                        self._request.exchange_config.exchange_id or ""
+                    ).lower() == "bybit":
+                        meta["reduce_only"] = True
+        except Exception:
+            # Ignore any exception; do not block instruction creation
+            pass
+
         instruction = TradeInstruction(
             instruction_id=f"{context.compose_id}:{symbol}:{idx}",
             compose_id=context.compose_id,
             instrument=item.instrument,
+            action=item.action,
             side=side,
             quantity=quantity,
             leverage=final_leverage,
-            price_mode=PriceMode.MARKET,
-            limit_price=None,
             max_slippage_bps=self._default_slippage_bps,
             meta=meta,
         )
@@ -659,18 +672,38 @@ class LlmComposer(Composer):
         current_qty: float,
         max_position_qty: Optional[float],
     ) -> float:
-        # If the composer requested NOOP, keep current quantity
+        # NOOP: keep current position
         if item.action == LlmDecisionAction.NOOP:
             return current_qty
 
-        # Interpret target_qty as a magnitude; apply action to determine sign
-        mag = float(item.target_qty)
-        if item.action == LlmDecisionAction.SELL:
-            target = -abs(mag)
-        else:
-            # default to BUY semantics
-            target = abs(mag)
+        # Interpret target_qty as operation magnitude (not final position), normalized to positive
+        mag = abs(float(item.target_qty))
+        target = current_qty
 
+        # Compute target position per open/close long/short action
+        if item.action == LlmDecisionAction.OPEN_LONG:
+            base = current_qty if current_qty > 0 else 0.0
+            target = base + mag
+        elif item.action == LlmDecisionAction.OPEN_SHORT:
+            base = current_qty if current_qty < 0 else 0.0
+            target = base - mag
+        elif item.action == LlmDecisionAction.CLOSE_LONG:
+            if current_qty > 0:
+                target = max(current_qty - mag, 0.0)
+            else:
+                # No long position, keep unchanged
+                target = current_qty
+        elif item.action == LlmDecisionAction.CLOSE_SHORT:
+            if current_qty < 0:
+                target = min(current_qty + mag, 0.0)
+            else:
+                # No short position, keep unchanged
+                target = current_qty
+        else:
+            # Fallback: treat unknown action as NOOP
+            target = current_qty
+
+        # Clamp by max_position_qty (symmetric)
         if max_position_qty is not None:
             max_abs = abs(float(max_position_qty))
             target = max(-max_abs, min(max_abs, target))

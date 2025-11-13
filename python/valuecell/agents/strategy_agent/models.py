@@ -29,7 +29,19 @@ class TradeType(str, Enum):
 
 
 class TradeSide(str, Enum):
-    """Side for executable trade instruction."""
+    """Low-level execution side (exchange primitive).
+
+    This remains distinct from `LlmDecisionAction` which encodes *intent* at a
+    position semantic level (open_long/close_short/etc). TradeSide is kept for:
+    - direct mapping to exchange APIs that require BUY/SELL
+    - conveying slippage/fee direction in execution records
+
+    Removal consideration: if the pipeline fully normalizes around
+    LlmDecisionAction -> (final target delta), we can derive side on the fly:
+        OPEN_LONG, CLOSE_SHORT -> BUY
+        OPEN_SHORT, CLOSE_LONG -> SELL
+    For now we keep it explicit to avoid recomputation and ease auditing.
+    """
 
     BUY = "BUY"
     SELL = "SELL"
@@ -119,8 +131,8 @@ class MarketType(str, Enum):
 class MarginMode(str, Enum):
     """Margin mode for leverage trading."""
 
-    ISOLATED = "isolated"  # Isolated margin (逐仓)
-    CROSS = "cross"  # Cross margin (全仓)
+    ISOLATED = "isolated"  # Isolated margin
+    CROSS = "cross"  # Cross margin
 
 
 class ExchangeConfig(BaseModel):
@@ -152,7 +164,7 @@ class ExchangeConfig(BaseModel):
     )
     margin_mode: MarginMode = Field(
         default=MarginMode.CROSS,
-        description="Margin mode: isolated (逐仓) or cross (全仓)",
+        description="Margin mode: isolated or cross",
     )
     fee_bps: float = Field(
         default=10.0,
@@ -412,7 +424,9 @@ class PortfolioView(BaseModel):
         default=None, description="Owning strategy id for this portfolio snapshot"
     )
     ts: int
-    cash: float
+    account_balance: float = Field(
+        ..., description="Account cash balance in quote currency"
+    )
     positions: Dict[str, PositionSnapshot] = Field(
         default_factory=dict, description="Map symbol -> PositionSnapshot"
     )
@@ -437,36 +451,70 @@ class PortfolioView(BaseModel):
         default=None,
         description="Buying power: max(0, equity * max_leverage - gross_exposure)",
     )
+    free_cash: Optional[float] = Field(
+        default=None,
+        description=(
+            "Approx available funds without tracking margin_used explicitly. "
+            "Definition: free_cash = max(0, equity - sum_i(notional_i / L_i)), "
+            "where equity = total_value (if provided) else (cash + total_unrealized_pnl or 0). "
+            "For spot/no-leverage positions L_i = 1; for leveraged positions L_i is each position's"
+            " effective leverage if available, otherwise falls back to constraints.max_leverage."
+        ),
+    )
 
 
 class LlmDecisionAction(str, Enum):
-    """Normalized high-level action from LLM plan item.
+    """Position-oriented high-level actions produced by the LLM plan.
 
     Semantics:
-    - BUY/SELL: directional intent; final TradeSide is decided by delta (target - current)
-    - NOOP: target equals current (delta == 0), no instruction should be emitted
+    - OPEN_LONG: open/increase long; if currently short, flatten then open long
+    - OPEN_SHORT: open/increase short; if currently long, flatten then open short
+    - CLOSE_LONG: reduce/close long toward 0
+    - CLOSE_SHORT: reduce/close short toward 0
+    - NOOP: no operation
     """
 
-    BUY = "buy"
-    SELL = "sell"
+    OPEN_LONG = "open_long"
+    OPEN_SHORT = "open_short"
+    CLOSE_LONG = "close_long"
+    CLOSE_SHORT = "close_short"
     NOOP = "noop"
 
 
-class LlmDecisionItem(BaseModel):
-    """One LLM plan item. Uses target_qty only (no delta).
+def derive_side_from_action(
+    action: Optional[LlmDecisionAction],
+) -> Optional["TradeSide"]:
+    """Derive execution side (BUY/SELL) from a high-level action.
 
-    The composer will compute order quantity as: target_qty - current_qty.
+    Returns None for non-order actions (e.g., noop, future amend/cancel types).
+    """
+    if action is None:
+        return None
+    if action in (LlmDecisionAction.OPEN_LONG, LlmDecisionAction.CLOSE_SHORT):
+        return TradeSide.BUY
+    if action in (LlmDecisionAction.OPEN_SHORT, LlmDecisionAction.CLOSE_LONG):
+        return TradeSide.SELL
+    # NOOP or future adjust/cancel actions: no executable side
+    return None
+
+
+class LlmDecisionItem(BaseModel):
+    """LLM plan item. Interprets target_qty as operation size (magnitude).
+
+    Unlike the previous "final target position" semantics, target_qty here
+    is the size to operate (same unit as position quantity). The composer
+    derives the final target from the action and current quantity.
     """
 
     instrument: InstrumentRef
     action: LlmDecisionAction
     target_qty: float = Field(
-        ..., description="Desired position quantity after execution"
+        ...,
+        description="Operation size for this action (units), e.g., open/close long/short",
     )
     leverage: Optional[float] = Field(
         default=None,
-        description="Requested leverage multiple for this target (e.g., 1.0 = no leverage)."
-        " Composer will clamp to allowed constraints.",
+        description="Requested leverage multiple for this action (e.g., 1.0 = no leverage). The composer clamps to constraints.",
     )
     confidence: Optional[float] = Field(
         default=None, description="Optional confidence score [0,1]"
@@ -494,7 +542,10 @@ class PriceMode(str, Enum):
 
 
 class TradeInstruction(BaseModel):
-    """Executable instruction emitted by the composer after normalization."""
+    """Executable instruction emitted by the composer after normalization.
+
+    Includes optional action for executor dispatch (open_long/open_short/close_long/close_short/noop).
+    """
 
     instruction_id: str = Field(
         ..., description="Deterministic id for idempotency (e.g., compose_id+symbol)"
@@ -503,7 +554,11 @@ class TradeInstruction(BaseModel):
         ..., description="Decision cycle id to correlate instructions and history"
     )
     instrument: InstrumentRef
-    side: TradeSide
+    action: Optional[LlmDecisionAction] = Field(
+        default=None,
+        description="High-level intent action for dispatch ('open_long'|'open_short'|'close_long'|'close_short'|'noop')",
+    )
+    side: TradeSide  # Derived execution direction (BUY/SELL) consistent with action
     quantity: float = Field(..., description="Order quantity in instrument units")
     leverage: Optional[float] = Field(
         default=None,
@@ -514,9 +569,42 @@ class TradeInstruction(BaseModel):
     )
     limit_price: Optional[float] = Field(default=None)
     max_slippage_bps: Optional[float] = Field(default=None)
-    meta: Optional[Dict[str, str | float]] = Field(
+    meta: Optional[Dict[str, str | float | bool]] = Field(
         default=None, description="Optional metadata for auditing"
     )
+
+    @model_validator(mode="after")
+    def _validate_action_side_alignment(self):
+        """Ensure action (if provided) aligns with the executable side.
+
+        Mapping (state-independent after normalization):
+          - OPEN_LONG  -> BUY
+          - CLOSE_SHORT-> BUY
+          - OPEN_SHORT -> SELL
+          - CLOSE_LONG -> SELL
+          - NOOP       -> should not be emitted as an instruction
+        """
+        act = self.action
+        if act is None:
+            return self
+        try:
+            if act == LlmDecisionAction.NOOP:
+                # Composer should not emit NOOP instructions; tolerate in lenient mode
+                return self
+            if act in (LlmDecisionAction.OPEN_LONG, LlmDecisionAction.CLOSE_SHORT):
+                expected = TradeSide.BUY
+            elif act in (LlmDecisionAction.OPEN_SHORT, LlmDecisionAction.CLOSE_LONG):
+                expected = TradeSide.SELL
+            else:
+                return self
+            if self.side != expected:
+                raise ValueError(
+                    f"TradeInstruction.action={act} conflicts with side={self.side}; expected {expected}"
+                )
+        except Exception:
+            # Be conservative: do not block pipeline on validator edge cases
+            return self
+        return self
 
 
 class TxStatus(str, Enum):
@@ -537,7 +625,7 @@ class TxResult(BaseModel):
 
     instruction_id: str = Field(..., description="Originating instruction id")
     instrument: InstrumentRef
-    side: TradeSide
+    side: TradeSide  # Echo of execution direction for auditing
     requested_qty: float = Field(..., description="Requested order quantity")
     filled_qty: float = Field(..., description="Filled quantity (<= requested)")
     avg_exec_price: Optional[float] = Field(
@@ -556,7 +644,7 @@ class TxResult(BaseModel):
     reason: Optional[str] = Field(
         default=None, description="Message for rejects/errors"
     )
-    meta: Optional[Dict[str, str | float]] = Field(default=None)
+    meta: Optional[Dict[str, str | float | bool]] = Field(default=None)
 
 
 class MetricPoint(BaseModel):

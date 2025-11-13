@@ -22,6 +22,7 @@ from ..models import (
     TradeSide,
     TxResult,
     TxStatus,
+    derive_side_from_action,
 )
 from .interfaces import ExecutionGateway
 
@@ -284,8 +285,23 @@ class CCXTExecutionGateway(ExecutionGateway):
         elif exid == "bybit":
             params.setdefault("reduce_only", False)
 
-        # In oneway mode, do not add positionSide/posSide by default
-        # Users can override via inst.meta if needed
+        # Enforce single-sided mode: strip positionSide/posSide if present
+        try:
+            mode = (self.position_mode or "oneway").lower()
+            if mode in ("oneway", "single", "net"):
+                removed = []
+                if "positionSide" in params:
+                    params.pop("positionSide", None)
+                    removed.append("positionSide")
+                if "posSide" in params:
+                    params.pop("posSide", None)
+                    removed.append("posSide")
+                if removed:
+                    logger.debug(
+                        f"🧹 Oneway mode: stripped {removed} from order params"
+                    )
+        except Exception:
+            pass
 
         return params
 
@@ -346,6 +362,138 @@ class CCXTExecutionGateway(ExecutionGateway):
                     return f"notional<{min_cost}"
         return None
 
+    async def _estimate_required_margin_okx(
+        self,
+        symbol: str,
+        amount: float,
+        price: Optional[float],
+        leverage: Optional[float],
+        exchange: ccxt.Exchange,
+    ) -> Optional[float]:
+        """Estimate initial margin required for an OKX derivatives open.
+
+        If `symbol` is a derivatives contract and `amount` is in contracts (sz),
+        multiply by the contract size (`contractSize` or `info.ctVal`) to convert
+        to notional units before dividing by leverage.
+        Falls back to ticker price when `price` is not provided.
+        """
+        try:
+            lev = float(leverage or 1.0)
+            if lev <= 0:
+                lev = 1.0
+            px = float(price or 0.0)
+            if px <= 0:
+                if exchange.has.get("fetchTicker"):
+                    try:
+                        ticker = await exchange.fetch_ticker(symbol)
+                        px = float(
+                            ticker.get("last")
+                            or ticker.get("bid")
+                            or ticker.get("ask")
+                            or 0.0
+                        )
+                    except Exception:
+                        px = 0.0
+            if px <= 0:
+                return None
+
+            # Detect contract size if symbol is derivatives (OKX swap/futures)
+            ct_val: Optional[float] = None
+            try:
+                market = (getattr(exchange, "markets", {}) or {}).get(symbol) or {}
+                if market.get("contract"):
+                    try:
+                        ct_val = float(market.get("contractSize") or 0.0)
+                    except Exception:
+                        ct_val = None
+                    if not ct_val:
+                        info = market.get("info") or {}
+                        try:
+                            ct_val = float(info.get("ctVal") or 0.0)
+                        except Exception:
+                            ct_val = None
+            except Exception:
+                ct_val = None
+
+            # If ct_val is present and amount is sz (contracts), convert to notional
+            if ct_val and ct_val > 0:
+                notional = amount * ct_val * px
+            else:
+                # Fallback: treat amount as base units
+                notional = amount * px
+
+            return notional / lev * 1.02
+        except Exception:
+            return None
+
+    async def _get_free_usdt_okx(self, exchange: ccxt.Exchange) -> Optional[float]:
+        """Read available USDT from OKX unified trading account.
+
+        Explicitly queries trading balances and extracts free USDT.
+        """
+        try:
+            bal = await exchange.fetch_balance({"type": "trading"})
+            free = bal.get("free") or {}
+            usdt = free.get("USDT")
+            if usdt is None:
+                # Fallback: some ccxt versions expose totals differently
+                usdt = (bal.get("total") or {}).get("USDT")
+            return float(usdt) if usdt is not None else 0.0
+        except Exception as e:
+            logger.warning(f"⚠️ Could not fetch OKX trading balance: {e}")
+            return None
+
+    async def _estimate_required_margin_binance_linear(
+        self,
+        symbol: str,
+        amount: float,
+        price: Optional[float],
+        leverage: Optional[float],
+        exchange: ccxt.Exchange,
+    ) -> Optional[float]:
+        """Estimate initial margin for Binance USDT-M linear contracts.
+
+        For USDT-M (linear), `amount` is base coin quantity.
+        Approximation: notional = amount * price; initial_margin = notional / leverage.
+        Adds a 2% buffer. If no price is provided, falls back to ticker last/bid/ask.
+        """
+        try:
+            lev = float(leverage or 1.0)
+            if lev <= 0:
+                lev = 1.0
+            px = float(price or 0.0)
+            if px <= 0:
+                if exchange.has.get("fetchTicker"):
+                    try:
+                        ticker = await exchange.fetch_ticker(symbol)
+                        px = float(
+                            ticker.get("last")
+                            or ticker.get("bid")
+                            or ticker.get("ask")
+                            or 0.0
+                        )
+                    except Exception:
+                        px = 0.0
+            if px <= 0:
+                return None
+            notional = amount * px
+            return notional / lev * 1.02
+        except Exception:
+            return None
+
+    async def _get_free_usdt_binance(self, exchange: ccxt.Exchange) -> Optional[float]:
+        """Fetch available USDT balance from Binance USDT-M futures account."""
+        try:
+            bal = await exchange.fetch_balance({"type": "future"})
+            free = bal.get("free") or {}
+            usdt = free.get("USDT")
+            if usdt is None:
+                usdt = (bal.get("total") or {}).get("USDT")
+            return float(usdt) if usdt is not None else 0.0
+        except Exception as e:
+            logger.warning(f"Could not fetch Binance futures balance: {e}")
+            return None
+
     async def execute(
         self,
         instructions: List[TradeInstruction],
@@ -371,8 +519,13 @@ class CCXTExecutionGateway(ExecutionGateway):
         results: List[TxResult] = []
 
         for inst in instructions:
+            side = (
+                getattr(inst, "side", None)
+                or derive_side_from_action(getattr(inst, "action", None))
+                or TradeSide.BUY
+            )
             logger.info(
-                f"  📤 Processing {inst.instrument.symbol} {inst.side.value} qty={inst.quantity}"
+                f"  📤 Processing {inst.instrument.symbol} {side.value} qty={inst.quantity}"
             )
             try:
                 result = await self._execute_single(inst, exchange)
@@ -383,7 +536,7 @@ class CCXTExecutionGateway(ExecutionGateway):
                     TxResult(
                         instruction_id=inst.instruction_id,
                         instrument=inst.instrument,
-                        side=inst.side,
+                        side=side,
                         requested_qty=float(inst.quantity),
                         filled_qty=0.0,
                         status=TxStatus.ERROR,
@@ -406,6 +559,30 @@ class CCXTExecutionGateway(ExecutionGateway):
         Returns:
             Transaction result with execution details
         """
+        # Dispatch by high-level action if provided (prefer structured field)
+        action = (inst.action.value if getattr(inst, "action", None) else None) or str(
+            (inst.meta or {}).get("action") or ""
+        ).lower()
+        if action == "open_long":
+            return await self._exec_open_long(inst, exchange)
+        if action == "open_short":
+            return await self._exec_open_short(inst, exchange)
+        if action == "close_long":
+            return await self._exec_close_long(inst, exchange)
+        if action == "close_short":
+            return await self._exec_close_short(inst, exchange)
+        if action == "noop":
+            return await self._exec_noop(inst)
+
+        # Fallback to generic submission
+        return await self._submit_order(inst, exchange)
+
+    async def _submit_order(
+        self,
+        inst: TradeInstruction,
+        exchange: ccxt.Exchange,
+        params_override: Optional[Dict] = None,
+    ) -> TxResult:
         # Normalize symbol for CCXT
         symbol = self._normalize_symbol(inst.instrument.symbol)
 
@@ -440,10 +617,34 @@ class CCXTExecutionGateway(ExecutionGateway):
         await self._setup_margin_mode(symbol, exchange)
 
         # Map instruction to CCXT parameters
-        side = "buy" if inst.side == TradeSide.BUY else "sell"
+        local_side = (
+            getattr(inst, "side", None)
+            or derive_side_from_action(getattr(inst, "action", None))
+            or TradeSide.BUY
+        )
+        side = "buy" if local_side == TradeSide.BUY else "sell"
         order_type = "limit" if inst.price_mode == PriceMode.LIMIT else "market"
         amount = float(inst.quantity)
         price = float(inst.limit_price) if inst.limit_price else None
+
+        # For OKX derivatives, amount must be in contracts; convert from base units if needed
+        try:
+            market = (getattr(exchange, "markets", {}) or {}).get(symbol) or {}
+            if self.exchange_id == "okx" and market.get("contract"):
+                try:
+                    ct_val = float(market.get("contractSize") or 0.0)
+                except Exception:
+                    ct_val = None
+                if not ct_val:
+                    info = market.get("info") or {}
+                    try:
+                        ct_val = float(info.get("ctVal") or 0.0)
+                    except Exception:
+                        ct_val = None
+                if ct_val and ct_val > 0:
+                    amount = amount / ct_val
+        except Exception:
+            pass
 
         # Align precision if supported
         try:
@@ -467,7 +668,7 @@ class CCXTExecutionGateway(ExecutionGateway):
             return TxResult(
                 instruction_id=inst.instruction_id,
                 instrument=inst.instrument,
-                side=inst.side,
+                side=local_side,
                 requested_qty=float(inst.quantity),
                 filled_qty=0.0,
                 status=TxStatus.REJECTED,
@@ -475,8 +676,109 @@ class CCXTExecutionGateway(ExecutionGateway):
                 meta=inst.meta,
             )
 
+        # OKX trading account margin precheck for open orders
+        if self.exchange_id == "okx":
+            try:
+                # Determine open vs close intent from default reduceOnly flags
+                provisional = self._build_order_params(inst, order_type)
+                is_close = bool(
+                    provisional.get("reduceOnly") or provisional.get("reduce_only")
+                )
+                if not is_close:
+                    required = await self._estimate_required_margin_okx(
+                        symbol, amount, price, inst.leverage, exchange
+                    )
+                    free_usdt = await self._get_free_usdt_okx(exchange)
+                    if (
+                        required is not None
+                        and free_usdt is not None
+                        and free_usdt < required
+                    ):
+                        reject_reason = f"insufficient_margin:need~{required:.6f}USDT,free~{free_usdt:.6f}USDT"
+                        logger.warning(f"  🚫 Skipping order due to {reject_reason}")
+                        return TxResult(
+                            instruction_id=inst.instruction_id,
+                            instrument=inst.instrument,
+                            side=local_side,
+                            requested_qty=float(inst.quantity),
+                            filled_qty=0.0,
+                            status=TxStatus.REJECTED,
+                            reason=reject_reason,
+                            meta=inst.meta,
+                        )
+            except Exception as e:
+                logger.warning(
+                    f"⚠️ OKX margin precheck failed, proceeding without precheck: {e}"
+                )
+
+        # Binance USDT-M linear futures margin precheck for open orders
+        if self.exchange_id == "binance":
+            try:
+                provisional = self._build_order_params(inst, order_type)
+                is_close = bool(
+                    provisional.get("reduceOnly") or provisional.get("reduce_only")
+                )
+                if not is_close:
+                    market = (getattr(exchange, "markets", {}) or {}).get(symbol) or {}
+                    is_contract = bool(market.get("contract"))
+                    is_linear = bool(market.get("linear"))
+                    if not is_linear:
+                        settle = str(market.get("settle") or "").upper()
+                        is_linear = bool(is_contract and settle == "USDT")
+                    if is_contract and is_linear:
+                        required = await self._estimate_required_margin_binance_linear(
+                            symbol, amount, price, inst.leverage, exchange
+                        )
+                        free_usdt = await self._get_free_usdt_binance(exchange)
+                        if (
+                            required is not None
+                            and free_usdt is not None
+                            and free_usdt < required
+                        ):
+                            reject_reason = f"insufficient_margin_binance_usdtm:need~{required:.6f}USDT,free~{free_usdt:.6f}USDT"
+                            logger.warning(
+                                f"  🚫 Skipping order due to {reject_reason}"
+                            )
+                            return TxResult(
+                                instruction_id=inst.instruction_id,
+                                instrument=inst.instrument,
+                                side=local_side,
+                                requested_qty=float(inst.quantity),
+                                filled_qty=0.0,
+                                status=TxStatus.REJECTED,
+                                reason=reject_reason,
+                                meta=inst.meta,
+                            )
+            except Exception as e:
+                logger.warning(
+                    f"⚠️ Binance USDT-M margin precheck failed, proceeding without precheck: {e}"
+                )
+
         # Build order params with exchange-specific defaults
         params = self._build_order_params(inst, order_type)
+        if params_override:
+            try:
+                params.update(params_override)
+            except Exception:
+                pass
+
+        # Enforce single-sided mode again after overrides
+        try:
+            mode = (self.position_mode or "oneway").lower()
+            if mode in ("oneway", "single", "net"):
+                removed = []
+                if "positionSide" in params:
+                    params.pop("positionSide", None)
+                    removed.append("positionSide")
+                if "posSide" in params:
+                    params.pop("posSide", None)
+                    removed.append("posSide")
+                if removed:
+                    logger.debug(
+                        f"🧹 Oneway mode (post-override): stripped {removed} from order params"
+                    )
+        except Exception:
+            pass
 
         # Create order
         try:
@@ -552,7 +854,7 @@ class CCXTExecutionGateway(ExecutionGateway):
         return TxResult(
             instruction_id=inst.instruction_id,
             instrument=inst.instrument,
-            side=inst.side,
+            side=local_side,
             requested_qty=amount,
             filled_qty=filled_qty,
             avg_exec_price=avg_price if avg_price > 0 else None,
@@ -561,11 +863,51 @@ class CCXTExecutionGateway(ExecutionGateway):
             leverage=inst.leverage,
             status=status,
             reason=order.get("status") if status != TxStatus.FILLED else None,
-            meta={
-                "order_id": order.get("id"),
-                "exchange_symbol": symbol,
-                **(inst.meta or {}),
-            },
+            meta=inst.meta,
+        )
+
+    async def _exec_open_long(
+        self, inst: TradeInstruction, exchange: ccxt.Exchange
+    ) -> TxResult:
+        # Ensure we do not mark reduceOnly on open
+        overrides = {"reduceOnly": False, "reduce_only": False}
+        return await self._submit_order(inst, exchange, overrides)
+
+    async def _exec_open_short(
+        self, inst: TradeInstruction, exchange: ccxt.Exchange
+    ) -> TxResult:
+        overrides = {"reduceOnly": False, "reduce_only": False}
+        return await self._submit_order(inst, exchange, overrides)
+
+    async def _exec_close_long(
+        self, inst: TradeInstruction, exchange: ccxt.Exchange
+    ) -> TxResult:
+        # Force reduceOnly flags for closes
+        overrides = {"reduceOnly": True, "reduce_only": True}
+        return await self._submit_order(inst, exchange, overrides)
+
+    async def _exec_close_short(
+        self, inst: TradeInstruction, exchange: ccxt.Exchange
+    ) -> TxResult:
+        overrides = {"reduceOnly": True, "reduce_only": True}
+        return await self._submit_order(inst, exchange, overrides)
+
+    async def _exec_noop(self, inst: TradeInstruction) -> TxResult:
+        # No-op: return a rejected result with reason
+        side = (
+            getattr(inst, "side", None)
+            or derive_side_from_action(getattr(inst, "action", None))
+            or TradeSide.BUY
+        )
+        return TxResult(
+            instruction_id=inst.instruction_id,
+            instrument=inst.instrument,
+            side=side,
+            requested_qty=float(inst.quantity),
+            filled_qty=0.0,
+            status=TxStatus.REJECTED,
+            reason="noop",
+            meta=inst.meta,
         )
 
     async def close(self) -> None:

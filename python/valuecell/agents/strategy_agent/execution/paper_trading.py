@@ -1,6 +1,12 @@
 from typing import List, Optional
 
-from ..models import MarketSnapShotType, TradeInstruction, TradeSide, TxResult
+from ..models import (
+    MarketSnapShotType,
+    TradeInstruction,
+    TradeSide,
+    TxResult,
+    derive_side_from_action,
+)
 from ..utils import extract_price_map
 from .interfaces import ExecutionGateway
 
@@ -29,7 +35,13 @@ class PaperExecutionGateway(ExecutionGateway):
             ref_price = float(price_map.get(inst.instrument.symbol, 0.0) or 0.0)
             slip_bps = float(inst.max_slippage_bps or 0.0)
             slip = slip_bps / 10_000.0
-            if inst.side == TradeSide.BUY:
+            # Compute side from instruction or derive from action (future-proof for non-order actions)
+            side = (
+                getattr(inst, "side", None)
+                or derive_side_from_action(getattr(inst, "action", None))
+                or TradeSide.BUY
+            )  # default BUY only affects pricing on non-order/noop
+            if side == TradeSide.BUY:
                 exec_price = ref_price * (1.0 + slip)
             else:
                 exec_price = ref_price * (1.0 - slip)
@@ -41,7 +53,7 @@ class PaperExecutionGateway(ExecutionGateway):
                 TxResult(
                     instruction_id=inst.instruction_id,
                     instrument=inst.instrument,
-                    side=inst.side,
+                    side=side,
                     requested_qty=float(inst.quantity),
                     filled_qty=float(inst.quantity),
                     avg_exec_price=float(exec_price) if exec_price else None,

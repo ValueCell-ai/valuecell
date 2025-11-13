@@ -187,6 +187,20 @@ class StrategyAgent(BaseAgent):
             logger.exception("StrategyAgent stream failed: {}", err)
             yield streaming.message_chunk(f"StrategyAgent error: {err}")
         finally:
+            # Close runtime resources (e.g., CCXT exchange) before marking stopped
+            try:
+                if hasattr(runtime, "coordinator") and hasattr(
+                    runtime.coordinator, "close"
+                ):
+                    await runtime.coordinator.close()
+                    logger.info(
+                        "Closed runtime coordinator resources for strategy {}",
+                        strategy_id,
+                    )
+            except Exception:
+                logger.exception(
+                    "Failed to close runtime resources for strategy {}", strategy_id
+                )
             # Always mark strategy as stopped when stream ends for any reason
             try:
                 strategy_persistence.mark_strategy_stopped(strategy_id)

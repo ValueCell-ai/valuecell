@@ -96,7 +96,7 @@ def persist_portfolio_view(view: agent_models.PortfolioView) -> bool:
             else None
         )
 
-        cash = float(view.cash)
+        cash = float(view.free_cash)
         total_value = float(view.total_value) if view.total_value is not None else cash
         total_unrealized = (
             float(view.total_unrealized_pnl)
