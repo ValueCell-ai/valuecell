@@ -72,11 +72,12 @@ class SimpleMarketDataSource(MarketDataSource):
                             interval=interval,
                         )
                     )
-            except Exception:
-                logger.exception(
-                    "Failed to fetch candles for {} from {}, return empty candles",
+            except Exception as exc:
+                logger.error(
+                    "Failed to fetch candles for {} from {}, return empty candles. Error: {}",
                     symbol,
                     self._exchange_id,
+                    exc,
                 )
         return candles
 
