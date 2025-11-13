@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -301,9 +301,9 @@ class InstrumentRef(BaseModel):
     exchange_id: Optional[str] = Field(
         default=None, description="exchange identifier (e.g., binance)"
     )
-    quote_ccy: Optional[str] = Field(
-        default=None, description="Quote currency (e.g., USDT)"
-    )
+    # quote_ccy: Optional[str] = Field(
+    #     default=None, description="Quote currency (e.g., USDT)"
+    # )
 
 
 class Candle(BaseModel):
@@ -649,6 +649,9 @@ class PortfolioValueSeries(BaseModel):
     points: List[MetricPoint] = Field(default_factory=list)
 
 
+MarketSnapShotType = Dict[str, Dict[str, Any]]
+
+
 class ComposeContext(BaseModel):
     """Context assembled for the LLM-driven composer."""
 
@@ -665,7 +668,7 @@ class ComposeContext(BaseModel):
     portfolio: PortfolioView
     digest: "TradeDigest"
     prompt_text: str = Field(..., description="Strategy/style prompt text")
-    market_snapshot: Optional[Dict[str, float]] = Field(
+    market_snapshot: MarketSnapShotType = Field(
         default=None, description="Optional map symbol -> current reference price"
     )
 
@@ -740,6 +743,15 @@ class TradeDigest(BaseModel):
 
     ts: int
     by_instrument: Dict[str, TradeDigestEntry] = Field(default_factory=dict)
+    sharpe_ratio: Optional[float] = Field(
+        default=None,
+        description=(
+            "Sharpe Ratio computed from recent equity curve. "
+            "Formula: (avg_return - risk_free_rate) / std_dev_returns. "
+            "Interpretation: <0 losing; 0-1 positive but volatile; "
+            "1-2 good; >2 excellent risk-adjusted performance."
+        ),
+    )
 
 
 class StrategySummary(BaseModel):
@@ -768,6 +780,10 @@ class StrategySummary(BaseModel):
     )
     unrealized_pnl_pct: Optional[float] = Field(
         default=None, description="Unrealized P&L as a percent of position value"
+    )
+    total_value: Optional[float] = Field(
+        default=None,
+        description="Total portfolio value (equity) including cash and positions",
     )
     last_updated_ts: Optional[int] = Field(default=None)
 

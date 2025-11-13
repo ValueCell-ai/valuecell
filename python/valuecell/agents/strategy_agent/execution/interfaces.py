@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
+from typing import List, Optional
 
-from ..models import TradeInstruction, TxResult
+from ..models import MarketSnapShotType, TradeInstruction, TxResult
 
 # Contracts for execution gateways (module-local abstract interfaces).
 # An implementation may route to a real exchange or a paper broker.
@@ -16,7 +16,7 @@ class ExecutionGateway(ABC):
     async def execute(
         self,
         instructions: List[TradeInstruction],
-        market_snapshot: Optional[Dict[str, float]] = None,
+        market_snapshot: Optional[MarketSnapShotType] = None,
     ) -> List[TxResult]:
         """Execute the provided instructions and return TxResult items.
 

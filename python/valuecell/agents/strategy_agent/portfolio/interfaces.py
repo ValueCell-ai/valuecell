@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
+from typing import List, Optional
 
-from ..models import PortfolioView, TradeHistoryEntry
+from ..models import MarketSnapShotType, PortfolioView, TradeHistoryEntry
 
 
 class PortfolioService(ABC):
@@ -18,7 +18,7 @@ class PortfolioService(ABC):
         raise NotImplementedError
 
     def apply_trades(
-        self, trades: List[TradeHistoryEntry], market_snapshot: Dict[str, float]
+        self, trades: List[TradeHistoryEntry], market_snapshot: MarketSnapShotType
     ) -> None:
         """Apply executed trades to the portfolio view (optional).
 

@@ -80,12 +80,12 @@ def create_strategy_agent_router() -> APIRouter:
                             if content:
                                 user_request.trading_config.prompt_text = content
                                 logger.info(
-                                    "Resolved prompt_id=%s to prompt_text for strategy creation",
+                                    "Resolved prompt_id={} to prompt_text for strategy creation",
                                     prompt_id,
                                 )
                     except Exception:
                         logger.exception(
-                            "Failed to load prompt for prompt_id=%s; continuing without resolved prompt",
+                            "Failed to load prompt for prompt_id={}; continuing without resolved prompt",
                             prompt_id,
                         )
             except Exception:
