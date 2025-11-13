@@ -164,7 +164,7 @@ class LlmComposer(Composer):
                 if abs(float(getattr(snap, "quantity", 0.0) or 0.0)) > 0.0
             ),
             "total_value": pv.total_value,
-            "account_balance": pv._account_balance,
+            "account_balance": pv.account_balance,
             "free_cash": pv.free_cash,
             "unrealized_pnl": pv.total_unrealized_pnl,
             "sharpe_ratio": context.digest.sharpe_ratio,

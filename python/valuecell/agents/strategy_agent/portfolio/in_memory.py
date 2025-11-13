@@ -46,7 +46,7 @@ class InMemoryPortfolioService(PortfolioService):
         self._view = PortfolioView(
             strategy_id=strategy_id,
             ts=int(datetime.now(timezone.utc).timestamp() * 1000),
-            _account_balance=initial_capital,
+            account_balance=initial_capital,
             positions={},
             gross_exposure=0.0,
             net_exposure=0.0,
@@ -171,12 +171,12 @@ class InMemoryPortfolioService(PortfolioService):
             fee = trade.fee_cost or 0.0
             if trade.side == TradeSide.BUY:
                 # buying reduces cash by notional plus fees
-                self._view._account_balance -= notional
-                self._view._account_balance -= fee
+                self._view.account_balance -= notional
+                self._view.account_balance -= fee
             else:
                 # selling increases cash by notional minus fees
-                self._view._account_balance += notional
-                self._view._account_balance -= fee
+                self._view.account_balance += notional
+                self._view.account_balance -= fee
 
             # Recompute per-position derived fields (if position still exists)
             pos = self._view.positions.get(symbol)
@@ -235,13 +235,13 @@ class InMemoryPortfolioService(PortfolioService):
         self._view.net_exposure = net
         self._view.total_unrealized_pnl = unreal
         # Equity is cash plus net exposure (correct for both long and short)
-        equity = self._view._account_balance + net
+        equity = self._view.account_balance + net
         self._view.total_value = equity
 
         # Approximate buying power using market type policy
         if self._market_type == MarketType.SPOT:
             # Spot: cash-only buying power
-            self._view.buying_power = max(0.0, float(self._view._account_balance))
+            self._view.buying_power = max(0.0, float(self._view.account_balance))
         else:
             # Derivatives: margin-based buying power
             max_lev = (
@@ -256,7 +256,7 @@ class InMemoryPortfolioService(PortfolioService):
         # Equity fallback: already computed as cash + net
         if self._market_type == MarketType.SPOT:
             # No leverage: free cash equals available cash
-            self._view.free_cash = max(0.0, float(self._view._account_balance))
+            self._view.free_cash = max(0.0, float(self._view.account_balance))
         else:
             # Derivatives: estimate required margin as sum(notional_i / L_i)
             required_margin = 0.0

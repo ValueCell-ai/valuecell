@@ -424,7 +424,7 @@ class PortfolioView(BaseModel):
         default=None, description="Owning strategy id for this portfolio snapshot"
     )
     ts: int
-    _account_balance: float = Field(
+    account_balance: float = Field(
         ..., description="Account cash balance in quote currency"
     )
     positions: Dict[str, PositionSnapshot] = Field(
