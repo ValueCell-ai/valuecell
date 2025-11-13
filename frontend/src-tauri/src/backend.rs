@@ -12,17 +12,11 @@ pub struct BackendManager {
     processes: Mutex<Vec<CommandChild>>,
     backend_path: PathBuf,
     env_path: PathBuf,
-    log_dir: PathBuf,
     app: AppHandle,
 }
 
 impl BackendManager {
-    fn spawn_uv_module(&self, module_name: &str, log_name: &str) -> Result<CommandChild> {
-        let log_file = self
-            .log_dir
-            .join(format!("{}.log", log_name.replace(' ', "_")));
-
-        log::info!("Starting {} with log file: {:?}", log_name, log_file);
+    fn spawn_uv_module(&self, module_name: &str) -> Result<CommandChild> {
         log::info!(
             "Command: uv run --env-file {:?} -m {}",
             self.env_path,
@@ -48,9 +42,9 @@ impl BackendManager {
         // Spawn and discard the receiver (we don't need to read output)
         let (_rx, child) = sidecar_command
             .spawn()
-            .with_context(|| format!("Failed to spawn {}", log_name))?;
+            .context(format!("Failed to spawn {}", module_name))?;
 
-        log::info!("✓ {} spawned with PID: {}", log_name, child.pid());
+        log::info!("✓ {} spawned with PID: {}", module_name, child.pid());
         Ok(child)
     }
 
@@ -104,7 +98,6 @@ impl BackendManager {
             processes: Mutex::new(Vec::new()),
             backend_path,
             env_path,
-            log_dir,
             app,
         })
     }
@@ -121,21 +114,10 @@ impl BackendManager {
         let (mut rx, _child) = sidecar_command.spawn().context("Failed to spawn uv sync")?;
 
         // Wait for the process to complete by receiving events
-        let mut exit_code = None;
         while let Some(event) = rx.blocking_recv() {
             use tauri_plugin_shell::process::CommandEvent;
-            if let CommandEvent::Terminated(payload) = event {
-                exit_code = payload.code;
+            if let CommandEvent::Terminated(_) = event {
                 break;
-            }
-        }
-
-        if let Some(code) = exit_code {
-            if code != 0 {
-                return Err(anyhow::anyhow!(
-                    "Failed to sync dependencies (exit code: {})",
-                    code
-                ));
             }
         }
 
@@ -171,21 +153,10 @@ impl BackendManager {
             .context("Failed to run database initialization")?;
 
         // Wait for the process to complete by receiving events
-        let mut exit_code = None;
         while let Some(event) = rx.blocking_recv() {
             use tauri_plugin_shell::process::CommandEvent;
-            if let CommandEvent::Terminated(payload) = event {
-                exit_code = payload.code;
+            if let CommandEvent::Terminated(_) = event {
                 break;
-            }
-        }
-
-        if let Some(code) = exit_code {
-            if code != 0 {
-                return Err(anyhow::anyhow!(
-                    "Database initialization had warnings (exit code: {})",
-                    code
-                ));
             }
         }
 
@@ -201,15 +172,13 @@ impl BackendManager {
             _ => bail!("Unknown agent: {}", agent_name),
         };
 
-        let child = self.spawn_uv_module(module_name, agent_name)?;
-
-        std::thread::sleep(std::time::Duration::from_millis(500));
+        let child = self.spawn_uv_module(&module_name)?;
 
         Ok(child)
     }
 
     fn start_backend_server(&self) -> Result<CommandChild> {
-        self.spawn_uv_module("valuecell.server.main", "backend_server")
+        self.spawn_uv_module("valuecell.server.main")
     }
 
     pub fn start_all(&self) -> Result<()> {
