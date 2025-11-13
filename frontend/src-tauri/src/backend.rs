@@ -2,9 +2,11 @@ use anyhow::{bail, Context, Result};
 use std::fs::create_dir_all;
 use std::path::PathBuf;
 use std::sync::Mutex;
+use std::time::Duration;
+use tauri::async_runtime::Receiver;
 use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Manager};
-use tauri_plugin_shell::process::CommandChild;
+use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
 
 /// Backend process manager
@@ -16,6 +18,40 @@ pub struct BackendManager {
 }
 
 impl BackendManager {
+    fn wait_until_terminated(mut rx: Receiver<CommandEvent>) {
+        while let Some(event) = rx.blocking_recv() {
+            if matches!(event, CommandEvent::Terminated(_)) {
+                break;
+            }
+        }
+    }
+
+    fn kill_descendants_best_effort(&self, parent_pid: u32) {
+        // Try to kill all descendants of the given PID (macOS/Linux)
+        // This is best-effort and ignores errors on platforms without `pkill`.
+        let pid_str = parent_pid.to_string();
+
+        for (signal, label) in [("-TERM", "graceful"), ("-KILL", "forceful")] {
+            if let Ok((_rx, _child)) = self
+                .app
+                .shell()
+                .command("pkill")
+                .args([signal, "-P", &pid_str])
+                .spawn()
+            {
+                log::info!(
+                    "Issued {label} pkill ({signal}) for descendants of {}",
+                    parent_pid
+                );
+            }
+
+            // Allow graceful signal a moment to take effect before escalating.
+            if signal == "-TERM" {
+                std::thread::sleep(Duration::from_millis(150));
+            }
+        }
+    }
+
     fn spawn_uv_module(&self, module_name: &str) -> Result<CommandChild> {
         log::info!(
             "Command: uv run --env-file {:?} -m {}",
@@ -111,15 +147,8 @@ impl BackendManager {
             .args(["sync", "--frozen"])
             .current_dir(&self.backend_path);
 
-        let (mut rx, _child) = sidecar_command.spawn().context("Failed to spawn uv sync")?;
-
-        // Wait for the process to complete by receiving events
-        while let Some(event) = rx.blocking_recv() {
-            use tauri_plugin_shell::process::CommandEvent;
-            if let CommandEvent::Terminated(_) = event {
-                break;
-            }
-        }
+        let (rx, _child) = sidecar_command.spawn().context("Failed to spawn uv sync")?;
+        Self::wait_until_terminated(rx);
 
         log::info!("✓ Dependencies installed/verified");
         Ok(())
@@ -148,17 +177,10 @@ impl BackendManager {
             ])
             .current_dir(&self.backend_path);
 
-        let (mut rx, _child) = sidecar_command
+        let (rx, _child) = sidecar_command
             .spawn()
             .context("Failed to run database initialization")?;
-
-        // Wait for the process to complete by receiving events
-        while let Some(event) = rx.blocking_recv() {
-            use tauri_plugin_shell::process::CommandEvent;
-            if let CommandEvent::Terminated(_) = event {
-                break;
-            }
-        }
+        Self::wait_until_terminated(rx);
 
         log::info!("✓ Database initialized");
         Ok(())
@@ -225,6 +247,9 @@ impl BackendManager {
         for process in processes.drain(..) {
             let pid = process.pid();
             log::info!("Terminating process {}", pid);
+
+            // Attempt to terminate any descendants spawned under this process BEFORE killing the parent
+            self.kill_descendants_best_effort(pid);
 
             // Use CommandChild's kill method
             if let Err(e) = process.kill() {
