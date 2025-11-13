@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Callable, Dict, List
+from typing import Callable, List
 
 from loguru import logger
 
