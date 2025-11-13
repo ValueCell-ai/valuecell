@@ -25,6 +25,9 @@
     }
   },
   "bundle": {
+    "externalBin": [
+      "binaries/uv"
+    ],
     "active": true,
     "targets": "all",
     "icon": [
