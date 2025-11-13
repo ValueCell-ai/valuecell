@@ -163,16 +163,16 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                 else:
                     for q in ("USDT", "USD", "USDC"):
                         free_cash += float(free_map.get(q, 0.0) or 0.0)
-                portfolio.cash = float(free_cash)
+                portfolio._account_balance = float(free_cash)
                 if self._request.exchange_config.market_type == MarketType.SPOT:
-                    portfolio.buying_power = max(0.0, float(portfolio.cash))
+                    portfolio.buying_power = max(0.0, float(portfolio._account_balance))
         except Exception:
             # If syncing fails, continue with existing portfolio view
             pass
         # VIRTUAL mode: cash-only for spot; derivatives keep margin-based buying power
         if self._request.exchange_config.trading_mode == TradingMode.VIRTUAL:
             if self._request.exchange_config.market_type == MarketType.SPOT:
-                portfolio.buying_power = max(0.0, float(portfolio.cash))
+                portfolio.buying_power = max(0.0, float(portfolio._account_balance))
 
         # Use fixed 1-second interval and lookback of 3 minutes (60 * 3 seconds)
         candles_1s = await self._market_data_source.get_recent_candles(

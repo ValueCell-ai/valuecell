@@ -424,7 +424,9 @@ class PortfolioView(BaseModel):
         default=None, description="Owning strategy id for this portfolio snapshot"
     )
     ts: int
-    cash: float
+    _account_balance: float = Field(
+        ..., description="Account cash balance in quote currency"
+    )
     positions: Dict[str, PositionSnapshot] = Field(
         default_factory=dict, description="Map symbol -> PositionSnapshot"
     )
@@ -448,6 +450,16 @@ class PortfolioView(BaseModel):
     buying_power: Optional[float] = Field(
         default=None,
         description="Buying power: max(0, equity * max_leverage - gross_exposure)",
+    )
+    free_cash: Optional[float] = Field(
+        default=None,
+        description=(
+            "Approx available funds without tracking margin_used explicitly. "
+            "Definition: free_cash = max(0, equity - sum_i(notional_i / L_i)), "
+            "where equity = total_value (if provided) else (cash + total_unrealized_pnl or 0). "
+            "For spot/no-leverage positions L_i = 1; for leveraged positions L_i is each position's"
+            " effective leverage if available, otherwise falls back to constraints.max_leverage."
+        ),
     )
 
 
