@@ -559,3 +559,13 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                 payload={"trades": trade_payload},
             ),
         ]
+
+    async def close(self) -> None:
+        """Release resources for the execution gateway if it supports closing."""
+        try:
+            close_fn = getattr(self._execution_gateway, "close", None)
+            if callable(close_fn):
+                await close_fn()
+        except Exception:
+            # Avoid bubbling cleanup errors
+            pass
