@@ -163,10 +163,11 @@ class LlmComposer(Composer):
                 for snap in pv.positions.values()
                 if abs(float(getattr(snap, "quantity", 0.0) or 0.0)) > 0.0
             ),
-            "total_value": getattr(pv, "total_value", None),
-            "cash": pv.cash,
-            "unrealized_pnl": getattr(pv, "total_unrealized_pnl", None),
-            "sharpe_ratio": getattr(context.digest, "sharpe_ratio", None),
+            "total_value": pv.total_value,
+            "account_balance": pv.account_balance,
+            "free_cash": pv.free_cash,
+            "unrealized_pnl": pv.total_unrealized_pnl,
+            "sharpe_ratio": context.digest.sharpe_ratio,
         }
 
     def _build_llm_prompt(self, context: ComposeContext) -> str:
