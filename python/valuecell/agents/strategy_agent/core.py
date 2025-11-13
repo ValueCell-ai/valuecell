@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Callable, Dict, List
+from typing import Callable, List
 
 from loguru import logger
 
@@ -76,17 +76,6 @@ def _default_clock() -> datetime:
     """Return current time in UTC."""
 
     return datetime.now(timezone.utc)
-
-
-def _build_market_snapshot(features: List[FeatureVector]) -> Dict[str, float]:
-    """Derive latest market snapshot from feature vectors."""
-
-    snapshot: Dict[str, float] = {}
-    for vector in features:
-        price = vector.values.get("close")
-        if price is not None:
-            snapshot[vector.instrument.symbol] = float(price)
-    return snapshot
 
 
 class DefaultDecisionCoordinator(DecisionCoordinator):
@@ -186,17 +175,27 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                 portfolio.buying_power = max(0.0, float(portfolio.cash))
 
         # Use fixed 1-second interval and lookback of 3 minutes (60 * 3 seconds)
-        candles = await self._market_data_source.get_recent_candles(
+        candles_1s = await self._market_data_source.get_recent_candles(
             self._symbols, "1s", 60 * 3
         )
-        features = self._feature_computer.compute_features(candles=candles)
-        market_snapshot = _build_market_snapshot(features)
+        # Compute micro (1s) features with meta preserved
+        micro_features = self._feature_computer.compute_features(candles=candles_1s)
+
         # Use fixed 1-minute interval and lookback of 4 hours (60 * 4 minutes)
-        candles = await self._market_data_source.get_recent_candles(
+        candles_1m = await self._market_data_source.get_recent_candles(
             self._symbols, "1m", 60 * 4
         )
-        features.extend(self._feature_computer.compute_features(candles=candles))
+        minute_features = self._feature_computer.compute_features(candles=candles_1m)
 
+        # Compose full features list: minute-level features (structural) then micro-level (freshness).
+        features = []
+        features.extend(minute_features)
+        features.extend(micro_features)
+
+        # Ask the data source for an authoritative market snapshot (exchange-ticker based)
+        market_snapshot = await self._market_data_source.get_market_snapshot(
+            self._symbols
+        )
         digest = self._digest_builder.build(list(self._history_records))
 
         context = ComposeContext(
@@ -514,6 +513,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             unrealized_pnl=self._unrealized_pnl,
             unrealized_pnl_pct=unrealized_pnl_pct,
             pnl_pct=pnl_pct,
+            total_value=equity,
             last_updated_ts=timestamp_ms,
         )
 

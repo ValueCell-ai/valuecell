@@ -16,6 +16,7 @@ import ccxt.async_support as ccxt
 from loguru import logger
 
 from ..models import (
+    MarketSnapShotType,
     PriceMode,
     TradeInstruction,
     TradeSide,
@@ -348,7 +349,7 @@ class CCXTExecutionGateway(ExecutionGateway):
     async def execute(
         self,
         instructions: List[TradeInstruction],
-        market_snapshot: Optional[Dict[str, float]] = None,
+        market_snapshot: Optional[MarketSnapShotType] = None,
     ) -> List[TxResult]:
         """Execute trade instructions on the real exchange via CCXT.
 
