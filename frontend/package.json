@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "react-router dev",
+    "dev:tauri": "CHOKIDAR_USEPOLLING=true CHOKIDAR_INTERVAL=1000 react-router dev",
     "build": "react-router build",
     "start": "vite preview --outDir build/client",
     "typecheck": "react-router typegen && tsc",

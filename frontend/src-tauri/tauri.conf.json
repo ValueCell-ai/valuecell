@@ -1,20 +1,23 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "frontend",
+  "productName": "ValueCell",
   "version": "0.1.0",
   "identifier": "com.valuecell.app",
   "build": {
-    "beforeDevCommand": "bun run dev",
+    "beforeDevCommand": "bun run dev:tauri",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "bun run build",
-    "frontendDist": "../dist"
+    "beforeBuildCommand": "sh scripts/pre-build.sh && bun run build",
+    "frontendDist": "../build/client"
   },
   "app": {
     "windows": [
       {
-        "title": "frontend",
-        "width": 800,
-        "height": 600
+        "title": "ValueCell",
+        "width": 1400,
+        "height": 1000,
+        "minWidth": 1024,
+        "minHeight": 768,
+        "hiddenTitle": true
       }
     ],
     "security": {
@@ -22,6 +25,9 @@
     }
   },
   "bundle": {
+    "externalBin": [
+      "binaries/uv"
+    ],
     "active": true,
     "targets": "all",
     "icon": [
@@ -30,6 +36,10 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "resources": {
+      "../../python": "backend",
+      "../../.env.example": ".env.example"
+    }
   }
 }
