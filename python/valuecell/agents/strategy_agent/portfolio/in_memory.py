@@ -266,7 +266,9 @@ class InMemoryPortfolioService(PortfolioService):
                 if qty == 0.0 or mpx <= 0.0:
                     continue
                 notional_i = abs(qty) * mpx
-                lev_i = float(pos.leverage) if (pos.leverage and pos.leverage > 0) else 1.0
+                lev_i = (
+                    float(pos.leverage) if (pos.leverage and pos.leverage > 0) else 1.0
+                )
                 lev_i = max(1.0, lev_i)
                 required_margin += notional_i / lev_i
             self._view.free_cash = max(0.0, equity - required_margin)
