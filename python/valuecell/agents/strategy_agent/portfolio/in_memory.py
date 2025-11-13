@@ -54,6 +54,7 @@ class InMemoryPortfolioService(PortfolioService):
             total_value=initial_capital,
             total_unrealized_pnl=0.0,
             buying_power=initial_capital,
+            free_cash=initial_capital,
         )
         self._trading_mode = trading_mode
         self._market_type = market_type
