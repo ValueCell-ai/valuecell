@@ -4,7 +4,8 @@ StrategyAgent router for handling strategy creation via streaming responses.
 
 import os
 
-from fastapi import APIRouter, Depends
+# New imports for delete endpoint
+from fastapi import APIRouter, Depends, HTTPException, Query
 from loguru import logger
 from sqlalchemy.orm import Session
 
@@ -16,6 +17,7 @@ from valuecell.agents.strategy_agent.models import (
 from valuecell.config.loader import get_config_loader
 from valuecell.core.coordinate.orchestrator import AgentOrchestrator
 from valuecell.core.types import CommonResponseEvent, UserInput, UserInputMetadata
+from valuecell.server.api.schemas.base import SuccessResponse
 from valuecell.server.db.connection import get_db
 from valuecell.server.db.repositories import get_strategy_repository
 from valuecell.utils.uuid import generate_conversation_id, generate_uuid
@@ -276,6 +278,41 @@ def create_strategy_agent_router() -> APIRouter:
 
             return StrategyStatusContent(
                 strategy_id=fallback_strategy_id, status=StrategyStatus.ERROR
+            )
+
+    @router.delete("/delete")
+    async def delete_strategy_agent(
+        id: str = Query(..., description="Strategy ID"),
+        cascade: bool = Query(
+            True, description="Delete related records (holdings/details/portfolio)"
+        ),
+        db: Session = Depends(get_db),
+    ):
+        """Delete a strategy created by StrategyAgent.
+
+        - Validates the strategy exists.
+        - Optionally cascades deletion to holdings, portfolio snapshots, and details.
+        - Returns a success response when completed.
+        """
+        try:
+            repo = get_strategy_repository(db_session=db)
+            strategy = repo.get_strategy_by_strategy_id(id)
+            if not strategy:
+                raise HTTPException(status_code=404, detail="Strategy not found")
+
+            ok = repo.delete_strategy(id, cascade=cascade)
+            if not ok:
+                raise HTTPException(status_code=500, detail="Failed to delete strategy")
+
+            return SuccessResponse.create(
+                data={"strategy_id": id},
+                msg=f"Strategy '{id}' deleted successfully",
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Error deleting strategy: {str(e)}"
             )
 
     return router
