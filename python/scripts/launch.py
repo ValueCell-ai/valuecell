@@ -7,7 +7,8 @@ import os
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
+from dotenv import load_dotenv
 
 # Mapping from agent name to analyst key (for ai-hedge-fund agents)
 MAP_NAME_ANALYST: Dict[str, str] = {
@@ -55,50 +56,27 @@ PROJECT_DIR_STR = PROJECT_DIR.as_posix()
 PYTHON_DIR_STR = PYTHON_DIR.as_posix()
 ENV_PATH_STR = ENV_PATH.as_posix()
 
-AUTO_TRADING_ENV_OVERRIDES = {
-    "AUTO_TRADING_EXCHANGE": os.getenv("AUTO_TRADING_EXCHANGE"),
-}
-AUTO_TRADING_ENV_PREFIX = " ".join(
-    f"{key}={value}"
-    for key, value in AUTO_TRADING_ENV_OVERRIDES.items()
-    if value not in (None, "")
-)
-if AUTO_TRADING_ENV_PREFIX:
-    AUTO_TRADING_ENV_PREFIX = f"{AUTO_TRADING_ENV_PREFIX} "
-
-# Mapping from agent name to launch command
-MAP_NAME_COMMAND: Dict[str, str] = {}
+# Mapping from agent name to launch command (as list for shell=False)
+# Environment variables will be passed via env= parameter in subprocess.Popen
+# Using cwd= parameter instead of cd command for better security
+MAP_NAME_COMMAND: Dict[str, List[str]] = {}
 # Remove external agent entries
 # for name, analyst in MAP_NAME_ANALYST.items():
-#     MAP_NAME_COMMAND[name] = (
-#         f"uv run --env-file {ENV_PATH_STR} -m adapter --analyst {analyst}"
-#     )
-# MAP_NAME_COMMAND[TRADING_AGENTS_NAME] = (
-#     f"uv run --env-file {ENV_PATH_STR} -m adapter"
-# )
+#     MAP_NAME_COMMAND[name] = ["uv", "run", "-m", "adapter", "--analyst", analyst]
+# MAP_NAME_COMMAND[TRADING_AGENTS_NAME] = ["uv", "run", "-m", "adapter"]
 # Keep only first-party agents
-MAP_NAME_COMMAND[RESEARCH_AGENT_NAME] = (
-    f"uv run --env-file {ENV_PATH_STR} -m valuecell.agents.research_agent"
-)
-MAP_NAME_COMMAND[AUTO_TRADING_AGENT_NAME] = (
-    f"{AUTO_TRADING_ENV_PREFIX}uv run --env-file {ENV_PATH_STR} -m valuecell.agents.auto_trading_agent"
-)
-MAP_NAME_COMMAND[NEWS_AGENT_NAME] = (
-    f"uv run --env-file {ENV_PATH_STR} -m valuecell.agents.news_agent"
-)
-MAP_NAME_COMMAND[STRATEGY_AGENT_NAME] = (
-    f"uv run --env-file {ENV_PATH_STR} -m valuecell.agents.strategy_agent"
-)
-BACKEND_COMMAND = (
-    f"cd {PYTHON_DIR_STR} && uv run --env-file {ENV_PATH_STR} -m valuecell.server.main"
-)
+MAP_NAME_COMMAND[RESEARCH_AGENT_NAME] = ["uv", "run", "-m", "valuecell.agents.research_agent"]
+MAP_NAME_COMMAND[AUTO_TRADING_AGENT_NAME] = ["uv", "run", "-m", "valuecell.agents.auto_trading_agent"]
+MAP_NAME_COMMAND[NEWS_AGENT_NAME] = ["uv", "run", "-m", "valuecell.agents.news_agent"]
+MAP_NAME_COMMAND[STRATEGY_AGENT_NAME] = ["uv", "run", "-m", "valuecell.agents.strategy_agent"]
+BACKEND_COMMAND = ["uv", "run", "-m", "valuecell.server.main"]
 FRONTEND_URL = "http://localhost:1420"
 
 
 def check_envfile_is_set():
     if not ENV_PATH.exists():
         print(
-            f".env file not found at {ENV_PATH}. Please create it with necessary environment variables. "
+            f".env file not found at '{ENV_PATH}'. Please create it with necessary environment variables. "
             "check python/.env.example for reference."
         )
         exit(1)
@@ -123,6 +101,16 @@ def main():
     os.makedirs(log_dir, exist_ok=True)
     print(f"Logs will be saved to {log_dir}/")
 
+    # Load environment variables from .env file to avoid path issues
+    env_vars = os.environ.copy()
+    if ENV_PATH.exists():
+        try:
+            load_dotenv(ENV_PATH, override=True)
+            env_vars = os.environ.copy()
+            print("✓ Environment variables loaded from .env file")
+        except Exception as e:
+            print(f"⚠ Warning: Could not load .env file: {e}")
+
     processes = []
     logfiles = []
     for selected_agent in selected_agents:
@@ -134,8 +122,16 @@ def main():
         logfiles.append(logfile)
 
         # Launch command using Popen with output redirected to logfile
+        # Using shell=False for better security, cwd= to set working directory
+        # Environment variables are passed via env= parameter
+        command = MAP_NAME_COMMAND[selected_agent]
         process = subprocess.Popen(
-            MAP_NAME_COMMAND[selected_agent], shell=True, stdout=logfile, stderr=logfile
+            command,
+            shell=False,
+            stdout=logfile,
+            stderr=logfile,
+            env=env_vars,
+            cwd=str(PYTHON_DIR),
         )
         processes.append(process)
     print("All agents launched. Waiting for tasks...")
@@ -151,8 +147,15 @@ def main():
     print(f"Frontend available at {FRONTEND_URL}")
     logfile = open(logfile_path, "w")
     logfiles.append(logfile)
+    # Using shell=False for better security, cwd= to set working directory
+    # Environment variables are passed via env= parameter
     process = subprocess.Popen(
-        BACKEND_COMMAND, shell=True, stdout=logfile, stderr=logfile
+        BACKEND_COMMAND,
+        shell=False,
+        stdout=logfile,
+        stderr=logfile,
+        env=env_vars,
+        cwd=str(PYTHON_DIR),
     )
     processes.append(process)
 
