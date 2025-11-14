@@ -192,8 +192,8 @@ class LlmComposer(Composer):
             {
                 "symbol": sym,
                 "qty": float(snap.quantity),
-                "avg_px": snap.avg_price,
                 "unrealized_pnl": snap.unrealized_pnl,
+                "entry_ts": snap.entry_ts,
             }
             for sym, snap in pv.positions.items()
             if abs(float(snap.quantity)) > 0
@@ -277,16 +277,16 @@ class LlmComposer(Composer):
 
         # Compute equity based on market type:
         if self._request.exchange_config.market_type == MarketType.SPOT:
-            # Spot: use available cash as equity
-            equity = float(getattr(context.portfolio, "cash", 0.0) or 0.0)
+            # Spot: use available account_balance as equity
+            equity = float(context.portfolio.account_balance or 0.0)
         else:
-            # Derivatives: use portfolio equity (cash + net exposure), or total_value if provided
+            # Derivatives: use portfolio equity (account_balance + net exposure), or total_value if provided
             if getattr(context.portfolio, "total_value", None) is not None:
                 equity = float(context.portfolio.total_value or 0.0)
             else:
-                cash = float(getattr(context.portfolio, "cash", 0.0) or 0.0)
-                net = float(getattr(context.portfolio, "net_exposure", 0.0) or 0.0)
-                equity = cash + net
+                account_balance = float(context.portfolio.account_balance or 0.0)
+                net = float(context.portfolio.net_exposure or 0.0)
+                equity = account_balance + net
 
         # Market-type leverage policy: SPOT -> 1.0; Derivatives -> constraints
         if self._request.exchange_config.market_type == MarketType.SPOT:
@@ -355,9 +355,7 @@ class LlmComposer(Composer):
         if price is not None and price > 0:
             # cap_factor controls how aggressively we allow position sizing by notional.
             # Make it configurable via trading_config.cap_factor (strategy parameter).
-            cap_factor = float(
-                getattr(self._request.trading_config, "cap_factor", 1.5) or 1.5
-            )
+            cap_factor = float(self._request.trading_config.cap_factor or 1.5)
             if constraints.quantity_step and constraints.quantity_step > 0:
                 cap_factor = max(cap_factor, 1.5)
 

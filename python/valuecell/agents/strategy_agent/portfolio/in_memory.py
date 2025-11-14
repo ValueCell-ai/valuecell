@@ -129,6 +129,7 @@ class InMemoryPortfolioService(PortfolioService):
                     or trade.trade_ts
                     or int(datetime.now(timezone.utc).timestamp() * 1000)
                 )
+                position.closed_ts = None
                 position.trade_type = TradeType.LONG if new_qty > 0 else TradeType.SHORT
                 # Initialize leverage from trade if provided
                 if trade.leverage is not None:
