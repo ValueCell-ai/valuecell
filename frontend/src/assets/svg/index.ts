@@ -2,6 +2,7 @@ export { default as AutoTrade } from "./auto-trade.svg";
 export { default as BookOpen } from "./book-open.svg";
 export { default as ChartBarVertical } from "./char-bar-vertical.svg";
 export { default as Conversation } from "./conversation.svg";
+export { default as DeleteStrategy } from "./delete-strategy.svg";
 export { default as House } from "./house.svg";
 export { default as Logo } from "./logo.svg";
 export { default as NewsPush } from "./news-push.svg";
