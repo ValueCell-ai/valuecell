@@ -69,21 +69,30 @@ jobs:
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
+          echo "::add-mask::$APPLE_CERTIFICATE_PASSWORD"
+          echo "::add-mask::$KEYCHAIN_PASSWORD"
           echo $APPLE_CERTIFICATE | base64 --decode > certificate.p12
-          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain 2>&1 | grep -v "password" || true
           security default-keychain -s build.keychain
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain 2>&1 | grep -v "password" || true
           security set-keychain-settings -t 3600 -u build.keychain
-          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
-          security find-identity -v -p codesigning build.keychain
+          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign 2>&1 | grep -v "password" || true
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain 2>&1 | grep -v "password" || true
+          # Suppress certificate details output
+          security find-identity -v -p codesigning build.keychain > /dev/null 2>&1 || true
 
       - name: Verify Certificate
         run: |
-          CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Apple Distribution")
+          CERT_INFO=$(security find-identity -v -p codesigning build.keychain 2>/dev/null | grep "Apple Distribution" || true)
           CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
-          echo "CERT_ID=$CERT_ID" >> $GITHUB_ENV
-          echo "Certificate imported."
+          if [ -n "$CERT_ID" ]; then
+            echo "::add-mask::$CERT_ID"
+            echo "CERT_ID=$CERT_ID" >> $GITHUB_ENV
+            echo "Certificate imported successfully."
+          else
+            echo "Error: Certificate not found"
+            exit 1
+          fi
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
