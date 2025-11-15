@@ -31,24 +31,37 @@ jobs:
           cd frontend/src-tauri
           mkdir -p binaries
           ARCH=$(uname -m)
-          if [ "$ARCH" = "arm64" ]; then
-            UV_ARCH="aarch64-apple-darwin"
-          else
-            UV_ARCH="x86_64-apple-darwin"
-          fi
-          # Download uv tar.gz file
-          curl -L -f -o uv-${UV_ARCH}.tar.gz "https://github.com/astral-sh/uv/releases/download/0.9.9/uv-${UV_ARCH}.tar.gz"
-          # Extract tar.gz file to current directory
-          tar -xzf uv-${UV_ARCH}.tar.gz
-          # Find uv executable file after extraction
-          UV_PATH=$(find . -name "uv" -type f | head -1)
-          if [ -z "$UV_PATH" ]; then
-            echo "Error: uv executable not found after extraction"
-            exit 1
-          fi
-          # Move uv to binaries directory with architecture suffix
-          mv "$UV_PATH" "binaries/uv-${UV_ARCH}"
-          chmod +x "binaries/uv-${UV_ARCH}"
+          echo "Current runner architecture: $ARCH"
+          echo "Matrix target: ${{ matrix.args }}"
+          
+          # Download both architectures since we're building for both
+          for UV_ARCH in aarch64-apple-darwin x86_64-apple-darwin; do
+            echo "Downloading uv for $UV_ARCH..."
+            curl -L -f -o uv-${UV_ARCH}.tar.gz "https://github.com/astral-sh/uv/releases/download/0.9.9/uv-${UV_ARCH}.tar.gz"
+            # Extract tar.gz file to temporary directory
+            mkdir -p temp_${UV_ARCH}
+            tar -xzf uv-${UV_ARCH}.tar.gz -C temp_${UV_ARCH}
+            # Find uv executable file after extraction
+            UV_PATH=$(find temp_${UV_ARCH} -name "uv" -type f | head -1)
+            if [ -z "$UV_PATH" ]; then
+              echo "Error: uv executable not found for $UV_ARCH after extraction"
+              echo "Contents of temp_${UV_ARCH}:"
+              ls -la temp_${UV_ARCH}/
+              exit 1
+            fi
+            echo "Found uv at: $UV_PATH"
+            # Move uv to binaries directory with architecture suffix
+            mv "$UV_PATH" "binaries/uv-${UV_ARCH}"
+            chmod +x "binaries/uv-${UV_ARCH}"
+            # Clean up
+            rm -rf temp_${UV_ARCH} uv-${UV_ARCH}.tar.gz
+          done
+          
+          # Debug: List all files in binaries directory
+          echo "Contents of binaries directory:"
+          ls -lah binaries/
+          echo "Verifying uv executables:"
+          file binaries/uv-* || echo "No uv files found"
 
       - name: Import Apple Developer Certificate
         env:
