@@ -34,10 +34,18 @@ jobs:
           else
             UV_ARCH="x86_64-apple-darwin"
           fi
-          curl -L -o uv.tar.gz "https://github.com/astral-sh/uv/releases/download/0.9.9/uv-${UV_ARCH}.tar.gz"
-          tar -xzf uv.tar.gz -C binaries
-          rm uv.tar.gz
-          mv binaries/uv "binaries/uv-${UV_ARCH}"
+          # Download uv tar.gz file
+          curl -L -f -o uv-${UV_ARCH}.tar.gz "https://github.com/astral-sh/uv/releases/download/0.9.9/uv-${UV_ARCH}.tar.gz"
+          # Extract tar.gz file to current directory
+          tar -xzf uv-${UV_ARCH}.tar.gz
+          # Find uv executable file after extraction
+          UV_PATH=$(find . -name "uv" -type f | head -1)
+          if [ -z "$UV_PATH" ]; then
+            echo "Error: uv executable not found after extraction"
+            exit 1
+          fi
+          # Move uv to binaries directory with architecture suffix
+          mv "$UV_PATH" "binaries/uv-${UV_ARCH}"
           chmod +x "binaries/uv-${UV_ARCH}"
 
       - name: Import Apple Developer Certificate
