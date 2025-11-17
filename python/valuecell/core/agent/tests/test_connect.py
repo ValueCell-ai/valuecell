@@ -449,3 +449,167 @@ async def test_initialize_client_retries():
 
     assert client.attempts >= 3
     assert client.agent_card is not None
+
+
+def test_resolve_local_agent_class_empty_spec_returns_none():
+    assert connect_mod._resolve_local_agent_class("") is None
+
+
+def test_resolve_local_agent_class_cache_hit():
+    spec = "cached:Spec"
+    sentinel = object()
+    connect_mod._LOCAL_AGENT_CLASS_CACHE[spec] = sentinel
+    try:
+        assert connect_mod._resolve_local_agent_class(spec) is sentinel
+    finally:
+        connect_mod._LOCAL_AGENT_CLASS_CACHE.pop(spec, None)
+
+
+def test_resolve_local_agent_class_invalid_spec(caplog: pytest.LogCaptureFixture):
+    caplog.set_level("ERROR")
+    spec = "valuecell.nonexistent:Missing"
+    result = connect_mod._resolve_local_agent_class(spec)
+    assert result is None
+    assert any("Failed to import agent class" in r.message for r in caplog.records)
+
+
+def test_build_local_agent_returns_none_when_no_class():
+    ctx = connect_mod.AgentContext(name="NoClass")
+    ctx.agent_instance_class = None
+    assert connect_mod._build_local_agent(ctx) is None
+
+
+def test_build_local_agent_invokes_factory(monkeypatch: pytest.MonkeyPatch):
+    ctx = connect_mod.AgentContext(name="WithClass")
+    sentinel = object()
+
+    class DummyAgent:
+        pass
+
+    ctx.agent_instance_class = DummyAgent
+    monkeypatch.setattr(
+        connect_mod,
+        "create_wrapped_agent",
+        lambda cls: sentinel if cls is DummyAgent else None,
+    )
+
+    assert connect_mod._build_local_agent(ctx) is sentinel
+
+
+@pytest.mark.asyncio
+async def test_ensure_agent_runtime_returns_when_task_running():
+    rc = RemoteConnections()
+    ctx = connect_mod.AgentContext(name="RunningAgent")
+
+    async def never():
+        await asyncio.Event().wait()
+
+    task = asyncio.create_task(never())
+    ctx.agent_task = task
+
+    await rc._ensure_agent_runtime(ctx)
+
+    assert ctx.agent_task is task
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+
+@pytest.mark.asyncio
+async def test_ensure_agent_runtime_finished_task_failure():
+    rc = RemoteConnections()
+    ctx = connect_mod.AgentContext(name="FailedAgent")
+    fut = asyncio.Future()
+    fut.set_exception(RuntimeError("boom"))
+    ctx.agent_task = fut
+
+    with pytest.raises(RuntimeError, match="FailedAgent"):
+        await rc._ensure_agent_runtime(ctx)
+
+    assert ctx.agent_task is None
+    assert ctx.agent_instance is None
+
+
+@pytest.mark.asyncio
+async def test_ensure_agent_runtime_no_factory(monkeypatch: pytest.MonkeyPatch):
+    rc = RemoteConnections()
+    ctx = connect_mod.AgentContext(name="NoFactory")
+    monkeypatch.setattr(connect_mod, "_build_local_agent", lambda _: None)
+
+    await rc._ensure_agent_runtime(ctx)
+
+    assert ctx.agent_instance is None
+    assert ctx.agent_task is None
+
+
+@pytest.mark.asyncio
+async def test_ensure_agent_runtime_new_task_failure(monkeypatch: pytest.MonkeyPatch):
+    rc = RemoteConnections()
+    ctx = connect_mod.AgentContext(name="FailingAgent")
+
+    class FailingAgent:
+        async def serve(self):
+            raise RuntimeError("serve failed")
+
+    monkeypatch.setattr(connect_mod, "_build_local_agent", lambda _: FailingAgent())
+
+    with pytest.raises(RuntimeError, match="FailingAgent"):
+        await rc._ensure_agent_runtime(ctx)
+
+    assert ctx.agent_task is None
+    assert ctx.agent_instance is None
+
+
+@pytest.mark.asyncio
+async def test_cleanup_agent_handles_timeout(monkeypatch: pytest.MonkeyPatch):
+    rc = RemoteConnections()
+    agent_name = "TimeoutAgent"
+    ctx = connect_mod.AgentContext(name=agent_name)
+
+    shutdown_called = False
+
+    class DummyInstance:
+        async def shutdown(self):
+            nonlocal shutdown_called
+            shutdown_called = True
+
+    async def never():
+        await asyncio.Event().wait()
+
+    task = asyncio.create_task(never())
+    ctx.agent_task = task
+    ctx.agent_instance = DummyInstance()
+
+    async def fake_wait_for(task_obj, timeout):
+        raise asyncio.TimeoutError
+
+    monkeypatch.setattr(connect_mod.asyncio, "wait_for", fake_wait_for)
+    rc._contexts[agent_name] = ctx
+
+    await rc._cleanup_agent(agent_name)
+
+    assert shutdown_called
+    assert ctx.agent_task is None
+    assert ctx.agent_instance is None
+    assert task.cancelled()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+
+@pytest.mark.asyncio
+async def test_cleanup_agent_clears_idle_resources():
+    rc = RemoteConnections()
+    agent_name = "IdleAgent"
+    ctx = connect_mod.AgentContext(name=agent_name)
+    ctx.agent_instance = object()
+    listener = asyncio.create_task(asyncio.sleep(0))
+    ctx.listener_task = listener
+    ctx.listener_url = "http://localhost:9999"
+    rc._contexts[agent_name] = ctx
+
+    await rc._cleanup_agent(agent_name)
+
+    assert ctx.agent_instance is None
+    assert ctx.listener_task is None
+    assert ctx.listener_url is None
+    assert listener.cancelled() or listener.done()
