@@ -192,7 +192,7 @@ def create_models_router() -> APIRouter:
                 api_key=cfg.api_key,
                 base_url=cfg.base_url,
                 is_default=(cfg.name == manager.primary_provider),
-                default_model=cfg.default_model,
+                default_model_id=cfg.default_model,
                 models=models_entries,
             )
             return SuccessResponse.create(
@@ -259,7 +259,7 @@ def create_models_router() -> APIRouter:
                 api_key=cfg.api_key,
                 base_url=cfg.base_url,
                 is_default=(cfg.name == manager.primary_provider),
-                default_model=cfg.default_model,
+                default_model_id=cfg.default_model,
                 models=models_items,
             )
             return SuccessResponse.create(
