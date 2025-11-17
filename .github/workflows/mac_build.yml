@@ -84,7 +84,7 @@ jobs:
 
       - name: Verify Certificate
         run: |
-          CERT_INFO=$(security find-identity -v -p codesigning build.keychain 2>/dev/null | grep "Apple Distribution" || true)
+          CERT_INFO=$(security find-identity -v -p codesigning build.keychain 2>/dev/null | grep "Apple Development" || true)
           CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
           if [ -n "$CERT_ID" ]; then
             echo "::add-mask::$CERT_ID"
