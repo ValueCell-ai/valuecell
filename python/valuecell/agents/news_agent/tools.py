@@ -33,8 +33,10 @@ async def web_search(query: str) -> str:
     # Use Perplexity Sonar via OpenRouter for web search
     # Perplexity models are optimized for web search and real-time information
     model = create_model(
-        provider="openrouter",
-        model_id="perplexity/sonar",
+        # provider="openrouter",
+        # model_id="perplexity/sonar",
+        provider="openai",
+        model_id="gpt-4.1-2025-04-14",
         max_tokens=None,
     )
     response = await Agent(model=model).arun(query)

@@ -18,8 +18,13 @@ enabled: true
 models:
   # Primary model for news analysis, summarization, and query processing
   primary:
-    model_id: "google/gemini-2.5-pro"
-    provider: "openrouter"  # Must explicitly specify provider (not null)
+#    model_id: "google/gemini-2.5-pro"
+#    provider: "openrouter"  # Must explicitly specify provider (not null)
+    #    model_id: "anthropic/claude-haiku-4.5"
+    #    provider: "openrouter"  # Must explicitly specify provider (not null)
+    model_id: "gpt-4.1-2025-04-14"
+    provider: "openai"  # Must explicitly specify provider (not null)
+
 
     # Provider-specific model mappings for fallback
     # Used when primary provider fails and fallback is attempted
