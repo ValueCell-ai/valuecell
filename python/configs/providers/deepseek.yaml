@@ -17,7 +17,6 @@ default_model: "deepseek-chat"
 # Model Parameters Defaults
 defaults:
   temperature: 0.7
-  max_tokens: 4096
 
 # Available Models (commonly used)
 models:
