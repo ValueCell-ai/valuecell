@@ -388,6 +388,7 @@ def test_resolve_local_agent_class_from_metadata(
         "url": "http://127.0.0.1:9001",
         "enabled": True,
         "metadata": {connect_mod.AGENT_METADATA_CLASS_KEY: "fake:Spec"},
+        "skills": [],
     }
     with open(dir_path / "MetaAgent.json", "w", encoding="utf-8") as f:
         json.dump(card, f)
@@ -437,6 +438,7 @@ async def test_initialize_client_retries():
                     "default_input_modes": [],
                     "default_output_modes": [],
                     "version": "",
+                    "skills": [],
                 }
             )
 
