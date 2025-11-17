@@ -71,6 +71,7 @@ jobs:
         run: |
           echo "::add-mask::$APPLE_CERTIFICATE_PASSWORD"
           echo "::add-mask::$KEYCHAIN_PASSWORD"
+          echo "::add-mask::${{ secrets.SECRET_INFO }}"
           echo $APPLE_CERTIFICATE | base64 --decode > certificate.p12
           security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain 2>&1 | grep -v "password" || true
           security default-keychain -s build.keychain
@@ -115,6 +116,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ env.CERT_ID }}
         with:
           args: ${{ matrix.args }}
