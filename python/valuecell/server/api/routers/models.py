@@ -272,7 +272,6 @@ def create_models_router() -> APIRouter:
                 status_code=500, detail=f"Failed to update provider config: {e}"
             )
 
-    # ---- New: Add provider model ----
     @router.post(
         "/providers/{provider}/models",
         response_model=SuccessResponse[ModelItem],
@@ -320,7 +319,6 @@ def create_models_router() -> APIRouter:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to add model: {e}")
 
-    # ---- New: Remove provider model ----
     @router.delete(
         "/providers/{provider}/models",
         response_model=SuccessResponse[dict],
@@ -359,7 +357,6 @@ def create_models_router() -> APIRouter:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to remove model: {e}")
 
-    # ---- New: Set default provider ----
     @router.put(
         "/providers/default",
         response_model=SuccessResponse[dict],
