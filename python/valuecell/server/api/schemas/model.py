@@ -83,3 +83,11 @@ class ProviderValidateResponse(BaseModel):
 
 class SetDefaultProviderRequest(BaseModel):
     provider: str = Field(..., description="Provider key to set as default")
+
+
+class SetDefaultModelRequest(BaseModel):
+    model_id: str = Field(..., description="Model identifier to set as default")
+    model_name: Optional[str] = Field(
+        None,
+        description="Optional display name; added/updated in models list if provided",
+    )

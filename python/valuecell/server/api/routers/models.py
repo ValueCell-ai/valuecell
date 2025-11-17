@@ -19,6 +19,7 @@ from ..schemas.model import (
     ProviderDetailData,
     ProviderModelEntry,
     ProviderUpdateRequest,
+    SetDefaultModelRequest,
     SetDefaultProviderRequest,
 )
 
@@ -374,6 +375,76 @@ def create_models_router() -> APIRouter:
         except Exception as e:
             raise HTTPException(
                 status_code=500, detail=f"Failed to set default provider: {e}"
+            )
+
+    @router.put(
+        "/providers/{provider}/default-model",
+        response_model=SuccessResponse[ProviderDetailData],
+        summary="Set provider default model",
+        description="Update provider default_model in YAML and refresh configs.",
+    )
+    async def set_provider_default_model(
+        provider: str, payload: SetDefaultModelRequest
+    ) -> SuccessResponse[ProviderDetailData]:
+        try:
+            path = _provider_yaml(provider)
+            data = _load_yaml(path)
+            if not data:
+                raise HTTPException(
+                    status_code=404, detail=f"Provider '{provider}' not found"
+                )
+
+            # Ensure the model exists in the list and optionally update name
+            models = data.get("models") or []
+            found = False
+            for m in models:
+                if isinstance(m, dict) and m.get("id") == payload.model_id:
+                    if payload.model_name:
+                        m["name"] = payload.model_name
+                    found = True
+                    break
+            if not found:
+                models.append(
+                    {
+                        "id": payload.model_id,
+                        "name": payload.model_name or payload.model_id,
+                    }
+                )
+            data["models"] = models
+
+            # Set default model
+            data["default_model"] = payload.model_id
+            _write_yaml(path, data)
+            _refresh_configs()
+
+            # Build response from refreshed config
+            manager = get_config_manager()
+            cfg = manager.get_provider_config(provider)
+            if not cfg:
+                raise HTTPException(
+                    status_code=500, detail="Provider not found after update"
+                )
+            models_items = [
+                ProviderModelEntry(model_id=m.get("id", ""), model_name=m.get("name"))
+                for m in (cfg.models or [])
+                if isinstance(m, dict)
+            ]
+            detail = ProviderDetailData(
+                api_key=cfg.api_key,
+                base_url=cfg.base_url,
+                is_default=(cfg.name == manager.primary_provider),
+                default_model_id=cfg.default_model,
+                models=models_items,
+            )
+            return SuccessResponse.create(
+                data=detail,
+                msg=(f"Default model for '{provider}' set to '{payload.model_id}'"),
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Failed to set default model: {e}"
             )
 
     return router
