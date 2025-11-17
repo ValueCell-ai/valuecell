@@ -46,6 +46,7 @@ class AgentContext:
     agent_instance: Optional[Any] = None
     agent_task: Optional[asyncio.Task] = None
     agent_instance_class: Optional[Type[Any]] = None
+    agent_class_spec: Optional[str] = None
 
 
 _LOCAL_AGENT_CLASS_CACHE: Dict[str, Type[Any]] = {}
@@ -71,8 +72,20 @@ def _resolve_local_agent_class(spec: str) -> Optional[Type[Any]]:
     return agent_cls
 
 
-def _build_local_agent(ctx: AgentContext):
+async def _build_local_agent(ctx: AgentContext):
     agent_cls = ctx.agent_instance_class
+    if agent_cls is None and ctx.agent_class_spec:
+        agent_cls = await asyncio.to_thread(
+            _resolve_local_agent_class, ctx.agent_class_spec
+        )
+        ctx.agent_instance_class = agent_cls
+        if agent_cls is None:
+            logger.warning(
+                "Unable to resolve local agent class '%s' for '%s'",
+                ctx.agent_class_spec,
+                ctx.name,
+            )
+            return None
     if agent_cls is None:
         return None
     return create_wrapped_agent(agent_cls)
@@ -137,12 +150,12 @@ class RemoteConnections:
                     if isinstance(agent_card_dict.get("metadata"), dict)
                     else {}
                 )
-                class_spec = metadata.get(AGENT_METADATA_CLASS_KEY)
-                agent_instance_class = (
-                    _resolve_local_agent_class(class_spec)
-                    if isinstance(class_spec, str)
+                class_spec = (
+                    metadata.get(AGENT_METADATA_CLASS_KEY)
+                    if isinstance(metadata, dict)
                     else None
                 )
+                agent_instance_class = None
                 # Detect planner passthrough from raw JSON (top-level or metadata)
                 passthrough = bool(agent_card_dict.get("planner_passthrough"))
                 if not passthrough:
@@ -156,13 +169,10 @@ class RemoteConnections:
                     local_agent_card=local_agent_card,
                     planner_passthrough=passthrough,
                     agent_instance_class=agent_instance_class,
+                    agent_class_spec=class_spec
+                    if isinstance(class_spec, str)
+                    else None,
                 )
-                if class_spec and not agent_instance_class:
-                    logger.warning(
-                        "Unable to resolve local agent class '%s' for '%s'",
-                        class_spec,
-                        agent_name,
-                    )
             except (json.JSONDecodeError, FileNotFoundError, KeyError) as e:
                 logger.warning(
                     f"Failed to load agent card from {json_file}; skipping: {e}"
@@ -285,7 +295,7 @@ class RemoteConnections:
                 ctx.agent_instance = None
 
         if ctx.agent_instance is None:
-            agent_instance = _build_local_agent(ctx)
+            agent_instance = await _build_local_agent(ctx)
             if agent_instance is None:
                 return
             ctx.agent_instance = agent_instance
