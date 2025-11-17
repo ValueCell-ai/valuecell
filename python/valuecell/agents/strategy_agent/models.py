@@ -447,6 +447,9 @@ class PortfolioView(BaseModel):
     total_unrealized_pnl: Optional[float] = Field(
         default=None, description="Sum of unrealized PnL across positions"
     )
+    total_realized_pnl: Optional[float] = Field(
+        default=None, description="Sum of realized PnL from closed position deltas"
+    )
     buying_power: Optional[float] = Field(
         default=None,
         description="Buying power: max(0, equity * max_leverage - gross_exposure)",

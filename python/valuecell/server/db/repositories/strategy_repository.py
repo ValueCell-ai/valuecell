@@ -146,6 +146,9 @@ class StrategyRepository:
         cash: float,
         total_value: float,
         total_unrealized_pnl: Optional[float],
+        total_realized_pnl: Optional[float] = None,
+        gross_exposure: Optional[float] = None,
+        net_exposure: Optional[float] = None,
         snapshot_ts: Optional[datetime] = None,
     ) -> Optional[StrategyPortfolioView]:
         """Insert one aggregated portfolio snapshot."""
@@ -156,6 +159,9 @@ class StrategyRepository:
                 cash=cash,
                 total_value=total_value,
                 total_unrealized_pnl=total_unrealized_pnl,
+                total_realized_pnl=total_realized_pnl,
+                gross_exposure=gross_exposure,
+                net_exposure=net_exposure,
                 snapshot_ts=snapshot_ts or datetime.utcnow(),
             )
             session.add(item)

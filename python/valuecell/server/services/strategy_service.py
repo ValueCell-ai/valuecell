@@ -6,8 +6,18 @@ from valuecell.server.api.schemas.strategy import (
     StrategyActionCard,
     StrategyCycleDetail,
     StrategyHoldingData,
+    StrategyPortfolioSummaryData,
 )
 from valuecell.server.db.repositories import get_strategy_repository
+
+
+def _to_optional_float(value: Optional[float]) -> Optional[float]:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except Exception:
+        return None
 
 
 class StrategyService:
@@ -18,12 +28,9 @@ class StrategyService:
         if not holdings:
             return None
 
-        snapshot_ts = holdings[0].snapshot_ts
-        ts_ms = (
-            int(snapshot_ts.timestamp() * 1000)
-            if snapshot_ts
-            else int(datetime.utcnow().timestamp() * 1000)
-        )
+        snapshot = repo.get_latest_portfolio_snapshot(strategy_id)
+        snapshot_ts = snapshot.snapshot_ts if snapshot else None
+        holding_ts = holdings[0].snapshot_ts if holdings else None
 
         positions: List[PositionHoldingItem] = []
         for h in holdings:
@@ -61,15 +68,67 @@ class StrategyService:
             except Exception:
                 continue
 
+        ts_source = snapshot_ts or holding_ts
+        ts_ms = (
+            int(ts_source.timestamp() * 1000)
+            if ts_source
+            else int(datetime.utcnow().timestamp() * 1000)
+        )
+
+        cash_value = _to_optional_float(snapshot.cash) if snapshot else None
+        cash = cash_value if cash_value is not None else 0.0
+        gross_exposure = (
+            _to_optional_float(snapshot.gross_exposure) if snapshot else None
+        )
+        net_exposure = (
+            _to_optional_float(snapshot.net_exposure) if snapshot else None
+        )
+
         return StrategyHoldingData(
             strategy_id=strategy_id,
             ts=ts_ms,
-            cash=0.0,
+            cash=cash,
             positions=positions,
-            total_value=None,
-            total_unrealized_pnl=None,
-            available_cash=None,
+            total_value=_to_optional_float(snapshot.total_value) if snapshot else None,
+            total_unrealized_pnl=(
+                _to_optional_float(snapshot.total_unrealized_pnl) if snapshot else None
+            ),
+            total_realized_pnl=(
+                _to_optional_float(snapshot.total_realized_pnl) if snapshot else None
+            ),
+            gross_exposure=gross_exposure,
+            net_exposure=net_exposure,
+            available_cash=cash,
         )
+
+    @staticmethod
+    async def get_strategy_portfolio_summary(
+        strategy_id: str,
+    ) -> Optional[StrategyPortfolioSummaryData]:
+        repo = get_strategy_repository()
+        snapshot = repo.get_latest_portfolio_snapshot(strategy_id)
+        if not snapshot:
+            return None
+
+        ts = snapshot.snapshot_ts or datetime.utcnow()
+
+        return StrategyPortfolioSummaryData(
+            strategy_id=strategy_id,
+            ts=int(ts.timestamp() * 1000),
+            cash=_to_optional_float(snapshot.cash),
+            total_value=_to_optional_float(snapshot.total_value),
+            total_pnl=StrategyService._combine_realized_unrealized(snapshot),
+            gross_exposure=_to_optional_float(getattr(snapshot, "gross_exposure", None)),
+            net_exposure=_to_optional_float(getattr(snapshot, "net_exposure", None)),
+        )
+
+    @staticmethod
+    def _combine_realized_unrealized(snapshot) -> Optional[float]:
+        realized = _to_optional_float(getattr(snapshot, "total_realized_pnl", None))
+        unrealized = _to_optional_float(getattr(snapshot, "total_unrealized_pnl", None))
+        if realized is None and unrealized is None:
+            return None
+        return (realized or 0.0) + (unrealized or 0.0)
 
     @staticmethod
     async def get_strategy_detail(

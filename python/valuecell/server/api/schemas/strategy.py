@@ -78,12 +78,43 @@ class StrategyHoldingData(BaseModel):
     total_unrealized_pnl: Optional[float] = Field(
         None, description="Sum of unrealized PnL across positions"
     )
+    total_realized_pnl: Optional[float] = Field(
+        None, description="Sum of realized PnL from closed positions"
+    )
+    gross_exposure: Optional[float] = Field(
+        None, description="Aggregate gross exposure at snapshot"
+    )
+    net_exposure: Optional[float] = Field(
+        None, description="Aggregate net exposure at snapshot"
+    )
     available_cash: Optional[float] = Field(
         None, description="Cash available for new positions"
     )
 
 
 StrategyHoldingResponse = SuccessResponse[StrategyHoldingData]
+
+
+class StrategyPortfolioSummaryData(BaseModel):
+    strategy_id: str = Field(..., description="Strategy identifier")
+    ts: int = Field(..., description="Snapshot timestamp in ms")
+    cash: Optional[float] = Field(None, description="Cash balance from snapshot")
+    total_value: Optional[float] = Field(
+        None, description="Total portfolio value (cash + positions)"
+    )
+    total_pnl: Optional[float] = Field(
+        None,
+        description="Combined realized and unrealized PnL for the snapshot",
+    )
+    gross_exposure: Optional[float] = Field(
+        None, description="Aggregate gross exposure at snapshot"
+    )
+    net_exposure: Optional[float] = Field(
+        None, description="Aggregate net exposure at snapshot"
+    )
+
+
+StrategyPortfolioSummaryResponse = SuccessResponse[StrategyPortfolioSummaryData]
 
 
 class StrategyActionCard(BaseModel):

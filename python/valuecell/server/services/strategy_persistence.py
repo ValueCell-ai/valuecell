@@ -144,12 +144,26 @@ def persist_portfolio_view(view: agent_models.PortfolioView) -> bool:
             if view.total_unrealized_pnl is not None
             else None
         )
+        total_realized = (
+            float(view.total_realized_pnl)
+            if view.total_realized_pnl is not None
+            else None
+        )
+        gross_exposure = (
+            float(view.gross_exposure) if view.gross_exposure is not None else None
+        )
+        net_exposure = (
+            float(view.net_exposure) if view.net_exposure is not None else None
+        )
 
         portfolio_item = repo.add_portfolio_snapshot(
             strategy_id=strategy_id,
             cash=cash,
             total_value=total_value,
             total_unrealized_pnl=total_unrealized,
+            total_realized_pnl=total_realized,
+            gross_exposure=gross_exposure,
+            net_exposure=net_exposure,
             snapshot_ts=snapshot_ts,
         )
         if portfolio_item is None:
