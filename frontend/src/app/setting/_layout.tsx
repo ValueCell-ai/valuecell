@@ -1,4 +1,4 @@
-import { Brain, Settings } from "lucide-react";
+import { Brain, Cpu, Settings } from "lucide-react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import {
   Item,
@@ -21,6 +21,12 @@ const settingNavItems = [
     icon: Brain,
     label: "Memory",
     path: "/setting/memory",
+  },
+  {
+    id: "models",
+    icon: Cpu,
+    label: "Models",
+    path: "/setting/models",
   },
   // {
   //   id: "language",
