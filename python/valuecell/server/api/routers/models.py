@@ -134,7 +134,6 @@ def create_models_router() -> APIRouter:
                 status_code=500, detail=f"Failed to get LLM config list: {str(e)}"
             )
 
-    # ---- New: Providers list ----
     @router.get(
         "/providers",
         response_model=SuccessResponse[List[ModelProviderSummary]],
@@ -164,7 +163,6 @@ def create_models_router() -> APIRouter:
                 status_code=500, detail=f"Failed to list providers: {e}"
             )
 
-    # ---- New: Provider details ----
     @router.get(
         "/providers/{provider}",
         response_model=SuccessResponse[ProviderDetailData],
@@ -203,7 +201,6 @@ def create_models_router() -> APIRouter:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to get provider: {e}")
 
-    # ---- New: Update provider config (API key / Host) ----
     @router.put(
         "/providers/{provider}/config",
         response_model=SuccessResponse[ProviderDetailData],
