@@ -80,9 +80,7 @@ class StrategyService:
         gross_exposure = (
             _to_optional_float(snapshot.gross_exposure) if snapshot else None
         )
-        net_exposure = (
-            _to_optional_float(snapshot.net_exposure) if snapshot else None
-        )
+        net_exposure = _to_optional_float(snapshot.net_exposure) if snapshot else None
 
         return StrategyHoldingData(
             strategy_id=strategy_id,
@@ -118,7 +116,9 @@ class StrategyService:
             cash=_to_optional_float(snapshot.cash),
             total_value=_to_optional_float(snapshot.total_value),
             total_pnl=StrategyService._combine_realized_unrealized(snapshot),
-            gross_exposure=_to_optional_float(getattr(snapshot, "gross_exposure", None)),
+            gross_exposure=_to_optional_float(
+                getattr(snapshot, "gross_exposure", None)
+            ),
             net_exposure=_to_optional_float(getattr(snapshot, "net_exposure", None)),
         )
 
