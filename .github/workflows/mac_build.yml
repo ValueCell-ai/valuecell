@@ -6,7 +6,7 @@ on:
       - "release"
   pull_request:
     branches:
-      - "main"
+      - "release"
 
 jobs:
   build-macos:
@@ -130,4 +130,7 @@ jobs:
           path: frontend/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
           name: ValueCell-${{ matrix.target }}-${{ github.sha }}
           retention-days: 3
-        
+
+      - name: Upload DMG to GitHub Releases
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
