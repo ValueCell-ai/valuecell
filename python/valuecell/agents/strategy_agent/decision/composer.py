@@ -394,11 +394,28 @@ class LlmComposer(Composer):
         # Step 3: buying power clamp
         px = price_map.get(symbol)
         if px is None or px <= 0:
-            logger.debug(
-                "No price for {} to evaluate buying power; using full quantity",
-                symbol,
+            # Without a valid price, we cannot safely assess notional or buying power.
+            # Allow only de-risking (reductions/closures); block new/exposure-increasing trades.
+            is_reduction = (side is TradeSide.BUY and current_qty < 0) or (
+                side is TradeSide.SELL and current_qty > 0
             )
-            final_qty = qty
+            if is_reduction:
+                # Clamp to the current absolute position to avoid overshooting zero
+                final_qty = min(qty, abs(current_qty))
+                logger.warning(
+                    "Missing price for {} — allowing reduce-only trade: final_qty={} (current_qty={})",
+                    symbol,
+                    final_qty,
+                    current_qty,
+                )
+            else:
+                logger.warning(
+                    "Missing price for {} — blocking exposure-increasing trade (side={}, qty={})",
+                    symbol,
+                    side,
+                    qty,
+                )
+                return 0.0, 0.0
         else:
             if self._request.exchange_config.market_type == MarketType.SPOT:
                 # Spot: cash-only buying power
@@ -454,9 +471,17 @@ class LlmComposer(Composer):
             current_qty + (final_qty if side is TradeSide.BUY else -final_qty)
         )
         delta_abs = abs_after - abs_before
-        consumed_bp_delta = (
-            delta_abs * price_map.get(symbol, 0.0) if delta_abs > 0 else 0.0
-        )
+        # Use effective price (with slippage) for consumed buying power to stay conservative
+        # If px was missing, we would have returned earlier for exposure-increasing trades;
+        # for reduction-only trades, treat consumed buying power as 0.
+        if px is None or px <= 0:
+            consumed_bp_delta = 0.0
+        else:
+            # Recompute effective price consistently with the clamp
+            slip_bps = float(self._default_slippage_bps or 0.0)
+            slip = slip_bps / 10000.0
+            effective_px = float(px) * (1.0 + slip)
+            consumed_bp_delta = (delta_abs * effective_px) if delta_abs > 0 else 0.0
 
         return final_qty, consumed_bp_delta
 
