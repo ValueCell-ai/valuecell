@@ -14,9 +14,10 @@ jobs:
       matrix:
         include:
           - args: --target aarch64-apple-darwin
-            arch: 'silicon'
+            target: 'aarch64-apple-darwin'
+            
           - args: --target x86_64-apple-darwin
-            arch: 'intel'
+            target: 'x86_64-apple-darwin'
 
     runs-on: macos-latest
     env:
@@ -122,3 +123,11 @@ jobs:
         with:
           args: ${{ matrix.args }}
           
+      - name: Upload Artifacts
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v5
+        with:
+          path: frontend/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+          name: ValueCell-${{ matrix.target }}-${{ github.sha }}
+          retention-days: 3
+        
