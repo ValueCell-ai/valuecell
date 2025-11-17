@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 AGENT_METADATA_CLASS_KEY = "local_agent_class"
 
+
 @dataclass
 class AgentContext:
     """Unified context for remote agents.

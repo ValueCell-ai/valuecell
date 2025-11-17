@@ -376,7 +376,9 @@ async def test_get_all_agent_cards_returns_local_cards(tmp_path: Path):
     assert all(isinstance(card, AgentCard) for card in all_cards.values())
 
 
-def test_resolve_local_agent_class_from_metadata(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+def test_resolve_local_agent_class_from_metadata(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
     # Prepare a card with metadata pointing to a fake spec
     dir_path = tmp_path / "agent_cards"
     dir_path.mkdir(parents=True)
