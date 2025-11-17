@@ -89,7 +89,18 @@ class InMemoryPortfolioService(PortfolioService):
 
         for trade in trades:
             symbol = trade.instrument.symbol
-            price = float(trade.entry_price or price_map.get(symbol, 0.0) or 0.0)
+            # Use execution price for settlement and marking. Fallback sensibly.
+            exec_price = None
+            try:
+                if trade.avg_exec_price is not None:
+                    exec_price = float(trade.avg_exec_price)
+                elif trade.exit_price is not None:
+                    exec_price = float(trade.exit_price)
+                elif trade.entry_price is not None:
+                    exec_price = float(trade.entry_price)
+            except Exception:
+                exec_price = None
+            price = float(exec_price or price_map.get(symbol, 0.0) or 0.0)
             delta = float(trade.quantity or 0.0)
             quantity_delta = delta if trade.side == TradeSide.BUY else -delta
 
@@ -115,7 +126,7 @@ class InMemoryPortfolioService(PortfolioService):
             )
             new_qty = current_qty + quantity_delta
 
-            # Update mark price
+            # Update mark price to execution reference
             position.mark_price = price
 
             # Handle position quantity transitions and avg price
@@ -177,7 +188,7 @@ class InMemoryPortfolioService(PortfolioService):
                 if trade.leverage is not None:
                     position.leverage = float(trade.leverage)
 
-            # Update cash by trade notional
+            # Update cash by trade notional at execution price
             notional = price * delta
             # Deduct fees from cash as well. Trade may include fee_cost (in quote ccy).
             fee = trade.fee_cost or 0.0
