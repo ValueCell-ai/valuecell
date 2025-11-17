@@ -408,6 +408,45 @@ class TestServeDecorator:
             with pytest.raises(asyncio.CancelledError):
                 await instance.serve()
 
+    @pytest.mark.asyncio
+    async def test_shutdown_sets_should_exit(self):
+        """Test shutdown flips server should_exit flag."""
+        mock_card = AgentCard(
+            name="TestAgent",
+            url="http://localhost:8000",
+            description="Test agent",
+            capabilities=AgentCapabilities(streaming=True, push_notifications=False),
+            default_input_modes=["text"],
+            default_output_modes=["text"],
+            version="1.0.0",
+            skills=[
+                {
+                    "id": "test_skill",
+                    "name": "Test Skill",
+                    "description": "A test skill",
+                    "tags": ["test"],
+                }
+            ],
+        )
+
+        decorator = _serve(mock_card)
+
+        @decorator
+        class TestAgent2:
+            def __init__(self):
+                self._host = "localhost"
+                self._port = 8000
+
+        instance = TestAgent2()
+
+        # Simulate a running uvicorn.Server stored on the instance
+        server = MagicMock()
+        server.should_exit = False
+        instance._server = server
+
+        await instance.shutdown()
+        assert instance._server.should_exit is True
+
 
 class TestCreateWrappedAgent:
     """Test create_wrapped_agent function."""

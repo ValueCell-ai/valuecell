@@ -374,3 +374,74 @@ async def test_get_all_agent_cards_returns_local_cards(tmp_path: Path):
 
     assert set(all_cards.keys()) == {"CardOne", "CardTwo"}
     assert all(isinstance(card, AgentCard) for card in all_cards.values())
+
+
+def test_resolve_local_agent_class_from_metadata(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    # Prepare a card with metadata pointing to a fake spec
+    dir_path = tmp_path / "agent_cards"
+    dir_path.mkdir(parents=True)
+
+    card = {
+        "name": "MetaAgent",
+        "url": "http://127.0.0.1:9001",
+        "enabled": True,
+        "metadata": {connect_mod.AGENT_METADATA_CLASS_KEY: "fake:Spec"},
+    }
+    with open(dir_path / "MetaAgent.json", "w", encoding="utf-8") as f:
+        json.dump(card, f)
+
+    # Monkeypatch resolver to return DummyAgent class for that spec
+    class DummyAgent:
+        pass
+
+    monkeypatch.setattr(
+        connect_mod,
+        "_resolve_local_agent_class",
+        lambda spec: DummyAgent if spec == "fake:Spec" else None,
+    )
+
+    rc = RemoteConnections()
+    rc.load_from_dir(str(dir_path))
+
+    ctx = rc._contexts.get("MetaAgent")
+    assert ctx is not None
+    assert ctx.agent_instance_class is DummyAgent
+
+
+@pytest.mark.asyncio
+async def test_initialize_client_retries():
+    rc = RemoteConnections()
+
+    # create a context with agent_task truthy to trigger retries
+    ctx = connect_mod.AgentContext(name="RetryAgent")
+    ctx.agent_task = True
+
+    class FlakyClient:
+        def __init__(self):
+            self.attempts = 0
+            self.agent_card = None
+
+        async def ensure_initialized(self):
+            self.attempts += 1
+            # fail twice then succeed
+            if self.attempts < 3:
+                raise RuntimeError("temporary failure")
+            self.agent_card = AgentCard.model_validate(
+                {
+                    "name": "X",
+                    "url": "http://x/",
+                    "description": "x",
+                    "capabilities": {"streaming": True, "push_notifications": False},
+                    "default_input_modes": [],
+                    "default_output_modes": [],
+                    "version": "",
+                }
+            )
+
+    client = FlakyClient()
+
+    # Call private initializer directly to exercise retry logic
+    await rc._initialize_client(client, ctx)
+
+    assert client.attempts >= 3
+    assert client.agent_card is not None
