@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import json
 import math
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from agno.agent import Agent as AgnoAgent
 from loguru import logger
-from pydantic import ValidationError
 
 from valuecell.utils import env as env_utils
 from valuecell.utils import model as model_utils
@@ -64,12 +64,9 @@ class LlmComposer(Composer):
                     plan.rationale,
                 )
                 return ComposeResult(instructions=[], rationale=plan.rationale)
-        except ValidationError as exc:
-            logger.error("LLM output failed validation: {}", exc)
-            return ComposeResult(instructions=[], rationale=None)
-        except Exception:  # noqa: BLE001
-            logger.exception("LLM invocation failed")
-            return ComposeResult(instructions=[], rationale=None)
+        except Exception as exc:  # noqa: BLE001
+            logger.error("LLM invocation failed: {}", exc)
+            return ComposeResult(instructions=[], rationale="LLM invocation failed")
 
         normalized = self._normalize_plan(context, plan)
         return ComposeResult(instructions=normalized, rationale=plan.rationale)
@@ -255,9 +252,19 @@ class LlmComposer(Composer):
             debug_mode=env_utils.agent_debug_mode_enabled(),
         )
         response = await agent.arun(prompt)
+        # Agent may return a raw object or a wrapper with `.content`.
         content = getattr(response, "content", None) or response
         logger.debug("Received LLM response {}", content)
-        return content
+        # If the agent already returned a validated model, return it directly
+        if isinstance(content, LlmPlanProposal):
+            return content
+
+        logger.error("LLM output failed validation: {}", content)
+        return LlmPlanProposal(
+            ts=int(datetime.now(timezone.utc).timestamp() * 1000),
+            items=[],
+            rationale="LLM output failed validation",
+        )
 
     # ------------------------------------------------------------------
     # Normalization / guardrails helpers
