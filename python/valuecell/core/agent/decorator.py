@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Type
 
@@ -58,6 +59,7 @@ def _serve(agent_card: AgentCard):
                     agent_card.url, default_scheme="http"
                 )
                 self._executor = None
+                self._server: uvicorn.Server | None = None
 
             async def serve(self):
                 # Create AgentExecutor wrapper
@@ -88,9 +90,19 @@ def _serve(agent_card: AgentCard):
                     port=self._port,
                     log_level="info",
                 )
-                server = uvicorn.Server(config)
+                self._server = uvicorn.Server(config)
                 logger.info(f"Starting {agent_name} server at {self.agent_card.url}")
-                await server.serve()
+                try:
+                    await self._server.serve()
+                finally:
+                    await client.aclose()
+                    self._server = None
+
+            async def shutdown(self) -> None:
+                if not self._server:
+                    return
+                self._server.should_exit = True
+                await asyncio.sleep(0)
 
         # Preserve original class metadata
         DecoratedAgent.__name__ = cls.__name__

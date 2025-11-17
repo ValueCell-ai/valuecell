@@ -2,19 +2,23 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass
+from importlib import import_module
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Type
 
 from a2a.types import AgentCard
 
 from valuecell.core.agent.card import parse_local_agent_card_dict
 from valuecell.core.agent.client import AgentClient
+from valuecell.core.agent.decorator import create_wrapped_agent
 from valuecell.core.agent.listener import NotificationListener
 from valuecell.core.types import NotificationCallbackType
 from valuecell.utils import get_next_available_port
 
 logger = logging.getLogger(__name__)
 
+
+AGENT_METADATA_CLASS_KEY = "local_agent_class"
 
 @dataclass
 class AgentContext:
@@ -37,6 +41,40 @@ class AgentContext:
     desired_listener_host: Optional[str] = None
     desired_listener_port: Optional[int] = None
     notification_callback: Optional[NotificationCallbackType] = None
+    # Local in-process agent runtime
+    agent_instance: Optional[Any] = None
+    agent_task: Optional[asyncio.Task] = None
+    agent_instance_class: Optional[Type[Any]] = None
+
+
+_LOCAL_AGENT_CLASS_CACHE: Dict[str, Type[Any]] = {}
+
+
+def _resolve_local_agent_class(spec: str) -> Optional[Type[Any]]:
+    if not spec:
+        return None
+
+    cached = _LOCAL_AGENT_CLASS_CACHE.get(spec)
+    if cached is not None:
+        return cached
+
+    try:
+        module_path, class_name = spec.split(":", 1)
+        module = import_module(module_path)
+        agent_cls = getattr(module, class_name)
+    except (ValueError, AttributeError, ImportError) as exc:
+        logger.error("Failed to import agent class '%s': %s", spec, exc)
+        return None
+
+    _LOCAL_AGENT_CLASS_CACHE[spec] = agent_cls
+    return agent_cls
+
+
+def _build_local_agent(ctx: AgentContext):
+    agent_cls = ctx.agent_instance_class
+    if agent_cls is None:
+        return None
+    return create_wrapped_agent(agent_cls)
 
 
 class RemoteConnections:
@@ -93,12 +131,21 @@ class RemoteConnections:
                     continue
                 if not agent_card_dict.get("enabled", True):
                     continue
+                metadata = (
+                    agent_card_dict.get("metadata")
+                    if isinstance(agent_card_dict.get("metadata"), dict)
+                    else {}
+                )
+                class_spec = metadata.get(AGENT_METADATA_CLASS_KEY)
+                agent_instance_class = (
+                    _resolve_local_agent_class(class_spec)
+                    if isinstance(class_spec, str)
+                    else None
+                )
                 # Detect planner passthrough from raw JSON (top-level or metadata)
                 passthrough = bool(agent_card_dict.get("planner_passthrough"))
                 if not passthrough:
-                    meta = agent_card_dict.get("metadata") or {}
-                    if isinstance(meta, dict):
-                        passthrough = bool(meta.get("planner_passthrough"))
+                    passthrough = bool(metadata.get("planner_passthrough"))
                 local_agent_card = parse_local_agent_card_dict(agent_card_dict)
                 if not local_agent_card:
                     continue
@@ -107,7 +154,14 @@ class RemoteConnections:
                     url=local_agent_card.url,
                     local_agent_card=local_agent_card,
                     planner_passthrough=passthrough,
+                    agent_instance_class=agent_instance_class,
                 )
+                if class_spec and not agent_instance_class:
+                    logger.warning(
+                        "Unable to resolve local agent class '%s' for '%s'",
+                        class_spec,
+                        agent_name,
+                    )
             except (json.JSONDecodeError, FileNotFoundError, KeyError) as e:
                 logger.warning(
                     f"Failed to load agent card from {json_file}; skipping: {e}"
@@ -146,6 +200,8 @@ class RemoteConnections:
                 ctx.desired_listener_host = listener_host
                 ctx.desired_listener_port = listener_port
                 ctx.notification_callback = notification_callback
+
+            await self._ensure_agent_runtime(ctx)
 
             # If already connected, return card
             if ctx.client and ctx.client.agent_card:
@@ -193,7 +249,7 @@ class RemoteConnections:
         # Initialize a temporary client; only assign to context on success
         tmp_client = AgentClient(url, push_notification_url=ctx.listener_url)
         try:
-            await tmp_client.ensure_initialized()
+            await self._initialize_client(tmp_client, ctx)
             # Ensure agent card was resolved by the resolver
             if not getattr(tmp_client, "agent_card", None):
                 raise RuntimeError("Agent card resolution returned None")
@@ -210,6 +266,65 @@ class RemoteConnections:
                 pass
             logger.error(f"Failed to initialize client for '{ctx.name}' at {url}: {e}")
             raise
+
+    async def _ensure_agent_runtime(self, ctx: AgentContext) -> None:
+        """Launch the agent locally if a factory is available."""
+        # Existing running task: keep as is
+        if ctx.agent_task and not ctx.agent_task.done():
+            return
+
+        # Clean up finished tasks and propagate failures
+        if ctx.agent_task and ctx.agent_task.done():
+            try:
+                ctx.agent_task.result()
+            except Exception as exc:
+                raise RuntimeError(f"Agent '{ctx.name}' failed during startup") from exc
+            finally:
+                ctx.agent_task = None
+                ctx.agent_instance = None
+
+        if ctx.agent_instance is None:
+            agent_instance = _build_local_agent(ctx)
+            if agent_instance is None:
+                return
+            ctx.agent_instance = agent_instance
+            logger.info(f"Launching in-process agent '{ctx.name}'")
+
+        if ctx.agent_task is None:
+            ctx.agent_task = asyncio.create_task(ctx.agent_instance.serve())
+            # Give the event loop a chance to schedule startup work
+            await asyncio.sleep(0)
+            if ctx.agent_task.done():
+                try:
+                    ctx.agent_task.result()
+                except Exception as exc:
+                    raise RuntimeError(
+                        f"Agent '{ctx.name}' failed during startup"
+                    ) from exc
+                finally:
+                    ctx.agent_task = None
+                    ctx.agent_instance = None
+
+    async def _initialize_client(self, client: AgentClient, ctx: AgentContext) -> None:
+        """Initialize client with retry for local agents."""
+        retries = 3 if ctx.agent_task else 1
+        delay = 0.2
+        for attempt in range(retries):
+            try:
+                await client.ensure_initialized()
+                return
+            except Exception as exc:
+                if attempt >= retries - 1:
+                    raise
+                logger.debug(
+                    "Retrying client initialization for '%s' (%s/%s): %s",
+                    ctx.name,
+                    attempt + 1,
+                    retries,
+                    exc,
+                )
+                await asyncio.sleep(delay)
+                delay = min(delay * 2, 1.0)
 
     async def _start_listener(
         self,
@@ -264,6 +379,28 @@ class RemoteConnections:
         ctx = self._contexts.get(agent_name)
         if not ctx:
             return
+        agent_task = ctx.agent_task
+        if agent_task:
+            if ctx.agent_instance and hasattr(ctx.agent_instance, "shutdown"):
+                try:
+                    await ctx.agent_instance.shutdown()
+                except Exception as exc:
+                    logger.warning(
+                        "Error shutting down agent '%s': %s", agent_name, exc
+                    )
+            try:
+                await asyncio.wait_for(agent_task, timeout=5)
+            except asyncio.TimeoutError:
+                agent_task.cancel()
+                try:
+                    await agent_task
+                except asyncio.CancelledError:
+                    pass
+            finally:
+                ctx.agent_task = None
+                ctx.agent_instance = None
+        elif ctx.agent_instance is not None:
+            ctx.agent_instance = None
         # Close client
         if ctx.client:
             await ctx.client.close()

@@ -390,7 +390,9 @@ class TestServeDecorator:
         mock_app.return_value = mock_app_instance
 
         # Mock other dependencies
-        mock_client.return_value = MagicMock()
+        mock_httpx_client = MagicMock()
+        mock_httpx_client.aclose = AsyncMock()
+        mock_client.return_value = mock_httpx_client
         mock_config_store.return_value = MagicMock()
         mock_task_store.return_value = MagicMock()
         mock_sender.return_value = MagicMock()
