@@ -22,7 +22,7 @@ from ..models import (
     UserRequest,
 )
 from ..utils import extract_price_map
-from .interfaces import Composer
+from .interfaces import Composer, ComposeResult
 from .system_prompt import SYSTEM_PROMPT
 
 
@@ -53,7 +53,7 @@ class LlmComposer(Composer):
         self._default_slippage_bps = default_slippage_bps
         self._quantity_precision = quantity_precision
 
-    async def compose(self, context: ComposeContext) -> List[TradeInstruction]:
+    async def compose(self, context: ComposeContext) -> ComposeResult:
         prompt = self._build_llm_prompt(context)
         try:
             plan = await self._call_llm(prompt)
@@ -63,15 +63,16 @@ class LlmComposer(Composer):
                     context.compose_id,
                     plan.rationale,
                 )
-                return []
+                return ComposeResult(instructions=[], rationale=plan.rationale)
         except ValidationError as exc:
             logger.error("LLM output failed validation: {}", exc)
-            return []
+            return ComposeResult(instructions=[], rationale=None)
         except Exception:  # noqa: BLE001
             logger.exception("LLM invocation failed")
-            return []
+            return ComposeResult(instructions=[], rationale=None)
 
-        return self._normalize_plan(context, plan)
+        normalized = self._normalize_plan(context, plan)
+        return ComposeResult(instructions=normalized, rationale=plan.rationale)
 
     # ------------------------------------------------------------------
     # Prompt + LLM helpers

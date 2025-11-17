@@ -13,8 +13,10 @@ from sqlalchemy.orm import Session
 
 from ..connection import get_database_manager
 from ..models.strategy import Strategy
+from ..models.strategy_compose_cycle import StrategyComposeCycle
 from ..models.strategy_detail import StrategyDetail
 from ..models.strategy_holding import StrategyHolding
+from ..models.strategy_instruction import StrategyInstruction
 from ..models.strategy_portfolio import StrategyPortfolioView
 from ..models.strategy_prompt import StrategyPrompt
 
@@ -263,13 +265,26 @@ class StrategyRepository:
         holding_ms: Optional[int],
         event_time: Optional[datetime],
         note: Optional[str] = None,
+        *,
+        compose_id: Optional[str] = None,
+        instruction_id: Optional[str] = None,
+        avg_exec_price: Optional[float] = None,
+        realized_pnl: Optional[float] = None,
+        realized_pnl_pct: Optional[float] = None,
+        notional_entry: Optional[float] = None,
+        notional_exit: Optional[float] = None,
+        fee_cost: Optional[float] = None,
+        entry_time: Optional[datetime] = None,
+        exit_time: Optional[datetime] = None,
     ) -> Optional[StrategyDetail]:
         """Insert one strategy detail record."""
         session = self._get_session()
         try:
             item = StrategyDetail(
                 strategy_id=strategy_id,
+                compose_id=compose_id,
                 trade_id=trade_id,
+                instruction_id=instruction_id,
                 symbol=symbol,
                 type=type,
                 side=side,
@@ -277,9 +292,16 @@ class StrategyRepository:
                 quantity=quantity,
                 entry_price=entry_price,
                 exit_price=exit_price,
+                avg_exec_price=avg_exec_price,
                 unrealized_pnl=unrealized_pnl,
+                realized_pnl=realized_pnl,
+                realized_pnl_pct=realized_pnl_pct,
+                notional_entry=notional_entry,
+                notional_exit=notional_exit,
+                fee_cost=fee_cost,
                 holding_ms=holding_ms,
-                event_time=event_time,
+                entry_time=entry_time or event_time,
+                exit_time=exit_time,
                 note=note,
             )
             session.add(item)
@@ -294,6 +316,134 @@ class StrategyRepository:
             if not self.db_session:
                 session.close()
 
+    # Compose cycles and instructions
+    def add_compose_cycle(
+        self,
+        strategy_id: str,
+        compose_id: str,
+        compose_time: Optional[datetime] = None,
+        rationale: Optional[str] = None,
+    ) -> Optional[StrategyComposeCycle]:
+        session = self._get_session()
+        try:
+            item = StrategyComposeCycle(
+                strategy_id=strategy_id,
+                compose_id=compose_id,
+                compose_time=compose_time or datetime.utcnow(),
+                rationale=rationale,
+            )
+            session.add(item)
+            session.commit()
+            session.refresh(item)
+            session.expunge(item)
+            return item
+        except Exception:
+            session.rollback()
+            return None
+        finally:
+            if not self.db_session:
+                session.close()
+
+    def add_instruction(
+        self,
+        strategy_id: str,
+        compose_id: str,
+        instruction_id: str,
+        symbol: str,
+        action: Optional[str],
+        side: Optional[str],
+        quantity: Optional[float],
+        leverage: Optional[float] = None,
+        note: Optional[str] = None,
+    ) -> Optional[StrategyInstruction]:
+        session = self._get_session()
+        try:
+            item = StrategyInstruction(
+                strategy_id=strategy_id,
+                compose_id=compose_id,
+                instruction_id=instruction_id,
+                symbol=symbol,
+                action=action,
+                side=side,
+                quantity=quantity,
+                leverage=leverage,
+                note=note,
+            )
+            session.add(item)
+            session.commit()
+            session.refresh(item)
+            session.expunge(item)
+            return item
+        except Exception:
+            session.rollback()
+            return None
+        finally:
+            if not self.db_session:
+                session.close()
+
+    def get_cycles(
+        self, strategy_id: str, limit: Optional[int] = None
+    ) -> List[StrategyComposeCycle]:
+        session = self._get_session()
+        try:
+            query = (
+                session.query(StrategyComposeCycle)
+                .filter(StrategyComposeCycle.strategy_id == strategy_id)
+                .order_by(desc(StrategyComposeCycle.compose_time))
+            )
+            if limit:
+                query = query.limit(limit)
+            items = query.all()
+            for item in items:
+                session.expunge(item)
+            return items
+        finally:
+            if not self.db_session:
+                session.close()
+
+    def get_instructions_by_compose(
+        self, strategy_id: str, compose_id: str
+    ) -> List[StrategyInstruction]:
+        session = self._get_session()
+        try:
+            items = (
+                session.query(StrategyInstruction)
+                .filter(
+                    StrategyInstruction.strategy_id == strategy_id,
+                    StrategyInstruction.compose_id == compose_id,
+                )
+                .order_by(StrategyInstruction.symbol.asc())
+                .all()
+            )
+            for item in items:
+                session.expunge(item)
+            return items
+        finally:
+            if not self.db_session:
+                session.close()
+
+    def get_details_by_instruction_ids(
+        self, strategy_id: str, instruction_ids: List[str]
+    ) -> List[StrategyDetail]:
+        if not instruction_ids:
+            return []
+        session = self._get_session()
+        try:
+            items = (
+                session.query(StrategyDetail)
+                .filter(
+                    StrategyDetail.strategy_id == strategy_id,
+                    StrategyDetail.instruction_id.in_(instruction_ids),
+                )
+                .all()
+            )
+            for item in items:
+                session.expunge(item)
+            return items
+        finally:
+            if not self.db_session:
+                session.close()
+
     def get_details(
         self, strategy_id: str, limit: Optional[int] = None
     ) -> List[StrategyDetail]:
@@ -304,7 +454,7 @@ class StrategyRepository:
                 StrategyDetail.strategy_id == strategy_id
             )
             query = query.order_by(
-                desc(StrategyDetail.event_time), desc(StrategyDetail.created_at)
+                desc(StrategyDetail.entry_time), desc(StrategyDetail.created_at)
             )
             if limit:
                 query = query.limit(limit)

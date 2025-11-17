@@ -3,7 +3,8 @@ from typing import List, Optional
 
 from valuecell.server.api.schemas.strategy import (
     PositionHoldingItem,
-    StrategyDetailItem,
+    StrategyActionCard,
+    StrategyCycleDetail,
     StrategyHoldingData,
 )
 from valuecell.server.db.repositories import get_strategy_repository
@@ -37,16 +38,20 @@ class StrategyService:
                         symbol=h.symbol,
                         exchange_id=None,
                         quantity=qty if t == "LONG" else -qty if t == "SHORT" else qty,
-                        avg_price=float(h.entry_price)
-                        if h.entry_price is not None
-                        else None,
+                        avg_price=(
+                            float(h.entry_price) if h.entry_price is not None else None
+                        ),
                         mark_price=None,
-                        unrealized_pnl=float(h.unrealized_pnl)
-                        if h.unrealized_pnl is not None
-                        else None,
-                        unrealized_pnl_pct=float(h.unrealized_pnl_pct)
-                        if h.unrealized_pnl_pct is not None
-                        else None,
+                        unrealized_pnl=(
+                            float(h.unrealized_pnl)
+                            if h.unrealized_pnl is not None
+                            else None
+                        ),
+                        unrealized_pnl_pct=(
+                            float(h.unrealized_pnl_pct)
+                            if h.unrealized_pnl_pct is not None
+                            else None
+                        ),
                         notional=None,
                         leverage=float(h.leverage) if h.leverage is not None else None,
                         entry_ts=None,
@@ -69,40 +74,102 @@ class StrategyService:
     @staticmethod
     async def get_strategy_detail(
         strategy_id: str,
-    ) -> Optional[List[StrategyDetailItem]]:
+    ) -> Optional[List[StrategyCycleDetail]]:
         repo = get_strategy_repository()
-        details = repo.get_details(strategy_id)
-        if not details:
+        cycles = repo.get_cycles(strategy_id)
+        if not cycles:
             return None
 
-        items: List[StrategyDetailItem] = []
-        for d in details:
-            try:
-                items.append(
-                    StrategyDetailItem(
-                        trade_id=d.trade_id,
-                        symbol=d.symbol,
-                        type=d.type,
-                        side=d.side,
-                        leverage=float(d.leverage) if d.leverage is not None else None,
-                        quantity=float(d.quantity) if d.quantity is not None else 0.0,
-                        unrealized_pnl=float(d.unrealized_pnl)
-                        if d.unrealized_pnl is not None
-                        else None,
-                        entry_price=float(d.entry_price)
-                        if d.entry_price is not None
-                        else None,
-                        exit_price=float(d.exit_price)
-                        if d.exit_price is not None
-                        else None,
-                        holding_ms=int(d.holding_ms)
-                        if d.holding_ms is not None
-                        else None,
-                        time=d.event_time.isoformat() if d.event_time else None,
-                        note=d.note,
+        cycle_details: List[StrategyCycleDetail] = []
+        for c in cycles:
+            # fetch instructions for this cycle
+            instrs = repo.get_instructions_by_compose(strategy_id, c.compose_id)
+            instr_ids = [i.instruction_id for i in instrs if i.instruction_id]
+            details = repo.get_details_by_instruction_ids(strategy_id, instr_ids)
+            detail_map = {d.instruction_id: d for d in details if d.instruction_id}
+
+            cards: List[StrategyActionCard] = []
+            for i in instrs:
+                d = detail_map.get(i.instruction_id)
+                # Construct card combining instruction (always present) with optional execution detail
+                entry_ts = None
+                exit_ts = None
+                if d and d.entry_price:
+                    entry_ts = int(d.entry_time.timestamp() * 1000)
+                if d and d.exit_time:
+                    exit_ts = int(d.exit_time.timestamp() * 1000)
+
+                # Human-friendly display label for the action
+                action_display = i.action
+                if action_display is not None:
+                    # canonicalize values like 'open_long' -> 'OPEN LONG'
+                    action_display = str(i.action).replace("_", " ").upper()
+
+                cards.append(
+                    StrategyActionCard(
+                        instruction_id=i.instruction_id,
+                        symbol=i.symbol,
+                        action=i.action,
+                        action_display=action_display,
+                        side=i.side,
+                        quantity=float(i.quantity) if i.quantity is not None else None,
+                        leverage=(
+                            float(i.leverage) if i.leverage is not None else None
+                        ),
+                        avg_exec_price=(
+                            float(d.avg_exec_price)
+                            if (d and d.avg_exec_price is not None)
+                            else None
+                        ),
+                        entry_price=(
+                            float(d.entry_price)
+                            if (d and d.entry_price is not None)
+                            else None
+                        ),
+                        exit_price=(
+                            float(d.exit_price)
+                            if (d and d.exit_price is not None)
+                            else None
+                        ),
+                        entry_ts=entry_ts,
+                        exit_ts=exit_ts,
+                        notional_entry=(
+                            float(d.notional_entry)
+                            if (d and d.notional_entry is not None)
+                            else None
+                        ),
+                        notional_exit=(
+                            float(d.notional_exit)
+                            if (d and d.notional_exit is not None)
+                            else None
+                        ),
+                        fee_cost=(
+                            float(d.fee_cost)
+                            if (d and d.fee_cost is not None)
+                            else None
+                        ),
+                        realized_pnl=(
+                            float(d.realized_pnl)
+                            if (d and d.realized_pnl is not None)
+                            else None
+                        ),
+                        realized_pnl_pct=(
+                            float(d.realized_pnl_pct)
+                            if (d and d.realized_pnl_pct is not None)
+                            else None
+                        ),
+                        rationale=i.note,
                     )
                 )
-            except Exception:
-                continue
 
-        return items
+            ts_ms = int((c.compose_time or datetime.utcnow()).timestamp() * 1000)
+            cycle_details.append(
+                StrategyCycleDetail(
+                    compose_id=c.compose_id,
+                    ts=ts_ms,
+                    rationale=c.rationale,
+                    actions=cards,
+                )
+            )
+
+        return cycle_details
