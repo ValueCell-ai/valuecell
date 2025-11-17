@@ -376,7 +376,8 @@ async def test_get_all_agent_cards_returns_local_cards(tmp_path: Path):
     assert all(isinstance(card, AgentCard) for card in all_cards.values())
 
 
-def test_resolve_local_agent_class_from_metadata(
+@pytest.mark.asyncio
+async def test_resolve_local_agent_class_from_metadata(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     # Prepare a card with metadata pointing to a fake spec
@@ -408,6 +409,15 @@ def test_resolve_local_agent_class_from_metadata(
 
     ctx = rc._contexts.get("MetaAgent")
     assert ctx is not None
+    assert ctx.agent_instance_class is None
+    assert ctx.agent_class_spec == "fake:Spec"
+
+    sentinel = object()
+    monkeypatch.setattr(connect_mod, "create_wrapped_agent", lambda cls: sentinel)
+
+    result = await connect_mod._build_local_agent(ctx)
+
+    assert result is sentinel
     assert ctx.agent_instance_class is DummyAgent
 
 
@@ -473,13 +483,15 @@ def test_resolve_local_agent_class_invalid_spec(caplog: pytest.LogCaptureFixture
     assert any("Failed to import agent class" in r.message for r in caplog.records)
 
 
-def test_build_local_agent_returns_none_when_no_class():
+@pytest.mark.asyncio
+async def test_build_local_agent_returns_none_when_no_class():
     ctx = connect_mod.AgentContext(name="NoClass")
     ctx.agent_instance_class = None
-    assert connect_mod._build_local_agent(ctx) is None
+    assert await connect_mod._build_local_agent(ctx) is None
 
 
-def test_build_local_agent_invokes_factory(monkeypatch: pytest.MonkeyPatch):
+@pytest.mark.asyncio
+async def test_build_local_agent_invokes_factory(monkeypatch: pytest.MonkeyPatch):
     ctx = connect_mod.AgentContext(name="WithClass")
     sentinel = object()
 
@@ -493,7 +505,7 @@ def test_build_local_agent_invokes_factory(monkeypatch: pytest.MonkeyPatch):
         lambda cls: sentinel if cls is DummyAgent else None,
     )
 
-    assert connect_mod._build_local_agent(ctx) is sentinel
+    assert await connect_mod._build_local_agent(ctx) is sentinel
 
 
 @pytest.mark.asyncio
@@ -534,7 +546,11 @@ async def test_ensure_agent_runtime_finished_task_failure():
 async def test_ensure_agent_runtime_no_factory(monkeypatch: pytest.MonkeyPatch):
     rc = RemoteConnections()
     ctx = connect_mod.AgentContext(name="NoFactory")
-    monkeypatch.setattr(connect_mod, "_build_local_agent", lambda _: None)
+
+    async def _noop(_):
+        return None
+
+    monkeypatch.setattr(connect_mod, "_build_local_agent", _noop)
 
     await rc._ensure_agent_runtime(ctx)
 
@@ -551,7 +567,10 @@ async def test_ensure_agent_runtime_new_task_failure(monkeypatch: pytest.MonkeyP
         async def serve(self):
             raise RuntimeError("serve failed")
 
-    monkeypatch.setattr(connect_mod, "_build_local_agent", lambda _: FailingAgent())
+    async def _factory(_):
+        return FailingAgent()
+
+    monkeypatch.setattr(connect_mod, "_build_local_agent", _factory)
 
     with pytest.raises(RuntimeError, match="FailingAgent"):
         await rc._ensure_agent_runtime(ctx)
