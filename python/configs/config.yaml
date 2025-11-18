@@ -43,6 +43,9 @@ models:
       config_file: "providers/azure.yaml"
       api_key_env: "AZURE_OPENAI_API_KEY"
       endpoint_env: "AZURE_OPENAI_ENDPOINT"
+    deepseek:
+      config_file: "providers/deepseek.yaml"
+      api_key_env: "DEEPSEEK_API_KEY"
 
 # Agent Configuration
 agents:

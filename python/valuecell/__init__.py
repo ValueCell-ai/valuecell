@@ -23,7 +23,7 @@ def load_env_file_early() -> None:
     """Load environment variables from .env file at package import time.
 
     Uses python-dotenv for reliable parsing and respects existing environment variables.
-    Looks for .env file in project root (two levels up from this file).
+    Looks for .env file in repository root (three levels up from this file).
 
     Note:
         - .env file variables override existing environment variables (override=True)
@@ -34,10 +34,24 @@ def load_env_file_early() -> None:
     try:
         from dotenv import load_dotenv
 
-        # Look for .env file in project root (up 2 levels from this file)
+        # Look for .env file in repository root (up 3 levels from this file)
         current_dir = Path(__file__).parent
-        project_root = current_dir.parent.parent
+        project_root = current_dir.parent.parent.parent
         env_file = project_root / ".env"
+        example_file = project_root / ".env.example"
+
+        # If .env is missing but .env.example exists, copy it to create .env
+        if not env_file.exists() and example_file.exists():
+            try:
+                import shutil
+
+                shutil.copy(example_file, env_file)
+                if os.getenv("VALUECELL_DEBUG", "false").lower() == "true":
+                    logger.info(f"✓ Created .env by copying .env.example to {env_file}")
+            except Exception as e:
+                # Only log errors if debug mode is enabled
+                if os.getenv("VALUECELL_DEBUG", "false").lower() == "true":
+                    logger.info(f"⚠️  Failed to copy .env.example to .env: {e}")
 
         if env_file.exists():
             # Load with override=True to allow .env file to override system variables
@@ -77,8 +91,19 @@ def _load_env_file_manual() -> None:
     """
     try:
         current_dir = Path(__file__).parent
-        project_root = current_dir.parent.parent
+        project_root = current_dir.parent.parent.parent
         env_file = project_root / ".env"
+        example_file = project_root / ".env.example"
+
+        # If .env is missing but .env.example exists, copy it to create .env
+        if not env_file.exists() and example_file.exists():
+            try:
+                import shutil
+
+                shutil.copy(example_file, env_file)
+            except Exception:
+                # Fail silently to avoid breaking imports
+                pass
 
         if env_file.exists():
             with open(env_file, "r", encoding="utf-8") as f:
