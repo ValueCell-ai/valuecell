@@ -12,7 +12,7 @@ from valuecell.agents.research_agent.prompts import (
     KNOWLEDGE_AGENT_EXPECTED_OUTPUT,
     KNOWLEDGE_AGENT_INSTRUCTION,
 )
-from valuecell.agents.research_agent.sources import (
+from valuecell.agents.research_agent.sources import (  # search_crypto_people,; search_crypto_projects,; search_crypto_vcs,
     fetch_ashare_filings,
     fetch_event_sec_filings,
     fetch_periodic_sec_filings,
@@ -32,6 +32,10 @@ class ResearchAgent(BaseAgent):
             fetch_event_sec_filings,
             fetch_ashare_filings,
             web_search,
+            # TODO: The RootData tools will cost lots of time, so we disable them for now.
+            # search_crypto_projects,
+            # search_crypto_vcs,
+            # search_crypto_people,
         ]
         self.knowledge_research_agent = Agent(
             model=model_utils_mod.get_model_for_agent("research_agent"),
