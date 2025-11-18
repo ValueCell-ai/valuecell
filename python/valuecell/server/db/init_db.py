@@ -16,6 +16,7 @@ from valuecell.server.db.models.base import Base
 from valuecell.server.db.repositories.asset_repository import get_asset_repository
 from valuecell.server.services.assets import get_asset_service
 from valuecell.utils.path import get_agent_card_path
+from valuecell.server.db.models.strategy_prompt import StrategyPrompt
 
 # Configure logging
 logging.basicConfig(
@@ -414,6 +415,45 @@ class DatabaseInitializer:
                         logger.info(f"Updated default agent: {agent_name}")
 
                 session.commit()
+                # Insert default strategy prompt from template if not present
+                try:
+                    template_path = (
+                        Path(__file__).resolve().parents[2]
+                        / "agents"
+                        / "strategy_agent"
+                        / "templates"
+                        / "default.txt"
+                    )
+                    prompt_id = "prompt-system-default"
+                    existing_prompt = (
+                        session.query(StrategyPrompt)
+                        .filter(StrategyPrompt.id == prompt_id)
+                        .first()
+                    )
+                    if not existing_prompt:
+                        if template_path.exists():
+                            content = template_path.read_text(encoding="utf-8")
+                            prompt = StrategyPrompt(
+                                id=prompt_id, name="System Default", content=content
+                            )
+                            session.add(prompt)
+                            session.commit()
+                            logger.info(
+                                "Inserted default strategy prompt: %s", prompt_id
+                            )
+                        else:
+                            logger.warning(
+                                "Default strategy prompt template not found: %s",
+                                template_path,
+                            )
+                except Exception as e:
+                    # Do not fail the whole DB init for prompt insertion; log and continue
+                    try:
+                        session.rollback()
+                    except Exception:
+                        pass
+                    logger.error("Failed to insert default strategy prompt: %s", e)
+
                 logger.info("Default agent data initialization completed")
                 return True
 
