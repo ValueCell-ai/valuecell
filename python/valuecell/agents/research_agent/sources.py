@@ -731,24 +731,14 @@ async def search_crypto_projects(
         if not projects:
             return f"No cryptocurrency projects found for query: {query}"
 
-        # Format results as context
-        results = [f"Found {len(projects)} cryptocurrency project(s) for '{query}':\n"]
+        logger.debug(f"Search crypto projects get {len(projects)} results.")
 
         for i, proj in enumerate(projects, 1):
             proj = await get_project_detail(proj.id)
             if not proj:
                 logger.warning(f"No project found with ID: {proj.id}")
                 continue
-            return proj.model_dump_json()
-
-            result_lines.append(
-                f"   - Use get_crypto_project_detail({proj.id}) for full details"
-            )
-
-            results.append("\n".join(result_lines))
-
-        logger.debug(f"Search crypto projects results: {results}")
-        return "\n".join(results)
+            return proj.model_dump_json(exclude_none=True)
 
     except Exception as e:
         logger.error(f"Error searching crypto projects: {e}")

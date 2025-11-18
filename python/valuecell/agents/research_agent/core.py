@@ -16,12 +16,9 @@ from valuecell.agents.research_agent.sources import (
     fetch_ashare_filings,
     fetch_event_sec_filings,
     fetch_periodic_sec_filings,
-    get_crypto_person_detail,
-    get_crypto_project_detail,
-    get_crypto_vc_detail,
-    search_crypto_people,
-    search_crypto_projects,
-    search_crypto_vcs,
+    # search_crypto_people,
+    # search_crypto_projects,
+    # search_crypto_vcs,
     web_search,
 )
 from valuecell.agents.utils.context import build_ctx_from_dep
@@ -38,12 +35,10 @@ class ResearchAgent(BaseAgent):
             fetch_event_sec_filings,
             fetch_ashare_filings,
             web_search,
-            search_crypto_projects,
-            get_crypto_project_detail,
-            search_crypto_vcs,
-            get_crypto_vc_detail,
-            search_crypto_people,
-            get_crypto_person_detail,
+            # TODO: The RootData tools will cost lots of time, so we disable them for now.
+            # search_crypto_projects,
+            # search_crypto_vcs,
+            # search_crypto_people,
         ]
         self.knowledge_research_agent = Agent(
             model=model_utils_mod.get_model_for_agent("research_agent"),
