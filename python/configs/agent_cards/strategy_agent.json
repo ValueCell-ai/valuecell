@@ -25,6 +25,7 @@
     "version": "0.1.0",
     "author": "ValueCell Team",
     "tags": ["strategy", "trading", "llm", "demo"],
-    "notes": "This card is a lightweight example; replace model api_key and tune parameters for production use."
+    "notes": "This card is a lightweight example; replace model api_key and tune parameters for production use.",
+    "local_agent_class": "valuecell.agents.strategy_agent.agent:StrategyAgent"
   }
 }
