@@ -1,9 +1,14 @@
 import {
+  AzurePng,
   BinancePng,
   BtcPng,
+  DeepSeekPng,
   DogePng,
   EthPng,
+  GooglePng,
   OkxPng,
+  OpenAiCompatiblePng,
+  OpenAiPng,
   OpenRouterPng,
   SiliconFlowPng,
   SolPng,
@@ -13,6 +18,11 @@ import {
 export const MODEL_PROVIDER_ICONS = {
   openrouter: OpenRouterPng,
   siliconflow: SiliconFlowPng,
+  openai: OpenAiPng,
+  "openai-compatible": OpenAiCompatiblePng,
+  deepseek: DeepSeekPng,
+  google: GooglePng,
+  azure: AzurePng,
 };
 
 export const EXCHANGE_ICONS = {

@@ -125,25 +125,10 @@ def main():
 
     processes = []
     logfiles = []
-    for selected_agent in selected_agents:
-        logfile_path = f"{log_dir}/{selected_agent}.log"
-        print(f"Starting agent: {selected_agent} - output to {logfile_path}")
 
-        # Open logfile for writing
-        logfile = open(logfile_path, "w")
-        logfiles.append(logfile)
-
-        # Launch command using Popen with output redirected to logfile
-        process = subprocess.Popen(
-            MAP_NAME_COMMAND[selected_agent], shell=True, stdout=logfile, stderr=logfile
-        )
-        processes.append(process)
-    print("All agents launched. Waiting for tasks...")
-
-    for selected_agent in selected_agents:
-        print(
-            f"You can monitor {selected_agent} logs at {log_dir}/{selected_agent}.log or chat on: {FRONTEND_URL}/agent/{selected_agent}"
-        )
+    print(
+        "Agents are now managed in-process by RemoteConnections; external processes are no longer started."
+    )
 
     # Launch backend
     logfile_path = f"{log_dir}/backend.log"

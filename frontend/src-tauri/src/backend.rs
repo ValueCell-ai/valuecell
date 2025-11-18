@@ -58,7 +58,6 @@ impl BackendManager {
             self.env_path,
             module_name
         );
-        log::info!("Working directory: {:?}", self.backend_path);
 
         // Use sidecar command directly (Tauri handles platform automatically)
         let sidecar_command = self
@@ -232,9 +231,6 @@ impl BackendManager {
             "✓ All backend processes started (total: {})",
             processes.len()
         );
-
-        // Note: CommandChild doesn't have try_wait, so we just log the count
-        log::info!("Processes started: {}", processes.len());
 
         Ok(())
     }

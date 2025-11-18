@@ -1,5 +1,5 @@
 import { useGetMemoryList, useRemoveMemory } from "@/api/setting";
-import { MemoryItemCard } from "./components";
+import { MemoryItemCard } from "./components/memory";
 
 export default function MemoryPage() {
   const { data: memories = [], isLoading } = useGetMemoryList();

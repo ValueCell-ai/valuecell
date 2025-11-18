@@ -526,6 +526,48 @@ class StrategyRepository:
             if not self.db_session:
                 session.close()
 
+    def delete_strategy(self, strategy_id: str, cascade: bool = True) -> bool:
+        """Delete a strategy by strategy_id.
+
+        If cascade=True, remove associated holdings, portfolio snapshots,
+        and detail records for the strategy before deleting the strategy row.
+        Returns True on success, False if the strategy does not exist or on error.
+        """
+        session = self._get_session()
+        try:
+            # Ensure the strategy exists
+            strategy = (
+                session.query(Strategy)
+                .filter(Strategy.strategy_id == strategy_id)
+                .first()
+            )
+            if not strategy:
+                return False
+
+            if cascade:
+                session.query(StrategyHolding).filter(
+                    StrategyHolding.strategy_id == strategy_id
+                ).delete(synchronize_session=False)
+                session.query(StrategyPortfolioView).filter(
+                    StrategyPortfolioView.strategy_id == strategy_id
+                ).delete(synchronize_session=False)
+                session.query(StrategyDetail).filter(
+                    StrategyDetail.strategy_id == strategy_id
+                ).delete(synchronize_session=False)
+
+            session.query(Strategy).filter(Strategy.strategy_id == strategy_id).delete(
+                synchronize_session=False
+            )
+
+            session.commit()
+            return True
+        except Exception:
+            session.rollback()
+            return False
+        finally:
+            if not self.db_session:
+                session.close()
+
 
 # Global repository instance
 _strategy_repository: Optional[StrategyRepository] = None

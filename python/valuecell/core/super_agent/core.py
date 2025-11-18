@@ -43,32 +43,57 @@ class SuperAgent:
     name: str = "ValueCellAgent"
 
     def __init__(self) -> None:
-        model = model_utils_mod.get_model_for_agent("super_agent")
-        self.agent = Agent(
-            model=model,
-            # TODO: enable tools when needed
-            # tools=[Crawl4aiTools()],
-            markdown=False,
-            debug_mode=agent_debug_mode_enabled(),
-            instructions=[SUPER_AGENT_INSTRUCTION],
-            # output format
-            expected_output=SUPER_AGENT_EXPECTED_OUTPUT,
-            output_schema=SuperAgentOutcome,
-            use_json_mode=model_utils_mod.model_should_use_json_mode(model),
-            # context
-            db=InMemoryDb(),
-            add_datetime_to_context=True,
-            add_history_to_context=True,
-            num_history_runs=5,
-            read_chat_history=True,
-            enable_session_summaries=True,
-        )
+        # Lazy initialize: avoid constructing Agent at startup
+        self.agent: Optional[Agent] = None
+
+    def _get_or_init_agent(self) -> Optional[Agent]:
+        """Create the underlying agent on first use.
+
+        Returns the initialized Agent or None if initialization fails.
+        """
+        if self.agent is not None:
+            return self.agent
+
+        try:
+            model = model_utils_mod.get_model_for_agent("super_agent")
+            self.agent = Agent(
+                model=model,
+                # TODO: enable tools when needed
+                # tools=[Crawl4aiTools()],
+                markdown=False,
+                debug_mode=agent_debug_mode_enabled(),
+                instructions=[SUPER_AGENT_INSTRUCTION],
+                # output format
+                expected_output=SUPER_AGENT_EXPECTED_OUTPUT,
+                output_schema=SuperAgentOutcome,
+                use_json_mode=model_utils_mod.model_should_use_json_mode(model),
+                # context
+                db=InMemoryDb(),
+                add_datetime_to_context=True,
+                add_history_to_context=True,
+                num_history_runs=5,
+                read_chat_history=True,
+                enable_session_summaries=True,
+            )
+            return self.agent
+        except Exception:
+            # Swallow to avoid startup failure; will fallback in run()
+            self.agent = None
+            return None
 
     async def run(self, user_input: UserInput) -> SuperAgentOutcome:
         """Run super agent triage."""
         await asyncio.sleep(0)
+        agent = self._get_or_init_agent()
+        if agent is None:
+            # Fallback: handoff directly to planner without super agent model
+            return SuperAgentOutcome(
+                decision=SuperAgentDecision.HANDOFF_TO_PLANNER,
+                enriched_query=user_input.query,
+                reason="SuperAgent unavailable: missing model/provider configuration",
+            )
 
-        response = await self.agent.arun(
+        response = await agent.arun(
             user_input.query,
             session_id=user_input.meta.conversation_id,
             user_id=user_input.meta.user_id,
@@ -76,8 +101,11 @@ class SuperAgent:
         )
         outcome = response.content
         if not isinstance(outcome, SuperAgentOutcome):
-            model = self.agent.model
-            model_description = f"{model.id} (via {model.provider})"
+            try:
+                model = agent.model
+                model_description = f"{model.id} (via {model.provider})"
+            except Exception:
+                model_description = "unknown model/provider"
             answer_content = (
                 f"SuperAgent produced a malformed response: `{outcome}`. "
                 f"Please check the capabilities of your model `{model_description}` and try again later."

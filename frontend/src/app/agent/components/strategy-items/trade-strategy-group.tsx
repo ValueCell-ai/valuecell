@@ -1,6 +1,6 @@
 import { Plus, TrendingUp } from "lucide-react";
 import { type FC, memo } from "react";
-import { StrategyStatus } from "@/assets/svg";
+import { DeleteStrategy, StrategyStatus } from "@/assets/svg";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +26,7 @@ interface TradeStrategyCardProps {
   isSelected?: boolean;
   onClick?: () => void;
   onStop?: () => void;
+  onDelete?: () => void;
 }
 
 interface TradeStrategyGroupProps {
@@ -33,6 +34,7 @@ interface TradeStrategyGroupProps {
   selectedStrategy?: Strategy | null;
   onStrategySelect?: (strategy: Strategy) => void;
   onStrategyStop?: (strategyId: string) => void;
+  onStrategyDelete?: (strategyId: string) => void;
 }
 
 const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
@@ -40,6 +42,7 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
   isSelected = false,
   onClick,
   onStop,
+  onDelete,
 }) => {
   const stockColors = useStockColors();
   const changeType = getChangeType(strategy.unrealized_pnl_pct);
@@ -88,39 +91,68 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
         </div>
 
         {/* Status Badge */}
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="ghost"
-              disabled={strategy.status === "stopped"}
-              size="sm"
-              className="flex items-center gap-2.5 rounded-md px-2.5 py-1"
-            >
-              {strategy.status === "running" && (
-                <SvgIcon name={StrategyStatus} className="size-4" />
-              )}
-              <p className="font-medium text-gray-700 text-sm">
-                {strategy.status === "running" ? "Running" : "Stopped"}
-              </p>
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Stop Trading Strategy?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to stop the strategy "
-                {strategy.strategy_name}"? <br /> This action will halt all
-                trading activities for this strategy.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={onStop}>
-                Confirm Stop
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <div className="flex items-center gap-2">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                disabled={strategy.status === "stopped"}
+                size="sm"
+                className="flex items-center gap-2.5 rounded-md px-2.5 py-1"
+              >
+                {strategy.status === "running" && (
+                  <SvgIcon name={StrategyStatus} className="size-4" />
+                )}
+                <p className="font-medium text-gray-700 text-sm">
+                  {strategy.status === "running" ? "Running" : "Stopped"}
+                </p>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Stop Trading Strategy?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to stop the strategy "
+                  {strategy.strategy_name}"? <br /> This action will halt all
+                  trading activities for this strategy.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={onStop}>
+                  Confirm Stop
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="flex items-center rounded-md"
+              >
+                <SvgIcon name={DeleteStrategy} className="size-6" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Strategy?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete the strategy "
+                  {strategy.strategy_name}"?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={onDelete}>
+                  Confirm Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
     </div>
   );
@@ -131,6 +163,7 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
   selectedStrategy,
   onStrategySelect,
   onStrategyStop,
+  onStrategyDelete,
 }) => {
   const hasStrategies = strategies.length > 0;
 
@@ -148,6 +181,7 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
                 }
                 onClick={() => onStrategySelect?.(strategy)}
                 onStop={() => onStrategyStop?.(strategy.strategy_id)}
+                onDelete={() => onStrategyDelete?.(strategy.strategy_id)}
               />
             ))}
           </div>

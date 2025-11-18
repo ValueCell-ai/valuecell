@@ -21,7 +21,7 @@ from ..models import (
     TradeSide,
     UserRequest,
 )
-from ..utils import extract_price_map
+from ..utils import extract_price_map, send_discord_message
 from .interfaces import Composer, ComposeResult
 from .system_prompt import SYSTEM_PROMPT
 
@@ -67,6 +67,12 @@ class LlmComposer(Composer):
         except Exception as exc:  # noqa: BLE001
             logger.error("LLM invocation failed: {}", exc)
             return ComposeResult(instructions=[], rationale="LLM invocation failed")
+
+        # Optionally forward non-NOOP plan rationale to Discord webhook (env-driven)
+        try:
+            await self._send_plan_to_discord(plan)
+        except Exception as exc:  # do not fail compose on notification errors
+            logger.error("Failed sending plan to Discord: {}", exc)
 
         normalized = self._normalize_plan(context, plan)
         return ComposeResult(instructions=normalized, rationale=plan.rationale)
@@ -265,6 +271,54 @@ class LlmComposer(Composer):
             items=[],
             rationale="LLM output failed validation",
         )
+
+    async def _send_plan_to_discord(self, plan: LlmPlanProposal) -> None:
+        """Send plan rationale to Discord when there are actionable items.
+
+        Behavior:
+        - If `plan.items` contains any item whose `action` is not `NOOP`, send
+          a Markdown-formatted message containing the plan-level rationale and
+          per-item brief rationales.
+        - Reads webhook from `STRATEGY_AGENT_DISCORD_WEBHOOK_URL` (handled by
+          `send_discord_message`). Does nothing if no actionable items exist.
+        """
+        actionable = [it for it in plan.items if it.action != LlmDecisionAction.NOOP]
+        if not actionable:
+            return
+
+        strategy_name = self._request.trading_config.strategy_name
+        parts = [f"## Strategy {strategy_name} — Actions Detected\n"]
+        # top-level rationale
+        top_r = plan.rationale
+        if top_r:
+            parts.append("**Overall rationale:**\n")
+            parts.append(f"{top_r}\n")
+
+        parts.append("**Items:**\n")
+        for it in actionable:
+            action = it.action.value
+            instr_parts = []
+            # instrument symbol if exists
+            instr_parts.append(f"`{it.instrument.symbol}`")
+            # target qty / magnitude
+            instr_parts.append(f"qty={it.target_qty}")
+            # item rationale
+            item_r = it.rationale
+            summary = " — ".join(instr_parts) if instr_parts else ""
+            if item_r:
+                parts.append(f"- **{action}** {summary} — Reasoning: {item_r}\n")
+            else:
+                parts.append(f"- **{action}** {summary}\n")
+
+        message = "\n".join(parts)
+
+        try:
+            resp = await send_discord_message(message)
+            logger.debug(
+                "Sent plan to Discord, response len={}", len(resp) if resp else 0
+            )
+        except Exception as exc:
+            logger.warning("Error sending plan to Discord, err={}", exc)
 
     # ------------------------------------------------------------------
     # Normalization / guardrails helpers

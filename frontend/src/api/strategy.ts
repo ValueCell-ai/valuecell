@@ -108,6 +108,21 @@ export const useStopStrategy = () => {
   });
 };
 
+export const useDeleteStrategy = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (strategyId: string) =>
+      apiClient.delete<ApiResponse<null>>(
+        `/strategies/delete?id=${strategyId}`,
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: API_QUERY_KEYS.STRATEGY.strategyList,
+      });
+    },
+  });
+};
+
 export const useGetStrategyPrompts = () => {
   return useQuery({
     queryKey: API_QUERY_KEYS.STRATEGY.strategyPrompts,

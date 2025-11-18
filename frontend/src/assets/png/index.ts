@@ -26,8 +26,14 @@ export { default as BinancePng } from "./exchanges/binance.png";
 export { default as OkxPng } from "./exchanges/okx.png";
 export { default as IconGroupPng } from "./icon-group.png";
 export { default as MessageGroupPng } from "./message-group.png";
+export { default as AzurePng } from "./model-providers/azure.png";
+export { default as DeepSeekPng } from "./model-providers/deepseek.png";
+export { default as GooglePng } from "./model-providers/google.png";
+export { default as OpenAiPng } from "./model-providers/openai.png";
+export { default as OpenAiCompatiblePng } from "./model-providers/openai-compatible.png";
 export { default as OpenRouterPng } from "./model-providers/openrouter.png";
 export { default as SiliconFlowPng } from "./model-providers/siliconflow.png";
+
 export { default as BtcPng } from "./symbols/btc.png";
 export { default as DogePng } from "./symbols/doge.png";
 export { default as EthPng } from "./symbols/eth.png";

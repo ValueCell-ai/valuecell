@@ -27,6 +27,7 @@ export default [
     layout("app/setting/_layout.tsx", [
       index("app/setting/general.tsx"),
       route("/memory", "app/setting/memory.tsx"),
+      route("/models", "app/setting/models.tsx"),
     ]),
   ]),
 

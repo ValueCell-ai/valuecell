@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 import { type FC, useEffect, useState } from "react";
 import {
+  useDeleteStrategy,
   useGetStrategyHoldings,
   useGetStrategyList,
   useGetStrategyPriceCurve,
@@ -51,6 +52,7 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
   );
 
   const { mutateAsync: stopStrategy } = useStopStrategy();
+  const { mutateAsync: deleteStrategy } = useDeleteStrategy();
 
   useEffect(() => {
     if (strategies.length === 0 || selectedStrategy) return;
@@ -72,6 +74,9 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
             onStrategySelect={setSelectedStrategy}
             onStrategyStop={async (strategyId) =>
               await stopStrategy(strategyId)
+            }
+            onStrategyDelete={async (strategyId) =>
+              await deleteStrategy(strategyId)
             }
           />
         ) : (

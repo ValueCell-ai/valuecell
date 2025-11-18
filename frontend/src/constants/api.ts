@@ -28,6 +28,8 @@ export const CONVERSATION_QUERY_KEYS = {
 
 export const SETTING_QUERY_KEYS = {
   memoryList: ["memory"],
+  modelProviders: ["model", "providers"],
+  modelProviderDetail: queryKeyFn(["model", "detail"]),
 } as const;
 
 const STRATEGY_QUERY_KEYS = {

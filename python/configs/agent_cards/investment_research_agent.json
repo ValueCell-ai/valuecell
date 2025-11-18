@@ -52,6 +52,7 @@
         "tags": [
             "sec filings",
             "fundamental analysis"
-        ]
+        ],
+        "local_agent_class": "valuecell.agents.research_agent.core:ResearchAgent"
     }
 }

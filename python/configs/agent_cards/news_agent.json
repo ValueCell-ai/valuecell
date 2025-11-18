@@ -50,6 +50,7 @@
             "current events",
             "financial markets",
             "real-time search"
-        ]
+        ],
+        "local_agent_class": "valuecell.agents.news_agent.core:NewsAgent"
     }
 }
