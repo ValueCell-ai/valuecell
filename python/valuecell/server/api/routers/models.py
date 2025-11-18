@@ -329,18 +329,29 @@ def create_models_router() -> APIRouter:
                 if isinstance(m, dict) and m.get("id") == payload.model_id:
                     if payload.model_name:
                         m["name"] = payload.model_name
+                    # If provider has no default model, set this one as default
+                    existing_default = str(data.get("default_model", "")).strip()
+                    if not existing_default:
+                        data["default_model"] = payload.model_id
                     _write_yaml(path, data)
                     _refresh_configs()
                     return SuccessResponse.create(
                         data=ModelItem(
                             model_id=payload.model_id, model_name=m.get("name")
                         ),
-                        msg="Model already exists; updated model_name if provided",
+                        msg=(
+                            "Model already exists; updated model_name if provided"
+                            + ("; set as default model" if not existing_default else "")
+                        ),
                     )
             models.append(
                 {"id": payload.model_id, "name": payload.model_name or payload.model_id}
             )
             data["models"] = models
+            # If provider has no default model, set the added one as default
+            existing_default = str(data.get("default_model", "")).strip()
+            if not existing_default:
+                data["default_model"] = payload.model_id
             _write_yaml(path, data)
             _refresh_configs()
             return SuccessResponse.create(
@@ -348,7 +359,8 @@ def create_models_router() -> APIRouter:
                     model_id=payload.model_id,
                     model_name=payload.model_name or payload.model_id,
                 ),
-                msg="Model added",
+                msg="Model added"
+                + ("; set as default model" if not existing_default else ""),
             )
         except HTTPException:
             raise
