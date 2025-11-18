@@ -74,8 +74,8 @@ class LlmComposer(Composer):
         # Optionally forward non-NOOP plan rationale to Discord webhook (env-driven)
         try:
             await self._send_plan_to_discord(plan)
-        except Exception:  # do not fail compose on notification errors
-            logger.exception("Failed sending plan to Discord")
+        except Exception as exc:  # do not fail compose on notification errors
+            logger.error("Failed sending plan to Discord: {}", exc)
 
         return self._normalize_plan(context, plan)
 
