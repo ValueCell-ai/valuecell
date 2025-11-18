@@ -1,6 +1,8 @@
 """FastAPI application factory for ValueCell Server."""
 
+import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
@@ -34,8 +36,59 @@ from .routers.watchlist import create_watchlist_router
 from .schemas import AppInfoData, SuccessResponse
 
 
+def _ensure_root_env_and_load() -> None:
+    """Ensure repo-root .env exists (copy from .env.example) and load it.
+
+    This protects scenarios where the package-level early loader isn't executed
+    or resolves a different path (e.g., running via `uv run -m valuecell.server.main`).
+    """
+    try:
+        repo_root = Path(__file__).resolve().parents[4]
+        env_file = repo_root / ".env"
+        example_file = repo_root / ".env.example"
+
+        # Create .env from example if missing
+        if not env_file.exists() and example_file.exists():
+            try:
+                import shutil
+
+                shutil.copy(example_file, env_file)
+            except Exception:
+                # Best-effort; continue even if copy fails
+                pass
+
+        # Load .env into process environment
+        if env_file.exists():
+            try:
+                from dotenv import load_dotenv
+
+                load_dotenv(env_file, override=True)
+            except Exception:
+                # Fallback manual parsing
+                try:
+                    with open(env_file, "r", encoding="utf-8") as f:
+                        for line in f:
+                            line = line.strip()
+                            if line and not line.startswith("#") and "=" in line:
+                                key, value = line.split("=", 1)
+                                key = key.strip()
+                                value = value.strip()
+                                if (value.startswith('"') and value.endswith('"')) or (
+                                    value.startswith("'") and value.endswith("'")
+                                ):
+                                    value = value[1:-1]
+                                os.environ[key] = value
+                except Exception:
+                    pass
+    except Exception:
+        # Do not block app creation if any step fails
+        pass
+
+
 def create_app() -> FastAPI:
     """Create and configure FastAPI application."""
+    # Ensure .env exists and is loaded before reading settings
+    _ensure_root_env_and_load()
     settings = get_settings()
 
     @asynccontextmanager
