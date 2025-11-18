@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use std::fs::{create_dir_all, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
@@ -19,7 +19,6 @@ pub struct BackendManager {
 }
 
 const MAIN_MODULE: &str = "valuecell.server.main";
-const INIT_DB_MODULE: &str = "valuecell.server.db.init_db";
 
 impl BackendManager {
     fn wait_until_terminated(mut rx: Receiver<CommandEvent>) {
@@ -56,30 +55,20 @@ impl BackendManager {
         }
     }
 
-    fn spawn_uv_module(&self, module_name: &str) -> Result<CommandChild> {
-        let (rx, child) = self.spawn_uv_command(module_name)?;
-        self.handle_process_output(module_name, rx);
-        log::info!("✓ {} spawned with PID: {}", module_name, child.pid());
-        Ok(child)
-    }
-
-    fn spawn_uv_command(
-        &self,
-        module_name: &str,
-    ) -> Result<(Receiver<CommandEvent>, CommandChild)> {
-        log::info!("Command: uv run -m {}", module_name);
+    fn spawn_backend_process(&self) -> Result<(Receiver<CommandEvent>, CommandChild)> {
+        log::info!("Command: uv run -m {}", MAIN_MODULE);
 
         let sidecar_command = self
             .app
             .shell()
             .sidecar("uv")
             .context("Failed to create uv sidecar command")?
-            .args(["run", "-m", module_name])
+            .args(["run", "-m", MAIN_MODULE])
             .current_dir(&self.backend_path);
 
         sidecar_command
             .spawn()
-            .context(format!("Failed to spawn {}", module_name))
+            .context("Failed to spawn backend process")
     }
 
     pub fn new(app: AppHandle) -> Result<Self> {
@@ -88,24 +77,10 @@ impl BackendManager {
             .resolve(".", BaseDirectory::Resource)
             .context("Failed to resolve resource root")?;
 
-        let backend_path = if resource_root.join("backend").exists() {
-            resource_root.join("backend")
-        } else {
-            let project_root = resource_root
-                .ancestors()
-                .find(|dir| {
-                    let python_dir = dir.join("python");
-                    log::info!(
-                        "Checking directory: {:?}, exists python dir: {:?}",
-                        dir,
-                        python_dir.exists()
-                    );
-                    python_dir.exists()
-                })
-                .context("Could not find project root (looking for python directory)")?;
-
-            project_root.to_path_buf().join("python")
-        };
+        let backend_path = resource_root.join("backend");
+        if !backend_path.exists() {
+            return Err(anyhow!("Backend directory not found at {:?}", backend_path));
+        }
 
         let log_dir = app
             .path()
@@ -142,40 +117,25 @@ impl BackendManager {
         Ok(())
     }
 
-    fn init_database(&self) -> Result<()> {
-        log::info!("Running blocking module: {}", INIT_DB_MODULE);
-        let (rx, _child) = self.spawn_uv_command(INIT_DB_MODULE)?;
-        Self::wait_until_terminated(rx);
-        log::info!("✓ {} completed", INIT_DB_MODULE);
-        Ok(())
-    }
-
     pub fn start_all(&self) -> Result<()> {
         self.install_dependencies()?;
-        self.init_database()?;
 
         let mut processes = self.processes.lock().unwrap();
 
-        match self.spawn_uv_module(MAIN_MODULE) {
-            Ok(child) => {
+        match self.spawn_backend_process() {
+            Ok((rx, child)) => {
+                self.stream_backend_logs(rx);
                 log::info!("Process {} added to process list", child.pid());
                 processes.push(child);
             }
             Err(e) => log::error!("Failed to start backend server: {}", e),
         }
 
-        log::info!(
-            "✓ All backend processes started (total: {})",
-            processes.len()
-        );
-
         Ok(())
     }
 
     /// Stop all backend processes
     pub fn stop_all(&self) {
-        log::info!("Stopping all backend processes...");
-
         let mut processes = self.processes.lock().unwrap();
         for process in processes.drain(..) {
             let pid = process.pid();
@@ -191,16 +151,9 @@ impl BackendManager {
                 log::info!("Process {} terminated", pid);
             }
         }
-
-        log::info!("✓ All backend processes stopped");
     }
 
-    fn handle_process_output(&self, module_name: &str, rx: Receiver<CommandEvent>) {
-        if module_name != MAIN_MODULE {
-            Self::wait_until_terminated(rx);
-            return;
-        }
-
+    fn stream_backend_logs(&self, rx: Receiver<CommandEvent>) {
         let log_path = self.log_dir.join("backend.log");
         std::thread::spawn(move || Self::stream_to_file(rx, log_path));
     }
