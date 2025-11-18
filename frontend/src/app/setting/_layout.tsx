@@ -1,4 +1,4 @@
-import { Brain, Settings } from "lucide-react";
+import { Brain, Cpu, Settings } from "lucide-react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import {
   Item,
@@ -22,6 +22,12 @@ const settingNavItems = [
     label: "Memory",
     path: "/setting/memory",
   },
+  {
+    id: "models",
+    icon: Cpu,
+    label: "Models",
+    path: "/setting/models",
+  },
   // {
   //   id: "language",
   //   icon: Globe,
@@ -40,9 +46,9 @@ export default function SettingLayout() {
   const location = useLocation();
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-100">
+    <div className="flex size-full overflow-hidden bg-gray-100">
       {/* Left navigation */}
-      <aside className="flex w-80 flex-col gap-4 rounded-tl-xl rounded-bl-xl bg-white px-6 py-8">
+      <aside className="flex w-52 flex-col gap-4 rounded-tl-xl rounded-bl-xl bg-white px-6 py-8">
         <div className="flex flex-col gap-4">
           <h2 className="font-bold text-gray-950 text-xl">Settings</h2>
 
@@ -57,7 +63,7 @@ export default function SettingLayout() {
                   variant={isActive ? "muted" : "default"}
                   size="sm"
                   className={cn(
-                    "cursor-pointer",
+                    "cursor-pointer px-3 py-2.5",
                     isActive ? "bg-gray-100" : "bg-white hover:bg-gray-50",
                   )}
                   asChild
@@ -78,7 +84,7 @@ export default function SettingLayout() {
       </aside>
 
       {/* Right content area */}
-      <main className="flex flex-1 flex-col overflow-hidden rounded-tr-xl rounded-br-xl bg-white">
+      <main className="flex flex-1 overflow-hidden rounded-tr-xl rounded-br-xl bg-white">
         <Outlet />
       </main>
     </div>
