@@ -12,7 +12,7 @@ from valuecell.core.agent.card import parse_local_agent_card_dict
 from valuecell.core.agent.client import AgentClient
 from valuecell.core.agent.decorator import create_wrapped_agent
 from valuecell.core.agent.listener import NotificationListener
-from valuecell.core.types import NotificationCallbackType, BaseAgent
+from valuecell.core.types import BaseAgent, NotificationCallbackType
 from valuecell.utils import get_next_available_port
 
 AGENT_METADATA_CLASS_KEY = "local_agent_class"
@@ -362,7 +362,7 @@ class RemoteConnections:
                 if attempt >= retries - 1:
                     raise
                 logger.debug(
-                    "Retrying client initialization for '{}' ({}/{}}): {}",
+                    "Retrying client initialization for '{}' ({}/{}): {}",
                     ctx.name,
                     attempt + 1,
                     retries,

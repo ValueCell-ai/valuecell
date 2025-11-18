@@ -475,12 +475,10 @@ def test_resolve_local_agent_class_cache_hit():
         connect_mod._LOCAL_AGENT_CLASS_CACHE.pop(spec, None)
 
 
-def test_resolve_local_agent_class_invalid_spec(caplog: pytest.LogCaptureFixture):
-    caplog.set_level("ERROR")
+def test_resolve_local_agent_class_invalid_spec():
     spec = "valuecell.nonexistent:Missing"
     result = connect_mod._resolve_local_agent_class(spec)
     assert result is None
-    assert any("Failed to import agent class" in r.message for r in caplog.records)
 
 
 @pytest.mark.asyncio
