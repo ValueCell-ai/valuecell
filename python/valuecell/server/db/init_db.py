@@ -13,10 +13,10 @@ from valuecell.server.config.settings import get_settings
 from valuecell.server.db.connection import DatabaseManager, get_database_manager
 from valuecell.server.db.models.agent import Agent
 from valuecell.server.db.models.base import Base
+from valuecell.server.db.models.strategy_prompt import StrategyPrompt
 from valuecell.server.db.repositories.asset_repository import get_asset_repository
 from valuecell.server.services.assets import get_asset_service
 from valuecell.utils.path import get_agent_card_path
-from valuecell.server.db.models.strategy_prompt import StrategyPrompt
 
 # Configure logging
 logging.basicConfig(
