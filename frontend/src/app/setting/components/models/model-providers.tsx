@@ -1,6 +1,7 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Item, ItemGroup } from "@/components/ui/item";
+import PngIcon from "@/components/valuecell/png-icon";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
+import { MODEL_PROVIDER_ICONS } from "@/constants/icons";
 import { cn } from "@/lib/utils";
 import type { ModelProvider } from "@/types/setting";
 
@@ -38,20 +39,20 @@ export function ModelProviders({
                   )}
                   key={provider.provider}
                   onClick={() => onSelect(provider.provider)}
-                  asChild
                 >
-                  <div>
-                    <Avatar className="size-6">
-                      <AvatarFallback className="bg-gray-200 font-semibold text-gray-700 text-xs uppercase">
-                        {provider.provider.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-1 flex-col text-left">
-                      <span>{provider.provider}</span>
-                      <span className="font-normal text-gray-500 text-xs">
-                        {provider.provider}
-                      </span>
-                    </div>
+                  <PngIcon
+                    src={
+                      MODEL_PROVIDER_ICONS[
+                        provider.provider as keyof typeof MODEL_PROVIDER_ICONS
+                      ]
+                    }
+                    className="size-6"
+                  />
+                  <div className="flex flex-1 flex-col text-left">
+                    <span>{provider.provider}</span>
+                    <span className="font-normal text-gray-500 text-xs">
+                      {provider.provider}
+                    </span>
                   </div>
                 </Item>
               );

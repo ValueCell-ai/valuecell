@@ -15,7 +15,7 @@ export default function ModelsSettingPage() {
   }, [providers]);
 
   return (
-    <div className="flex size-full gap-8 overflow-hidden py-8">
+    <div className="flex size-full overflow-hidden py-8">
       <ModelProviders
         providers={providers}
         selectedProvider={selectedProvider}

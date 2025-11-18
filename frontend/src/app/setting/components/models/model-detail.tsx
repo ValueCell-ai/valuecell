@@ -340,6 +340,7 @@ export function ModelDetail({ provider }: ModelDetailProps) {
 
                     <div className="flex items-center gap-3">
                       <Switch
+                        className="cursor-pointer"
                         checked={m.model_id === providerDetail.default_model_id}
                         disabled={isBusy}
                         onCheckedChange={() =>
