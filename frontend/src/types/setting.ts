@@ -14,6 +14,7 @@ export type ProviderModelInfo = {
 
 export type ProviderDetail = {
   api_key: string;
+  api_key_url: string;
   base_url: string;
   is_default: boolean;
   default_model_id: string;

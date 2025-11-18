@@ -36,12 +36,8 @@ export const useGetModelProviders = () => {
   return useQuery({
     queryKey: API_QUERY_KEYS.SETTING.modelProviders,
     queryFn: () =>
-      apiClient.get<
-        ApiResponse<{
-          providers: ModelProvider[];
-        }>
-      >("/models/providers"),
-    select: (resp) => resp.data.providers,
+      apiClient.get<ApiResponse<ModelProvider[]>>("/models/providers"),
+    select: (data) => data.data,
   });
 };
 
@@ -55,7 +51,7 @@ export const useGetModelProviderDetail = (provider: string | undefined) => {
       apiClient.get<ApiResponse<ProviderDetail>>(
         `/models/providers/${provider}`,
       ),
-    select: (resp) => resp.data,
+    select: (data) => data.data,
   });
 };
 
@@ -140,6 +136,30 @@ export const useSetDefaultProvider = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: API_QUERY_KEYS.SETTING.modelProviders,
+      });
+      queryClient.invalidateQueries({
+        queryKey: API_QUERY_KEYS.SETTING.modelProviderDetail([]),
+      });
+    },
+  });
+};
+
+export const useSetDefaultProviderModel = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: { provider: string; model_id: string }) =>
+      apiClient.put<ApiResponse<null>>(
+        `/models/providers/${params.provider}/default-model`,
+        {
+          model_id: params.model_id,
+        },
+      ),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: API_QUERY_KEYS.SETTING.modelProviderDetail([
+          variables.provider,
+        ]),
       });
     },
   });
