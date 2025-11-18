@@ -87,6 +87,42 @@ def create_models_router() -> APIRouter:
         manager = get_config_manager()
         manager._config = manager.loader.load_config()
 
+    def _preferred_provider_order(names: List[str]) -> List[str]:
+        """Return providers ordered with preferred defaults first.
+
+        Ensures 'openrouter' is first and 'siliconflow' is second when present,
+        followed by the remaining providers in their original order.
+        """
+        preferred = ["openrouter", "siliconflow"]
+        seen = set()
+        ordered: List[str] = []
+
+        # Add preferred providers in order if they exist
+        for p in preferred:
+            if p in names and p not in seen:
+                ordered.append(p)
+                seen.add(p)
+
+        # Append the rest while preserving original order
+        for name in names:
+            if name not in seen:
+                ordered.append(name)
+                seen.add(name)
+
+        return ordered
+
+    def _api_key_url_for(provider: str) -> str | None:
+        """Return the URL for obtaining an API key for the given provider."""
+        mapping = {
+            "google": "https://aistudio.google.com/app/api-keys",
+            "openrouter": "https://openrouter.ai/settings/keys",
+            "openai": "https://platform.openai.com/api-keys",
+            "azure": "https://azure.microsoft.com/en-us/products/ai-foundry/models/openai/",
+            "siliconflow": "https://cloud.siliconflow.cn/account/ak",
+            "deepseek": "https://platform.deepseek.com/api_keys",
+        }
+        return mapping.get(provider)
+
     # ---- Existing: LLM config list ----
     @router.get(
         "/llm/config",
@@ -145,7 +181,8 @@ def create_models_router() -> APIRouter:
         try:
             manager = get_config_manager()
             loader = get_config_loader()
-            names = loader.list_providers()
+            # Prefer default ordering: openrouter first, siliconflow second
+            names = _preferred_provider_order(loader.list_providers())
             items: List[ModelProviderSummary] = []
             for name in names:
                 cfg = manager.get_provider_config(name)
@@ -192,6 +229,7 @@ def create_models_router() -> APIRouter:
                 base_url=cfg.base_url,
                 is_default=(cfg.name == manager.primary_provider),
                 default_model_id=cfg.default_model,
+                api_key_url=_api_key_url_for(cfg.name),
                 models=models_entries,
             )
             return SuccessResponse.create(
