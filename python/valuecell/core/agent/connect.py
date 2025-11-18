@@ -12,7 +12,7 @@ from valuecell.core.agent.card import parse_local_agent_card_dict
 from valuecell.core.agent.client import AgentClient
 from valuecell.core.agent.decorator import create_wrapped_agent
 from valuecell.core.agent.listener import NotificationListener
-from valuecell.core.types import NotificationCallbackType
+from valuecell.core.types import NotificationCallbackType, BaseAgent
 from valuecell.utils import get_next_available_port
 
 AGENT_METADATA_CLASS_KEY = "local_agent_class"
@@ -40,16 +40,32 @@ class AgentContext:
     desired_listener_port: Optional[int] = None
     notification_callback: Optional[NotificationCallbackType] = None
     # Local in-process agent runtime
-    agent_instance: Optional[Any] = None
-    agent_task: Optional[asyncio.Task] = None
-    agent_instance_class: Optional[Type[Any]] = None
+    # - `agent_class_spec`: original "module:Class" spec loaded from JSON
+    #    We keep the spec so class resolution can be deferred (and performed
+    #    off the event loop) when the agent is actually started.
+    # - `agent_instance`: concrete wrapped agent instance (created lazily)
+    # - `agent_instance_class`: resolved Python class for the agent, if imported
+    # - `agent_task`: asyncio.Task running the agent's HTTP server (if launched)
     agent_class_spec: Optional[str] = None
+    agent_instance: Optional[BaseAgent] = None
+    agent_instance_class: Optional[Type[BaseAgent]] = None
+    agent_task: Optional[asyncio.Task] = None
 
 
 _LOCAL_AGENT_CLASS_CACHE: Dict[str, Type[Any]] = {}
 
 
 def _resolve_local_agent_class(spec: str) -> Optional[Type[Any]]:
+    """Resolve a `module:Class` spec to a Python class.
+
+    This function is synchronous and performs a normal import. Callers that
+    need to avoid blocking the event loop should invoke this via
+    `asyncio.to_thread(_resolve_local_agent_class, spec)`.
+
+    Results are cached in `_LOCAL_AGENT_CLASS_CACHE` to avoid repeated
+    imports/attribute lookups.
+    """
+
     if not spec:
         return None
 
@@ -70,8 +86,23 @@ def _resolve_local_agent_class(spec: str) -> Optional[Type[Any]]:
 
 
 async def _build_local_agent(ctx: AgentContext):
+    """Asynchronously produce a wrapped local agent instance for the
+    given `AgentContext`.
+
+    Behavior:
+    - If `agent_instance_class` is already present, use it.
+    - Otherwise, if `agent_class_spec` is provided, resolve it off the
+      event loop (`asyncio.to_thread`) so imports don't block the loop.
+    - If resolution fails, log a warning and return `None` (caller will
+      treat missing factory as "no local agent available").
+    - The actual wrapping call (`create_wrapped_agent`) is performed on
+      the event loop; this preserves any asyncio-related initialization
+      semantics required by the wrapper (if it needs loop context).
+    """
+
     agent_cls = ctx.agent_instance_class
     if agent_cls is None and ctx.agent_class_spec:
+        # Resolve the import in a worker thread to avoid blocking the loop.
         agent_cls = await asyncio.to_thread(
             _resolve_local_agent_class, ctx.agent_class_spec
         )
@@ -83,8 +114,14 @@ async def _build_local_agent(ctx: AgentContext):
                 ctx.name,
             )
             return None
+
     if agent_cls is None:
+        # No factory available for this context
         return None
+
+    # `create_wrapped_agent` can perform setup that expects to run in the
+    # main thread / event loop context (e.g. uvicorn/async setup). Keep it
+    # synchronous here so any asyncio primitives are created correctly.
     return create_wrapped_agent(agent_cls)
 
 
