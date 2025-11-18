@@ -1,12 +1,12 @@
 import asyncio
 import json
-import logging
 from dataclasses import dataclass
 from importlib import import_module
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Type
 
 from a2a.types import AgentCard
+from loguru import logger
 
 from valuecell.core.agent.card import parse_local_agent_card_dict
 from valuecell.core.agent.client import AgentClient
@@ -14,9 +14,6 @@ from valuecell.core.agent.decorator import create_wrapped_agent
 from valuecell.core.agent.listener import NotificationListener
 from valuecell.core.types import NotificationCallbackType
 from valuecell.utils import get_next_available_port
-
-logger = logging.getLogger(__name__)
-
 
 AGENT_METADATA_CLASS_KEY = "local_agent_class"
 
@@ -65,7 +62,7 @@ def _resolve_local_agent_class(spec: str) -> Optional[Type[Any]]:
         module = import_module(module_path)
         agent_cls = getattr(module, class_name)
     except (ValueError, AttributeError, ImportError) as exc:
-        logger.error("Failed to import agent class '%s': %s", spec, exc)
+        logger.error("Failed to import agent class '{}': {}", spec, exc)
         return None
 
     _LOCAL_AGENT_CLASS_CACHE[spec] = agent_cls
@@ -81,7 +78,7 @@ async def _build_local_agent(ctx: AgentContext):
         ctx.agent_instance_class = agent_cls
         if agent_cls is None:
             logger.warning(
-                "Unable to resolve local agent class '%s' for '%s'",
+                "Unable to resolve local agent class '{}' for '{}'",
                 ctx.agent_class_spec,
                 ctx.name,
             )
@@ -169,9 +166,9 @@ class RemoteConnections:
                     local_agent_card=local_agent_card,
                     planner_passthrough=passthrough,
                     agent_instance_class=agent_instance_class,
-                    agent_class_spec=class_spec
-                    if isinstance(class_spec, str)
-                    else None,
+                    agent_class_spec=(
+                        class_spec if isinstance(class_spec, str) else None
+                    ),
                 )
             except (json.JSONDecodeError, FileNotFoundError, KeyError) as e:
                 logger.warning(
@@ -328,7 +325,7 @@ class RemoteConnections:
                 if attempt >= retries - 1:
                     raise
                 logger.debug(
-                    "Retrying client initialization for '%s' (%s/%s): %s",
+                    "Retrying client initialization for '{}' ({}/{}}): {}",
                     ctx.name,
                     attempt + 1,
                     retries,
@@ -397,7 +394,7 @@ class RemoteConnections:
                     await ctx.agent_instance.shutdown()
                 except Exception as exc:
                     logger.warning(
-                        "Error shutting down agent '%s': %s", agent_name, exc
+                        "Error shutting down agent '{}': {}", agent_name, exc
                     )
             try:
                 await asyncio.wait_for(agent_task, timeout=5)
