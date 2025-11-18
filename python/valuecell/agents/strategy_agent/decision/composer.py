@@ -53,6 +53,26 @@ class LlmComposer(Composer):
         self._default_slippage_bps = default_slippage_bps
         self._quantity_precision = quantity_precision
 
+    def _build_prompt_text(self) -> str:
+        """Return a resolved prompt text by fusing custom_prompt and prompt_text.
+
+        Fusion logic:
+        - If custom_prompt exists, use it as base
+        - If prompt_text also exists, append it after custom_prompt
+        - If only prompt_text exists, use it
+        - Fallback: simple generated mention of symbols
+        """
+        custom = self._request.trading_config.custom_prompt
+        prompt = self._request.trading_config.prompt_text
+        if custom and prompt:
+            return f"{custom}\n\n{prompt}"
+        elif custom:
+            return custom
+        elif prompt:
+            return prompt
+        symbols = ", ".join(self._request.trading_config.symbols)
+        return f"Compose trading instructions for symbols: {symbols}."
+
     async def compose(self, context: ComposeContext) -> List[TradeInstruction]:
         prompt = self._build_llm_prompt(context)
         try:
@@ -214,7 +234,7 @@ class LlmComposer(Composer):
 
         payload = self._prune_none(
             {
-                "strategy_prompt": context.prompt_text,
+                "strategy_prompt": self._build_prompt_text(),
                 "summary": summary,
                 "market": market,
                 "features": features,

@@ -5,10 +5,10 @@ import numpy as np
 import pandas as pd
 
 from ..models import Candle, FeatureVector
-from .interfaces import FeatureComputer
+from .interfaces import CandleBasedFeatureComputer
 
 
-class SimpleFeatureComputer(FeatureComputer):
+class SimpleCandleFeatureComputer(CandleBasedFeatureComputer):
     """Computes basic momentum and volume features."""
 
     def compute_features(

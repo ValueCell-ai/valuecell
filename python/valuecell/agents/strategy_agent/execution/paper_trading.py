@@ -65,3 +65,7 @@ class PaperExecutionGateway(ExecutionGateway):
             )
 
         return results
+
+    async def close(self) -> None:
+        """No-op close for paper gateway (nothing to cleanup)."""
+        return None

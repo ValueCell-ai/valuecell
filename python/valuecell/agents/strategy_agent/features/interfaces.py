@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-from ..models import Candle, FeatureVector
+from ..models import Candle, FeatureVector, MarketSnapShotType
 
 # Contracts for feature computation (module-local abstract interfaces).
 # Plain ABCs (not Pydantic) to keep implementations lightweight.
 
 
-class FeatureComputer(ABC):
+class CandleBasedFeatureComputer(ABC):
     """Computes feature vectors from raw market data (ticks/candles).
 
     Implementations may cache windows, offload CPU-heavy parts, or compose
@@ -31,5 +32,27 @@ class FeatureComputer(ABC):
                 use this to populate FeatureVector.meta.
         Returns:
             A list of FeatureVector items, one or more per instrument.
+        """
+        raise NotImplementedError
+
+
+@dataclass
+class FeaturesPipelineResult:
+    """Result of running a features pipeline."""
+
+    features: List[FeatureVector]
+    market_snapshot: MarketSnapShotType
+
+
+class FeaturesPipeline(ABC):
+    """Abstract pipeline that produces features and supporting market context."""
+
+    @abstractmethod
+    async def build(self) -> FeaturesPipelineResult:
+        """Compute feature vectors and associated market snapshot.
+
+        Implementations should use their configured request/inputs to determine
+        which symbols to process; callers should not pass runtime parameters
+        into this call.
         """
         raise NotImplementedError

@@ -16,6 +16,11 @@ class HistoryRecorder(ABC):
         """Persist a single history record."""
         raise NotImplementedError
 
+    @abstractmethod
+    def get_records(self) -> List[HistoryRecord]:
+        """Get all current records."""
+        raise NotImplementedError
+
 
 class DigestBuilder(ABC):
     """Builds TradeDigest from historical records (incremental or batch)."""

@@ -679,7 +679,6 @@ class ComposeContext(BaseModel):
     )
     portfolio: PortfolioView
     digest: "TradeDigest"
-    prompt_text: str = Field(..., description="Strategy/style prompt text")
     market_snapshot: MarketSnapShotType = Field(
         default=None, description="Optional map symbol -> current reference price"
     )

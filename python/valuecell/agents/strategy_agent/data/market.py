@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from loguru import logger
 
@@ -18,16 +18,8 @@ class SimpleMarketDataSource(MarketDataSource):
     generator so the runtime remains functional in tests and offline.
     """
 
-    def __init__(
-        self,
-        base_prices: Optional[Dict[str, float]] = None,
-        exchange_id: Optional[str] = None,
-        ccxt_options: Optional[Dict] = None,
-    ) -> None:
-        self._base_prices = base_prices or {}
-        self._counters: Dict[str, int] = defaultdict(int)
+    def __init__(self, exchange_id: Optional[str] = None) -> None:
         self._exchange_id = exchange_id or "binance"
-        self._ccxt_options = ccxt_options or {}
 
     async def get_recent_candles(
         self, symbols: List[str], interval: str, lookback: int
@@ -35,7 +27,7 @@ class SimpleMarketDataSource(MarketDataSource):
         async def _fetch(symbol: str) -> List[List]:
             # instantiate exchange class by name (e.g., ccxtpro.kraken)
             exchange_cls = get_exchange_cls(self._exchange_id)
-            exchange = exchange_cls({"newUpdates": False, **self._ccxt_options})
+            exchange = exchange_cls({"newUpdates": False})
             try:
                 # ccxt.pro uses async fetch_ohlcv
                 data = await exchange.fetch_ohlcv(
@@ -86,8 +78,8 @@ class SimpleMarketDataSource(MarketDataSource):
 
         The method tries to use the exchange's `fetch_ticker` (and optionally
         `fetch_open_interest` / `fetch_funding_rate` when available) to build
-        a mapping symbol -> last price. On any failure for a symbol, it will
-        fall back to `base_prices` if provided or omit the symbol.
+        a mapping symbol -> last price. On any failure for a symbol, the
+        symbol will be omitted from the snapshot.
         Example:
         ```
         "BTC/USDT": {
@@ -165,7 +157,7 @@ class SimpleMarketDataSource(MarketDataSource):
         snapshot = defaultdict(dict)
 
         exchange_cls = get_exchange_cls(self._exchange_id)
-        exchange = exchange_cls({"newUpdates": False, **self._ccxt_options})
+        exchange = exchange_cls({"newUpdates": False})
         try:
             for symbol in symbols:
                 sym = normalize_symbol(symbol)

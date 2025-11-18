@@ -1,9 +1,72 @@
 import os
+from datetime import datetime, timezone
 from typing import Dict, Optional
 
 import ccxt.pro as ccxtpro
 import httpx
 from loguru import logger
+
+
+def get_current_timestamp_ms() -> int:
+    """Get current timestamp in milliseconds."""
+    return int(datetime.now(timezone.utc).timestamp() * 1000)
+
+
+async def fetch_free_cash_from_gateway(execution_gateway, symbols: list[str]) -> float:
+    """Fetch exchange balance via `execution_gateway.fetch_balance()` and
+    aggregate free cash for the given `symbols` (quote currencies).
+
+    Returns aggregated free cash as float. Returns 0.0 on error or when
+    balance shape cannot be parsed.
+    """
+    try:
+        if not hasattr(execution_gateway, "fetch_balance"):
+            return 0.0
+        balance = await execution_gateway.fetch_balance()
+    except Exception:
+        return 0.0
+
+    free_map: dict[str, float] = {}
+    try:
+        free_section = balance.get("free") if isinstance(balance, dict) else None
+    except Exception:
+        free_section = None
+
+    if isinstance(free_section, dict):
+        free_map = {str(k).upper(): float(v or 0.0) for k, v in free_section.items()}
+    else:
+        iterable = balance.items() if isinstance(balance, dict) else []
+        for k, v in iterable:
+            if isinstance(v, dict) and "free" in v:
+                try:
+                    free_map[str(k).upper()] = float(v.get("free") or 0.0)
+                except Exception:
+                    continue
+
+    # collect quote currencies from configured symbols
+    quotes: list[str] = []
+    for sym in symbols or []:
+        s = str(sym).upper()
+        if "/" in s:
+            parts = s.split("/")
+            if len(parts) == 2:
+                quotes.append(parts[1])
+        elif "-" in s:
+            parts = s.split("-")
+            if len(parts) == 2:
+                quotes.append(parts[1])
+    quotes = list(dict.fromkeys(quotes))  # unique order-preserving
+
+    free_cash = 0.0
+    if quotes:
+        for q in quotes:
+            free_cash += float(free_map.get(q, 0.0) or 0.0)
+    else:
+        # fallback to common stablecoins
+        for q in ("USDT", "USD", "USDC"):
+            free_cash += float(free_map.get(q, 0.0) or 0.0)
+
+    return float(free_cash)
 
 
 def extract_price_map(market_snapshot: Dict) -> Dict[str, float]:

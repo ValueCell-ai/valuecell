@@ -27,3 +27,14 @@ class ExecutionGateway(ABC):
         """
 
         raise NotImplementedError
+
+    @abstractmethod
+    async def close(self) -> None:
+        """Close the gateway and release any held resources.
+
+        Implementations should cleanup network connections, clients, or other
+        resources they hold. This method is optional to call but should be
+        implemented by gateways that allocate external resources.
+        """
+
+        raise NotImplementedError

@@ -4,36 +4,35 @@ from typing import Optional
 from valuecell.utils.uuid import generate_uuid
 
 from .core import DecisionCycleResult, DefaultDecisionCoordinator
-from .data.market import SimpleMarketDataSource
 from .decision.composer import LlmComposer
-from .execution.factory import create_execution_gateway, create_execution_gateway_sync
+from .decision.interfaces import Composer
+from .execution.factory import create_execution_gateway
 from .execution.interfaces import ExecutionGateway
-from .features.simple import SimpleFeatureComputer
+from .features.interfaces import FeaturesPipeline
+from .features.pipeline import DefaultFeaturesPipeline
 from .models import Constraints, TradingMode, UserRequest
 from .portfolio.in_memory import InMemoryPortfolioService
 from .trading_history.digest import RollingDigestBuilder
 from .trading_history.recorder import InMemoryHistoryRecorder
+from .utils import fetch_free_cash_from_gateway
 
 
-def _simple_prompt_provider(request: UserRequest) -> str:
-    """Return a resolved prompt text by fusing custom_prompt and prompt_text.
+async def _create_execution_gateway(request: UserRequest) -> ExecutionGateway:
+    """Create execution gateway asynchronously, handling LIVE mode balance fetching."""
+    execution_gateway = await create_execution_gateway(request.exchange_config)
 
-    Fusion logic:
-    - If custom_prompt exists, use it as base
-    - If prompt_text also exists, append it after custom_prompt
-    - If only prompt_text exists, use it
-    - Fallback: simple generated mention of symbols
-    """
-    custom = request.trading_config.custom_prompt
-    prompt = request.trading_config.prompt_text
-    if custom and prompt:
-        return f"{prompt}\n\n{custom}"
-    elif custom:
-        return custom
-    elif prompt:
-        return prompt
-    symbols = ", ".join(request.trading_config.symbols)
-    return f"Compose trading instructions for symbols: {symbols}."
+    # In LIVE mode, fetch exchange balance and set initial capital from free cash
+    try:
+        if request.exchange_config.trading_mode == TradingMode.LIVE:
+            free_cash = await fetch_free_cash_from_gateway(
+                execution_gateway, request.trading_config.symbols
+            )
+            request.trading_config.initial_capital = float(free_cash)
+    except Exception:
+        # Do not fail runtime creation if balance fetch or parsing fails
+        pass
+
+    return execution_gateway
 
 
 @dataclass
@@ -46,88 +45,15 @@ class StrategyRuntime:
         return await self.coordinator.run_once()
 
 
-def create_strategy_runtime(
+async def create_strategy_runtime(
     request: UserRequest,
-    execution_gateway: Optional[ExecutionGateway] = None,
+    composer: Optional[Composer] = None,
+    features_pipeline: Optional[FeaturesPipeline] = None,
 ) -> StrategyRuntime:
-    """Create a strategy runtime with synchronous initialization.
+    """Create a strategy runtime with async initialization (supports both paper and live trading).
 
-    Note: This function only supports paper trading by default. For live trading,
-    use create_strategy_runtime_async() instead, which properly initializes
-    the CCXT exchange connection.
-
-    Args:
-        request: User request with strategy configuration
-        execution_gateway: Optional pre-initialized execution gateway.
-                          If None, will be created based on request.exchange_config.
-
-    Returns:
-        StrategyRuntime instance
-
-    Raises:
-        RuntimeError: If live trading is requested without providing a gateway
-    """
-    strategy_id = generate_uuid("strategy")
-    initial_capital = request.trading_config.initial_capital or 0.0
-    constraints = Constraints(
-        max_positions=request.trading_config.max_positions,
-        max_leverage=request.trading_config.max_leverage,
-    )
-    portfolio_service = InMemoryPortfolioService(
-        initial_capital=initial_capital,
-        trading_mode=request.exchange_config.trading_mode,
-        market_type=request.exchange_config.market_type,
-        constraints=constraints,
-        strategy_id=strategy_id,
-    )
-
-    base_prices = {
-        symbol: 120.0 + index * 15.0
-        for index, symbol in enumerate(request.trading_config.symbols)
-    }
-    market_data_source = SimpleMarketDataSource(
-        base_prices=base_prices, exchange_id=request.exchange_config.exchange_id
-    )
-    feature_computer = SimpleFeatureComputer()
-    composer = LlmComposer(request=request)
-
-    # Create execution gateway if not provided
-    if execution_gateway is None:
-        if request.exchange_config.trading_mode == TradingMode.LIVE:
-            raise RuntimeError(
-                "Live trading requires async initialization. "
-                "Use create_strategy_runtime_async() or provide a pre-initialized gateway."
-            )
-        execution_gateway = create_execution_gateway_sync(request.exchange_config)
-
-    history_recorder = InMemoryHistoryRecorder()
-    digest_builder = RollingDigestBuilder()
-
-    coordinator = DefaultDecisionCoordinator(
-        request=request,
-        strategy_id=strategy_id,
-        portfolio_service=portfolio_service,
-        market_data_source=market_data_source,
-        feature_computer=feature_computer,
-        composer=composer,
-        execution_gateway=execution_gateway,
-        history_recorder=history_recorder,
-        digest_builder=digest_builder,
-        prompt_provider=_simple_prompt_provider,
-    )
-
-    return StrategyRuntime(
-        request=request,
-        strategy_id=strategy_id,
-        coordinator=coordinator,
-    )
-
-
-async def create_strategy_runtime_async(request: UserRequest) -> StrategyRuntime:
-    """Create a strategy runtime with async initialization (supports live trading).
-
-    This function properly initializes CCXT exchange connections for live trading.
-    It can also be used for paper trading.
+    This function properly initializes CCXT exchange connections for live trading
+    and can also be used for paper trading.
 
     In LIVE mode, it fetches the exchange balance and sets the
     initial capital to the available (free) cash for the strategy's
@@ -136,6 +62,9 @@ async def create_strategy_runtime_async(request: UserRequest) -> StrategyRuntime
 
     Args:
         request: User request with strategy configuration
+        composer: Optional custom decision composer. If None, uses LlmComposer.
+        features_pipeline: Optional custom features pipeline. If None, uses
+            `DefaultFeaturesPipeline`.
 
     Returns:
         StrategyRuntime instance with initialized execution gateway
@@ -158,63 +87,49 @@ async def create_strategy_runtime_async(request: UserRequest) -> StrategyRuntime
         ...         max_positions=5,
         ...     )
         ... )
-        >>> runtime = await create_strategy_runtime_async(request)
+        >>> runtime = await create_strategy_runtime(request)
     """
     # Create execution gateway asynchronously
-    execution_gateway = await create_execution_gateway(request.exchange_config)
+    execution_gateway = await _create_execution_gateway(request)
 
-    # In LIVE mode, fetch exchange balance and set initial capital from free cash
-    try:
-        if request.exchange_config.trading_mode == TradingMode.LIVE and hasattr(
-            execution_gateway, "fetch_balance"
-        ):
-            balance = await execution_gateway.fetch_balance()
-            free_map = {}
-            # ccxt balance may be shaped as: {'free': {...}, 'used': {...}, 'total': {...}}
-            try:
-                free_section = (
-                    balance.get("free") if isinstance(balance, dict) else None
-                )
-            except Exception:
-                free_section = None
-            if isinstance(free_section, dict):
-                free_map = {
-                    str(k).upper(): float(v or 0.0) for k, v in free_section.items()
-                }
-            else:
-                # fallback: per-ccy dicts: balance['USDT'] = {'free': x, 'used': y, 'total': z}
-                for k, v in balance.items() if isinstance(balance, dict) else []:
-                    if isinstance(v, dict) and "free" in v:
-                        try:
-                            free_map[str(k).upper()] = float(v.get("free") or 0.0)
-                        except Exception:
-                            continue
-            # collect quote currencies from configured symbols
-            quotes: list[str] = []
-            for sym in request.trading_config.symbols or []:
-                s = str(sym).upper()
-                if "/" in s:
-                    parts = s.split("/")
-                    if len(parts) == 2:
-                        quotes.append(parts[1])
-                elif "-" in s:
-                    parts = s.split("-")
-                    if len(parts) == 2:
-                        quotes.append(parts[1])
-            quotes = list(dict.fromkeys(quotes))  # unique order-preserving
-            free_cash = 0.0
-            if quotes:
-                for q in quotes:
-                    free_cash += float(free_map.get(q, 0.0) or 0.0)
-            else:
-                # fallback to common stablecoins
-                for q in ("USDT", "USD", "USDC"):
-                    free_cash += float(free_map.get(q, 0.0) or 0.0)
-            # Set initial capital to exchange free cash
-            request.trading_config.initial_capital = float(free_cash)
-    except Exception:
-        # Do not fail runtime creation if balance fetch or parsing fails
-        pass
+    # Create strategy runtime components
+    strategy_id = generate_uuid("strategy")
+    initial_capital = request.trading_config.initial_capital or 0.0
+    constraints = Constraints(
+        max_positions=request.trading_config.max_positions,
+        max_leverage=request.trading_config.max_leverage,
+    )
+    portfolio_service = InMemoryPortfolioService(
+        initial_capital=initial_capital,
+        trading_mode=request.exchange_config.trading_mode,
+        market_type=request.exchange_config.market_type,
+        constraints=constraints,
+        strategy_id=strategy_id,
+    )
 
-    # Use the sync function with the pre-initialized gateway
-    return create_strategy_runtime(request, execution_gateway=execution_gateway)
+    # Use custom composer if provided, otherwise default to LlmComposer
+    if composer is None:
+        composer = LlmComposer(request=request)
+
+    if features_pipeline is None:
+        features_pipeline = DefaultFeaturesPipeline.from_request(request)
+
+    history_recorder = InMemoryHistoryRecorder()
+    digest_builder = RollingDigestBuilder()
+
+    coordinator = DefaultDecisionCoordinator(
+        request=request,
+        strategy_id=strategy_id,
+        portfolio_service=portfolio_service,
+        features_pipeline=features_pipeline,
+        composer=composer,
+        execution_gateway=execution_gateway,
+        history_recorder=history_recorder,
+        digest_builder=digest_builder,
+    )
+
+    return StrategyRuntime(
+        request=request,
+        strategy_id=strategy_id,
+        coordinator=coordinator,
+    )

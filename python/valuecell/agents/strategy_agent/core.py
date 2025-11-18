@@ -2,17 +2,15 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Callable, List
+from typing import List
 
 from loguru import logger
 
 from valuecell.utils.uuid import generate_uuid
 
-from .data.interfaces import MarketDataSource
 from .decision.interfaces import Composer
 from .execution.interfaces import ExecutionGateway
-from .features.interfaces import FeatureComputer
+from .features.interfaces import FeaturesPipeline
 from .models import (
     ComposeContext,
     FeatureVector,
@@ -33,6 +31,10 @@ from .models import (
 )
 from .portfolio.interfaces import PortfolioService
 from .trading_history.interfaces import DigestBuilder, HistoryRecorder
+from .utils import (
+    fetch_free_cash_from_gateway,
+    get_current_timestamp_ms,
+)
 
 
 @dataclass
@@ -71,11 +73,10 @@ class DecisionCoordinator(ABC):
         """Execute one decision cycle and return the result."""
         raise NotImplementedError
 
-
-def _default_clock() -> datetime:
-    """Return current time in UTC."""
-
-    return datetime.now(timezone.utc)
+    @abstractmethod
+    async def close(self) -> None:
+        """Release any held resources."""
+        raise NotImplementedError
 
 
 class DefaultDecisionCoordinator(DecisionCoordinator):
@@ -87,82 +88,37 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         request: UserRequest,
         strategy_id: str,
         portfolio_service: PortfolioService,
-        market_data_source: MarketDataSource,
-        feature_computer: FeatureComputer,
+        features_pipeline: FeaturesPipeline,
         composer: Composer,
         execution_gateway: ExecutionGateway,
         history_recorder: HistoryRecorder,
         digest_builder: DigestBuilder,
-        prompt_provider: Callable[[UserRequest], str],
-        history_limit: int = 200,
     ) -> None:
         self._request = request
         self.strategy_id = strategy_id
-        self._portfolio_service = portfolio_service
-        self._market_data_source = market_data_source
-        self._feature_computer = feature_computer
+        self.portfolio_service = portfolio_service
+        self._features_pipeline = features_pipeline
         self._composer = composer
         self._execution_gateway = execution_gateway
         self._history_recorder = history_recorder
         self._digest_builder = digest_builder
-        self._history_limit = max(history_limit, 1)
         self._symbols = list(dict.fromkeys(request.trading_config.symbols))
-        # prompt_provider is a required parameter (caller must supply a prompt builder)
-        self._prompt_provider = prompt_provider
-        # Use the default clock internally; clock is not a constructor parameter
-        self._clock = _default_clock
-        self._history_records: List[HistoryRecord] = []
         self._realized_pnl: float = 0.0
         self._unrealized_pnl: float = 0.0
         self._cycle_index: int = 0
         self._strategy_name = request.trading_config.strategy_name or strategy_id
 
     async def run_once(self) -> DecisionCycleResult:
-        timestamp_ms = int(self._clock().timestamp() * 1000)
+        timestamp_ms = get_current_timestamp_ms()
         compose_id = generate_uuid("compose")
 
-        portfolio = self._portfolio_service.get_view()
+        portfolio = self.portfolio_service.get_view()
         # LIVE mode: sync cash from exchange free balance; set buying power to cash
         try:
-            if (
-                self._request.exchange_config.trading_mode == TradingMode.LIVE
-                and hasattr(self._execution_gateway, "fetch_balance")
-            ):
-                balance = await self._execution_gateway.fetch_balance()
-                free_map = {}
-                free_section = (
-                    balance.get("free") if isinstance(balance, dict) else None
+            if self._request.exchange_config.trading_mode == TradingMode.LIVE:
+                free_cash = await fetch_free_cash_from_gateway(
+                    self._execution_gateway, self._symbols
                 )
-                if isinstance(free_section, dict):
-                    free_map = {
-                        str(k).upper(): float(v or 0.0) for k, v in free_section.items()
-                    }
-                else:
-                    # Handle nested per-currency dict shapes
-                    iterable = balance.items() if isinstance(balance, dict) else []
-                    for k, v in iterable:
-                        if isinstance(v, dict) and "free" in v:
-                            try:
-                                free_map[str(k).upper()] = float(v.get("free") or 0.0)
-                            except Exception:
-                                continue
-                # Derive quote currencies from symbols, fallback to common USD-stable quotes
-                quotes = []
-                for sym in self._symbols or []:
-                    s = str(sym).upper()
-                    if "/" in s and len(s.split("/")) == 2:
-                        quotes.append(s.split("/")[1])
-                    elif "-" in s and len(s.split("-")) == 2:
-                        quotes.append(s.split("-")[1])
-                # Deduplicate preserving order
-                quotes = list(dict.fromkeys(quotes))
-                free_cash = 0.0
-                if quotes:
-                    for q in quotes:
-                        free_cash += float(free_map.get(q, 0.0) or 0.0)
-                else:
-                    for q in ("USDT", "USD", "USDC"):
-                        free_cash += float(free_map.get(q, 0.0) or 0.0)
                 portfolio.account_balance = float(free_cash)
                 if self._request.exchange_config.market_type == MarketType.SPOT:
                     portfolio.buying_power = max(0.0, float(portfolio.account_balance))
@@ -174,29 +130,10 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             if self._request.exchange_config.market_type == MarketType.SPOT:
                 portfolio.buying_power = max(0.0, float(portfolio.account_balance))
 
-        # Use fixed 1-second interval and lookback of 3 minutes (60 * 3 seconds)
-        candles_1s = await self._market_data_source.get_recent_candles(
-            self._symbols, "1s", 60 * 3
-        )
-        # Compute micro (1s) features with meta preserved
-        micro_features = self._feature_computer.compute_features(candles=candles_1s)
-
-        # Use fixed 1-minute interval and lookback of 4 hours (60 * 4 minutes)
-        candles_1m = await self._market_data_source.get_recent_candles(
-            self._symbols, "1m", 60 * 4
-        )
-        minute_features = self._feature_computer.compute_features(candles=candles_1m)
-
-        # Compose full features list: minute-level features (structural) then micro-level (freshness).
-        features = []
-        features.extend(minute_features)
-        features.extend(micro_features)
-
-        # Ask the data source for an authoritative market snapshot (exchange-ticker based)
-        market_snapshot = await self._market_data_source.get_market_snapshot(
-            self._symbols
-        )
-        digest = self._digest_builder.build(list(self._history_records))
+        pipeline_result = await self._features_pipeline.build()
+        features = list(pipeline_result.features or [])
+        market_snapshot = pipeline_result.market_snapshot or {}
+        digest = self._digest_builder.build(self._history_recorder.get_records())
 
         context = ComposeContext(
             ts=timestamp_ms,
@@ -205,7 +142,6 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             features=features,
             portfolio=portfolio,
             digest=digest,
-            prompt_text=self._prompt_provider(self._request),
             market_snapshot=market_snapshot,
         )
 
@@ -233,8 +169,8 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             )
 
         trades = self._create_trades(tx_results, compose_id, timestamp_ms)
-        self._portfolio_service.apply_trades(trades, market_snapshot)
-        summary = self._build_summary(timestamp_ms, trades)
+        self.portfolio_service.apply_trades(trades, market_snapshot)
+        summary = self.build_summary(timestamp_ms, trades)
 
         history_records = self._create_history_records(
             timestamp_ms, compose_id, features, instructions, trades, summary
@@ -243,14 +179,10 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         for record in history_records:
             self._history_recorder.record(record)
 
-        self._history_records.extend(history_records)
-        if len(self._history_records) > self._history_limit:
-            self._history_records = self._history_records[-self._history_limit :]
-
-        digest = self._digest_builder.build(list(self._history_records))
+        digest = self._digest_builder.build(self._history_recorder.get_records())
         self._cycle_index += 1
 
-        portfolio = self._portfolio_service.get_view()
+        portfolio = self.portfolio_service.get_view()
         return DecisionCycleResult(
             compose_id=compose_id,
             timestamp_ms=timestamp_ms,
@@ -271,7 +203,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         trades: List[TradeHistoryEntry] = []
         # Current portfolio view (pre-apply) used to detect closes
         try:
-            pre_view = self._portfolio_service.get_view()
+            pre_view = self.portfolio_service.get_view()
         except Exception:
             pre_view = None
 
@@ -419,7 +351,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             if is_closing and not is_full_close:
                 # scan history records (most recent first) to find an open trade for this symbol
                 paired_id = None
-                for record in reversed(self._history_records):
+                for record in reversed(self._history_recorder.get_records()):
                     if record.kind != "execution":
                         continue
                     trades_payload = record.payload.get("trades", []) or []
@@ -462,7 +394,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             trades.append(trade)
         return trades
 
-    def _build_summary(
+    def build_summary(
         self,
         timestamp_ms: int,
         trades: List[TradeHistoryEntry],
@@ -471,7 +403,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         self._realized_pnl += realized_delta
         # Prefer authoritative unrealized PnL from the portfolio view when available.
         try:
-            view = self._portfolio_service.get_view()
+            view = self.portfolio_service.get_view()
             unrealized = float(view.total_unrealized_pnl or 0.0)
             # In LIVE mode, treat equity as available cash (disallow financing)
             try:
@@ -542,7 +474,6 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                 kind="compose",
                 reference_id=compose_id,
                 payload={
-                    "prompt": self._prompt_provider(self._request),
                     "summary": summary.model_dump(mode="json"),
                 },
             ),
