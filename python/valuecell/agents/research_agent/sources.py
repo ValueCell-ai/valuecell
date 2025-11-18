@@ -9,7 +9,14 @@ import aiohttp
 from agno.agent import Agent
 from edgar import Company
 from edgar.entity.filings import EntityFilings
+from loguru import logger
 
+from valuecell.agents.sources import (
+    get_person_detail,
+    get_project_detail,
+    search_people,
+    search_projects,
+)
 from valuecell.utils.path import get_knowledge_path
 
 from .knowledge import insert_md_file_to_knowledge, insert_pdf_file_to_knowledge
@@ -690,3 +697,444 @@ async def fetch_ashare_filings(
     # Write to files and import to knowledge base
     knowledge_dir = Path(get_knowledge_path())
     return await _write_and_ingest_ashare(filings_data, knowledge_dir)
+
+
+# ============================================================================
+# Crypto Project Data Tools (RootData)
+# ============================================================================
+
+
+async def search_crypto_projects(
+    query: str,
+    limit: int = 10,
+) -> str:
+    """Search cryptocurrency projects on RootData by keyword.
+
+    Use this tool when users ask about cryptocurrency projects, tokens, or blockchain ecosystems.
+    Examples: "What is Ethereum?", "Tell me about DeFi projects", "Find projects related to AI"
+
+    Args:
+        query: Search keyword (project name, token symbol, or category like "DeFi", "AI", "GameFi")
+        limit: Maximum number of results to return (default: 5, max recommended: 10)
+
+    Returns:
+        Formatted string with project information including name, description, tags, and key metrics.
+    """
+
+    logger.info(f"Searching crypto projects for: {query}")
+
+    try:
+        projects = await search_projects(query, limit=limit, use_playwright=True)
+
+        if not projects:
+            return f"No cryptocurrency projects found for query: {query}"
+
+        # Format results as context
+        results = [f"Found {len(projects)} cryptocurrency project(s) for '{query}':\n"]
+
+        for i, proj in enumerate(projects, 1):
+            result_lines = [
+                f"\n{i}. **{proj.name}** (ID: {proj.id})",
+            ]
+
+            if proj.token_symbol:
+                result_lines.append(f"   - Token: ${proj.token_symbol}")
+
+            if proj.token_price is not None:
+                price_str = f"   - Price: ${proj.token_price:.4f}"
+                if proj.price_change_24h is not None:
+                    change_sign = "+" if proj.price_change_24h >= 0 else ""
+                    price_str += f" ({change_sign}{proj.price_change_24h:.2f}% 24h)"
+                result_lines.append(price_str)
+
+            if proj.brief_intro:
+                # Truncate long descriptions
+                brief = proj.brief_intro[:200]
+                if len(proj.brief_intro) > 200:
+                    brief += "..."
+                result_lines.append(f"   - Brief: {brief}")
+
+            if proj.tags:
+                result_lines.append(f"   - Tags: {', '.join(proj.tags[:5])}")
+
+            if proj.twitter:
+                result_lines.append(f"   - Twitter: @{proj.twitter}")
+
+            if proj.website:
+                result_lines.append(f"   - Website: {proj.website}")
+
+            result_lines.append(
+                f"   - Use get_crypto_project_detail({proj.id}) for full details"
+            )
+
+            results.append("\n".join(result_lines))
+
+        logger.debug(f"Search crypto projects results: {results}")
+        return "\n".join(results)
+
+    except Exception as e:
+        logger.error(f"Error searching crypto projects: {e}")
+        return f"Error searching cryptocurrency projects: {str(e)}"
+
+
+async def get_crypto_project_detail(
+    project_id: int,
+) -> str:
+    """Get detailed information about a specific cryptocurrency project by its ID.
+
+    Use this tool after search_crypto_projects to get comprehensive project details.
+    The project_id can be found in search results.
+
+    Args:
+        project_id: RootData project ID (obtained from search_crypto_projects results)
+
+    Returns:
+        Detailed project information including full description, team, metrics, and links.
+    """
+
+    logger.info(f"Fetching crypto project detail for ID: {project_id}")
+
+    try:
+        project = await get_project_detail(project_id)
+
+        if not project:
+            return f"No project found with ID: {project_id}"
+
+        # Format detailed information
+        details = [
+            f"# {project.name}",
+            "",
+        ]
+
+        if project.token_symbol:
+            details.append(f"**Token Symbol:** ${project.token_symbol}")
+
+        if project.token_price is not None:
+            price_line = f"**Current Price:** ${project.token_price:.4f}"
+            if project.price_change_24h is not None:
+                change_sign = "+" if project.price_change_24h >= 0 else ""
+                price_line += f" ({change_sign}{project.price_change_24h:.2f}% 24h)"
+            details.append(price_line)
+
+        if project.founded_year:
+            details.append(f"**Founded:** {project.founded_year}")
+
+        details.append("")
+
+        if project.brief_intro:
+            details.append("## Brief Introduction")
+            details.append(project.brief_intro)
+            details.append("")
+
+        if project.description:
+            details.append("## Description")
+            details.append(project.description)
+            details.append("")
+
+        if project.tags:
+            details.append("## Tags")
+            details.append(", ".join(project.tags))
+            details.append("")
+
+        if project.members:
+            details.append("## Team Members")
+            for member in project.members:
+                details.append(f"- {member}")
+            details.append("")
+
+        details.append("## Links")
+        if project.website:
+            details.append(f"- Website: {project.website}")
+        if project.twitter:
+            details.append(f"- Twitter: https://twitter.com/{project.twitter}")
+
+        return "\n".join(details)
+
+    except Exception as e:
+        logger.error(f"Error fetching crypto project detail: {e}")
+        return f"Error fetching project details: {str(e)}"
+
+
+async def search_crypto_vcs(
+    query: str,
+    limit: int = 5,
+) -> str:
+    """Search venture capital firms and crypto investors on RootData.
+
+    Use this tool when users ask about VCs, investment firms, or crypto investors.
+    Examples: "Who invested in Ethereum?", "Find VCs focused on DeFi", "Tell me about a16z crypto"
+
+    Args:
+        query: Search keyword (VC name, investment focus, or category)
+        limit: Maximum number of results to return (default: 5, max recommended: 10)
+
+    Returns:
+        Formatted string with VC information including name, description, portfolio, and links.
+    """
+    from loguru import logger
+
+    from valuecell.agents.sources import search_vcs
+
+    logger.info(f"Searching crypto VCs for: {query}")
+
+    try:
+        vcs = await search_vcs(query, limit=limit, use_playwright=True)
+
+        if not vcs:
+            return f"No venture capital firms found for query: {query}"
+
+        # Format results as context
+        results = [f"Found {len(vcs)} venture capital firm(s) for '{query}':\n"]
+
+        for i, vc in enumerate(vcs, 1):
+            result_lines = [
+                f"\n{i}. **{vc.name}** (ID: {vc.id})",
+            ]
+
+            if vc.portfolio_count is not None:
+                result_lines.append(f"   - Portfolio: {vc.portfolio_count} companies")
+
+            if vc.total_investments is not None:
+                result_lines.append(f"   - Total Investments: {vc.total_investments}")
+
+            if vc.brief_intro:
+                brief = vc.brief_intro[:200]
+                if len(vc.brief_intro) > 200:
+                    brief += "..."
+                result_lines.append(f"   - Brief: {brief}")
+
+            if vc.tags:
+                result_lines.append(f"   - Focus: {', '.join(vc.tags[:5])}")
+
+            if vc.twitter:
+                result_lines.append(f"   - Twitter: @{vc.twitter}")
+
+            if vc.website:
+                result_lines.append(f"   - Website: {vc.website}")
+
+            result_lines.append(
+                f"   - Use get_crypto_vc_detail({vc.id}) for full details"
+            )
+
+            results.append("\n".join(result_lines))
+
+        return "\n".join(results)
+
+    except Exception as e:
+        logger.error(f"Error searching crypto VCs: {e}")
+        return f"Error searching venture capital firms: {str(e)}"
+
+
+async def get_crypto_vc_detail(
+    vc_id: int,
+) -> str:
+    """Get detailed information about a specific VC firm by its ID.
+
+    Use this tool after search_crypto_vcs to get comprehensive VC details.
+    The vc_id can be found in search results.
+
+    Args:
+        vc_id: RootData VC ID (obtained from search_crypto_vcs results)
+
+    Returns:
+        Detailed VC information including full description, portfolio, and links.
+    """
+    from loguru import logger
+
+    from valuecell.agents.sources import get_vc_detail
+
+    logger.info(f"Fetching crypto VC detail for ID: {vc_id}")
+
+    try:
+        vc = await get_vc_detail(vc_id)
+
+        if not vc:
+            return f"No VC found with ID: {vc_id}"
+
+        # Format detailed information
+        details = [
+            f"# {vc.name}",
+            "",
+        ]
+
+        if vc.portfolio_count is not None:
+            details.append(f"**Portfolio Size:** {vc.portfolio_count} companies")
+
+        if vc.total_investments is not None:
+            details.append(f"**Total Investments:** {vc.total_investments}")
+
+        if vc.founded_year:
+            details.append(f"**Founded:** {vc.founded_year}")
+
+        details.append("")
+
+        if vc.brief_intro:
+            details.append("## Brief Introduction")
+            details.append(vc.brief_intro)
+            details.append("")
+
+        if vc.description:
+            details.append("## Description")
+            details.append(vc.description)
+            details.append("")
+
+        if vc.tags:
+            details.append("## Investment Focus")
+            details.append(", ".join(vc.tags))
+            details.append("")
+
+        details.append("## Links")
+        if vc.website:
+            details.append(f"- Website: {vc.website}")
+        if vc.twitter:
+            details.append(f"- Twitter: https://twitter.com/{vc.twitter}")
+
+        return "\n".join(details)
+
+    except Exception as e:
+        logger.error(f"Error fetching crypto VC detail: {e}")
+        return f"Error fetching VC details: {str(e)}"
+
+
+async def search_crypto_people(
+    query: str,
+    limit: int = 5,
+) -> str:
+    """Search crypto industry people on RootData (founders, executives, investors).
+
+    Use this tool when users ask about people in crypto, founders, or industry leaders.
+    Examples: "Who is Vitalik Buterin?", "Find founders of Ethereum", "Tell me about crypto investors"
+
+    Args:
+        query: Search keyword (person name, role, or organization)
+        limit: Maximum number of results to return (default: 5, max recommended: 10)
+
+    Returns:
+        Formatted string with person information including name, title, projects, and links.
+    """
+
+    logger.info(f"Searching crypto people for: {query}")
+
+    try:
+        people = await search_people(query, limit=limit, use_playwright=True)
+
+        if not people:
+            return f"No people found for query: {query}"
+
+        # Format results as context
+        results = [f"Found {len(people)} person/people for '{query}':\n"]
+
+        for i, person in enumerate(people, 1):
+            result_lines = [
+                f"\n{i}. **{person.name}** (ID: {person.id})",
+            ]
+
+            if person.title:
+                result_lines.append(f"   - Title: {person.title}")
+
+            if person.current_organization:
+                result_lines.append(f"   - Organization: {person.current_organization}")
+
+            if person.brief_intro:
+                brief = person.brief_intro[:200]
+                if len(person.brief_intro) > 200:
+                    brief += "..."
+                result_lines.append(f"   - Brief: {brief}")
+
+            if person.projects:
+                result_lines.append(
+                    f"   - Projects: {', '.join(person.projects[:3])}"
+                    + ("..." if len(person.projects) > 3 else "")
+                )
+
+            if person.tags:
+                result_lines.append(f"   - Roles: {', '.join(person.tags[:5])}")
+
+            if person.twitter:
+                result_lines.append(f"   - Twitter: @{person.twitter}")
+
+            if person.linkedin:
+                result_lines.append(f"   - LinkedIn: {person.linkedin}")
+
+            result_lines.append(
+                f"   - Use get_crypto_person_detail({person.id}) for full details"
+            )
+
+            results.append("\n".join(result_lines))
+
+        return "\n".join(results)
+
+    except Exception as e:
+        logger.error(f"Error searching crypto people: {e}")
+        return f"Error searching people: {str(e)}"
+
+
+async def get_crypto_person_detail(
+    person_id: int,
+) -> str:
+    """Get detailed information about a specific person by their ID.
+
+    Use this tool after search_crypto_people to get comprehensive person details.
+    The person_id can be found in search results.
+
+    Args:
+        person_id: RootData person ID (obtained from search_crypto_people results)
+
+    Returns:
+        Detailed person information including full bio, projects, and links.
+    """
+
+    logger.info(f"Fetching crypto person detail for ID: {person_id}")
+
+    try:
+        person = await get_person_detail(person_id)
+
+        if not person:
+            return f"No person found with ID: {person_id}"
+
+        # Format detailed information
+        details = [
+            f"# {person.name}",
+            "",
+        ]
+
+        if person.title:
+            details.append(f"**Title:** {person.title}")
+
+        if person.current_organization:
+            details.append(f"**Organization:** {person.current_organization}")
+
+        details.append("")
+
+        if person.brief_intro:
+            details.append("## Brief Introduction")
+            details.append(person.brief_intro)
+            details.append("")
+
+        if person.description:
+            details.append("## Biography")
+            details.append(person.description)
+            details.append("")
+
+        if person.projects:
+            details.append("## Associated Projects")
+            for project in person.projects:
+                details.append(f"- {project}")
+            details.append("")
+
+        if person.tags:
+            details.append("## Roles & Expertise")
+            details.append(", ".join(person.tags))
+            details.append("")
+
+        details.append("## Links")
+        if person.twitter:
+            details.append(f"- Twitter: https://twitter.com/{person.twitter}")
+        if person.linkedin:
+            details.append(f"- LinkedIn: {person.linkedin}")
+
+        return "\n".join(details)
+
+    except Exception as e:
+        logger.error(f"Error fetching crypto person detail: {e}")
+        return f"Error fetching person details: {str(e)}"
