@@ -40,33 +40,40 @@ def create_models_router() -> APIRouter:
     router = APIRouter(prefix="/models", tags=["Models"])
 
     # ---- Utility helpers (local to router) ----
-    def _env_path() -> Path:
-        return PROJECT_ROOT / ".env"
+    def _env_paths() -> List[Path]:
+        """Return the repository root .env as the single source of truth.
+
+        Only use repo-root/.env and do not write python/.env.
+        """
+        repo_env = PROJECT_ROOT.parent / ".env"
+        return [repo_env]
 
     def _set_env(key: str, value: str) -> bool:
         os.environ[key] = value
-        env_file = _env_path()
-        lines: List[str] = []
-        if env_file.exists():
-            with open(env_file, "r", encoding="utf-8") as f:
-                lines = f.readlines()
-        updated = False
-        found = False
-        new_lines: List[str] = []
-        for line in lines:
-            stripped = line.strip()
-            if stripped.startswith(f"{key}="):
+        updated_any = False
+        for env_file in _env_paths():
+            lines: List[str] = []
+            if env_file.exists():
+                with open(env_file, "r", encoding="utf-8") as f:
+                    lines = f.readlines()
+            updated = False
+            found = False
+            new_lines: List[str] = []
+            for line in lines:
+                stripped = line.strip()
+                if stripped.startswith(f"{key}="):
+                    new_lines.append(f"{key}={value}\n")
+                    found = True
+                    updated = True
+                else:
+                    new_lines.append(line)
+            if not found:
                 new_lines.append(f"{key}={value}\n")
-                found = True
                 updated = True
-            else:
-                new_lines.append(line)
-        if not found:
-            new_lines.append(f"{key}={value}\n")
-            updated = True
-        with open(env_file, "w", encoding="utf-8") as f:
-            f.writelines(new_lines)
-        return updated
+            with open(env_file, "w", encoding="utf-8") as f:
+                f.writelines(new_lines)
+            updated_any = updated_any or updated
+        return updated_any
 
     def _provider_yaml(provider: str) -> Path:
         return CONFIG_DIR / "providers" / f"{provider}.yaml"
