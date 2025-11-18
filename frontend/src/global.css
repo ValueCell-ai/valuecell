@@ -106,6 +106,16 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  input[type="password"]::-webkit-password-reveal-button {
+    display: none;
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type="password"]::-ms-reveal {
+    display: none;
+  }
 }
 
 @layer utilities {

@@ -1,13 +1,13 @@
 import { useForm } from "@tanstack/react-form";
-import { Plus, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { NavLink } from "react-router";
 
 import { z } from "zod";
 import {
   useAddProviderModel,
   useDeleteProviderModel,
   useGetModelProviderDetail,
+  useSetDefaultProvider,
   useSetDefaultProviderModel,
   useUpdateProviderConfig,
 } from "@/api/setting";
@@ -27,6 +27,12 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { Switch } from "@/components/ui/switch";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 
@@ -55,8 +61,11 @@ export function ModelDetail({ provider }: ModelDetailProps) {
     useDeleteProviderModel();
   const { mutate: setDefaultModel, isPending: settingDefaultModel } =
     useSetDefaultProviderModel();
+  const { mutate: setDefaultProvider, isPending: settingDefaultProvider } =
+    useSetDefaultProvider();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
 
   const configForm = useForm({
     defaultValues: {
@@ -82,6 +91,10 @@ export function ModelDetail({ provider }: ModelDetailProps) {
       configForm.setFieldValue("base_url", providerDetail.base_url || "");
     }
   }, [providerDetail, configForm]);
+
+  useEffect(() => {
+    if (provider) setShowApiKey(false);
+  }, [provider]);
 
   const addModelForm = useForm({
     defaultValues: {
@@ -114,7 +127,11 @@ export function ModelDetail({ provider }: ModelDetailProps) {
   };
 
   const isBusy =
-    updatingConfig || addingModel || deletingModel || settingDefaultModel;
+    updatingConfig ||
+    addingModel ||
+    deletingModel ||
+    settingDefaultModel ||
+    settingDefaultProvider;
 
   if (detailLoading) {
     return (
@@ -128,29 +145,68 @@ export function ModelDetail({ provider }: ModelDetailProps) {
 
   return (
     <ScrollContainer className="flex flex-1 flex-col px-8">
+      <div className="mb-4 flex items-center justify-between">
+        <p className="font-semibold text-gray-950 text-lg">{provider}</p>
+        <div className="flex items-center gap-2">
+          <p className="font-semibold text-base text-gray-700">
+            Default Provider
+          </p>
+          <Switch
+            checked={providerDetail.is_default}
+            disabled={isBusy}
+            onCheckedChange={() => setDefaultProvider({ provider })}
+          />
+        </div>
+      </div>
+
       <form>
         <div className="flex flex-col gap-6">
           <FieldGroup>
             <configForm.Field name="api_key">
               {(field) => (
                 <Field className="text-gray-950">
-                  <FieldLabel className="font-medium text-base">
+                  <FieldLabel
+                    htmlFor="api_key"
+                    className="font-medium text-base"
+                  >
                     API key
                   </FieldLabel>
-                  <Input
-                    type="password"
-                    placeholder={"Enter API key"}
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={() => configForm.handleSubmit()}
-                  />
-                  <NavLink
-                    to={providerDetail.api_key_url}
-                    target="_blank"
-                    className="text-sm underline underline-offset-4"
+                  <InputGroup>
+                    <InputGroupInput
+                      type={showApiKey ? "text" : "password"}
+                      id="api_key"
+                      placeholder={"Enter API key"}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={() => configForm.handleSubmit()}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupButton
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => setShowApiKey(!showApiKey)}
+                        aria-label={
+                          showApiKey ? "Hide password" : "Show password"
+                        }
+                      >
+                        {showApiKey ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </InputGroupButton>
+                    </InputGroupAddon>
+                  </InputGroup>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      window.open(providerDetail.api_key_url, "_blank")
+                    }
+                    className="w-fit! cursor-pointer text-sm underline underline-offset-4 hover:text-gray-700"
                   >
                     Click here to get the API key
-                  </NavLink>
+                  </button>
                   <FieldError errors={field.state.meta.errors} />
                 </Field>
               )}
