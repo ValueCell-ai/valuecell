@@ -85,6 +85,7 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
         <h3 className="font-semibold text-base text-gray-950">
           Portfolio Value History
         </h3>
+
         <div className="min-h-[400px] flex-1">
           {hasPriceCurve ? (
             <MultiLineChart data={priceCurve} showLegend={false} />

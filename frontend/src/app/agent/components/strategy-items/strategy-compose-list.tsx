@@ -19,7 +19,11 @@ import {
   numberFixed,
 } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
-import type { StrategyAction, StrategyCompose } from "@/types/strategy";
+import type {
+  Strategy,
+  StrategyAction,
+  StrategyCompose,
+} from "@/types/strategy";
 
 interface StrategyComposeItemProps {
   compose: StrategyCompose;
@@ -190,7 +194,7 @@ const ActionItem: FC<{ action: StrategyAction }> = ({ action }) => {
 
 interface StrategyComposeListProps {
   composes: StrategyCompose[];
-  tradingMode: "live";
+  tradingMode: Strategy["trading_mode"];
 }
 
 const StrategyComposeList: FC<StrategyComposeListProps> = ({

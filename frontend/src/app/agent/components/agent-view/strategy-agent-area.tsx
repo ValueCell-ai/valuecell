@@ -105,7 +105,10 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
       <div className="flex flex-1">
         {selectedStrategy ? (
           <>
-            <StrategyComposeList composes={composes} />
+            <StrategyComposeList
+              composes={composes}
+              tradingMode={selectedStrategy.trading_mode}
+            />
             <PortfolioPositionsGroup
               priceCurve={priceCurve}
               positions={positions}

@@ -8,7 +8,6 @@ import type {
   Strategy,
   StrategyCompose,
   StrategyPrompt,
-  Trade,
 } from "@/types/strategy";
 
 export const useGetStrategyList = () => {
