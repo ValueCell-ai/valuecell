@@ -67,8 +67,8 @@ const step2Schema = z
     api_key: z.string(),
     secret_key: z.string(),
     passphrase: z.string(), // Required string, but can be empty for non-OKX exchanges
-    wallet_address: z.string().optional(), // For Hyperliquid
-    private_key: z.string().optional(), // For Hyperliquid
+    wallet_address: z.string(), // For Hyperliquid
+    private_key: z.string(), // For Hyperliquid
   })
   .superRefine((data, ctx) => {
     // Only validate exchange credentials when live trading is selected
