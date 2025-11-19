@@ -9,6 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
 from ...adapters.assets import get_adapter_manager
+from ...utils.env import ensure_system_env_dir, get_system_env_path
 from ..config.settings import get_settings
 from ..db import init_database
 from .exceptions import (
@@ -36,37 +37,38 @@ from .routers.watchlist import create_watchlist_router
 from .schemas import AppInfoData, SuccessResponse
 
 
-def _ensure_root_env_and_load() -> None:
-    """Ensure repo-root .env exists (copy from .env.example) and load it.
+def _ensure_system_env_and_load() -> None:
+    """Ensure the system `.env` exists and is loaded; use only the system path.
 
-    This protects scenarios where the package-level early loader isn't executed
-    or resolves a different path (e.g., running via `uv run -m valuecell.server.main`).
+    Behavior:
+    - If the system `.env` exists, load it with `override=True`.
+    - If not, and the repository has `.env.example`, copy it to the system path and then load.
+    - Do not create or load the repository root `.env`.
     """
     try:
         repo_root = Path(__file__).resolve().parents[4]
-        env_file = repo_root / ".env"
+        sys_env = get_system_env_path()
         example_file = repo_root / ".env.example"
 
-        # Create .env from example if missing
-        if not env_file.exists() and example_file.exists():
-            try:
-                import shutil
+        try:
+            import shutil
 
-                shutil.copy(example_file, env_file)
-            except Exception:
-                # Best-effort; continue even if copy fails
-                pass
+            if not sys_env.exists() and example_file.exists():
+                ensure_system_env_dir()
+                shutil.copy(example_file, sys_env)
+        except Exception:
+            pass
 
-        # Load .env into process environment
-        if env_file.exists():
+        # Load system .env into process environment
+        if sys_env.exists():
             try:
                 from dotenv import load_dotenv
 
-                load_dotenv(env_file, override=True)
+                load_dotenv(sys_env, override=True)
             except Exception:
                 # Fallback manual parsing
                 try:
-                    with open(env_file, "r", encoding="utf-8") as f:
+                    with open(sys_env, "r", encoding="utf-8") as f:
                         for line in f:
                             line = line.strip()
                             if line and not line.startswith("#") and "=" in line:
@@ -88,7 +90,7 @@ def _ensure_root_env_and_load() -> None:
 def create_app() -> FastAPI:
     """Create and configure FastAPI application."""
     # Ensure .env exists and is loaded before reading settings
-    _ensure_root_env_and_load()
+    _ensure_system_env_and_load()
     settings = get_settings()
 
     @asynccontextmanager
