@@ -7,6 +7,8 @@ on:
   # pull_request:
   #   branches:
   #     - "release"
+permissions:
+  contents: write
 
 jobs:
   build-macos:
