@@ -132,7 +132,11 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
 
         pipeline_result = await self._features_pipeline.build()
         features = list(pipeline_result.features or [])
-        market_snapshot = pipeline_result.market_snapshot or {}
+        market_features = [
+            fv
+            for fv in features
+            if (fv.meta or {}).get("group_by_key") == "market_snapshot"
+        ]
         digest = self._digest_builder.build(self._history_recorder.get_records())
 
         context = ComposeContext(
@@ -142,7 +146,6 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             features=features,
             portfolio=portfolio,
             digest=digest,
-            market_snapshot=market_snapshot,
         )
 
         instructions = await self._composer.compose(context)
@@ -160,7 +163,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             f"  ExecutionGateway type: {type(self._execution_gateway).__name__}"
         )
         tx_results = await self._execution_gateway.execute(
-            instructions, market_snapshot
+            instructions, market_features
         )
         logger.info(f"✅ ExecutionGateway returned {len(tx_results)} results")
         for idx, tx in enumerate(tx_results):
@@ -169,7 +172,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             )
 
         trades = self._create_trades(tx_results, compose_id, timestamp_ms)
-        self.portfolio_service.apply_trades(trades, market_snapshot)
+        self.portfolio_service.apply_trades(trades, market_features)
         summary = self.build_summary(timestamp_ms, trades)
 
         history_records = self._create_history_records(

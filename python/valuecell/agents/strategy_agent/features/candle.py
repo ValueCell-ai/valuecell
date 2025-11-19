@@ -132,8 +132,10 @@ class SimpleCandleFeatureComputer(CandleBasedFeatureComputer):
             # Build feature meta
             window_start_ts = int(rows[0]["ts"]) if rows else int(last["ts"])
             window_end_ts = int(last["ts"])
+            interval = series[-1].interval
             fv_meta = {
-                "interval": series[-1].interval,
+                "group_by_key": f"interval_{interval}",
+                "interval": interval,
                 "count": len(series),
                 "window_start_ts": window_start_ts,
                 "window_end_ts": window_end_ts,

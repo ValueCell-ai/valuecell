@@ -40,11 +40,11 @@ This document describes the design for the Strategy Agent: a lightweight, LLM-dr
 1. DecisionCoordinator pulls `PortfolioView` (positions, cash, optional constraints)
 1. DecisionCoordinator gets recent `Candle` from `MarketDataSource`
 1. `FeatureComputer` produces `FeatureVector[]`
-1. DecisionCoordinator assembles `ComposeContext`: features, portfolio, digest, prompt_text (string), optional market_snapshot and extra constraints
+1. DecisionCoordinator assembles `ComposeContext`: features (including `features.market_snapshot`), portfolio, digest, prompt_text (string), and extra constraints
 
 1. `Composer.compose(context)`: calls LLM with `ComposeContext` → `LlmPlanProposal`; normalizes plan (target position logic, limits, step size, min notional, cool-down, etc.); returns `TradeInstruction[]`
 
-1. `ExecutionGateway.execute(instructions)` (no detailed order/fill handling at this stage)
+1. `ExecutionGateway.execute(instructions, market_features)` (no detailed order/fill handling at this stage)
 1. `HistoryRecorder.record(...)` checkpoints (including optional auditing metadata);
 
   DigestBuilder updates `TradeDigest`
@@ -81,7 +81,7 @@ Defined in `models.py`:
   - `LlmDecisionItem { instrument, action: (buy|sell|flat|noop), target_qty, confidence?, rationale? }`
   - `LlmPlanProposal { ts, items: List[LlmDecisionItem], notes?, model_meta? }`
   - `TradeInstruction { instruction_id, compose_id, instrument, side: (buy|sell), quantity, price_mode, limit_price?, max_slippage_bps?, meta? }`
-  - `ComposeContext { ts, compose_id, strategy_id?, features, portfolio, digest, prompt_text, market_snapshot?, constraints? }`
+  - `ComposeContext { ts, compose_id, strategy_id?, features, portfolio, digest, prompt_text, constraints? }`
 
 - History and digest
   - `HistoryRecord { ts, kind, reference_id, payload }`
@@ -136,7 +136,7 @@ Interfaces live in their respective modules as ABCs (not Pydantic models):
 - `decision/interfaces.py`
   - `Composer.compose(context: ComposeContext) -> List[TradeInstruction]`
 - `execution/interfaces.py`
-  - `ExecutionGateway.execute(instructions: List[TradeInstruction]) -> None`
+  - `ExecutionGateway.execute(instructions: List[TradeInstruction], market_features?: List[FeatureVector]) -> None`
 - `trading_history/interfaces.py`
   - `HistoryRecorder.record(record: HistoryRecord) -> None`
   - `DigestBuilder.build(records: List[HistoryRecord]) -> TradeDigest`
@@ -203,8 +203,8 @@ A typical `run_once()` should:
 
 1. `view = portfolio.get_view()`
 2. Pull candles via `data` and compute `features = features.compute_features(candles=...)`
-3. `context = ComposeContext(ts=..., features=features, portfolio=view, digest=..., prompt_text=..., market_snapshot=..., constraints=...)`
+3. `context = ComposeContext(ts=..., features=features, portfolio=view, digest=..., prompt_text=..., constraints=...)`
 4. `instructions = composer.compose(context)`
-5. `executor.execute(instructions)`
+5. `executor.execute(instructions, market_features)`
 6. Record `HistoryRecord` for features, compose auditing metadata, and instructions
 7. Update `TradeDigest` periodically or incrementally

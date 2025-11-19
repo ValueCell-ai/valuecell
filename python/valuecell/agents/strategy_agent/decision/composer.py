@@ -19,7 +19,7 @@ from ..models import (
     MarketType,
     TradeInstruction,
     TradeSide,
-    UserRequest,
+    UserRequest, FeatureVector,
 )
 from ..utils import extract_price_map, send_discord_message
 from .interfaces import Composer
@@ -115,69 +115,78 @@ class LlmComposer(Composer):
             return [v for v in pruned if v not in (None, {}, [])]
         return obj
 
-    def _compact_market_snapshot(self, snapshot: Dict) -> Dict:
-        """Extract decision-critical fields from market snapshot.
+    def _extract_market_section(self, market_data: List[Dict]) -> Dict:
+        """Extract decision-critical metrics from market feature entries."""
 
-        Reduces ~70% token usage while preserving key signals.
-        """
-        compact = {}
-        for symbol, data in snapshot.items():
-            if not isinstance(data, dict):
+        compact: Dict[str, Dict] = {}
+        for item in market_data:
+            symbol = (item.get("instrument") or {}).get("symbol")
+            if not symbol:
                 continue
 
-            entry = {}
-            # Price action
-            if price := data.get("price"):
-                if isinstance(price, dict):
-                    entry["last"] = price.get("last") or price.get("close")
-                    entry["change_pct"] = price.get("percentage")
-                    entry["volume_24h"] = price.get("baseVolume")
+            values = item.get("values") or {}
+            entry: Dict[str, float] = {}
 
-            # Open interest
-            if oi := data.get("open_interest"):
-                if isinstance(oi, dict):
-                    entry["open_interest"] = oi.get("openInterestAmount") or oi.get(
-                        "baseVolume"
-                    )
+            for feature_key, alias in (
+                ("price.last", "last"),
+                ("price.close", "close"),
+                ("price.open", "open"),
+                ("price.high", "high"),
+                ("price.low", "low"),
+                ("price.bid", "bid"),
+                ("price.ask", "ask"),
+                ("price.change_pct", "change_pct"),
+                ("price.volume", "volume"),
+            ):
+                if feature_key in values and values[feature_key] is not None:
+                    entry[alias] = values[feature_key]
 
-            # Funding rate
-            if fr := data.get("funding_rate"):
-                if isinstance(fr, dict):
-                    entry["funding_rate"] = fr.get("fundingRate")
-                    entry["mark_price"] = fr.get("markPrice")
+            if values.get("open_interest") is not None:
+                entry["open_interest"] = values["open_interest"]
 
-            if entry:
-                compact[symbol] = {k: v for k, v in entry.items() if v is not None}
+            if values.get("funding.rate") is not None:
+                entry["funding_rate"] = values["funding.rate"]
+            if values.get("funding.mark_price") is not None:
+                entry["mark_price"] = values["funding.mark_price"]
+
+            normalized = {k: v for k, v in entry.items() if v is not None}
+            if normalized:
+                compact[symbol] = normalized
 
         return compact
 
-    def _organize_features(self, features: List) -> Dict:
-        """Organize features by interval and remove redundant metadata.
+    def _organize_features(self, features: List[FeatureVector]) -> Dict:
+        """Organize features by grouping metadata and trim payload noise.
 
-        Dynamically groups features by their interval (e.g., 1s, 1m, 5m, 15m).
+        Prefers the FeatureVector.meta group_by_key when present, otherwise
+        falls back to the interval tag. This allows callers to introduce
+        ad-hoc groupings (e.g., market snapshots) without overloading the
+        interval field.
         """
-        by_interval = {}
+        grouped: Dict[str, List] = {}
 
         for fv in features:
             data = fv.model_dump(mode="json")
-            interval = data.get("meta", {}).get("interval", "")
+            meta = data.get("meta") or {}
+            group_key = meta.get("group_by_key")
 
-            if not interval:
+            if not group_key:
                 continue
 
-            # Remove window timestamps (not useful for LLM)
-            if "meta" in data:
-                data["meta"] = {
-                    "interval": interval,
-                    "count": data["meta"].get("count"),
-                }
+            # Keep only concise metadata helpful for the LLM prompt.
+            trimmed_meta = {}
+            if meta.get("interval"):
+                trimmed_meta["interval"] = meta["interval"]
+            if meta.get("count") is not None:
+                trimmed_meta["count"] = meta["count"]
+            if trimmed_meta:
+                data["meta"] = trimmed_meta
+            else:
+                data.pop("meta", None)
 
-            # Group by interval
-            if interval not in by_interval:
-                by_interval[interval] = []
-            by_interval[interval].append(data)
+            grouped.setdefault(group_key, []).append(data)
 
-        return by_interval
+        return grouped
 
     def _build_summary(self, context: ComposeContext) -> Dict:
         """Build portfolio summary with risk metrics."""
@@ -210,8 +219,8 @@ class LlmComposer(Composer):
 
         # Build components
         summary = self._build_summary(context)
-        market = self._compact_market_snapshot(context.market_snapshot or {})
         features = self._organize_features(context.features)
+        market = self._extract_market_section(features.get("market_snapshot", []))
 
         # Portfolio positions
         positions = [
@@ -373,7 +382,7 @@ class LlmComposer(Composer):
             )
 
         # Initialize projected gross exposure
-        price_map = extract_price_map(context.market_snapshot or {})
+        price_map = extract_price_map(context.features)
         if getattr(context.portfolio, "gross_exposure", None) is not None:
             projected_gross = float(context.portfolio.gross_exposure or 0.0)
         else:
@@ -792,7 +801,7 @@ class LlmComposer(Composer):
         min_trade_qty: float,
         max_order_qty: Optional[float],
         min_notional: Optional[float],
-        market_snapshot: Dict[str, float],
+        price_map: Dict[str, float],
     ) -> float:
         qty = quantity
         logger.debug(f"Filtering {symbol}: initial qty={qty}")
@@ -816,9 +825,9 @@ class LlmComposer(Composer):
             return 0.0
 
         if min_notional is not None:
-            price = market_snapshot.get(symbol)
+            price = price_map.get(symbol)
             if price is None:
-                logger.warning(f"FILTERED: {symbol} no price in market_snapshot")
+                logger.warning(f"FILTERED: {symbol} no price reference available")
                 return 0.0
             notional = qty * price
             if notional < float(min_notional):

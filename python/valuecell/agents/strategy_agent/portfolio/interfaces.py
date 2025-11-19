@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from ..models import MarketSnapShotType, PortfolioView, TradeHistoryEntry
+from ..models import FeatureVector, PortfolioView, TradeHistoryEntry
 
 
 class PortfolioService(ABC):
@@ -18,14 +18,15 @@ class PortfolioService(ABC):
         raise NotImplementedError
 
     def apply_trades(
-        self, trades: List[TradeHistoryEntry], market_snapshot: MarketSnapShotType
+        self, trades: List[TradeHistoryEntry], market_features: List[FeatureVector]
     ) -> None:
         """Apply executed trades to the portfolio view (optional).
 
         Implementations that support state changes (paper trading, backtests)
-        should update their internal view accordingly. This method is optional
-        for read-only portfolio services, but providing it here makes the
-        contract explicit to callers.
+        should update their internal view accordingly. `market_features`
+        contains interval="market" vectors for price references. This method
+        is optional for read-only portfolio services, but providing it here
+        makes the contract explicit to callers.
         """
         raise NotImplementedError
 

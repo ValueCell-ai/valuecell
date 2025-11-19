@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from ..models import (
     Constraints,
-    MarketSnapShotType,
+    FeatureVector,
     MarketType,
     PortfolioView,
     PositionSnapshot,
@@ -70,7 +70,7 @@ class InMemoryPortfolioService(PortfolioService):
         return self._view
 
     def apply_trades(
-        self, trades: List[TradeHistoryEntry], market_snapshot: MarketSnapShotType
+        self, trades: List[TradeHistoryEntry], market_features: List[FeatureVector]
     ) -> None:
         """Apply trades and update portfolio positions and aggregates.
 
@@ -81,8 +81,8 @@ class InMemoryPortfolioService(PortfolioService):
           backward compatibility)
         - portfolio aggregates: gross_exposure, net_exposure, total_value (equity), total_unrealized_pnl, buying_power
         """
-        # Extract price map from new market snapshot structure
-        price_map = extract_price_map(market_snapshot)
+        # Extract price map from market feature bundle
+        price_map = extract_price_map(market_features)
 
         for trade in trades:
             symbol = trade.instrument.symbol

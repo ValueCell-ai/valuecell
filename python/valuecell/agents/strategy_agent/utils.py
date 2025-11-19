@@ -1,10 +1,12 @@
 import os
 from datetime import datetime, timezone
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 import ccxt.pro as ccxtpro
 import httpx
 from loguru import logger
+
+from .models import FeatureVector
 
 
 def get_current_timestamp_ms() -> int:
@@ -69,36 +71,40 @@ async def fetch_free_cash_from_gateway(execution_gateway, symbols: list[str]) ->
     return float(free_cash)
 
 
-def extract_price_map(market_snapshot: Dict) -> Dict[str, float]:
-    """Extract a simple symbol -> price mapping from market snapshot structure.
+def extract_price_map(features: List[FeatureVector]) -> Dict[str, float]:
+    """Extract symbol -> price map from market snapshot feature vectors."""
 
-    The market snapshot structure is:
-    {
-      "BTC/USDT:USDT": {
-        "price": {ticker dict with "last", "close", etc.},
-        "open_interest": {...},
-        "funding_rate": {...}
-      }
-    }
-
-    Returns:
-        Dict[symbol, last_price] for internal use in quantity normalization.
-    """
     price_map: Dict[str, float] = {}
-    for symbol, data in market_snapshot.items():
-        if not isinstance(data, dict):
+
+    for item in features:
+        if not isinstance(item, FeatureVector):
             continue
-        price_obj = data.get("price")
-        if isinstance(price_obj, dict):
-            # Prefer "last" over "close" for real-time pricing
-            last_price = price_obj.get("last") or price_obj.get("close")
-            if last_price is not None:
-                try:
-                    price_map[symbol] = float(last_price)
-                except (ValueError, TypeError):
-                    logger.warning(
-                        "Failed to parse price for {}: {}", symbol, last_price
-                    )
+
+        meta = item.meta or {}
+        group_key = meta.get("group_by_key")
+        if group_key != "market_snapshot":
+            continue
+
+        instrument = getattr(item, "instrument", None)
+        symbol = getattr(instrument, "symbol", None)
+        if not symbol:
+            continue
+
+        values = item.values or {}
+        price = (
+            values.get("price.last")
+            or values.get("price.close")
+            or values.get("price.mark")
+            or values.get("funding.mark_price")
+        )
+        if price is None:
+            continue
+
+        try:
+            price_map[symbol] = float(price)
+        except (TypeError, ValueError):
+            logger.warning("Failed to parse feature price for {}", symbol)
+
     return price_map
 
 

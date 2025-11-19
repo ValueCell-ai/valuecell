@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from ..models import MarketSnapShotType, TradeInstruction, TxResult
+from ..models import FeatureVector, TradeInstruction, TxResult
 
 # Contracts for execution gateways (module-local abstract interfaces).
 # An implementation may route to a real exchange or a paper broker.
@@ -16,13 +16,13 @@ class ExecutionGateway(ABC):
     async def execute(
         self,
         instructions: List[TradeInstruction],
-        market_snapshot: Optional[MarketSnapShotType] = None,
+        market_features: Optional[List[FeatureVector]] = None,
     ) -> List[TxResult]:
         """Execute the provided instructions and return TxResult items.
 
         Notes:
         - Implementations may simulate fills (paper) or submit to a real exchange.
-        - market_snapshot is optional context for pricing simulations.
+        - market_features contains interval="market" FeatureVector entries for pricing.
         - Lifecycle (partial fills, cancels) can be represented with PARTIAL/REJECTED.
         """
 

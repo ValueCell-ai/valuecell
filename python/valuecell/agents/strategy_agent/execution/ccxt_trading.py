@@ -16,10 +16,14 @@ import ccxt.async_support as ccxt
 from loguru import logger
 
 from ..models import (
-    MarketSnapShotType,
+    FeatureVector,
+    MarketType,
+    MarginMode,
     PriceMode,
     TradeInstruction,
     TradeSide,
+    TradeType,
+    TradingMode,
     TxResult,
     TxStatus,
     derive_side_from_action,
@@ -497,13 +501,13 @@ class CCXTExecutionGateway(ExecutionGateway):
     async def execute(
         self,
         instructions: List[TradeInstruction],
-        market_snapshot: Optional[MarketSnapShotType] = None,
+        market_features: Optional[List[FeatureVector]] = None,
     ) -> List[TxResult]:
         """Execute trade instructions on the real exchange via CCXT.
 
         Args:
             instructions: List of trade instructions to execute
-            market_snapshot: Optional market snapshot (not used for real execution)
+            market_features: Optional market features (not used for real execution)
 
         Returns:
             List of transaction results with fill details

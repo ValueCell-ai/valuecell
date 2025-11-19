@@ -19,6 +19,7 @@ from .interfaces import (
     FeaturesPipeline,
     FeaturesPipelineResult,
 )
+from .market_snapshot import MarketSnapshotFeatureComputer
 
 
 class DefaultFeaturesPipeline(FeaturesPipeline):
@@ -29,7 +30,8 @@ class DefaultFeaturesPipeline(FeaturesPipeline):
         *,
         request: UserRequest,
         market_data_source: MarketDataSource,
-        feature_computer: CandleBasedFeatureComputer,
+        candle_feature_computer: CandleBasedFeatureComputer,
+        market_snapshot_computer: MarketSnapshotFeatureComputer,
         micro_interval: str = "1s",
         micro_lookback: int = 60 * 3,
         medium_interval: str = "1m",
@@ -37,15 +39,16 @@ class DefaultFeaturesPipeline(FeaturesPipeline):
     ) -> None:
         self._request = request
         self._market_data_source = market_data_source
-        self._feature_computer = feature_computer
+        self._candle_feature_computer = candle_feature_computer
         self._micro_interval = micro_interval
         self._micro_lookback = micro_lookback
         self._medium_interval = medium_interval
         self._medium_lookback = medium_lookback
         self._symbols = list(dict.fromkeys(request.trading_config.symbols))
+        self._market_snapshot_computer = market_snapshot_computer
 
     async def build(self) -> FeaturesPipelineResult:
-        """Fetch candles, compute feature vectors, and return market snapshot."""
+        """Fetch candles, compute feature vectors, and append market features."""
         # Determine symbols from the configured request so caller doesn't pass them
         candles_micro = await self._market_data_source.get_recent_candles(
             self._symbols, self._micro_interval, self._micro_lookback
@@ -68,9 +71,12 @@ class DefaultFeaturesPipeline(FeaturesPipeline):
         )
         market_snapshot = market_snapshot or {}
 
-        return FeaturesPipelineResult(
-            features=features, market_snapshot=market_snapshot
+        market_features = self._market_snapshot_computer.build(
+            market_snapshot, self._request.exchange_config.exchange_id
         )
+        features.extend(market_features)
+
+        return FeaturesPipelineResult(features=features)
 
     @classmethod
     def from_request(cls, request: UserRequest) -> DefaultFeaturesPipeline:
@@ -78,9 +84,11 @@ class DefaultFeaturesPipeline(FeaturesPipeline):
         market_data_source = SimpleMarketDataSource(
             exchange_id=request.exchange_config.exchange_id
         )
-        feature_computer = SimpleCandleFeatureComputer()
+        candle_feature_computer = SimpleCandleFeatureComputer()
+        market_snapshot_computer = MarketSnapshotFeatureComputer()
         return cls(
             request=request,
             market_data_source=market_data_source,
-            feature_computer=feature_computer,
+            feature_computer=candle_feature_computer,
+            market_snapshot_computer=market_snapshot_computer,
         )

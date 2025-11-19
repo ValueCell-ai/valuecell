@@ -679,9 +679,6 @@ class ComposeContext(BaseModel):
     )
     portfolio: PortfolioView
     digest: "TradeDigest"
-    market_snapshot: MarketSnapShotType = Field(
-        default=None, description="Optional map symbol -> current reference price"
-    )
 
 
 class HistoryRecord(BaseModel):

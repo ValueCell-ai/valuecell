@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-from ..models import Candle, FeatureVector, MarketSnapShotType
+from ..models import Candle, FeatureVector
 
 # Contracts for feature computation (module-local abstract interfaces).
 # Plain ABCs (not Pydantic) to keep implementations lightweight.
@@ -41,15 +41,14 @@ class FeaturesPipelineResult:
     """Result of running a features pipeline."""
 
     features: List[FeatureVector]
-    market_snapshot: MarketSnapShotType
 
 
 class FeaturesPipeline(ABC):
-    """Abstract pipeline that produces features and supporting market context."""
+    """Abstract pipeline that produces feature vectors (including market features)."""
 
     @abstractmethod
     async def build(self) -> FeaturesPipelineResult:
-        """Compute feature vectors and associated market snapshot.
+        """Compute feature vectors and return them.
 
         Implementations should use their configured request/inputs to determine
         which symbols to process; callers should not pass runtime parameters
