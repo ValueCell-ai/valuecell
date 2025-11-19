@@ -10,6 +10,10 @@ from valuecell.utils.uuid import generate_uuid
 from ..decision import BaseComposer
 from ..execution import BaseExecutionGateway
 from ..features.interfaces import BaseFeaturesPipeline
+from ..history import (
+    BaseDigestBuilder,
+    BaseHistoryRecorder,
+)
 from ..models import (
     ComposeContext,
     DecisionCycleResult,
@@ -28,10 +32,6 @@ from ..models import (
     UserRequest,
 )
 from ..portfolio.interfaces import BasePortfolioService
-from ..trading_history import (
-    BaseDigestBuilder,
-    BaseHistoryRecorder,
-)
 from ..utils import (
     extract_market_snapshot_features,
     fetch_free_cash_from_gateway,

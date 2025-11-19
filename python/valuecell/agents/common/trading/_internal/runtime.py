@@ -8,12 +8,12 @@ from ..execution import BaseExecutionGateway
 from ..execution.factory import create_execution_gateway
 from ..features import DefaultFeaturesPipeline
 from ..features.interfaces import BaseFeaturesPipeline
-from ..models import Constraints, DecisionCycleResult, TradingMode, UserRequest
-from ..portfolio.in_memory import InMemoryPortfolioService
-from ..trading_history import (
+from ..history import (
     InMemoryHistoryRecorder,
     RollingDigestBuilder,
 )
+from ..models import Constraints, DecisionCycleResult, TradingMode, UserRequest
+from ..portfolio.in_memory import InMemoryPortfolioService
 from ..utils import fetch_free_cash_from_gateway
 from .coordinator import DefaultDecisionCoordinator
 
