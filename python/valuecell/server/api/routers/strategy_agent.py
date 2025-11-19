@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from loguru import logger
 from sqlalchemy.orm import Session
 
-from valuecell.agents.strategy_agent.models import (
+from valuecell.agents.common.trading.models import (
     StrategyStatus,
     StrategyStatusContent,
     UserRequest,

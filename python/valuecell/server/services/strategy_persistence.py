@@ -3,7 +3,7 @@ from typing import Optional
 
 from loguru import logger
 
-from valuecell.agents.strategy_agent import models as agent_models
+from valuecell.agents.common.trading import models as agent_models
 from valuecell.server.db.repositories.strategy_repository import (
     get_strategy_repository,
 )

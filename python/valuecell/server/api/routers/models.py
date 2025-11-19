@@ -25,7 +25,7 @@ from ..schemas.model import (
 
 # Optional fallback constants from StrategyAgent
 try:
-    from valuecell.agents.strategy_agent.constants import (
+    from valuecell.agents.common.trading.constants import (
         DEFAULT_AGENT_MODEL,
         DEFAULT_MODEL_PROVIDER,
     )
