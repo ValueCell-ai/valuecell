@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import json
 import math
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from agno.agent import Agent as AgnoAgent
 from loguru import logger
-from pydantic import ValidationError
 
 from valuecell.utils import env as env_utils
 from valuecell.utils import model as model_utils
@@ -22,7 +22,7 @@ from ..models import (
     UserRequest,
 )
 from ..utils import extract_price_map, send_discord_message
-from .interfaces import Composer
+from .interfaces import Composer, ComposeResult
 from .system_prompt import SYSTEM_PROMPT
 
 
@@ -53,7 +53,7 @@ class LlmComposer(Composer):
         self._default_slippage_bps = default_slippage_bps
         self._quantity_precision = quantity_precision
 
-    async def compose(self, context: ComposeContext) -> List[TradeInstruction]:
+    async def compose(self, context: ComposeContext) -> ComposeResult:
         prompt = self._build_llm_prompt(context)
         try:
             plan = await self._call_llm(prompt)
@@ -63,13 +63,10 @@ class LlmComposer(Composer):
                     context.compose_id,
                     plan.rationale,
                 )
-                return []
-        except ValidationError as exc:
-            logger.error("LLM output failed validation: {}", exc)
-            return []
-        except Exception:  # noqa: BLE001
-            logger.exception("LLM invocation failed")
-            return []
+                return ComposeResult(instructions=[], rationale=plan.rationale)
+        except Exception as exc:  # noqa: BLE001
+            logger.error("LLM invocation failed: {}", exc)
+            return ComposeResult(instructions=[], rationale="LLM invocation failed")
 
         # Optionally forward non-NOOP plan rationale to Discord webhook (env-driven)
         try:
@@ -77,7 +74,8 @@ class LlmComposer(Composer):
         except Exception as exc:  # do not fail compose on notification errors
             logger.error("Failed sending plan to Discord: {}", exc)
 
-        return self._normalize_plan(context, plan)
+        normalized = self._normalize_plan(context, plan)
+        return ComposeResult(instructions=normalized, rationale=plan.rationale)
 
     # ------------------------------------------------------------------
     # Prompt + LLM helpers
@@ -198,8 +196,8 @@ class LlmComposer(Composer):
             {
                 "symbol": sym,
                 "qty": float(snap.quantity),
-                "avg_px": snap.avg_price,
                 "unrealized_pnl": snap.unrealized_pnl,
+                "entry_ts": snap.entry_ts,
             }
             for sym, snap in pv.positions.items()
             if abs(float(snap.quantity)) > 0
@@ -260,9 +258,19 @@ class LlmComposer(Composer):
             debug_mode=env_utils.agent_debug_mode_enabled(),
         )
         response = await agent.arun(prompt)
+        # Agent may return a raw object or a wrapper with `.content`.
         content = getattr(response, "content", None) or response
         logger.debug("Received LLM response {}", content)
-        return content
+        # If the agent already returned a validated model, return it directly
+        if isinstance(content, LlmPlanProposal):
+            return content
+
+        logger.error("LLM output failed validation: {}", content)
+        return LlmPlanProposal(
+            ts=int(datetime.now(timezone.utc).timestamp() * 1000),
+            items=[],
+            rationale="LLM output failed validation",
+        )
 
     async def _send_plan_to_discord(self, plan: LlmPlanProposal) -> None:
         """Send plan rationale to Discord when there are actionable items.
@@ -331,16 +339,16 @@ class LlmComposer(Composer):
 
         # Compute equity based on market type:
         if self._request.exchange_config.market_type == MarketType.SPOT:
-            # Spot: use available cash as equity
-            equity = float(getattr(context.portfolio, "cash", 0.0) or 0.0)
+            # Spot: use available account_balance as equity
+            equity = float(context.portfolio.account_balance or 0.0)
         else:
-            # Derivatives: use portfolio equity (cash + net exposure), or total_value if provided
+            # Derivatives: use portfolio equity (account_balance + net exposure), or total_value if provided
             if getattr(context.portfolio, "total_value", None) is not None:
                 equity = float(context.portfolio.total_value or 0.0)
             else:
-                cash = float(getattr(context.portfolio, "cash", 0.0) or 0.0)
-                net = float(getattr(context.portfolio, "net_exposure", 0.0) or 0.0)
-                equity = cash + net
+                account_balance = float(context.portfolio.account_balance or 0.0)
+                net = float(context.portfolio.net_exposure or 0.0)
+                equity = account_balance + net
 
         # Market-type leverage policy: SPOT -> 1.0; Derivatives -> constraints
         if self._request.exchange_config.market_type == MarketType.SPOT:
@@ -409,9 +417,7 @@ class LlmComposer(Composer):
         if price is not None and price > 0:
             # cap_factor controls how aggressively we allow position sizing by notional.
             # Make it configurable via trading_config.cap_factor (strategy parameter).
-            cap_factor = float(
-                getattr(self._request.trading_config, "cap_factor", 1.5) or 1.5
-            )
+            cap_factor = float(self._request.trading_config.cap_factor or 1.5)
             if constraints.quantity_step and constraints.quantity_step > 0:
                 cap_factor = max(cap_factor, 1.5)
 
@@ -449,11 +455,28 @@ class LlmComposer(Composer):
         # Step 3: buying power clamp
         px = price_map.get(symbol)
         if px is None or px <= 0:
-            logger.debug(
-                "No price for {} to evaluate buying power; using full quantity",
-                symbol,
+            # Without a valid price, we cannot safely assess notional or buying power.
+            # Allow only de-risking (reductions/closures); block new/exposure-increasing trades.
+            is_reduction = (side is TradeSide.BUY and current_qty < 0) or (
+                side is TradeSide.SELL and current_qty > 0
             )
-            final_qty = qty
+            if is_reduction:
+                # Clamp to the current absolute position to avoid overshooting zero
+                final_qty = min(qty, abs(current_qty))
+                logger.warning(
+                    "Missing price for {} — allowing reduce-only trade: final_qty={} (current_qty={})",
+                    symbol,
+                    final_qty,
+                    current_qty,
+                )
+            else:
+                logger.warning(
+                    "Missing price for {} — blocking exposure-increasing trade (side={}, qty={})",
+                    symbol,
+                    side,
+                    qty,
+                )
+                return 0.0, 0.0
         else:
             if self._request.exchange_config.market_type == MarketType.SPOT:
                 # Spot: cash-only buying power
@@ -509,9 +532,17 @@ class LlmComposer(Composer):
             current_qty + (final_qty if side is TradeSide.BUY else -final_qty)
         )
         delta_abs = abs_after - abs_before
-        consumed_bp_delta = (
-            delta_abs * price_map.get(symbol, 0.0) if delta_abs > 0 else 0.0
-        )
+        # Use effective price (with slippage) for consumed buying power to stay conservative
+        # If px was missing, we would have returned earlier for exposure-increasing trades;
+        # for reduction-only trades, treat consumed buying power as 0.
+        if px is None or px <= 0:
+            consumed_bp_delta = 0.0
+        else:
+            # Recompute effective price consistently with the clamp
+            slip_bps = float(self._default_slippage_bps or 0.0)
+            slip = slip_bps / 10000.0
+            effective_px = float(px) * (1.0 + slip)
+            consumed_bp_delta = (delta_abs * effective_px) if delta_abs > 0 else 0.0
 
         return final_qty, consumed_bp_delta
 

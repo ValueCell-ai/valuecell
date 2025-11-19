@@ -25,6 +25,7 @@ class InMemoryPortfolioService(PortfolioService):
     - net_exposure   = sum(qty * mark_price)
     - equity (total_value) = cash + net_exposure  [correct for both long and short]
     - total_unrealized_pnl = sum((mark_price - avg_price) * qty)
+    - total_realized_pnl accumulates realized gains/losses as positions close
     - buying_power: max(0, equity * max_leverage - gross_exposure)
       where max_leverage comes from portfolio.constraints (default 1.0)
     - free_cash: per-position effective margin approximation without explicit margin_used
@@ -53,6 +54,7 @@ class InMemoryPortfolioService(PortfolioService):
             constraints=constraints or None,
             total_value=initial_capital,
             total_unrealized_pnl=0.0,
+            total_realized_pnl=0.0,
             buying_power=initial_capital,
             free_cash=initial_capital,
         )
@@ -83,10 +85,22 @@ class InMemoryPortfolioService(PortfolioService):
         """
         # Extract price map from new market snapshot structure
         price_map = extract_price_map(market_snapshot)
+        total_realized = float(self._view.total_realized_pnl or 0.0)
 
         for trade in trades:
             symbol = trade.instrument.symbol
-            price = float(trade.entry_price or price_map.get(symbol, 0.0) or 0.0)
+            # Use execution price for settlement and marking. Fallback sensibly.
+            exec_price = None
+            try:
+                if trade.avg_exec_price is not None:
+                    exec_price = float(trade.avg_exec_price)
+                elif trade.exit_price is not None:
+                    exec_price = float(trade.exit_price)
+                elif trade.entry_price is not None:
+                    exec_price = float(trade.entry_price)
+            except Exception:
+                exec_price = None
+            price = float(exec_price or price_map.get(symbol, 0.0) or 0.0)
             delta = float(trade.quantity or 0.0)
             quantity_delta = delta if trade.side == TradeSide.BUY else -delta
 
@@ -103,9 +117,16 @@ class InMemoryPortfolioService(PortfolioService):
 
             current_qty = float(position.quantity)
             avg_price = float(position.avg_price or 0.0)
+            realized_delta = self._compute_realized_delta(
+                trade=trade,
+                current_qty=current_qty,
+                quantity_delta=quantity_delta,
+                avg_price=avg_price,
+                fill_price=price,
+            )
             new_qty = current_qty + quantity_delta
 
-            # Update mark price
+            # Update mark price to execution reference
             position.mark_price = price
 
             # Handle position quantity transitions and avg price
@@ -129,6 +150,7 @@ class InMemoryPortfolioService(PortfolioService):
                     or trade.trade_ts
                     or int(datetime.now(timezone.utc).timestamp() * 1000)
                 )
+                position.closed_ts = None
                 position.trade_type = TradeType.LONG if new_qty > 0 else TradeType.SHORT
                 # Initialize leverage from trade if provided
                 if trade.leverage is not None:
@@ -166,7 +188,7 @@ class InMemoryPortfolioService(PortfolioService):
                 if trade.leverage is not None:
                     position.leverage = float(trade.leverage)
 
-            # Update cash by trade notional
+            # Update cash by trade notional at execution price
             notional = price * delta
             # Deduct fees from cash as well. Trade may include fee_cost (in quote ccy).
             fee = trade.fee_cost or 0.0
@@ -178,6 +200,8 @@ class InMemoryPortfolioService(PortfolioService):
                 # selling increases cash by notional minus fees
                 self._view.account_balance += notional
                 self._view.account_balance -= fee
+
+            total_realized += realized_delta
 
             # Recompute per-position derived fields (if position still exists)
             pos = self._view.positions.get(symbol)
@@ -235,6 +259,7 @@ class InMemoryPortfolioService(PortfolioService):
         self._view.gross_exposure = gross
         self._view.net_exposure = net
         self._view.total_unrealized_pnl = unreal
+        self._view.total_realized_pnl = total_realized
         # Equity is cash plus net exposure (correct for both long and short)
         equity = self._view.account_balance + net
         self._view.total_value = equity
@@ -273,3 +298,42 @@ class InMemoryPortfolioService(PortfolioService):
                 lev_i = max(1.0, lev_i)
                 required_margin += notional_i / lev_i
             self._view.free_cash = max(0.0, equity - required_margin)
+
+    def _compute_realized_delta(
+        self,
+        *,
+        trade: TradeHistoryEntry,
+        current_qty: float,
+        quantity_delta: float,
+        avg_price: float,
+        fill_price: float,
+    ) -> float:
+        """Estimate realized PnL contribution for a trade.
+
+        Prefer explicit realized_pnl on the trade when available; otherwise
+        approximate based on position deltas. Fees are allocated proportionally
+        to the quantity that actually closes existing exposure.
+        """
+
+        if trade.realized_pnl is not None:
+            try:
+                return float(trade.realized_pnl)
+            except Exception:
+                return 0.0
+
+        realized = 0.0
+        reduction = 0.0
+
+        if current_qty > 0 and quantity_delta < 0:
+            reduction = min(abs(quantity_delta), abs(current_qty))
+            realized = (fill_price - avg_price) * reduction
+        elif current_qty < 0 and quantity_delta > 0:
+            reduction = min(abs(quantity_delta), abs(current_qty))
+            realized = (avg_price - fill_price) * reduction
+
+        if reduction > 0 and trade.fee_cost:
+            executed = abs(quantity_delta)
+            allocation = reduction / executed if executed > 0 else 1.0
+            realized -= float(trade.fee_cost or 0.0) * allocation
+
+        return realized
