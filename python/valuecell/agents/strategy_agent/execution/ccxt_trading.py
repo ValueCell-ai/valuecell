@@ -41,9 +41,11 @@ class CCXTExecutionGateway(ExecutionGateway):
     def __init__(
         self,
         exchange_id: str,
-        api_key: str,
-        secret_key: str,
+        api_key: str = "",
+        secret_key: str = "",
         passphrase: Optional[str] = None,
+        wallet_address: Optional[str] = None,
+        private_key: Optional[str] = None,
         testnet: bool = False,
         default_type: str = "swap",
         margin_mode: str = "cross",
@@ -53,10 +55,12 @@ class CCXTExecutionGateway(ExecutionGateway):
         """Initialize CCXT exchange gateway.
 
         Args:
-            exchange_id: Exchange identifier (e.g., 'binance', 'okx', 'bybit')
-            api_key: API key for authentication
-            secret_key: Secret key for authentication
-            passphrase: Optional passphrase (required for OKX)
+            exchange_id: Exchange identifier (e.g., 'binance', 'okx', 'bybit', 'hyperliquid')
+            api_key: API key for authentication (not required for Hyperliquid)
+            secret_key: Secret key for authentication (not required for Hyperliquid)
+            passphrase: Optional passphrase (required for OKX, Coinbase Exchange)
+            wallet_address: Wallet address (required for Hyperliquid)
+            private_key: Private key (required for Hyperliquid)
             testnet: Whether to use testnet/sandbox mode
             default_type: Default market type ('spot', 'future', 'swap', "margin")
             margin_mode: Default margin mode ('isolated' or 'cross')
@@ -67,6 +71,8 @@ class CCXTExecutionGateway(ExecutionGateway):
         self.api_key = api_key
         self.secret_key = secret_key
         self.passphrase = passphrase
+        self.wallet_address = wallet_address
+        self.private_key = private_key
         self.testnet = testnet
         self.default_type = default_type
         self.margin_mode = margin_mode
@@ -104,10 +110,8 @@ class CCXTExecutionGateway(ExecutionGateway):
                 f"Available: {', '.join(ccxt.exchanges)}"
             )
 
-        # Build configuration
+        # Build configuration based on exchange type
         config = {
-            "apiKey": self.api_key,
-            "secret": self.secret_key,
             "enableRateLimit": True,  # Respect rate limits
             "options": {
                 "defaultType": self._choose_default_type_for_exchange(),
@@ -115,9 +119,20 @@ class CCXTExecutionGateway(ExecutionGateway):
             },
         }
 
-        # Add passphrase if provided (required for OKX)
-        if self.passphrase:
-            config["password"] = self.passphrase
+        # Hyperliquid uses wallet-based authentication
+        if self.exchange_id == "hyperliquid":
+            if self.wallet_address:
+                config["walletAddress"] = self.wallet_address
+            if self.private_key:
+                config["privateKey"] = self.private_key
+        else:
+            # Standard API key/secret authentication
+            config["apiKey"] = self.api_key
+            config["secret"] = self.secret_key
+
+            # Add passphrase if provided (required for OKX, Coinbase Exchange)
+            if self.passphrase:
+                config["password"] = self.passphrase
 
         # Create exchange instance
         self._exchange = exchange_class(config)

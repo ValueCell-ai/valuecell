@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from loguru import logger
+
 from valuecell.utils.uuid import generate_uuid
 
 from .core import DecisionCycleResult, DefaultDecisionCoordinator
@@ -168,7 +170,9 @@ async def create_strategy_runtime_async(request: UserRequest) -> StrategyRuntime
         if request.exchange_config.trading_mode == TradingMode.LIVE and hasattr(
             execution_gateway, "fetch_balance"
         ):
+            logger.info("Fetching exchange balance for LIVE trading mode")
             balance = await execution_gateway.fetch_balance()
+            logger.info(f"Raw balance response: {balance}")
             free_map = {}
             # ccxt balance may be shaped as: {'free': {...}, 'used': {...}, 'total': {...}}
             try:
@@ -189,6 +193,7 @@ async def create_strategy_runtime_async(request: UserRequest) -> StrategyRuntime
                             free_map[str(k).upper()] = float(v.get("free") or 0.0)
                         except Exception:
                             continue
+            logger.info(f"Parsed free balance map: {free_map}")
             # collect quote currencies from configured symbols
             quotes: list[str] = []
             for sym in request.trading_config.symbols or []:
@@ -202,6 +207,7 @@ async def create_strategy_runtime_async(request: UserRequest) -> StrategyRuntime
                     if len(parts) == 2:
                         quotes.append(parts[1])
             quotes = list(dict.fromkeys(quotes))  # unique order-preserving
+            logger.info(f"Quote currencies from symbols: {quotes}")
             free_cash = 0.0
             if quotes:
                 for q in quotes:
@@ -211,10 +217,25 @@ async def create_strategy_runtime_async(request: UserRequest) -> StrategyRuntime
                 for q in ("USDT", "USD", "USDC"):
                     free_cash += float(free_map.get(q, 0.0) or 0.0)
             # Set initial capital to exchange free cash
+            logger.info(
+                f"Setting initial_capital to {free_cash} (from exchange balance)"
+            )
             request.trading_config.initial_capital = float(free_cash)
     except Exception:
-        # Do not fail runtime creation if balance fetch or parsing fails
-        pass
+        # Log the error but continue - user might have set initial_capital manually
+        logger.exception(
+            "Failed to fetch exchange balance for LIVE mode. Will use configured initial_capital instead."
+        )
+
+    # Validate initial capital for LIVE mode
+    if request.exchange_config.trading_mode == TradingMode.LIVE:
+        initial_cap = request.trading_config.initial_capital or 0.0
+        if initial_cap <= 0:
+            logger.error(
+                f"LIVE trading mode has initial_capital={initial_cap}. "
+                "This usually means balance fetch failed or account has no funds. "
+                "Strategy will not be able to trade without capital."
+            )
 
     # Use the sync function with the pre-initialized gateway
     return create_strategy_runtime(request, execution_gateway=execution_gateway)

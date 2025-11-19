@@ -128,6 +128,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                 self._request.exchange_config.trading_mode == TradingMode.LIVE
                 and hasattr(self._execution_gateway, "fetch_balance")
             ):
+                logger.debug("Syncing portfolio balance from exchange in LIVE mode")
                 balance = await self._execution_gateway.fetch_balance()
                 free_map = {}
                 free_section = (
@@ -163,12 +164,18 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                 else:
                     for q in ("USDT", "USD", "USDC"):
                         free_cash += float(free_map.get(q, 0.0) or 0.0)
+                logger.debug(
+                    f"Synced balance from exchange: free_cash={free_cash}, quotes={quotes}"
+                )
                 portfolio.account_balance = float(free_cash)
                 if self._request.exchange_config.market_type == MarketType.SPOT:
                     portfolio.buying_power = max(0.0, float(portfolio.account_balance))
         except Exception:
             # If syncing fails, continue with existing portfolio view
-            pass
+            logger.warning(
+                "Failed to sync balance from exchange in LIVE mode, using cached portfolio view",
+                exc_info=True,
+            )
         # VIRTUAL mode: cash-only for spot; derivatives keep margin-based buying power
         if self._request.exchange_config.trading_mode == TradingMode.VIRTUAL:
             if self._request.exchange_config.market_type == MarketType.SPOT:

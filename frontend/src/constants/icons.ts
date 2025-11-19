@@ -1,10 +1,15 @@
 import {
   AzurePng,
   BinancePng,
+  BlockchainPng,
   BtcPng,
+  CoinbasePng,
   DeepSeekPng,
   DogePng,
   EthPng,
+  GatePng,
+  HyperliquidPng,
+  MexcPng,
   GooglePng,
   OkxPng,
   OpenAiCompatiblePng,
@@ -27,6 +32,12 @@ export const MODEL_PROVIDER_ICONS = {
 
 export const EXCHANGE_ICONS = {
   binance: BinancePng,
+  blockchaincom: BlockchainPng,
+  coinbase: CoinbasePng,
+  coinbaseexchange: CoinbasePng,
+  gate: GatePng,
+  hyperliquid: HyperliquidPng,
+  mexc: MexcPng,
   okx: OkxPng,
 };
 

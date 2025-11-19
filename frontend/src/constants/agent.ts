@@ -129,10 +129,4 @@ export const MODEL_PROVIDER_MAP: Record<
 };
 
 // Trading symbols options
-export const TRADING_SYMBOLS: string[] = [
-  "BTC/USDT",
-  "ETH/USDT",
-  "SOL/USDT",
-  "DOGE/USDT",
-  "XRP/USDT",
-];
+export const TRADING_SYMBOLS: string[] = ["ENA/USDC", "WIF/USDC"];

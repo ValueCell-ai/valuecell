@@ -67,45 +67,70 @@ const step2Schema = z
     api_key: z.string(),
     secret_key: z.string(),
     passphrase: z.string(), // Required string, but can be empty for non-OKX exchanges
+    wallet_address: z.string().optional(), // For Hyperliquid
+    private_key: z.string().optional(), // For Hyperliquid
   })
   .superRefine((data, ctx) => {
     // Only validate exchange credentials when live trading is selected
     if (data.trading_mode === "live") {
-      const fields = [
-        {
-          name: "exchange_id",
-          label: "Exchange",
-          value: data.exchange_id,
-        },
-        {
-          name: "api_key",
-          label: "API key",
-          value: data.api_key,
-        },
-        {
-          name: "secret_key",
-          label: "Secret key",
-          value: data.secret_key,
-        },
-      ];
-
-      for (const field of fields) {
-        if (!field.value?.trim()) {
+      // Hyperliquid uses different authentication
+      if (data.exchange_id === "hyperliquid") {
+        if (!data.wallet_address?.trim()) {
           ctx.addIssue({
             code: "custom",
-            message: `${field.label} is required for live trading`,
-            path: [field.name],
+            message: "Wallet Address is required for Hyperliquid",
+            path: ["wallet_address"],
           });
         }
-      }
+        if (!data.private_key?.trim()) {
+          ctx.addIssue({
+            code: "custom",
+            message: "Private Key is required for Hyperliquid",
+            path: ["private_key"],
+          });
+        }
+      } else {
+        // Standard exchanges require API key and secret
+        const fields = [
+          {
+            name: "exchange_id",
+            label: "Exchange",
+            value: data.exchange_id,
+          },
+          {
+            name: "api_key",
+            label: "API key",
+            value: data.api_key,
+          },
+          {
+            name: "secret_key",
+            label: "Secret key",
+            value: data.secret_key,
+          },
+        ];
 
-      // OKX requires passphrase
-      if (data.exchange_id === "okx" && !data.passphrase?.trim()) {
-        ctx.addIssue({
-          code: "custom",
-          message: "Password is required for OKX",
-          path: ["passphrase"],
-        });
+        for (const field of fields) {
+          if (!field.value?.trim()) {
+            ctx.addIssue({
+              code: "custom",
+              message: `${field.label} is required for live trading`,
+              path: [field.name],
+            });
+          }
+        }
+
+        // OKX and Coinbase require passphrase
+        if (
+          (data.exchange_id === "okx" ||
+            data.exchange_id === "coinbaseexchange") &&
+          !data.passphrase?.trim()
+        ) {
+          ctx.addIssue({
+            code: "custom",
+            message: `Passphrase is required for ${data.exchange_id === "okx" ? "OKX" : "Coinbase Exchange"}`,
+            path: ["passphrase"],
+          });
+        }
       }
     }
     // Virtual trading mode: no validation needed for exchange fields
@@ -240,6 +265,8 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
       api_key: "",
       secret_key: "",
       passphrase: "",
+      wallet_address: "",
+      private_key: "",
     },
     validators: {
       onSubmit: step2Schema,
@@ -513,6 +540,48 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                                             Binance
                                           </div>
                                         </SelectItem>
+                                        <SelectItem value="blockchaincom">
+                                          <div className="flex items-center gap-2">
+                                            <PngIcon
+                                              src={EXCHANGE_ICONS.blockchaincom}
+                                            />
+                                            Blockchain.com
+                                          </div>
+                                        </SelectItem>
+                                        <SelectItem value="coinbaseexchange">
+                                          <div className="flex items-center gap-2">
+                                            <PngIcon
+                                              src={
+                                                EXCHANGE_ICONS.coinbaseexchange
+                                              }
+                                            />
+                                            Coinbase Exchange
+                                          </div>
+                                        </SelectItem>
+                                        <SelectItem value="gate">
+                                          <div className="flex items-center gap-2">
+                                            <PngIcon
+                                              src={EXCHANGE_ICONS.gate}
+                                            />
+                                            Gate.io
+                                          </div>
+                                        </SelectItem>
+                                        <SelectItem value="hyperliquid">
+                                          <div className="flex items-center gap-2">
+                                            <PngIcon
+                                              src={EXCHANGE_ICONS.hyperliquid}
+                                            />
+                                            Hyperliquid
+                                          </div>
+                                        </SelectItem>
+                                        <SelectItem value="mexc">
+                                          <div className="flex items-center gap-2">
+                                            <PngIcon
+                                              src={EXCHANGE_ICONS.mexc}
+                                            />
+                                            MEXC
+                                          </div>
+                                        </SelectItem>
                                       </SelectContent>
                                     </Select>
                                     <FieldError
@@ -522,52 +591,123 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                                 )}
                               </form2.Field>
 
-                              <form2.Field name="api_key">
-                                {(field) => (
-                                  <Field>
-                                    <FieldLabel className="font-medium text-base text-gray-950">
-                                      API key
-                                    </FieldLabel>
-                                    <Input
-                                      value={field.state.value}
-                                      onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                      }
-                                      onBlur={field.handleBlur}
-                                      placeholder="Enter API Key"
-                                    />
-                                    <FieldError
-                                      errors={field.state.meta.errors}
-                                    />
-                                  </Field>
+                              {/* Show different fields based on exchange type */}
+                              <form2.Field name="exchange_id">
+                                {(exchangeField) => (
+                                  <>
+                                    {exchangeField.state.value ===
+                                    "hyperliquid" ? (
+                                      <>
+                                        {/* Hyperliquid: Wallet Address */}
+                                        <form2.Field name="wallet_address">
+                                          {(field) => (
+                                            <Field>
+                                              <FieldLabel className="font-medium text-base text-gray-950">
+                                                Wallet Address
+                                              </FieldLabel>
+                                              <Input
+                                                value={field.state.value}
+                                                onChange={(e) =>
+                                                  field.handleChange(
+                                                    e.target.value,
+                                                  )
+                                                }
+                                                onBlur={field.handleBlur}
+                                                placeholder="Enter API Wallet Address (0x...)"
+                                              />
+                                              <FieldError
+                                                errors={field.state.meta.errors}
+                                              />
+                                            </Field>
+                                          )}
+                                        </form2.Field>
+
+                                        {/* Hyperliquid: Private Key */}
+                                        <form2.Field name="private_key">
+                                          {(field) => (
+                                            <Field>
+                                              <FieldLabel className="font-medium text-base text-gray-950">
+                                                Private Key
+                                              </FieldLabel>
+                                              <Input
+                                                type="password"
+                                                value={field.state.value}
+                                                onChange={(e) =>
+                                                  field.handleChange(
+                                                    e.target.value,
+                                                  )
+                                                }
+                                                onBlur={field.handleBlur}
+                                                placeholder="Enter API Wallet Private Key (0x...)"
+                                              />
+                                              <FieldError
+                                                errors={field.state.meta.errors}
+                                              />
+                                            </Field>
+                                          )}
+                                        </form2.Field>
+                                      </>
+                                    ) : (
+                                      <>
+                                        {/* Standard exchanges: API Key */}
+                                        <form2.Field name="api_key">
+                                          {(field) => (
+                                            <Field>
+                                              <FieldLabel className="font-medium text-base text-gray-950">
+                                                API key
+                                              </FieldLabel>
+                                              <Input
+                                                value={field.state.value}
+                                                onChange={(e) =>
+                                                  field.handleChange(
+                                                    e.target.value,
+                                                  )
+                                                }
+                                                onBlur={field.handleBlur}
+                                                placeholder="Enter API Key"
+                                              />
+                                              <FieldError
+                                                errors={field.state.meta.errors}
+                                              />
+                                            </Field>
+                                          )}
+                                        </form2.Field>
+
+                                        {/* Standard exchanges: Secret Key */}
+                                        <form2.Field name="secret_key">
+                                          {(field) => (
+                                            <Field>
+                                              <FieldLabel className="font-medium text-base text-gray-950">
+                                                Secret Key
+                                              </FieldLabel>
+                                              <Input
+                                                value={field.state.value}
+                                                onChange={(e) =>
+                                                  field.handleChange(
+                                                    e.target.value,
+                                                  )
+                                                }
+                                                onBlur={field.handleBlur}
+                                                placeholder="Enter Secret Key"
+                                              />
+                                              <FieldError
+                                                errors={field.state.meta.errors}
+                                              />
+                                            </Field>
+                                          )}
+                                        </form2.Field>
+                                      </>
+                                    )}
+                                  </>
                                 )}
                               </form2.Field>
 
-                              <form2.Field name="secret_key">
-                                {(field) => (
-                                  <Field>
-                                    <FieldLabel className="font-medium text-base text-gray-950">
-                                      Secret Key
-                                    </FieldLabel>
-                                    <Input
-                                      value={field.state.value}
-                                      onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                      }
-                                      onBlur={field.handleBlur}
-                                      placeholder="Enter Secret Key"
-                                    />
-                                    <FieldError
-                                      errors={field.state.meta.errors}
-                                    />
-                                  </Field>
-                                )}
-                              </form2.Field>
-
-                              {/* Password field - only shown for OKX */}
+                              {/* Passphrase field - only shown for OKX and Coinbase Exchange */}
                               <form2.Field name="exchange_id">
                                 {(exchangeField) =>
-                                  exchangeField.state.value === "okx" && (
+                                  (exchangeField.state.value === "okx" ||
+                                    exchangeField.state.value ===
+                                      "coinbaseexchange") && (
                                     <form2.Field name="passphrase">
                                       {(field) => (
                                         <Field>
@@ -580,7 +720,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                                               field.handleChange(e.target.value)
                                             }
                                             onBlur={field.handleBlur}
-                                            placeholder="Enter Passphrase (Required for OKX)"
+                                            placeholder={`Enter Passphrase (Required for ${exchangeField.state.value === "okx" ? "OKX" : "Coinbase Exchange"})`}
                                           />
                                           <FieldError
                                             errors={field.state.meta.errors}
