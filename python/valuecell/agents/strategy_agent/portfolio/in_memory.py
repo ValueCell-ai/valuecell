@@ -192,7 +192,7 @@ class InMemoryPortfolioService(PortfolioService):
             notional = price * delta
             # Deduct fees from cash as well. Trade may include fee_cost (in quote ccy).
             fee = trade.fee_cost or 0.0
-            
+
             if self._market_type == MarketType.SPOT:
                 if trade.side == TradeSide.BUY:
                     # buying reduces cash by notional plus fees
@@ -267,7 +267,7 @@ class InMemoryPortfolioService(PortfolioService):
         self._view.net_exposure = net
         self._view.total_unrealized_pnl = unreal
         self._view.total_realized_pnl = total_realized
-        
+
         if self._market_type == MarketType.SPOT:
             # Equity is cash plus net exposure (market value of assets)
             equity = self._view.account_balance + net

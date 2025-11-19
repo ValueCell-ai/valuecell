@@ -845,7 +845,9 @@ class CCXTExecutionGateway(ExecutionGateway):
                             price_precision = market.get("precision", {}).get("price")
                             if price_precision is not None and price_precision == 0:
                                 price = float(int(price))
-                                logger.debug(f"  🔢 Fallback: rounded to integer {price}")
+                                logger.debug(
+                                    f"  🔢 Fallback: rounded to integer {price}"
+                                )
                         except Exception:
                             pass
 
@@ -882,9 +884,11 @@ class CCXTExecutionGateway(ExecutionGateway):
         except Exception as e:
             error_msg = str(e)
             logger.error(f"  ❌ ERROR creating order for {symbol}: {error_msg}")
-            logger.error(f"  📋 Failed order details: side={side}, amount={amount}, price={price}, type={order_type}")
+            logger.error(
+                f"  📋 Failed order details: side={side}, amount={amount}, price={price}, type={order_type}"
+            )
             logger.error(f"  📋 Failed order params: {params}")
-            
+
             # Return error result instead of raising to allow other orders to proceed
             return TxResult(
                 instruction_id=inst.instruction_id,

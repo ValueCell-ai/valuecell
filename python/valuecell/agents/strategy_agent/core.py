@@ -159,10 +159,10 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                         quotes.append(s.split("-")[1])
                 # Deduplicate preserving order
                 quotes = list(dict.fromkeys(quotes))
-                
+
                 free_cash = 0.0
                 total_cash = 0.0
-                
+
                 # Sum up free and total cash from relevant quote currencies
                 if quotes:
                     for q in quotes:
@@ -187,19 +187,19 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                 logger.debug(
                     f"Synced balance from exchange: free_cash={free_cash}, total_cash={total_cash}, quotes={quotes}"
                 )
-                
+
                 if self._request.exchange_config.market_type == MarketType.SPOT:
                     # Spot: Account Balance is Cash (Free). Buying Power is Cash.
                     portfolio.account_balance = float(free_cash)
                     portfolio.buying_power = max(0.0, float(portfolio.account_balance))
                 else:
-                    # Derivatives: Account Balance should be Wallet Balance or Equity. 
-                    # We use total_cash (Equity) as the best approximation for account_balance 
+                    # Derivatives: Account Balance should be Wallet Balance or Equity.
+                    # We use total_cash (Equity) as the best approximation for account_balance
                     # to ensure InMemoryPortfolioService calculates Equity correctly (Equity + Unrealized).
-                    # Note: If total_cash IS Equity, adding Unrealized PnL again in InMemoryService 
-                    # (Equity = Balance + Unreal) would double count PnL. 
+                    # Note: If total_cash IS Equity, adding Unrealized PnL again in InMemoryService
+                    # (Equity = Balance + Unreal) would double count PnL.
                     # However, separating Wallet Balance from Equity is exchange-specific.
-                    # For now, we set account_balance = total_cash and rely on the fixed 
+                    # For now, we set account_balance = total_cash and rely on the fixed
                     # InMemoryPortfolioService to handle it (assuming Balance ~= Equity for initial sync).
                     portfolio.account_balance = float(total_cash)
                     # Buying Power is explicit Free Margin
@@ -273,7 +273,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             instructions, market_snapshot
         )
         logger.info(f"✅ ExecutionGateway returned {len(tx_results)} results")
-        
+
         # Filter out failed instructions and append reasons to rationale
         failed_ids = set()
         failure_msgs = []
@@ -292,8 +292,12 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         if failure_msgs:
             # Append failure reasons to AI rationale for frontend display
             prefix = "\n\n**Execution Warnings:**\n"
-            rationale = (rationale or "") + prefix + "\n".join(f"- {msg}" for msg in failure_msgs)
-        
+            rationale = (
+                (rationale or "")
+                + prefix
+                + "\n".join(f"- {msg}" for msg in failure_msgs)
+            )
+
         if failed_ids:
             # Remove failed instructions so they don't appear in history/UI
             instructions = [
