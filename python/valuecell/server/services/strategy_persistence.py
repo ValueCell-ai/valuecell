@@ -3,7 +3,7 @@ from typing import Optional
 
 from loguru import logger
 
-from valuecell.agents.strategy_agent import models as agent_models
+from valuecell.agents.common.trading import models as agent_models
 from valuecell.server.db.repositories.strategy_repository import (
     get_strategy_repository,
 )
@@ -19,18 +19,35 @@ def persist_trade_history(
     repo = get_strategy_repository()
     try:
         # map direction and type
-        ttype = trade.type.value if getattr(trade, "type", None) is not None else None
-        side = trade.side.value if getattr(trade, "side", None) is not None else None
+        ttype = trade.type.value if trade.type is not None else None
+        side = trade.side.value if trade.side is not None else None
 
-        event_time = (
-            datetime.fromtimestamp(trade.trade_ts / 1000.0, tz=timezone.utc)
-            if trade.trade_ts
+        # Prefer explicit entry/exit timestamps if provided; fall back to trade_ts
+        if trade.entry_ts is not None:
+            entry_time = datetime.fromtimestamp(
+                trade.entry_ts / 1000.0, tz=timezone.utc
+            )
+        elif trade.trade_ts is not None:
+            entry_time = datetime.fromtimestamp(
+                trade.trade_ts / 1000.0, tz=timezone.utc
+            )
+        else:
+            entry_time = None
+
+        exit_time = (
+            datetime.fromtimestamp(trade.exit_ts / 1000.0, tz=timezone.utc)
+            if trade.exit_ts is not None
             else None
         )
 
+        # Event time for repository: prefer entry_time, then exit_time, otherwise now
+        event_time = entry_time or exit_time or datetime.now(timezone.utc)
+
         item = repo.add_detail_item(
             strategy_id=strategy_id,
+            compose_id=trade.compose_id,
             trade_id=trade.trade_id,
+            instruction_id=trade.instruction_id,
             symbol=trade.instrument.symbol,
             type=ttype or ("LONG" if (trade.quantity or 0) > 0 else "SHORT"),
             side=side or ("BUY" if (trade.quantity or 0) > 0 else "SELL"),
@@ -42,21 +59,45 @@ def persist_trade_history(
             exit_price=(
                 float(trade.exit_price) if trade.exit_price is not None else None
             ),
+            avg_exec_price=(
+                float(trade.avg_exec_price)
+                if trade.avg_exec_price is not None
+                else None
+            ),
             unrealized_pnl=(
                 float(trade.unrealized_pnl)
-                if getattr(trade, "unrealized_pnl", None) is not None
+                if trade.unrealized_pnl is not None
                 else (
                     float(trade.realized_pnl)
-                    if getattr(trade, "realized_pnl", None) is not None
+                    if trade.realized_pnl is not None
                     else None
                 )
             ),
+            realized_pnl=(
+                float(trade.realized_pnl) if trade.realized_pnl is not None else None
+            ),
+            realized_pnl_pct=(
+                float(trade.realized_pnl_pct)
+                if trade.realized_pnl_pct is not None
+                else None
+            ),
+            notional_entry=(
+                float(trade.notional_entry)
+                if trade.notional_entry is not None
+                else None
+            ),
+            notional_exit=(
+                float(trade.notional_exit) if trade.notional_exit is not None else None
+            ),
+            fee_cost=(float(trade.fee_cost) if trade.fee_cost is not None else None),
             # Note: store unrealized_pnl separately if available on the DTO
             # (some callers may populate unrealized vs realized differently)
             # Keep backward-compatibility: prefer trade.unrealized_pnl when present
             # If both present, the DTO should include both; StrategyDetail currently only stores unrealized_pnl.
             holding_ms=int(trade.holding_ms) if trade.holding_ms is not None else None,
             event_time=event_time,
+            entry_time=entry_time,
+            exit_time=exit_time,
             note=trade.note,
         )
 
@@ -73,7 +114,7 @@ def persist_trade_history(
         logger.exception(
             "persist_trade_history failed for {} {}",
             strategy_id,
-            getattr(trade, "trade_id", None),
+            trade.trade_id,
         )
         return None
 
@@ -103,12 +144,26 @@ def persist_portfolio_view(view: agent_models.PortfolioView) -> bool:
             if view.total_unrealized_pnl is not None
             else None
         )
+        total_realized = (
+            float(view.total_realized_pnl)
+            if view.total_realized_pnl is not None
+            else None
+        )
+        gross_exposure = (
+            float(view.gross_exposure) if view.gross_exposure is not None else None
+        )
+        net_exposure = (
+            float(view.net_exposure) if view.net_exposure is not None else None
+        )
 
         portfolio_item = repo.add_portfolio_snapshot(
             strategy_id=strategy_id,
             cash=cash,
             total_value=total_value,
             total_unrealized_pnl=total_unrealized,
+            total_realized_pnl=total_realized,
+            gross_exposure=gross_exposure,
+            net_exposure=net_exposure,
             snapshot_ts=snapshot_ts,
         )
         if portfolio_item is None:
@@ -202,3 +257,73 @@ def mark_strategy_stopped(strategy_id: str) -> bool:
     except Exception:
         logger.exception("mark_strategy_stopped failed for {}", strategy_id)
         return False
+
+
+def persist_compose_cycle(
+    strategy_id: str,
+    compose_id: str,
+    ts_ms: Optional[int],
+    cycle_index: Optional[int],
+    rationale: Optional[str],
+) -> bool:
+    """Persist a compose cycle metadata record.
+
+    Does not store prompts, only timing and optional rationale.
+    """
+    repo = get_strategy_repository()
+    try:
+        compose_time = (
+            datetime.fromtimestamp(ts_ms / 1000.0, tz=timezone.utc)
+            if ts_ms is not None
+            else None
+        )
+        item = repo.add_compose_cycle(
+            strategy_id=strategy_id,
+            compose_id=compose_id,
+            compose_time=compose_time,
+            cycle_index=cycle_index,
+            rationale=rationale,
+        )
+        return item is not None
+    except Exception:
+        logger.exception(
+            "persist_compose_cycle failed for {} {}", strategy_id, compose_id
+        )
+        return False
+
+
+def persist_instructions(
+    strategy_id: str,
+    compose_id: str,
+    instructions: list[agent_models.TradeInstruction],
+) -> int:
+    """Persist a list of TradeInstruction (including NOOP) for a compose cycle.
+
+    Returns number of successfully inserted rows.
+    """
+    repo = get_strategy_repository()
+    inserted = 0
+    for ins in instructions:
+        try:
+            ok = repo.add_instruction(
+                strategy_id=strategy_id,
+                compose_id=compose_id,
+                instruction_id=ins.instruction_id,
+                symbol=ins.instrument.symbol,
+                action=(ins.action.value if ins.action is not None else None),
+                side=(ins.side.value if ins.side is not None else None),
+                quantity=float(ins.quantity) if ins.quantity is not None else None,
+                leverage=float(ins.leverage) if ins.leverage is not None else None,
+                note=(ins.meta.get("rationale") if ins.meta else None),
+            )
+            if ok:
+                inserted += 1
+        except Exception:
+            logger.warning(
+                "Failed to persist instruction {} for {} {}",
+                ins.instruction_id,
+                strategy_id,
+                compose_id,
+            )
+            continue
+    return inserted

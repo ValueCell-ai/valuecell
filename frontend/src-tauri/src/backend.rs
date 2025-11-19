@@ -1,5 +1,6 @@
-use anyhow::{bail, Context, Result};
-use std::fs::create_dir_all;
+use anyhow::{anyhow, Context, Result};
+use std::fs::{create_dir_all, OpenOptions};
+use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::Duration;
@@ -13,9 +14,11 @@ use tauri_plugin_shell::ShellExt;
 pub struct BackendManager {
     processes: Mutex<Vec<CommandChild>>,
     backend_path: PathBuf,
-    env_path: PathBuf,
+    log_dir: PathBuf,
     app: AppHandle,
 }
+
+const MAIN_MODULE: &str = "valuecell.server.main";
 
 impl BackendManager {
     fn wait_until_terminated(mut rx: Receiver<CommandEvent>) {
@@ -52,35 +55,20 @@ impl BackendManager {
         }
     }
 
-    fn spawn_uv_module(&self, module_name: &str) -> Result<CommandChild> {
-        log::info!(
-            "Command: uv run --env-file {:?} -m {}",
-            self.env_path,
-            module_name
-        );
+    fn spawn_backend_process(&self) -> Result<(Receiver<CommandEvent>, CommandChild)> {
+        log::info!("Command: uv run -m {}", MAIN_MODULE);
 
-        // Use sidecar command directly (Tauri handles platform automatically)
         let sidecar_command = self
             .app
             .shell()
             .sidecar("uv")
             .context("Failed to create uv sidecar command")?
-            .args([
-                "run",
-                "--env-file",
-                self.env_path.to_str().context("Invalid env path")?,
-                "-m",
-                module_name,
-            ])
+            .args(["run", "-m", MAIN_MODULE])
             .current_dir(&self.backend_path);
 
-        // Spawn and discard the receiver (we don't need to read output)
-        let (_rx, child) = sidecar_command
+        sidecar_command
             .spawn()
-            .context(format!("Failed to spawn {}", module_name))?;
-
-        log::info!("✓ {} spawned with PID: {}", module_name, child.pid());
-        Ok(child)
+            .context("Failed to spawn backend process")
     }
 
     pub fn new(app: AppHandle) -> Result<Self> {
@@ -89,32 +77,9 @@ impl BackendManager {
             .resolve(".", BaseDirectory::Resource)
             .context("Failed to resolve resource root")?;
 
-        let backend_path = if resource_root.join("backend").exists() {
-            resource_root.join("backend")
-        } else {
-            let project_root = resource_root
-                .ancestors()
-                .find(|dir| {
-                    let python_dir = dir.join("python");
-                    log::info!(
-                        "Checking directory: {:?}, exists python dir: {:?}",
-                        dir,
-                        python_dir.exists()
-                    );
-                    python_dir.exists()
-                })
-                .context("Could not find project root (looking for python directory)")?;
-
-            project_root.to_path_buf().join("python")
-        };
-
-        let env_path = backend_path
-            .parent()
-            .context("Failed to get parent directory")?
-            .join(".env");
-
-        if !env_path.exists() {
-            return Err(anyhow::anyhow!("Env file does not exist: {:?}", env_path));
+        let backend_path = resource_root.join("backend");
+        if !backend_path.exists() {
+            return Err(anyhow!("Backend directory not found at {:?}", backend_path));
         }
 
         let log_dir = app
@@ -126,13 +91,12 @@ impl BackendManager {
         create_dir_all(&log_dir).context("Failed to create log directory")?;
 
         log::info!("Backend path: {:?}", backend_path);
-        log::info!("Env path: {:?}", env_path);
         log::info!("Log directory: {:?}", log_dir);
 
         Ok(Self {
             processes: Mutex::new(Vec::new()),
             backend_path,
-            env_path,
+            log_dir,
             app,
         })
     }
@@ -153,92 +117,25 @@ impl BackendManager {
         Ok(())
     }
 
-    fn init_database(&self) -> Result<()> {
-        let init_db_script = self.backend_path.join("valuecell/server/db/init_db.py");
-
-        // Check if init_db.py exists
-        if !init_db_script.exists() {
-            log::warn!("Database init script not found at: {:?}", init_db_script);
-            return Ok(());
-        }
-
-        // Run database initialization using sidecar command
-        let sidecar_command = self
-            .app
-            .shell()
-            .sidecar("uv")
-            .context("Failed to create uv sidecar command")?
-            .args([
-                "run",
-                "--env-file",
-                self.env_path.to_str().context("Invalid env path")?,
-                init_db_script.to_str().context("Invalid script path")?,
-            ])
-            .current_dir(&self.backend_path);
-
-        let (rx, _child) = sidecar_command
-            .spawn()
-            .context("Failed to run database initialization")?;
-        Self::wait_until_terminated(rx);
-
-        log::info!("✓ Database initialized");
-        Ok(())
-    }
-
-    fn start_agent(&self, agent_name: &str) -> Result<CommandChild> {
-        let module_name = match agent_name {
-            "ResearchAgent" => "valuecell.agents.research_agent",
-            "NewsAgent" => "valuecell.agents.news_agent",
-            "StrategyAgent" => "valuecell.agents.strategy_agent",
-            _ => bail!("Unknown agent: {}", agent_name),
-        };
-
-        let child = self.spawn_uv_module(&module_name)?;
-
-        Ok(child)
-    }
-
-    fn start_backend_server(&self) -> Result<CommandChild> {
-        self.spawn_uv_module("valuecell.server.main")
-    }
-
     pub fn start_all(&self) -> Result<()> {
         self.install_dependencies()?;
-        self.init_database()?;
 
         let mut processes = self.processes.lock().unwrap();
 
-        let agents = vec!["ResearchAgent", "StrategyAgent", "NewsAgent"];
-        for agent_name in agents {
-            match self.start_agent(agent_name) {
-                Ok(child) => {
-                    log::info!("Process {} added to process list", child.pid());
-                    processes.push(child);
-                }
-                Err(e) => log::error!("Failed to start {}: {}", agent_name, e),
-            }
-        }
-
-        match self.start_backend_server() {
-            Ok(child) => {
+        match self.spawn_backend_process() {
+            Ok((rx, child)) => {
+                self.stream_backend_logs(rx);
                 log::info!("Process {} added to process list", child.pid());
                 processes.push(child);
             }
             Err(e) => log::error!("Failed to start backend server: {}", e),
         }
 
-        log::info!(
-            "✓ All backend processes started (total: {})",
-            processes.len()
-        );
-
         Ok(())
     }
 
     /// Stop all backend processes
     pub fn stop_all(&self) {
-        log::info!("Stopping all backend processes...");
-
         let mut processes = self.processes.lock().unwrap();
         for process in processes.drain(..) {
             let pid = process.pid();
@@ -254,8 +151,39 @@ impl BackendManager {
                 log::info!("Process {} terminated", pid);
             }
         }
+    }
 
-        log::info!("✓ All backend processes stopped");
+    fn stream_backend_logs(&self, rx: Receiver<CommandEvent>) {
+        let log_path = self.log_dir.join("backend.log");
+        std::thread::spawn(move || Self::stream_to_file(rx, log_path));
+    }
+
+    fn stream_to_file(mut rx: Receiver<CommandEvent>, log_path: PathBuf) {
+        let mut file = match OpenOptions::new().create(true).append(true).open(&log_path) {
+            Ok(file) => file,
+            Err(err) => {
+                log::error!("Failed to open backend log file {:?}: {}", log_path, err);
+                return;
+            }
+        };
+
+        while let Some(event) = rx.blocking_recv() {
+            match event {
+                CommandEvent::Stdout(line) | CommandEvent::Stderr(line) => {
+                    let text = String::from_utf8_lossy(&line);
+                    if let Err(err) = writeln!(file, "{}", text.trim_end_matches('\n')) {
+                        log::error!("Failed to write backend log line: {}", err);
+                        break;
+                    }
+                }
+                CommandEvent::Error(err) => {
+                    log::error!("Backend process error: {}", err);
+                    break;
+                }
+                CommandEvent::Terminated(_) => break,
+                _ => {}
+            }
+        }
     }
 }
 

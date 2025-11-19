@@ -44,6 +44,15 @@ class StrategyPortfolioView(Base):
     total_unrealized_pnl = Column(
         Numeric(20, 8), nullable=True, comment="Total unrealized PnL"
     )
+    total_realized_pnl = Column(
+        Numeric(20, 8), nullable=True, comment="Total realized PnL"
+    )
+    gross_exposure = Column(
+        Numeric(20, 8), nullable=True, comment="Aggregate gross exposure at snapshot"
+    )
+    net_exposure = Column(
+        Numeric(20, 8), nullable=True, comment="Aggregate net exposure at snapshot"
+    )
 
     snapshot_ts = Column(
         DateTime(timezone=True),
@@ -73,13 +82,16 @@ class StrategyPortfolioView(Base):
     def __repr__(self) -> str:
         return (
             "<StrategyPortfolioView(id={}, strategy_id='{}', cash={}, total_value={}, "
-            "total_unrealized_pnl={}, snapshot_ts={})>"
+            "total_unrealized_pnl={}, total_realized_pnl={}, gross_exposure={}, net_exposure={}, snapshot_ts={})>"
         ).format(
             self.id,
             self.strategy_id,
             self.cash,
             self.total_value,
             self.total_unrealized_pnl,
+            self.total_realized_pnl,
+            self.gross_exposure,
+            self.net_exposure,
             self.snapshot_ts,
         )
 
@@ -93,6 +105,15 @@ class StrategyPortfolioView(Base):
             else None,
             "total_unrealized_pnl": float(self.total_unrealized_pnl)
             if self.total_unrealized_pnl is not None
+            else None,
+            "total_realized_pnl": float(self.total_realized_pnl)
+            if self.total_realized_pnl is not None
+            else None,
+            "gross_exposure": float(self.gross_exposure)
+            if self.gross_exposure is not None
+            else None,
+            "net_exposure": float(self.net_exposure)
+            if self.net_exposure is not None
             else None,
             "snapshot_ts": self.snapshot_ts.isoformat() if self.snapshot_ts else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,

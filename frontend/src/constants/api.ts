@@ -39,6 +39,7 @@ const STRATEGY_QUERY_KEYS = {
   strategyHoldings: queryKeyFn(["strategy", "holdings"]),
   strategyPriceCurve: queryKeyFn(["strategy", "price-curve"]),
   strategyPrompts: ["strategy", "prompts"],
+  strategyPortfolioSummary: queryKeyFn(["strategy", "portfolio-summary"]),
 } as const;
 
 export const API_QUERY_KEYS = {

@@ -128,3 +128,64 @@ async def test_super_agent_run_handles_malformed_response(
     assert outcome.decision == SuperAgentDecision.ANSWER
     assert "malformed response" in outcome.answer_content
     assert "fake-model (via fake-provider)" in outcome.answer_content
+
+
+@pytest.mark.asyncio
+async def test_super_agent_lazy_init_failure_handoff_to_planner(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """When SuperAgent cannot initialize, it hands off directly to Planner."""
+
+    def _raise(*_args, **_kwargs):
+        raise RuntimeError("no model")
+
+    monkeypatch.setattr(super_agent_mod.model_utils_mod, "get_model_for_agent", _raise)
+    monkeypatch.setattr(super_agent_mod, "agent_debug_mode_enabled", lambda: False)
+
+    sa = SuperAgent()
+
+    user_input = UserInput(
+        query="please plan",
+        target_agent_name=sa.name,
+        meta=UserInputMetadata(conversation_id="conv-fallback", user_id="user-x"),
+    )
+
+    outcome = await sa.run(user_input)
+    assert outcome.decision == SuperAgentDecision.HANDOFF_TO_PLANNER
+    assert outcome.enriched_query == "please plan"
+    assert outcome.reason and "missing model/provider" in outcome.reason
+
+
+@pytest.mark.asyncio
+async def test_super_agent_malformed_response_unknown_provider(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Malformed response with missing model info uses 'unknown model/provider' label."""
+
+    # Return a malformed content (not a SuperAgentOutcome instance)
+    fake_response = SimpleNamespace(content=SimpleNamespace(raw="oops"))
+
+    class FakeAgent:
+        def __init__(self, *args, **kwargs):
+            self.arun = AsyncMock(return_value=fake_response)
+            # No model attribute to trigger unknown path
+            # self.model = missing
+
+    monkeypatch.setattr(super_agent_mod, "Agent", FakeAgent)
+    monkeypatch.setattr(
+        super_agent_mod.model_utils_mod,
+        "get_model_for_agent",
+        lambda *args, **kwargs: "stub-model",
+    )
+    monkeypatch.setattr(super_agent_mod, "agent_debug_mode_enabled", lambda: False)
+
+    sa = SuperAgent()
+    user_input = UserInput(
+        query="give answer",
+        target_agent_name=sa.name,
+        meta=UserInputMetadata(conversation_id="conv", user_id="user"),
+    )
+
+    outcome = await sa.run(user_input)
+    assert outcome.decision == SuperAgentDecision.ANSWER
+    assert "unknown model/provider" in outcome.answer_content
