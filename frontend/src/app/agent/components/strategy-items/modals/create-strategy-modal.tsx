@@ -613,7 +613,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                                                   )
                                                 }
                                                 onBlur={field.handleBlur}
-                                                placeholder="Enter API Wallet Address (0x...)"
+                                                placeholder="Enter Main Wallet Address (0x...)"
                                               />
                                               <FieldError
                                                 errors={field.state.meta.errors}
