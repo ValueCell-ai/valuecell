@@ -447,6 +447,9 @@ class PortfolioView(BaseModel):
     total_unrealized_pnl: Optional[float] = Field(
         default=None, description="Sum of unrealized PnL across positions"
     )
+    total_realized_pnl: Optional[float] = Field(
+        default=None, description="Sum of realized PnL from closed position deltas"
+    )
     buying_power: Optional[float] = Field(
         default=None,
         description="Buying power: max(0, equity * max_leverage - gross_exposure)",
@@ -728,12 +731,18 @@ class TradeHistoryEntry(BaseModel):
     quantity: float
     entry_price: Optional[float] = Field(default=None)
     exit_price: Optional[float] = Field(default=None)
+    avg_exec_price: Optional[float] = Field(
+        default=None, description="Average execution price for fills"
+    )
     notional_entry: Optional[float] = Field(default=None)
     notional_exit: Optional[float] = Field(default=None)
     entry_ts: Optional[int] = Field(default=None, description="Entry timestamp ms")
     exit_ts: Optional[int] = Field(default=None, description="Exit timestamp ms")
     trade_ts: Optional[int] = Field(default=None, description="Trade timestamp in ms")
     holding_ms: Optional[int] = Field(default=None, description="Holding time in ms")
+    unrealized_pnl: Optional[float] = Field(
+        default=None, description="Unrealized PnL in quote currency"
+    )
     realized_pnl: Optional[float] = Field(default=None)
     realized_pnl_pct: Optional[float] = Field(default=None)
     # Total fees charged for this trade in quote currency (if available)

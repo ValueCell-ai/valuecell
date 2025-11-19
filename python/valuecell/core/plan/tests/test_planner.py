@@ -239,3 +239,81 @@ def test_tool_get_agent_description_dict_and_missing(monkeypatch: pytest.MonkeyP
     # Not found branch
     missing = planner.tool_get_agent_description("MissingAgent")
     assert "could not be found" in missing
+
+
+@pytest.mark.asyncio
+async def test_lazy_init_failure_returns_guidance(monkeypatch: pytest.MonkeyPatch):
+    """When planner agent cannot initialize, return guidance instead of crashing."""
+
+    # Cause model creation to fail
+    def _raise(*_args, **_kwargs):
+        raise RuntimeError("no model")
+
+    monkeypatch.setattr(model_utils_mod, "get_model_for_agent", _raise)
+    monkeypatch.setattr(planner_mod, "agent_debug_mode_enabled", lambda: False)
+
+    class DummyConn:
+        pass
+
+    planner = ExecutionPlanner(DummyConn())
+
+    user_input = UserInput(
+        query="plan this",
+        target_agent_name="",
+        meta=UserInputMetadata(conversation_id="conv-lazy", user_id="user-lazy"),
+    )
+
+    async def callback(_):
+        # Should not be invoked when agent is unavailable
+        raise AssertionError("callback should not be invoked")
+
+    plan = await planner.create_plan(user_input, callback, "thread-lazy")
+
+    assert plan.tasks == []
+    assert plan.guidance_message
+    assert "Planner is unavailable" in plan.guidance_message
+
+
+@pytest.mark.asyncio
+async def test_malformed_response_unknown_model_description(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Malformed planner response falls back to 'unknown model/provider' when model info missing."""
+
+    malformed_content = "oops-not-planner-response"
+
+    class FakeAgent:
+        def __init__(self, *args, **kwargs):
+            # No model attribute to trigger unknown provider path
+            pass
+
+        def run(self, *args, **kwargs):
+            return SimpleNamespace(
+                is_paused=False,
+                tools_requiring_user_input=[],
+                tools=[],
+                content=malformed_content,
+            )
+
+    monkeypatch.setattr(planner_mod, "Agent", FakeAgent)
+    monkeypatch.setattr(
+        model_utils_mod, "get_model_for_agent", lambda *args, **kwargs: "stub-model"
+    )
+    monkeypatch.setattr(planner_mod, "agent_debug_mode_enabled", lambda: False)
+
+    planner = ExecutionPlanner(StubConnections())
+    # Ensure lazy init creates our FakeAgent
+    planner.agent = None
+
+    user_input = UserInput(
+        query="malformed please",
+        target_agent_name="",
+        meta=UserInputMetadata(conversation_id="conv-x", user_id="user-x"),
+    )
+
+    async def callback(_):
+        raise AssertionError("callback should not be invoked")
+
+    plan = await planner.create_plan(user_input, callback, "thread-x")
+    assert plan.guidance_message
+    assert "unknown model/provider" in plan.guidance_message

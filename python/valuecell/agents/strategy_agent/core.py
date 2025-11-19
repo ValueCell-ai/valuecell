@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 from loguru import logger
 
@@ -43,6 +43,8 @@ class DecisionCycleResult:
 
     compose_id: str
     timestamp_ms: int
+    cycle_index: int
+    rationale: Optional[str]
     strategy_summary: StrategySummary
     instructions: List[TradeInstruction]
     trades: List[TradeHistoryEntry]
@@ -148,7 +150,9 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             digest=digest,
         )
 
-        instructions = await self._composer.compose(context)
+        compose_result = await self._composer.compose(context)
+        instructions = compose_result.instructions
+        rationale = compose_result.rationale
         logger.info(f"🔍 Composer returned {len(instructions)} instructions")
         for idx, inst in enumerate(instructions):
             logger.info(
@@ -189,6 +193,8 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         return DecisionCycleResult(
             compose_id=compose_id,
             timestamp_ms=timestamp_ms,
+            cycle_index=self._cycle_index,
+            rationale=rationale,
             strategy_summary=summary,
             instructions=instructions,
             trades=trades,
@@ -298,6 +304,11 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                     ),
                     quantity=qty_closed or qty,
                     entry_price=entry_px or None,
+                    avg_exec_price=(
+                        float(tx.avg_exec_price)
+                        if tx.avg_exec_price is not None
+                        else (exit_px or None)
+                    ),
                     exit_price=exit_px,
                     notional_entry=notional_entry,
                     notional_exit=notional_exit,
@@ -330,6 +341,11 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                     ),
                     quantity=qty,
                     entry_price=price or None,
+                    avg_exec_price=(
+                        float(tx.avg_exec_price)
+                        if tx.avg_exec_price is not None
+                        else (price or None)
+                    ),
                     exit_price=None,
                     notional_entry=notional or None,
                     notional_exit=None,

@@ -13,13 +13,14 @@ import MultiLineChart from "@/components/valuecell/charts/model-multi-line";
 import { PngIcon } from "@/components/valuecell/png-icon";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { SYMBOL_ICONS } from "@/constants/icons";
-import { formatChange, getChangeType } from "@/lib/utils";
+import { formatChange, getChangeType, numberFixed } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
-import type { Position } from "@/types/strategy";
+import type { PortfolioSummary, Position } from "@/types/strategy";
 
 interface PortfolioPositionsGroupProps {
   priceCurve: Array<Array<number | string>>;
   positions: Position[];
+  summary?: PortfolioSummary;
 }
 
 interface PositionRowProps {
@@ -72,6 +73,7 @@ const PositionRow: FC<PositionRowProps> = ({ position }) => {
 };
 
 const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
+  summary,
   priceCurve,
   positions,
 }) => {
@@ -81,10 +83,32 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
   return (
     <div className="flex flex-1 flex-col gap-8 overflow-y-scroll p-6">
       {/* Portfolio Value History Section */}
-      <div className="flex flex-1 flex-col gap-6">
+      <div className="flex flex-1 flex-col gap-4">
         <h3 className="font-semibold text-base text-gray-950">
           Portfolio Value History
         </h3>
+
+        <div className="grid grid-cols-3 gap-4 text-nowrap">
+          <div className="rounded-lg bg-gray-50 p-4">
+            <p className="text-gray-500 text-sm">Total Equity</p>
+            <p className="mt-1 font-semibold text-gray-900 text-lg">
+              {numberFixed(summary?.total_value, 4)}
+            </p>
+          </div>
+          <div className="rounded-lg bg-gray-50 p-4">
+            <p className="text-gray-500 text-sm">Available Balance</p>
+            <p className="mt-1 font-semibold text-gray-900 text-lg">
+              {numberFixed(summary?.cash, 4)}
+            </p>
+          </div>
+          <div className="rounded-lg bg-gray-50 p-4">
+            <p className="text-gray-500 text-sm">Total P&L</p>
+            <p className="mt-1 font-semibold text-gray-900 text-lg">
+              {numberFixed(summary?.total_pnl, 4)}
+            </p>
+          </div>
+        </div>
+
         <div className="min-h-[400px] flex-1">
           {hasPriceCurve ? (
             <MultiLineChart data={priceCurve} showLegend={false} />

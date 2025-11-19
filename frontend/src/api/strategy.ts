@@ -4,10 +4,11 @@ import { type ApiResponse, apiClient } from "@/lib/api-client";
 import type {
   CreateStrategyRequest,
   LlmConfig,
+  PortfolioSummary,
   Position,
   Strategy,
+  StrategyCompose,
   StrategyPrompt,
-  Trade,
 } from "@/types/strategy";
 
 export const useGetStrategyList = () => {
@@ -24,11 +25,11 @@ export const useGetStrategyList = () => {
   });
 };
 
-export const useGetStrategyTrades = (strategyId?: string) => {
+export const useGetStrategyDetails = (strategyId?: string) => {
   return useQuery({
     queryKey: API_QUERY_KEYS.STRATEGY.strategyTrades([strategyId ?? ""]),
     queryFn: () =>
-      apiClient.get<ApiResponse<Trade[]>>(
+      apiClient.get<ApiResponse<StrategyCompose[]>>(
         `/strategies/detail?id=${strategyId}`,
       ),
     select: (data) => data.data,
@@ -56,6 +57,21 @@ export const useGetStrategyPriceCurve = (strategyId?: string) => {
     queryFn: () =>
       apiClient.get<ApiResponse<Array<Array<string | number>>>>(
         `/strategies/holding_price_curve?id=${strategyId}`,
+      ),
+    select: (data) => data.data,
+    refetchInterval: 15 * 1000,
+    enabled: !!strategyId,
+  });
+};
+
+export const useGetStrategyPortfolioSummary = (strategyId?: string) => {
+  return useQuery({
+    queryKey: API_QUERY_KEYS.STRATEGY.strategyPortfolioSummary([
+      strategyId ?? "",
+    ]),
+    queryFn: () =>
+      apiClient.get<ApiResponse<PortfolioSummary>>(
+        `/strategies/portfolio_summary?id=${strategyId}`,
       ),
     select: (data) => data.data,
     refetchInterval: 15 * 1000,
