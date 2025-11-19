@@ -6,6 +6,7 @@ import type {
   LlmConfig,
   Position,
   Strategy,
+  StrategyCompose,
   StrategyPrompt,
   Trade,
 } from "@/types/strategy";
@@ -24,11 +25,11 @@ export const useGetStrategyList = () => {
   });
 };
 
-export const useGetStrategyTrades = (strategyId?: string) => {
+export const useGetStrategyDetails = (strategyId?: string) => {
   return useQuery({
     queryKey: API_QUERY_KEYS.STRATEGY.strategyTrades([strategyId ?? ""]),
     queryFn: () =>
-      apiClient.get<ApiResponse<Trade[]>>(
+      apiClient.get<ApiResponse<StrategyCompose[]>>(
         `/strategies/detail?id=${strategyId}`,
       ),
     select: (data) => data.data,

@@ -39,6 +39,35 @@ export interface Position {
   unrealized_pnl_pct: number;
 }
 
+// Strategy Action types
+export interface StrategyAction {
+  instruction_id: string;
+  symbol: string;
+  action: "open_long" | "open_short" | "close_long" | "close_short";
+  action_display: string;
+  side: "BUY" | "SELL";
+  quantity: number;
+  leverage: number;
+  entry_price: number;
+  exit_price?: number;
+  entry_at: string;
+  exit_at?: string;
+  fee_cost: number;
+  realized_pnl: number;
+  realized_pnl_pct: number;
+  rationale: string;
+  holding_time_ms: number;
+}
+
+// Strategy Compose types
+export interface StrategyCompose {
+  compose_id: string;
+  created_at: string;
+  rationale: string;
+  cycle_index: number;
+  actions: StrategyAction[];
+}
+
 // Strategy Prompt types
 export interface StrategyPrompt {
   id: string;

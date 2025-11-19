@@ -1,4 +1,4 @@
-import type { Position, Strategy, Trade } from "@/types/strategy";
+import type { Position, Strategy, StrategyCompose, Trade } from "@/types/strategy";
 
 /**
  * Mock strategy data for development and testing
