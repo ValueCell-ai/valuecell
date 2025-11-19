@@ -138,8 +138,11 @@ class StrategyActionCard(BaseModel):
     )
     entry_price: Optional[float] = Field(None, description="Entry price")
     exit_price: Optional[float] = Field(None, description="Exit price (if closed)")
-    entry_ts: Optional[int] = Field(None, description="Entry timestamp in ms")
-    exit_ts: Optional[int] = Field(None, description="Exit timestamp in ms")
+    entry_at: Optional[datetime] = Field(None, description="Entry timestamp")
+    exit_at: Optional[datetime] = Field(None, description="Exit timestamp")
+    holding_time_ms: Optional[int] = Field(
+        None, description="Holding time in milliseconds"
+    )
     notional_entry: Optional[float] = Field(
         None, description="Entry notional in quote currency"
     )

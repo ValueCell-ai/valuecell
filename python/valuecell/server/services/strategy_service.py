@@ -151,12 +151,21 @@ class StrategyService:
             for i in instrs:
                 d = detail_map.get(i.instruction_id)
                 # Construct card combining instruction (always present) with optional execution detail
-                entry_ts = None
-                exit_ts = None
-                if d and d.entry_price:
-                    entry_ts = int(d.entry_time.timestamp() * 1000)
-                if d and d.exit_time:
-                    exit_ts = int(d.exit_time.timestamp() * 1000)
+                entry_at: Optional[datetime] = None
+                exit_at: Optional[datetime] = None
+                holding_time_ms: Optional[int] = None
+                if d:
+                    entry_at = d.entry_time
+                    exit_at = d.exit_time
+                    if d.holding_ms is not None:
+                        holding_time_ms = int(d.holding_ms)
+                    elif entry_at and exit_at:
+                        try:
+                            delta_ms = int((exit_at - entry_at).total_seconds() * 1000)
+                        except TypeError:
+                            delta_ms = None
+                        if delta_ms is not None:
+                            holding_time_ms = max(delta_ms, 0)
 
                 # Human-friendly display label for the action
                 action_display = i.action
@@ -190,8 +199,9 @@ class StrategyService:
                             if (d and d.exit_price is not None)
                             else None
                         ),
-                        entry_ts=entry_ts,
-                        exit_ts=exit_ts,
+                        entry_at=entry_at,
+                        exit_at=exit_at,
+                        holding_time_ms=holding_time_ms,
                         notional_entry=(
                             float(d.notional_entry)
                             if (d and d.notional_entry is not None)
