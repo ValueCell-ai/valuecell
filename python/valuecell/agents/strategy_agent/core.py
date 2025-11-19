@@ -273,10 +273,32 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             instructions, market_snapshot
         )
         logger.info(f"✅ ExecutionGateway returned {len(tx_results)} results")
+        
+        # Filter out failed instructions and append reasons to rationale
+        failed_ids = set()
+        failure_msgs = []
         for idx, tx in enumerate(tx_results):
             logger.info(
                 f"  📊 TxResult {idx}: {tx.instrument.symbol} status={tx.status.value} filled_qty={tx.filled_qty}"
             )
+            if tx.status in (TxStatus.REJECTED, TxStatus.ERROR):
+                failed_ids.add(tx.instruction_id)
+                reason = tx.reason or "Unknown error"
+                # Format failure message with clear details
+                msg = f"❌ Skipped {tx.instrument.symbol} {tx.side.value} qty={tx.requested_qty}: {reason}"
+                failure_msgs.append(msg)
+                logger.warning(f"  ⚠️ Order rejected: {msg}")
+
+        if failure_msgs:
+            # Append failure reasons to AI rationale for frontend display
+            prefix = "\n\n**Execution Warnings:**\n"
+            rationale = (rationale or "") + prefix + "\n".join(f"- {msg}" for msg in failure_msgs)
+        
+        if failed_ids:
+            # Remove failed instructions so they don't appear in history/UI
+            instructions = [
+                inst for inst in instructions if inst.instruction_id not in failed_ids
+            ]
 
         trades = self._create_trades(tx_results, compose_id, timestamp_ms)
         self._portfolio_service.apply_trades(trades, market_snapshot)
