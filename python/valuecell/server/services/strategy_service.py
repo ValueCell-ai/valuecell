@@ -225,6 +225,7 @@ class StrategyService:
             cycle_details.append(
                 StrategyCycleDetail(
                     compose_id=c.compose_id,
+                    cycle_index=c.cycle_index,
                     ts=ts_ms,
                     rationale=c.rationale,
                     actions=cards,

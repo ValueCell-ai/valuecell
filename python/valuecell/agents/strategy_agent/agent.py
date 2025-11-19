@@ -94,13 +94,14 @@ class StrategyAgent(BaseAgent):
                     strategy_id=strategy_id,
                     compose_id=result.compose_id,
                     ts_ms=result.timestamp_ms,
-                    rationale=getattr(result, "rationale", None),
+                    cycle_index=result.cycle_index,
+                    rationale=result.rationale,
                 )
             except Exception:
                 logger.warning(
                     "Failed to persist compose cycle for strategy={} compose_id={}",
                     strategy_id,
-                    getattr(result, "compose_id", None),
+                    result.compose_id,
                 )
 
             try:
@@ -113,7 +114,7 @@ class StrategyAgent(BaseAgent):
                 logger.warning(
                     "Failed to persist compose instructions for strategy={} compose_id={}",
                     strategy_id,
-                    getattr(result, "compose_id", None),
+                    result.compose_id,
                 )
 
             for trade in result.trades:
@@ -121,7 +122,7 @@ class StrategyAgent(BaseAgent):
                 if item:
                     logger.info(
                         "Persisted trade {} for strategy={}",
-                        getattr(trade, "trade_id", None),
+                        trade.trade_id,
                         strategy_id,
                     )
 

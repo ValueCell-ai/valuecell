@@ -40,6 +40,12 @@ class StrategyComposeCycle(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
+    cycle_index = Column(
+        Integer,
+        nullable=True,
+        comment="1-based compose cycle index captured from the coordinator",
+    )
+
     # Optional rationale provided by LLM
     rationale = Column(Text, nullable=True, comment="Optional rationale text")
 
@@ -58,4 +64,12 @@ class StrategyComposeCycle(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<StrategyComposeCycle(id={self.id}, strategy_id='{self.strategy_id}', compose_id='{self.compose_id}')>"
+        return (
+            "<StrategyComposeCycle(id={id}, strategy_id='{strategy_id}', compose_id='{compose_id}', "
+            "cycle_index={cycle_index})>"
+        ).format(
+            id=self.id,
+            strategy_id=self.strategy_id,
+            compose_id=self.compose_id,
+            cycle_index=self.cycle_index,
+        )

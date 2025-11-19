@@ -263,6 +263,7 @@ def persist_compose_cycle(
     strategy_id: str,
     compose_id: str,
     ts_ms: Optional[int],
+    cycle_index: Optional[int],
     rationale: Optional[str],
 ) -> bool:
     """Persist a compose cycle metadata record.
@@ -280,6 +281,7 @@ def persist_compose_cycle(
             strategy_id=strategy_id,
             compose_id=compose_id,
             compose_time=compose_time,
+            cycle_index=cycle_index,
             rationale=rationale,
         )
         return item is not None

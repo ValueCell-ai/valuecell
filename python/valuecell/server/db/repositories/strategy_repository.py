@@ -328,6 +328,7 @@ class StrategyRepository:
         strategy_id: str,
         compose_id: str,
         compose_time: Optional[datetime] = None,
+        cycle_index: Optional[int] = None,
         rationale: Optional[str] = None,
     ) -> Optional[StrategyComposeCycle]:
         session = self._get_session()
@@ -336,6 +337,7 @@ class StrategyRepository:
                 strategy_id=strategy_id,
                 compose_id=compose_id,
                 compose_time=compose_time or datetime.utcnow(),
+                cycle_index=cycle_index,
                 rationale=rationale,
             )
             session.add(item)

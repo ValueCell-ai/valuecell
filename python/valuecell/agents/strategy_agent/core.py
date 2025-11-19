@@ -41,6 +41,7 @@ class DecisionCycleResult:
 
     compose_id: str
     timestamp_ms: int
+    cycle_index: int
     rationale: Optional[str]
     strategy_summary: StrategySummary
     instructions: List[TradeInstruction]
@@ -257,6 +258,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         return DecisionCycleResult(
             compose_id=compose_id,
             timestamp_ms=timestamp_ms,
+            cycle_index=self._cycle_index,
             rationale=rationale,
             strategy_summary=summary,
             instructions=instructions,
