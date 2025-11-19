@@ -159,7 +159,7 @@ class StrategyActionCard(BaseModel):
 class StrategyCycleDetail(BaseModel):
     compose_id: str = Field(..., description="Compose cycle identifier")
     cycle_index: int = Field(..., description="Cycle index (1-based)")
-    ts: int = Field(..., description="Compose timestamp in ms")
+    created_at: datetime = Field(..., description="Compose datetime")
     rationale: Optional[str] = Field(None, description="LLM rationale text")
     actions: List[StrategyActionCard] = Field(
         default_factory=list, description="Instruction/action cards for this cycle"

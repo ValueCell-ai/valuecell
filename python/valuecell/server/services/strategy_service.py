@@ -221,12 +221,12 @@ class StrategyService:
                     )
                 )
 
-            ts_ms = int((c.compose_time or datetime.utcnow()).timestamp() * 1000)
+            created_at = c.compose_time or datetime.utcnow()
             cycle_details.append(
                 StrategyCycleDetail(
                     compose_id=c.compose_id,
                     cycle_index=c.cycle_index,
-                    ts=ts_ms,
+                    created_at=created_at,
                     rationale=c.rationale,
                     actions=cards,
                 )
