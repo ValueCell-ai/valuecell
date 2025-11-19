@@ -830,9 +830,10 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                                 field.handleChange(value)
                               }
                               placeholder="Select trading symbols..."
-                              searchPlaceholder="Search symbols..."
+                              searchPlaceholder="Search or add symbols..."
                               emptyText="No symbols found."
                               maxDisplayed={5}
+                              creatable
                             />
                             <FieldError errors={field.state.meta.errors} />
                           </Field>
