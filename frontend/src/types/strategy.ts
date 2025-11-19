@@ -94,3 +94,10 @@ export interface CreateStrategyRequest {
     custom_prompt?: string;
   };
 }
+
+// Portfolio Summary types
+export interface PortfolioSummary {
+  cash: number;
+  total_value: number;
+  total_pnl: number;
+}

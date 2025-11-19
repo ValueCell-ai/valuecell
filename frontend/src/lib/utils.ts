@@ -9,7 +9,9 @@ export function cn(...inputs: ClassValue[]) {
 export const isNullOrUndefined = (value: unknown): value is undefined | null =>
   value === undefined || value === null;
 
-export function numberFixed(number: number, decimals = 2): string {
+export function numberFixed(number?: number, decimals = 2): string {
+  if (isNullOrUndefined(number)) return "-";
+
   return new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 0,
     maximumFractionDigits: decimals,

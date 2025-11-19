@@ -4,6 +4,7 @@ import { type ApiResponse, apiClient } from "@/lib/api-client";
 import type {
   CreateStrategyRequest,
   LlmConfig,
+  PortfolioSummary,
   Position,
   Strategy,
   StrategyCompose,
@@ -56,6 +57,21 @@ export const useGetStrategyPriceCurve = (strategyId?: string) => {
     queryFn: () =>
       apiClient.get<ApiResponse<Array<Array<string | number>>>>(
         `/strategies/holding_price_curve?id=${strategyId}`,
+      ),
+    select: (data) => data.data,
+    refetchInterval: 15 * 1000,
+    enabled: !!strategyId,
+  });
+};
+
+export const useGetStrategyPortfolioSummary = (strategyId?: string) => {
+  return useQuery({
+    queryKey: API_QUERY_KEYS.STRATEGY.strategyPortfolioSummary([
+      strategyId ?? "",
+    ]),
+    queryFn: () =>
+      apiClient.get<ApiResponse<PortfolioSummary>>(
+        `/strategies/portfolio_summary?id=${strategyId}`,
       ),
     select: (data) => data.data,
     refetchInterval: 15 * 1000,

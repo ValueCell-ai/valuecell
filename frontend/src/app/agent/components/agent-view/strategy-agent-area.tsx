@@ -5,6 +5,7 @@ import {
   useGetStrategyDetails,
   useGetStrategyHoldings,
   useGetStrategyList,
+  useGetStrategyPortfolioSummary,
   useGetStrategyPriceCurve,
   useStopStrategy,
 } from "@/api/strategy";
@@ -46,8 +47,10 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
   const { data: priceCurve = [] } = useGetStrategyPriceCurve(
     selectedStrategy?.strategy_id,
   );
-
   const { data: positions = [] } = useGetStrategyHoldings(
+    selectedStrategy?.strategy_id,
+  );
+  const { data: summary } = useGetStrategyPortfolioSummary(
     selectedStrategy?.strategy_id,
   );
 
@@ -110,6 +113,7 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
               tradingMode={selectedStrategy.trading_mode}
             />
             <PortfolioPositionsGroup
+              summary={summary}
               priceCurve={priceCurve}
               positions={positions}
             />
