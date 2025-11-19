@@ -53,12 +53,12 @@ class DefaultFeaturesPipeline(FeaturesPipeline):
         candles_micro = await self._market_data_source.get_recent_candles(
             self._symbols, self._micro_interval, self._micro_lookback
         )
-        micro_features = self._feature_computer.compute_features(candles=candles_micro)
+        micro_features = self._candle_feature_computer.compute_features(candles=candles_micro)
 
         candles_medium = await self._market_data_source.get_recent_candles(
             self._symbols, self._medium_interval, self._medium_lookback
         )
-        medium_features = self._feature_computer.compute_features(
+        medium_features = self._candle_feature_computer.compute_features(
             candles=candles_medium
         )
 
@@ -89,6 +89,6 @@ class DefaultFeaturesPipeline(FeaturesPipeline):
         return cls(
             request=request,
             market_data_source=market_data_source,
-            feature_computer=candle_feature_computer,
+            candle_feature_computer=candle_feature_computer,
             market_snapshot_computer=market_snapshot_computer,
         )
