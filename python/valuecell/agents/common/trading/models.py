@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from valuecell.agents.common.trading.constants import (
+from .constants import (
     DEFAULT_AGENT_MODEL,
     DEFAULT_CAP_FACTOR,
     DEFAULT_INITIAL_CAPITAL,
@@ -320,15 +320,22 @@ class Candle(BaseModel):
     interval: str = Field(..., description='Interval string, e.g., "1m", "5m"')
 
 
+CommonKeyType = str
+CommonValueType = float | str | int
+
+
 class FeatureVector(BaseModel):
     """Computed features for a single instrument at a point in time."""
 
-    ts: int
+    ts: int = Field(
+        ...,
+        description="Feature vector timestamp in ms",
+    )
     instrument: InstrumentRef
-    values: Dict[str, float] = Field(
+    values: Dict[CommonKeyType, CommonValueType | List[CommonValueType]] = Field(
         default_factory=dict, description="Feature name to numeric value"
     )
-    meta: Optional[Dict[str, float | int | str]] = Field(
+    meta: Optional[Dict[CommonKeyType, CommonValueType]] = Field(
         default=None,
         description=(
             "Optional metadata about the source window: keys MAY include interval, "

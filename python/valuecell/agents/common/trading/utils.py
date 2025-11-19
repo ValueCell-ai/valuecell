@@ -6,6 +6,10 @@ import ccxt.pro as ccxtpro
 import httpx
 from loguru import logger
 
+from valuecell.agents.common.trading.constants import (
+    FEATURE_GROUP_BY_KEY,
+    FEATURE_GROUP_BY_MARKET_SNAPSHOT,
+)
 from valuecell.agents.common.trading.models import FeatureVector
 
 
@@ -71,6 +75,32 @@ async def fetch_free_cash_from_gateway(execution_gateway, symbols: list[str]) ->
     return float(free_cash)
 
 
+def extract_market_snapshot_features(
+    features: List[FeatureVector],
+) -> List[FeatureVector]:
+    """Extract market snapshot feature vectors for a specific exchange.
+
+    Args:
+        features: List of FeatureVector objects.
+    Returns:
+        List of FeatureVector objects filtered by market snapshot group.
+    """
+    snapshot_features: List[FeatureVector] = []
+
+    for item in features:
+        if not isinstance(item, FeatureVector):
+            continue
+
+        meta = item.meta or {}
+        group_key = meta.get(FEATURE_GROUP_BY_KEY)
+        if group_key != FEATURE_GROUP_BY_MARKET_SNAPSHOT:
+            continue
+
+        snapshot_features.append(item)
+
+    return snapshot_features
+
+
 def extract_price_map(features: List[FeatureVector]) -> Dict[str, float]:
     """Extract symbol -> price map from market snapshot feature vectors."""
 
@@ -81,8 +111,8 @@ def extract_price_map(features: List[FeatureVector]) -> Dict[str, float]:
             continue
 
         meta = item.meta or {}
-        group_key = meta.get("group_by_key")
-        if group_key != "market_snapshot":
+        group_key = meta.get(FEATURE_GROUP_BY_KEY)
+        if group_key != FEATURE_GROUP_BY_MARKET_SNAPSHOT:
             continue
 
         instrument = getattr(item, "instrument", None)

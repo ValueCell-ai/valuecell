@@ -33,6 +33,7 @@ from ..trading_history import (
     BaseHistoryRecorder,
 )
 from ..utils import (
+    extract_market_snapshot_features,
     fetch_free_cash_from_gateway,
     get_current_timestamp_ms,
 )
@@ -118,11 +119,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
 
         pipeline_result = await self._features_pipeline.build()
         features = list(pipeline_result.features or [])
-        market_features = [
-            fv
-            for fv in features
-            if (fv.meta or {}).get("group_by_key") == "market_snapshot"
-        ]
+        market_features = extract_market_snapshot_features(features)
         digest = self._digest_builder.build(self._history_recorder.get_records())
 
         context = ComposeContext(

@@ -4,6 +4,10 @@ from typing import Dict, List, Optional
 import numpy as np
 import pandas as pd
 
+from valuecell.agents.common.trading.constants import (
+    FEATURE_GROUP_BY_INTERVAL_PREFIX,
+    FEATURE_GROUP_BY_KEY,
+)
 from valuecell.agents.common.trading.models import Candle, FeatureVector
 
 from .interfaces import CandleBasedFeatureComputer
@@ -135,7 +139,7 @@ class SimpleCandleFeatureComputer(CandleBasedFeatureComputer):
             window_end_ts = int(last["ts"])
             interval = series[-1].interval
             fv_meta = {
-                "group_by_key": f"interval_{interval}",
+                FEATURE_GROUP_BY_KEY: f"{FEATURE_GROUP_BY_INTERVAL_PREFIX}{interval}",
                 "interval": interval,
                 "count": len(series),
                 "window_start_ts": window_start_ts,

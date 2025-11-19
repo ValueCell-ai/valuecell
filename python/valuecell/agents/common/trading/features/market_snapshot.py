@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from typing import Dict, List
 
+from valuecell.agents.common.trading.constants import (
+    FEATURE_GROUP_BY_KEY,
+    FEATURE_GROUP_BY_MARKET_SNAPSHOT,
+)
 from valuecell.agents.common.trading.models import (
     FeatureVector,
     InstrumentRef,
@@ -91,7 +95,7 @@ class MarketSnapshotFeatureComputer:
                 instrument=InstrumentRef(symbol=symbol, exchange_id=exchange_id),
                 values=values,
                 meta={
-                    "group_by_key": "market_snapshot",
+                    FEATURE_GROUP_BY_KEY: FEATURE_GROUP_BY_MARKET_SNAPSHOT,
                 },
             )
             features.append(feature)
