@@ -17,6 +17,7 @@ from valuecell.server.api.schemas.strategy import (
     StrategyHoldingFlatResponse,
     StrategyListData,
     StrategyListResponse,
+    StrategyPortfolioSummaryResponse,
     StrategyStatusSuccessResponse,
     StrategyStatusUpdateResponse,
     StrategySummaryData,
@@ -188,6 +189,38 @@ def create_strategy_router() -> APIRouter:
         except Exception as e:
             raise HTTPException(
                 status_code=500, detail=f"Failed to retrieve holdings: {str(e)}"
+            )
+
+    @router.get(
+        "/portfolio_summary",
+        response_model=StrategyPortfolioSummaryResponse,
+        summary="Get latest portfolio summary for a strategy",
+        description=(
+            "Return aggregated portfolio metrics (cash, total value, unrealized PnL)"
+            " for the most recent snapshot."
+        ),
+    )
+    async def get_strategy_portfolio_summary(
+        id: str = Query(..., description="Strategy ID"),
+    ) -> StrategyPortfolioSummaryResponse:
+        try:
+            data = await StrategyService.get_strategy_portfolio_summary(id)
+            if not data:
+                return SuccessResponse.create(
+                    data=None,
+                    msg="No portfolio summary found for strategy",
+                )
+
+            return SuccessResponse.create(
+                data=data,
+                msg="Successfully retrieved strategy portfolio summary",
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to retrieve portfolio summary: {str(e)}",
             )
 
     @router.get(

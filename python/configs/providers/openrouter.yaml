@@ -1,50 +1,62 @@
-  # ============================================
-  # OpenRouter Provider Configuration
-  # ============================================
-  name: "OpenRouter"
-  provider_type: "openrouter"
+# ============================================
+# OpenRouter Provider Configuration
+# ============================================
+name: "OpenRouter"
+provider_type: "openrouter"
 
-  enabled: true # Default is true if not specified
+enabled: true # Default is true if not specified
 
-  # Connection Configuration
-  connection:
-    base_url: "https://openrouter.ai/api/v1"
-    api_key_env: "OPENROUTER_API_KEY"
+# Connection Configuration
+connection:
+  base_url: "https://openrouter.ai/api/v1"
+  api_key_env: "OPENROUTER_API_KEY"
 
-  # Default model if none specified
-  default_model: "anthropic/claude-haiku-4.5"
+# Default model if none specified
+default_model: "anthropic/claude-haiku-4.5"
 
-  # Model Parameters Defaults
+# Model Parameters Defaults
+defaults:
+  temperature: 0.5
+
+# Extra headers for OpenRouter API
+extra_headers:
+  HTTP-Referer: "https://valuecell.ai"
+  X-Title: "ValueCell"
+
+# Available Models (commonly used)
+models:
+  - id: "anthropic/claude-haiku-4.5"
+    name: "Claude Haiku 4.5"
+  - id: "x-ai/grok-4"
+    name: "Grok 4"
+  - id: "qwen/qwen-max"
+    name: "Qwen Max"
+  - id: "openai/gpt-5"
+    name: "GPT-5"
+  - id: "google/gemini-2.5-flash"
+    name: "Gemini 2.5 Flash"
+  - id: "google/gemini-2.5-pro"
+    name: "Gemini 2.5 Pro"
+
+# ============================================
+# Embedding Models Configuration
+# ============================================
+# OpenRouter provides embedding models
+embedding:
+  # Default embedding model
+  default_model: "qwen/qwen3-embedding-4b"
+
+  # Default parameters
   defaults:
-    temperature: 0.5
+    dimensions: 2560
+    encoding_format: "float"
 
-  # Extra headers for OpenRouter API
-  extra_headers:
-    HTTP-Referer: "https://valuecell.ai"
-    X-Title: "ValueCell"
-
-  # Available Models (commonly used)
+  # Available embedding models
   models:
-
-    - id: "anthropic/claude-haiku-4.5"
-      name: "Claude Haiku 4.5"
-
-    - id: "x-ai/grok-4"
-      name: "Grok 4"
-
-    - id: "qwen/qwen-max"
-      name: "Qwen Max"
-
-    - id: "openai/gpt-5"
-      name: "GPT-5"
-
-    - id: "google/gemini-2.5-flash"
-      name: "Gemini 2.5 Flash"
-
-    - id: "google/gemini-2.5-pro"
-      name: "Gemini 2.5 Pro"
-
-  # Note: OpenRouter does not support embedding models
-  # For embedding, use other providers like OpenAI or SiliconFlow etc
+  - id: "qwen/qwen3-embedding-4b"
+    name: "Qwen3 Embedding 4B"
+    dimensions: 2560
+    max_input: 32768
+    description: "Qwen3 Embedding Model"
 
 

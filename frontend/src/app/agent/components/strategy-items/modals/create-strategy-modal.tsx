@@ -302,7 +302,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
 
   const resetAll = () => {
     setCurrentStep(1);
-    setSelectedTemplateId("default");
+    setSelectedTemplateId("");
     form1.reset();
     form2.reset();
     form3.reset();
@@ -859,7 +859,6 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
                             </FieldLabel>
                             <div className="flex items-center gap-3">
                               <Select
-                                key={selectedTemplateId}
                                 value={field.state.value}
                                 onValueChange={(value) => {
                                   field.handleChange(value);

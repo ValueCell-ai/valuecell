@@ -4,9 +4,11 @@ on:
   push:
     branches: 
       - "release"
-  pull_request:
-    branches:
-      - "release"
+  # pull_request:
+  #   branches:
+  #     - "release"
+permissions:
+  contents: write
 
 jobs:
   build-macos:
@@ -121,12 +123,16 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ env.CERT_ID }}
         with:
+          tagName: v__VERSION__
+          releaseName: ValueCell-${{ matrix.target }}-__VERSION__
+          releaseDraft: true
+          prerelease: false
           args: ${{ matrix.args }}
           
-      - name: Upload Artifacts
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v5
-        with:
-          path: frontend/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
-          name: ValueCell-${{ matrix.target }}-${{ github.sha }}
-          retention-days: 3
+      # - name: Upload Artifacts
+      #   if: github.event_name == 'pull_request'
+      #   uses: actions/upload-artifact@v5
+      #   with:
+      #     path: frontend/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+      #     name: ValueCell-${{ matrix.target }}-${{ github.sha }}
+      #     retention-days: 3

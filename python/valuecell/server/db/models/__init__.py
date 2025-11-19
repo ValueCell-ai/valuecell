@@ -12,8 +12,10 @@ from .asset import Asset
 # Import base model
 from .base import Base
 from .strategy import Strategy
+from .strategy_compose_cycle import StrategyComposeCycle
 from .strategy_detail import StrategyDetail
 from .strategy_holding import StrategyHolding
+from .strategy_instruction import StrategyInstruction
 from .strategy_portfolio import StrategyPortfolioView
 from .user_profile import ProfileCategory, UserProfile
 from .watchlist import Watchlist, WatchlistItem
@@ -31,4 +33,6 @@ __all__ = [
     "StrategyHolding",
     "StrategyDetail",
     "StrategyPortfolioView",
+    "StrategyComposeCycle",
+    "StrategyInstruction",
 ]

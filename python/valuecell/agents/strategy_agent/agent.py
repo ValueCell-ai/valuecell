@@ -88,12 +88,41 @@ class StrategyAgent(BaseAgent):
         Errors are logged but not raised to keep the decision loop resilient.
         """
         try:
+            # Persist compose cycle and instructions first (NOOP included)
+            try:
+                strategy_persistence.persist_compose_cycle(
+                    strategy_id=strategy_id,
+                    compose_id=result.compose_id,
+                    ts_ms=result.timestamp_ms,
+                    cycle_index=result.cycle_index,
+                    rationale=result.rationale,
+                )
+            except Exception:
+                logger.warning(
+                    "Failed to persist compose cycle for strategy={} compose_id={}",
+                    strategy_id,
+                    result.compose_id,
+                )
+
+            try:
+                strategy_persistence.persist_instructions(
+                    strategy_id=strategy_id,
+                    compose_id=result.compose_id,
+                    instructions=list(result.instructions or []),
+                )
+            except Exception:
+                logger.warning(
+                    "Failed to persist compose instructions for strategy={} compose_id={}",
+                    strategy_id,
+                    result.compose_id,
+                )
+
             for trade in result.trades:
                 item = strategy_persistence.persist_trade_history(strategy_id, trade)
                 if item:
                     logger.info(
                         "Persisted trade {} for strategy={}",
-                        getattr(trade, "trade_id", None),
+                        trade.trade_id,
                         strategy_id,
                     )
 

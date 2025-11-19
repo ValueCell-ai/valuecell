@@ -78,6 +78,15 @@ class StrategyHoldingData(BaseModel):
     total_unrealized_pnl: Optional[float] = Field(
         None, description="Sum of unrealized PnL across positions"
     )
+    total_realized_pnl: Optional[float] = Field(
+        None, description="Sum of realized PnL from closed positions"
+    )
+    gross_exposure: Optional[float] = Field(
+        None, description="Aggregate gross exposure at snapshot"
+    )
+    net_exposure: Optional[float] = Field(
+        None, description="Aggregate net exposure at snapshot"
+    )
     available_cash: Optional[float] = Field(
         None, description="Cash available for new positions"
     )
@@ -86,24 +95,81 @@ class StrategyHoldingData(BaseModel):
 StrategyHoldingResponse = SuccessResponse[StrategyHoldingData]
 
 
-class StrategyDetailItem(BaseModel):
-    trade_id: str = Field(..., description="Unique trade identifier")
-    symbol: str = Field(..., description="Instrument symbol")
-    type: Literal["LONG", "SHORT"] = Field(..., description="Trade type")
-    side: Literal["BUY", "SELL"] = Field(..., description="Entry side")
-    leverage: Optional[float] = Field(None, description="Leverage applied")
-    quantity: float = Field(..., description="Trade quantity")
-    unrealized_pnl: Optional[float] = Field(None, description="Unrealized PnL value")
-    entry_price: Optional[float] = Field(None, description="Entry price")
-    exit_price: Optional[float] = Field(None, description="Exit price if closed")
-    holding_ms: Optional[int] = Field(
-        None, description="Holding duration in milliseconds"
+class StrategyPortfolioSummaryData(BaseModel):
+    strategy_id: str = Field(..., description="Strategy identifier")
+    ts: int = Field(..., description="Snapshot timestamp in ms")
+    cash: Optional[float] = Field(None, description="Cash balance from snapshot")
+    total_value: Optional[float] = Field(
+        None, description="Total portfolio value (cash + positions)"
     )
-    time: Optional[str] = Field(None, description="Entry time in UTC ISO8601")
-    note: Optional[str] = Field(None, description="Additional note")
+    total_pnl: Optional[float] = Field(
+        None,
+        description="Combined realized and unrealized PnL for the snapshot",
+    )
+    gross_exposure: Optional[float] = Field(
+        None, description="Aggregate gross exposure at snapshot"
+    )
+    net_exposure: Optional[float] = Field(
+        None, description="Aggregate net exposure at snapshot"
+    )
 
 
-StrategyDetailResponse = SuccessResponse[List[StrategyDetailItem]]
+StrategyPortfolioSummaryResponse = SuccessResponse[StrategyPortfolioSummaryData]
+
+
+class StrategyActionCard(BaseModel):
+    instruction_id: str = Field(..., description="Instruction identifier (NOT NULL)")
+    symbol: str = Field(..., description="Instrument symbol")
+    action: Optional[
+        Literal["open_long", "open_short", "close_long", "close_short", "noop"]
+    ] = Field(None, description="LLM action (includes noop)")
+    action_display: Optional[str] = Field(
+        None, description="Human-friendly action label for display, e.g. 'OPEN LONG'"
+    )
+    side: Optional[Literal["BUY", "SELL"]] = Field(
+        None, description="Derived execution side"
+    )
+    quantity: Optional[float] = Field(None, description="Order quantity (units)")
+    leverage: Optional[float] = Field(
+        None, description="Leverage applied to the instruction (if any)"
+    )
+    avg_exec_price: Optional[float] = Field(
+        None, description="Average execution price for fills"
+    )
+    entry_price: Optional[float] = Field(None, description="Entry price")
+    exit_price: Optional[float] = Field(None, description="Exit price (if closed)")
+    entry_at: Optional[datetime] = Field(None, description="Entry timestamp")
+    exit_at: Optional[datetime] = Field(None, description="Exit timestamp")
+    holding_time_ms: Optional[int] = Field(
+        None, description="Holding time in milliseconds"
+    )
+    notional_entry: Optional[float] = Field(
+        None, description="Entry notional in quote currency"
+    )
+    notional_exit: Optional[float] = Field(
+        None, description="Exit notional in quote currency"
+    )
+    fee_cost: Optional[float] = Field(
+        None, description="Total fees charged in quote currency"
+    )
+    realized_pnl: Optional[float] = Field(None, description="Realized PnL on close")
+    realized_pnl_pct: Optional[float] = Field(
+        None, description="Realized PnL percentage on close"
+    )
+    rationale: Optional[str] = Field(None, description="LLM rationale text")
+
+
+class StrategyCycleDetail(BaseModel):
+    compose_id: str = Field(..., description="Compose cycle identifier")
+    cycle_index: int = Field(..., description="Cycle index (1-based)")
+    created_at: datetime = Field(..., description="Compose datetime")
+    rationale: Optional[str] = Field(None, description="LLM rationale text")
+    actions: List[StrategyActionCard] = Field(
+        default_factory=list, description="Instruction/action cards for this cycle"
+    )
+
+
+StrategyDetailResponse = SuccessResponse[List[StrategyCycleDetail]]
 
 
 class StrategyHoldingFlatItem(BaseModel):

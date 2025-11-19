@@ -7,7 +7,7 @@ from edgar import set_identity
 from loguru import logger
 
 import valuecell.utils.model as model_utils_mod
-from valuecell.agents.research_agent.knowledge import knowledge
+from valuecell.agents.research_agent.knowledge import get_knowledge
 from valuecell.agents.research_agent.prompts import (
     KNOWLEDGE_AGENT_EXPECTED_OUTPUT,
     KNOWLEDGE_AGENT_INSTRUCTION,
@@ -37,6 +37,8 @@ class ResearchAgent(BaseAgent):
             # search_crypto_vcs,
             # search_crypto_people,
         ]
+        # Lazily obtain knowledge; disable search if unavailable
+        knowledge = get_knowledge()
         self.knowledge_research_agent = Agent(
             model=model_utils_mod.get_model_for_agent("research_agent"),
             instructions=[KNOWLEDGE_AGENT_INSTRUCTION],
@@ -45,7 +47,7 @@ class ResearchAgent(BaseAgent):
             knowledge=knowledge,
             db=InMemoryDb(),
             # context
-            search_knowledge=True,
+            search_knowledge=knowledge is not None,
             add_datetime_to_context=True,
             add_history_to_context=True,
             num_history_runs=3,
@@ -54,7 +56,14 @@ class ResearchAgent(BaseAgent):
             # configuration
             debug_mode=agent_debug_mode_enabled(),
         )
-        set_identity(os.getenv("SEC_EMAIL"))
+        # Configure EDGAR identity only when SEC_EMAIL is present
+        sec_email = os.getenv("SEC_EMAIL")
+        if sec_email:
+            set_identity(sec_email)
+        else:
+            logger.warning(
+                "SEC_EMAIL not set; EDGAR identity is not configured for ResearchAgent."
+            )
 
     async def stream(
         self,
