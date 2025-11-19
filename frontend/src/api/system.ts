@@ -5,7 +5,7 @@ export const useBackendHealth = () => {
   return useQuery({
     queryKey: ["backend-health"],
     queryFn: () =>
-      apiClient.get<boolean>("/health", {
+      apiClient.get<boolean>("/healthz", {
         requiresAuth: false,
       }),
     retry: false,

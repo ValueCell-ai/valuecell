@@ -199,6 +199,10 @@ def _add_routes(app: FastAPI, settings) -> None:
             msg="Welcome to ValueCell Server API",
         )
 
+    @app.get(f"{API_PREFIX}/healthz", response_model=SuccessResponse)
+    async def health_check():
+        return SuccessResponse.create(msg="Welcome to ValueCell!")
+
     # Include i18n router
     app.include_router(create_i18n_router(), prefix=API_PREFIX)
 
