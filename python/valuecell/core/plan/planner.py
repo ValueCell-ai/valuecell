@@ -207,6 +207,12 @@ class ExecutionPlanner:
                 "Please configure a valid API key or provider settings and retry."
             )
 
+        # Be robust if model attributes are unavailable
+        try:
+            model = agent.model
+            model_description = f"{model.id} (via {model.provider})"
+        except Exception:
+            model_description = "unknown model/provider"
         try:
             run_response = agent.run(
                 PlannerInput(
@@ -220,7 +226,7 @@ class ExecutionPlanner:
             logger.exception("Planner run failed: %s", exc)
             return [], (
                 f"Planner encountered an error during execution: {exc}. "
-                "Please try again later."
+                f"Please check the capabilities of your model `{model_description}` and try again later."
             )
 
         # Handle user input requests through Human-in-the-Loop workflow
@@ -246,12 +252,6 @@ class ExecutionPlanner:
             if not run_response.is_paused:
                 break
 
-        # Be robust if model attributes are unavailable
-        try:
-            model = agent.model
-            model_description = f"{model.id} (via {model.provider})"
-        except Exception:
-            model_description = "unknown model/provider"
         # Parse planning result and create tasks
         plan_raw = run_response.content
         if not isinstance(plan_raw, PlannerResponse):
