@@ -4,6 +4,8 @@ Allows users to select an agent from available options and launch it using uv.
 """
 
 import os
+import shlex
+import signal
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -92,9 +94,7 @@ MAP_NAME_COMMAND[NEWS_AGENT_NAME] = (
 MAP_NAME_COMMAND[STRATEGY_AGENT_NAME] = (
     f"uv run --env-file {ENV_PATH_STR} -m valuecell.agents.strategy_agent"
 )
-BACKEND_COMMAND = (
-    f"cd {PYTHON_DIR_STR} && uv run --env-file {ENV_PATH_STR} -m valuecell.server.main"
-)
+BACKEND_COMMAND = f"uv run --env-file {ENV_PATH_STR} -m valuecell.server.main"
 FRONTEND_URL = "http://localhost:1420"
 
 
@@ -139,7 +139,7 @@ def main():
     os.makedirs(log_dir, exist_ok=True)
     print(f"Logs will be saved to {log_dir}/")
 
-    processes = []
+    # processes = []
     logfiles = []
 
     print(
@@ -152,13 +152,62 @@ def main():
     print(f"Frontend available at {FRONTEND_URL}")
     logfile = open(logfile_path, "w")
     logfiles.append(logfile)
+    # Start the backend in a new process group so we can terminate children.
+    # On Windows use CREATE_NEW_PROCESS_GROUP; on POSIX use start_new_session.
     process = subprocess.Popen(
-        BACKEND_COMMAND, shell=True, stdout=logfile, stderr=logfile
+        shlex.split(BACKEND_COMMAND),
+        shell=False,
+        stdout=logfile,
+        stderr=logfile,
+        cwd=PYTHON_DIR_STR,
+        creationflags=(subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0),
+        start_new_session=(os.name == "posix"),
     )
-    processes.append(process)
+    # processes.append(process)
+    # for process in processes:
+    #     process.wait()
+    print(f"Backend (and agents) started with PID: {process.pid}")
 
-    for process in processes:
+    try:
         process.wait()
+    except KeyboardInterrupt:
+        print("\nStopping backend...")
+
+        # Attempt graceful termination of the whole process group.
+        try:
+            if os.name == "posix":
+                # send SIGTERM to the process group
+                os.killpg(process.pid, signal.SIGTERM)
+            else:
+                # Windows: try to send CTRL_BREAK to the process group
+                try:
+                    process.send_signal(signal.CTRL_BREAK_EVENT)
+                except Exception:
+                    process.terminate()
+        except Exception:
+            # Fallback to terminating the parent process
+            try:
+                process.terminate()
+            except Exception:
+                pass
+
+        # Wait briefly for graceful shutdown
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            # Force kill the whole group if still alive
+            try:
+                if os.name == "posix":
+                    os.killpg(process.pid, signal.SIGKILL)
+                else:
+                    process.kill()
+            except Exception:
+                try:
+                    process.kill()
+                except Exception:
+                    pass
+            print("Backend forced killed.")
+
     for logfile in logfiles:
         logfile.close()
     print(f"All agents finished. Check {log_dir}/ for output.")
