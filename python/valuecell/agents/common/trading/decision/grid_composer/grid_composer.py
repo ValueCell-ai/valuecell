@@ -9,20 +9,20 @@ from ...models import (
     ComposeContext,
     ComposeResult,
     InstrumentRef,
-    LlmDecisionAction,
-    LlmDecisionItem,
-    LlmPlanProposal,
     MarketType,
+    TradeDecisionAction,
+    TradeDecisionItem,
+    TradePlanProposal,
     UserRequest,
 )
-from ..prompt_based.composer import LlmComposer
+from ..interfaces import BaseComposer
 
 
-class GridComposer(LlmComposer):
+class GridComposer(BaseComposer):
     """Rule-based grid strategy composer.
 
     Goal: avoid LLM usage by applying simple mean-reversion grid rules to
-    produce an `LlmPlanProposal`, then reuse the parent normalization and
+    produce an `TradePlanProposal`, then reuse the parent normalization and
     risk controls (`_normalize_plan`) to output executable `TradeInstruction`s.
 
     Key rules:
@@ -60,7 +60,7 @@ class GridComposer(LlmComposer):
             self._init_buying_power_context(context)
         )
 
-        items: List[LlmDecisionItem] = []
+        items: List[TradeDecisionItem] = []
         ts = int(context.ts)
 
         # Pre-fetch micro change percentage from features (prefer 1s, fallback 1m)
@@ -118,12 +118,12 @@ class GridComposer(LlmComposer):
                 if chg <= -self._step_pct:
                     # Short-term drop → open long
                     items.append(
-                        LlmDecisionItem(
+                        TradeDecisionItem(
                             instrument=InstrumentRef(
                                 symbol=symbol,
                                 exchange_id=self._request.exchange_config.exchange_id,
                             ),
-                            action=LlmDecisionAction.OPEN_LONG,
+                            action=TradeDecisionAction.OPEN_LONG,
                             target_qty=base_qty,
                             leverage=(
                                 1.0
@@ -146,12 +146,12 @@ class GridComposer(LlmComposer):
                 elif (not is_spot) and chg >= self._step_pct:
                     # Short-term rise → open short (perpetual only)
                     items.append(
-                        LlmDecisionItem(
+                        TradeDecisionItem(
                             instrument=InstrumentRef(
                                 symbol=symbol,
                                 exchange_id=self._request.exchange_config.exchange_id,
                             ),
-                            action=LlmDecisionAction.OPEN_SHORT,
+                            action=TradeDecisionAction.OPEN_SHORT,
                             target_qty=base_qty,
                             leverage=min(
                                 float(self._request.trading_config.max_leverage or 1.0),
@@ -180,12 +180,12 @@ class GridComposer(LlmComposer):
                 up = (avg_px > 0) and (price >= avg_px * (1.0 + self._step_pct))
                 if down:
                     items.append(
-                        LlmDecisionItem(
+                        TradeDecisionItem(
                             instrument=InstrumentRef(
                                 symbol=symbol,
                                 exchange_id=self._request.exchange_config.exchange_id,
                             ),
-                            action=LlmDecisionAction.OPEN_LONG,
+                            action=TradeDecisionAction.OPEN_LONG,
                             target_qty=base_qty * k,
                             leverage=1.0
                             if is_spot
@@ -203,12 +203,12 @@ class GridComposer(LlmComposer):
                     )
                 elif up:
                     items.append(
-                        LlmDecisionItem(
+                        TradeDecisionItem(
                             instrument=InstrumentRef(
                                 symbol=symbol,
                                 exchange_id=self._request.exchange_config.exchange_id,
                             ),
-                            action=LlmDecisionAction.CLOSE_LONG,
+                            action=TradeDecisionAction.CLOSE_LONG,
                             target_qty=min(abs(qty), base_qty * k),
                             leverage=1.0,
                             confidence=min(1.0, k / float(self._max_steps)),
@@ -223,12 +223,12 @@ class GridComposer(LlmComposer):
                 down = (avg_px > 0) and (price <= avg_px * (1.0 - self._step_pct))
                 if up and (not is_spot):
                     items.append(
-                        LlmDecisionItem(
+                        TradeDecisionItem(
                             instrument=InstrumentRef(
                                 symbol=symbol,
                                 exchange_id=self._request.exchange_config.exchange_id,
                             ),
-                            action=LlmDecisionAction.OPEN_SHORT,
+                            action=TradeDecisionAction.OPEN_SHORT,
                             target_qty=base_qty * k,
                             leverage=min(
                                 float(self._request.trading_config.max_leverage or 1.0),
@@ -244,12 +244,12 @@ class GridComposer(LlmComposer):
                     )
                 elif down:
                     items.append(
-                        LlmDecisionItem(
+                        TradeDecisionItem(
                             instrument=InstrumentRef(
                                 symbol=symbol,
                                 exchange_id=self._request.exchange_config.exchange_id,
                             ),
-                            action=LlmDecisionAction.CLOSE_SHORT,
+                            action=TradeDecisionAction.CLOSE_SHORT,
                             target_qty=min(abs(qty), base_qty * k),
                             leverage=1.0,
                             confidence=min(1.0, k / float(self._max_steps)),
@@ -264,7 +264,7 @@ class GridComposer(LlmComposer):
             )
             return ComposeResult(instructions=[], rationale="Grid NOOP")
 
-        plan = LlmPlanProposal(
+        plan = TradePlanProposal(
             ts=ts,
             items=items,
             rationale=f"Grid step={self._step_pct:.4f}, base_fraction={self._base_fraction:.3f}",
