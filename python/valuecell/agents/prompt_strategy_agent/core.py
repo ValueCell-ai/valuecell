@@ -16,8 +16,7 @@ from valuecell.agents.common.trading.features import (
 from valuecell.agents.common.trading.models import UserRequest
 
 
-# TODO: Rename to PromptBasedStrategyAgent
-class StrategyAgent(BaseStrategyAgent):
+class PromptBasedStrategyAgent(BaseStrategyAgent):
     """Default strategy agent with standard feature computation and LLM composer.
 
     This implementation uses:
