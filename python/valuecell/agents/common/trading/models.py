@@ -47,6 +47,17 @@ class TradeSide(str, Enum):
     SELL = "SELL"
 
 
+class StrategyType(str, Enum):
+    """Strategy type selection for StrategyAgent variants.
+
+    - PROMPT: Prompt-based strategy agent
+    - GRID: Grid strategy agent
+    """
+
+    PROMPT = "PromptBasedStrategy"
+    GRID = "GridStrategy"
+
+
 class ComponentType(str, Enum):
     """Component types for StrategyAgent streaming responses."""
 
@@ -186,6 +197,10 @@ class TradingConfig(BaseModel):
 
     strategy_name: Optional[str] = Field(
         default=None, description="User-friendly name for this strategy"
+    )
+    strategy_type: Optional[StrategyType] = Field(
+        default=StrategyType.PROMPT,
+        description="Strategy type: 'prompt based strategy' or 'grid strategy'",
     )
     initial_capital: Optional[float] = Field(
         default=DEFAULT_INITIAL_CAPITAL,
