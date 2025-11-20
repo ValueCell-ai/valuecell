@@ -14,7 +14,7 @@ def get_system_env_dir() -> Path:
 
     - macOS: ~/Library/Application Support/ValueCell
     - Linux: ~/.config/valuecell
-    - Windows: %APPDATA%\ValueCell
+    - Windows: %APPDATA%\\ValueCell
     """
     home = Path.home()
     # Windows
