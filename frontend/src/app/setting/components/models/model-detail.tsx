@@ -79,8 +79,8 @@ export function ModelDetail({ provider }: ModelDetailProps) {
       if (!provider) return;
       updateConfig({
         provider,
-        api_key: value.api_key || providerDetail?.api_key,
-        base_url: value.base_url || providerDetail?.base_url,
+        api_key: value.api_key,
+        base_url: value.base_url,
       });
     },
   });
@@ -90,7 +90,7 @@ export function ModelDetail({ provider }: ModelDetailProps) {
       configForm.setFieldValue("api_key", providerDetail.api_key || "");
       configForm.setFieldValue("base_url", providerDetail.base_url || "");
     }
-  }, [providerDetail, configForm]);
+  }, [providerDetail, configForm.setFieldValue]);
 
   useEffect(() => {
     if (provider) setShowApiKey(false);
