@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 
 from loguru import logger
 
+from valuecell.agents.common.trading import models as agent_models
 from valuecell.agents.common.trading.utils import get_current_timestamp_ms
 from valuecell.server.services import strategy_persistence
 
@@ -206,15 +207,25 @@ class StreamController:
                 "Failed to close runtime resources for strategy {}", self.strategy_id
             )
 
-        # Mark strategy as stopped in persistence
+        if reason == "error_closing_positions":
+            # Special case: we failed to close positions, so mark as ERROR to alert user
+            final_status = agent_models.StrategyStatus.ERROR.value
+        else:
+            final_status = agent_models.StrategyStatus.STOPPED.value
+
+        # Mark strategy as stopped/error in persistence
         try:
-            strategy_persistence.mark_strategy_stopped(self.strategy_id)
+            strategy_persistence.set_strategy_status(self.strategy_id, final_status)
             logger.info(
-                "Marked strategy {} as stopped (reason: {})", self.strategy_id, reason
+                "Marked strategy {} as {} (reason: {})",
+                self.strategy_id,
+                final_status,
+                reason,
             )
         except Exception:
             logger.exception(
-                "Failed to mark strategy stopped for {} (reason: {})",
+                "Failed to mark strategy {} for {} (reason: {})",
+                final_status,
                 self.strategy_id,
                 reason,
             )
@@ -228,3 +239,23 @@ class StreamController:
                 "Error checking running status for strategy {}", self.strategy_id
             )
             return False
+
+    def persist_trades(self, trades: list) -> None:
+        """Persist a list of ad-hoc trades (e.g., from forced closure)."""
+        if not trades:
+            return
+        try:
+            for trade in trades:
+                item = strategy_persistence.persist_trade_history(
+                    self.strategy_id, trade
+                )
+                if item:
+                    logger.info(
+                        "Persisted ad-hoc trade {} for strategy={}",
+                        trade.trade_id,
+                        self.strategy_id,
+                    )
+        except Exception:
+            logger.exception(
+                "Error persisting ad-hoc trades for strategy {}", self.strategy_id
+            )

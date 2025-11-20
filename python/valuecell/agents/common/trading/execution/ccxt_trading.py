@@ -309,6 +309,48 @@ class CCXTExecutionGateway(BaseExecutionGateway):
         # If hash is still too long (e.g. Gate.io 28), truncate it
         return hashed[:max_len]
 
+    def _normalize_reduce_only_meta(self, meta: Dict) -> Dict:
+        """Normalize and apply reduceOnly parameter for exchange compatibility.
+
+        Different exchanges use different parameter names and formats:
+        - Gate.io, Bybit: use 'reduce_only' (snake_case)
+        - Binance, OKX, Hyperliquid, MEXC, Coinbase, Blockchain: use 'reduceOnly' (camelCase)
+
+        This function:
+        1. Extracts reduceOnly value from input (supports both camelCase and snake_case)
+        2. Sets appropriate default (False) for the exchange if not explicitly set
+        3. Applies exchange-specific parameter name
+        4. Ensures consistent boolean format across all exchanges
+
+        Args:
+            meta: Dictionary potentially containing reduceOnly parameters
+
+        Returns:
+            Dictionary with exchange-specific reduceOnly parameter name and value
+        """
+        result = dict(meta or {})
+        exid = self.exchange_id.lower() if self.exchange_id else ""
+
+        # Extract any existing reduceOnly value (supports both formats for flexibility)
+        reduce_only_value = result.pop("reduceOnly", None)
+        if reduce_only_value is None:
+            reduce_only_value = result.pop("reduce_only", None)
+
+        # Determine which parameter name to use based on exchange
+        if exid in ("gate", "bybit"):
+            param_name = "reduce_only"
+        else:
+            # All other exchanges (binance, okx, hyperliquid, mexc, coinbaseexchange, blockchaincom, etc.)
+            param_name = "reduceOnly"
+
+        # Set default to False if not explicitly provided by caller
+        if reduce_only_value is None:
+            result[param_name] = False
+        else:
+            result[param_name] = bool(reduce_only_value)
+
+        return result
+
     def _build_order_params(self, inst: TradeInstruction, order_type: str) -> Dict:
         """Build exchange-specific order params with safe defaults.
 
@@ -317,7 +359,7 @@ class CCXTExecutionGateway(BaseExecutionGateway):
         - Provide reduceOnly defaults for derivatives
         - Provide tdMode for OKX if not specified
         """
-        params: Dict = dict(inst.meta or {})
+        params: Dict = self._normalize_reduce_only_meta(inst.meta or {})
 
         exid = self.exchange_id
 
@@ -341,15 +383,6 @@ class CCXTExecutionGateway(BaseExecutionGateway):
                 params.setdefault("timeInForce", "GTC")
             elif exid == "bybit":
                 params.setdefault("time_in_force", "GoodTillCancel")
-
-        # reduceOnly default for derivatives (oneway mode defaults to False)
-        if exid in ("binance", "okx"):
-            params.setdefault("reduceOnly", False)
-        elif exid == "bybit":
-            params.setdefault("reduce_only", False)
-        elif exid == "hyperliquid":
-            # Hyperliquid only uses 'reduceOnly' (not 'reduce_only')
-            params.setdefault("reduceOnly", False)
 
         # Enforce single-sided mode: strip positionSide/posSide if present
         try:
@@ -856,9 +889,16 @@ class CCXTExecutionGateway(BaseExecutionGateway):
                             elif alt3 in markets:
                                 symbol = alt3
 
-        # Setup leverage and margin mode
-        await self._setup_leverage(symbol, inst.leverage, exchange)
-        await self._setup_margin_mode(symbol, exchange)
+        # Setup leverage and margin mode only for opening positions
+        # For closing positions (reduceOnly), skip these as they are not needed
+        action = (inst.action.value if getattr(inst, "action", None) else None) or str(
+            (inst.meta or {}).get("action") or ""
+        ).lower()
+        is_opening = action in ("open_long", "open_short")
+
+        if is_opening:
+            await self._setup_leverage(symbol, inst.leverage, exchange)
+            await self._setup_margin_mode(symbol, exchange)
 
         # Map instruction to CCXT parameters
         local_side = (
