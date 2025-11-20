@@ -29,6 +29,91 @@ ensure_brew_on_macos() {
   fi
 }
 
+source_nvm() {
+  local locations=("${NVM_DIR:-}" "$HOME/.nvm" "/usr/local/nvm" "/root/.nvm")
+  for dir in "${locations[@]}"; do
+    if [[ -n "$dir" && -s "$dir/nvm.sh" ]]; then
+      export NVM_DIR="$dir"
+      . "$dir/nvm.sh"
+      return 0
+    fi
+  done
+  return 1
+}
+
+ensure_node20() {
+  local need_install=0
+  local major=""
+  if command_exists node; then
+    major="$(node -v 2>/dev/null | sed 's/^v//' | cut -d. -f1)"
+    if [[ -z "$major" || "$major" -lt 20 ]]; then
+      warn "Node $(node -v 2>/dev/null || echo unknown) detected. Need Node >= 20."
+      need_install=1
+    else
+      success "Node $(node -v) is sufficient"
+      return 0
+    fi
+  else
+    info "Node.js not found. Installing Node >= 20..."
+    need_install=1
+  fi
+
+  if [[ $need_install -eq 1 ]]; then
+    case "$(uname -s)" in
+      Darwin)
+        ensure_brew_on_macos
+        info "Installing node@20 via Homebrew..."
+        brew install node@20 || true
+        if command_exists brew; then
+          brew link --overwrite node@20 || true
+        fi
+        ;;
+      Linux)
+        info "Ensuring Node >= 20 via NVM (preferred)..."
+        if ! source_nvm; then
+          info "Installing NVM..."
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+          export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+          source_nvm || true
+        fi
+        if command_exists nvm; then
+          if ! nvm install 20; then
+            warn "nvm failed to install Node 20. Falling back to NodeSource (apt)."
+            if command_exists apt-get; then
+              curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+              apt-get install -y nodejs || true
+            fi
+          fi
+          # Try to use Node 20 if available
+          if nvm ls 20 >/dev/null 2>&1; then
+            nvm use 20 || true
+            nvm alias default 20 || true
+          fi
+        else
+          warn "NVM not available in this shell. Trying NodeSource (apt) fallback..."
+          if command_exists apt-get; then
+            curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+            apt-get install -y nodejs || true
+          else
+            warn "apt-get not found; skipping NodeSource fallback."
+          fi
+        fi
+        hash -r
+        ;;
+      *)
+        warn "Unsupported OS for auto Node install. Please install Node >= 20 manually."
+        ;;
+    esac
+
+    if command_exists node; then
+      success "Node $(node -v) installed/selected"
+    else
+      error "Failed to install/select Node >= 20. Please install manually and retry."
+      exit 1
+    fi
+  fi
+}
+
 ensure_tool() {
   local tool_name="$1"; shift
   local brew_formula="$1"; shift || true
@@ -162,6 +247,7 @@ main() {
   # Ensure tools
   ensure_tool bun oven-sh/bun/bun
   ensure_tool uv uv
+  ensure_node20
 
   compile
 
