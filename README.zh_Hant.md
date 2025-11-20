@@ -147,12 +147,34 @@ bash start.sh
 
 應用程式啟動後，你可以透過網頁介面探索並使用 ValueCell 的各項功能與能力
 
-## 实盘交易 (OKX/Binance)
+## 實盤交易
 
-- 配置 AI 模型: 透過網頁介面新增你的 AI 模型 API Key
-- 配置交易所: 設定 OKX / Binance 的 API 憑證
+- 配置 AI 模型: 透過網頁介面新增你的 AI 模型 API Key。
+- 配置交易所: 設定 Binance/HyperLiquid/OKX/Coinbase... API 憑證
 - 建立策略: 將 AI 模型與交易所組合，建立自訂交易策略
-- 監控與控制: 实时启动/停止策略，并监控交易表现
+- 監控與控制: 透過即時監控啟動/停止策略，並監控交易表現
+
+### 支援的交易所
+
+| 交易所 | 說明 | 狀態 |
+| --- | --- | --- |
+| **Binance** | 僅支援國際站 [binance.com](binance.com)，不支援美國站。使用 USDT-M 合約（USDT 本位合約）。請確保您的合約帳戶有足夠的 USDT 餘額。交易對格式：`BTC/USDT` | ✅ 已測試 |
+| **Hyperliquid** | 僅支援 USDC 作為保證金貨幣。使用您的主錢包地址 + API 錢包私鑰認證（使用 [API 頁面](https://app.hyperliquid.xyz/API) 申請）。市價單會自動轉換為 IoC 限價單。交易對格式必須手動調整為 `SYMBOL/USDC`（例如 `WIF/USDC`） | ✅ 已測試 |
+| **OKX** | 需要 API Key、Secret 和 Passphrase 進行認證。支援 USDT 本位合約。交易對格式：`BTC/USDT` | ✅ 已測試 |
+| Coinbase | 支援 USDT 本位合約。Coinbase International 尚未支援 | 🟡 部分測試 |
+| Gate.io | 支援 USDT 本位合約。需要 API Key 和 Secret | 🟡 部分測試 |
+| MEXC | 支援 USDT 本位合約。需要 API Key 和 Secret | 🟡 部分測試 |
+| Blockchain | 支援 USDT 本位合約。需要 API Key 和 Secret | 🟡 部分測試 |
+
+**圖例**:
+- ✅ **已測試**: 在生產環境中經過充分測試和驗證
+- 🟡 **部分測試**: 程式碼實作已完成但未完全測試，可能需要除錯
+- **推薦**: 優先使用經過充分測試的交易所（Binance, Hyperliquid, OKX）
+
+### 注意事項
+- 目前僅支援槓桿/合約交易，因此您需要確保您的永續合約（Perps）帳戶有足夠的餘額。
+- 您必須妥善保管您的 API 密鑰以避免資金損失。該應用程式將密鑰本地儲存在您的裝置上，不會透過網際網路發送給任何第三方。
+- 為了確保您的帳戶安全，您需要定期重設您的 API 密鑰。
 
 ---
 

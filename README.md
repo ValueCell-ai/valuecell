@@ -151,15 +151,37 @@ bash start.sh
 
 Once the application is running, you can explore the web interface to interact with ValueCell's features and capabilities.
 
-## Live Trading (OKX/Binance)
+## Live Trading
 
 - Configure AI Models: Add your AI Model API Key through the web interface.
-- Configure Exchanges: Set up OKX/Binance API credentials
+- Configure Exchanges: Set up Binance/HyperLiquid/OKX/Coinbase... API credentials
 - Create Strategies: Combine AI model with exchange to create custom strategies
 - Monitor & Control: Start/stop traders and monitor performance in real-time
 
+### Supported Exchanges
+
+| Exchange | Notes | Status |
+| --- | --- | --- |
+| **Binance** | Only supports international site [binance.com](binance.com), not US site. Uses USDT-M futures (USDT-margined contracts). Ensure your futures account has sufficient USDT balance. Trading pair format: `BTC/USDT` | ✅ Tested |
+| **Hyperliquid** | Only supports USDC as margin currency. Uses your main wallet address + API wallet private key authentication (use [API tab](https://app.hyperliquid.xyz/API) to apply). Market orders are automatically converted to IoC limit orders. Trading pair format must be manually adjusted to `SYMBOL/USDC` (e.g., `WIF/USDC`) | ✅ Tested |
+| **OKX** | Requires API Key, Secret, and Passphrase for authentication. Supports USDT-margined contracts. Trading pair format: `BTC/USDT` | ✅ Tested |
+| Coinbase | Supports USDT-margined contracts. Coinbase International is not yet supported | 🟡 Partially Tested |
+| Gate.io | Supports USDT-margined contracts. Requires API Key and Secret | 🟡 Partially Tested |
+| MEXC | Supports USDT-margined contracts. Requires API Key and Secret | 🟡 Partially Tested |
+| Blockchain | Supports USDT-margined contracts. Requires API Key, Secret | 🟡 Partially Tested |
+
+**Legend**:
+- ✅ **Tested**: Fully tested and verified in production environment
+- 🟡 **Partially Tested**: Code implementation complete but not fully tested, may require debugging
+- **Recommended**: Prioritize using fully tested exchanges (Binance, Hyperliquid, OKX)
+
+### Notice
+- Currently supports leverage trading only, so you need to ensure your Perps account has sufficient balance.
+- You must keep your API secrets secure to avoid losing funds. The app stores secrets locally on your device and will not send them to any third party over the internet.
+- To ensure your account safety, you need to reset your API keys regularly. 
+
 ---
-**Note**：Before running the application, ensure all prerequisites are installed and environment variables are properly configured. If it has been a long time since the last update, you can delete the database files in the project`lancedb/`,`valuecell.db`, `.knowledgebase/`and start again
+**Note**: Before running the application, ensure all prerequisites are installed and environment variables are properly configured. If it has been a long time since the last update, you can delete the database files in the project directories: `lancedb/`, `valuecell.db`, `.knowledgebase/` and start fresh
 
 # Developers
 
