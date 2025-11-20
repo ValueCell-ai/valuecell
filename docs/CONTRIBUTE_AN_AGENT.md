@@ -14,7 +14,7 @@ The AI will read through this documentation and generate all necessary files:
 
 - Agent module (`core.py`, `__main__.py`, `__init__.py`)
 - Configuration files (YAML and JSON)
-- Launch script registration
+- Agent card registration (JSON)
 
 This is the fastest way to get started and learn the agent structure hands-on!
 
@@ -23,7 +23,7 @@ This is the fastest way to get started and learn the agent structure hands-on!
 - [Architecture Overview](#architecture-overview)
 - [Create a New Agent](#create-a-new-agent)
 - [Add an Agent Configuration](#add-an-agent-configuration-required)
-- [Register Agent in Launch Script](#register-agent-in-launch-script)
+- [Run Your Agent](#run-your-agent)
 - [Use Models and Tools](#use-models-and-tools-inside-an-agent)
 - [Event System](#event-system-contracts)
 - [Launch Backend](#launch-backend)
@@ -127,7 +127,7 @@ if __name__ == "__main__":
 > Always place the wrap and serve logic in `__main__.py`. This pattern enables:
 >
 > - Consistent agent launching via `uv run -m valuecell.agents.your_agent`
-> - Integration with the ValueCell launch script
+> - Automatic discovery by the ValueCell backend server
 > - Standardized transport and event emission
 
 Run your agent:
@@ -243,50 +243,46 @@ The `name` must match your agent class name (e.g., `HelloAgent`). The `url` deci
 > - Change the `url` port if it's occupied. The wrapper reads host/port from this URL when serving
 > - If you see "No agent configuration found … in agent cards", check the `name` and the JSON location
 
-## Register Agent in Launch Script
+## Run Your Agent
 
-To enable your agent to be launched via the project's launch script, register it in `python/scripts/launch.py`.
+### Local Development
 
-### Add Agent to Launch Script
-
-Open `python/scripts/launch.py` and add your agent:
-
-```python
-# Define agent name constant
-HELLO_AGENT_NAME = "HelloAgent"
-
-# Add to AGENTS list
-AGENTS = [
-    RESEARCH_AGENT_NAME,
-    AUTO_TRADING_AGENT_NAME,
-    HELLO_AGENT_NAME,  # Add your agent here
-]
-
-# Add launch command mapping
-MAP_NAME_COMMAND[HELLO_AGENT_NAME] = (
-    f"uv run --env-file {ENV_PATH_STR} -m valuecell.agents.hello_agent"
-)
-```
-
-Now you can launch your agent using the project's start script. The `start.sh` (or `start.ps1` on Windows) script automatically invokes `launch.py`:
+For local web development, simply start the backend server which will automatically load all agents:
 
 ```bash
-# Launch all registered agents including yours
+# Start the full stack (frontend + backend with all agents)
 bash start.sh
 
-# Or manually run the launch script
-cd python
-python scripts/launch.py
+# Or start backend only
+bash start.sh --no-frontend
 ```
 
-The launch script will:
+The backend will automatically discover and initialize your agent based on the agent card configuration.
 
-- Start your agent as a background service
-- Create log files in `logs/{timestamp}/HelloAgent.log`
-- Display the agent's URL for monitoring
+### Direct Agent Execution
 
-> [!NOTE]
-> The current launch script implementation will be optimized in future releases with automatic agent discovery and registration. For now, manual registration is required.
+You can also run your agent directly using Python module syntax:
+
+```bash
+cd python
+uv run python -m valuecell.agents.hello_agent
+```
+
+### Client Application
+
+For the packaged client application (Tauri):
+1. The agent will be automatically included in the build
+2. No additional registration is required
+3. Test using workflow builds: `.github/workflows/mac_build.yml`
+
+> [!TIP]
+> Environment variables are loaded from system application directory:
+> - **macOS**: `~/Library/Application Support/ValueCell/.env`
+> - **Linux**: `~/.config/valuecell/.env`
+> - **Windows**: `%APPDATA%\ValueCell\.env`
+> 
+> The `.env` file will be auto-created from `.env.example` on first run if it doesn't exist.
+> Both local development and packaged client use the same location.
 
 ## Use Models and Tools Inside an Agent
 

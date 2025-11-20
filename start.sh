@@ -101,8 +101,8 @@ start_backend() {
     warn "Backend directory not found; skipping backend start"
     return 0
   fi
-  info "Starting backend (uv run scripts/launch.py)..."
-  cd "$PY_DIR" && uv run --with questionary scripts/launch.py
+  info "Starting backend (uv run python -m valuecell.server.main)..."
+  cd "$PY_DIR" && uv run python -m valuecell.server.main
 }
 
 start_frontend() {
@@ -138,6 +138,11 @@ Usage: ./start.sh [options]
 Description:
   - Checks whether bun and uv are installed; on macOS, missing tools will be auto-installed via Homebrew.
   - Then installs backend and frontend dependencies and starts services.
+  - Environment variables are loaded from system path:
+    * macOS: ~/Library/Application Support/ValueCell/.env
+    * Linux: ~/.config/valuecell/.env
+    * Windows: %APPDATA%\ValueCell\.env
+  - The .env file will be auto-created from .env.example on first run.
 
 Options:
   --no-frontend   Start backend only

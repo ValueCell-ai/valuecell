@@ -22,12 +22,12 @@ logger = logging.getLogger(__name__)
 
 
 def load_env_file_early() -> None:
-    """Load environment variables using only the system `.env` file.
+    """Load environment variables from system application directory.
 
     Behavior:
-    - If the system `.env` exists, load it with `override=True`.
-    - If it does not exist and the repository has `.env.example`, copy it to the system path and then load.
-    - Do not create or use the repository root `.env`.
+    - Loads from system path (e.g., ~/Library/Application Support/ValueCell/.env on macOS)
+    - Auto-creates from .env.example if not exists
+    - Used by both local development and packaged client
     """
     try:
         from dotenv import load_dotenv
@@ -76,7 +76,7 @@ def load_env_file_early() -> None:
 
 
 def _load_env_file_manual() -> None:
-    """Fallback manual parsing: use only the system `.env`; create from example if needed."""
+    """Fallback manual parsing for system .env file."""
     try:
         current_dir = Path(__file__).parent
         project_root = current_dir.parent.parent.parent
