@@ -29,6 +29,9 @@ class BaseComposer(ABC):
     Output: TradeInstruction list
     """
 
+    def __init__(self, *args, **kwargs) -> None:
+        pass
+
     @abstractmethod
     async def compose(self, context: ComposeContext) -> ComposeResult:
         """Produce normalized trade instructions given the current context.
