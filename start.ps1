@@ -161,9 +161,11 @@ function Start-Backend {
         return
     }
     
-    Write-Info "Starting backend (uv run python -m valuecell.server.main)..."
+    Write-Info "Starting backend in debug mode (AGENT_DEBUG_MODE=true)..."
     Push-Location $PY_DIR
     try {
+        # Set debug mode for local development
+        $env:AGENT_DEBUG_MODE = "true"
         & uv run python -m valuecell.server.main
     } catch {
         Write-Err "Failed to start backend: $_"
@@ -252,6 +254,7 @@ Description:
     * Linux: ~/.config/valuecell/.env
     * Windows: %APPDATA%\ValueCell\.env
   - The .env file will be auto-created from .env.example on first run.
+  - Debug mode is automatically enabled (AGENT_DEBUG_MODE=true) for local development.
 
 Options:
   -NoFrontend     Start backend only

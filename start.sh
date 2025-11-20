@@ -101,8 +101,8 @@ start_backend() {
     warn "Backend directory not found; skipping backend start"
     return 0
   fi
-  info "Starting backend (uv run python -m valuecell.server.main)..."
-  cd "$PY_DIR" && uv run python -m valuecell.server.main
+  info "Starting backend in debug mode (AGENT_DEBUG_MODE=true)..."
+  cd "$PY_DIR" && AGENT_DEBUG_MODE=true uv run python -m valuecell.server.main
 }
 
 start_frontend() {
@@ -143,6 +143,7 @@ Description:
     * Linux: ~/.config/valuecell/.env
     * Windows: %APPDATA%\ValueCell\.env
   - The .env file will be auto-created from .env.example on first run.
+  - Debug mode is automatically enabled (AGENT_DEBUG_MODE=true) for local development.
 
 Options:
   --no-frontend   Start backend only
