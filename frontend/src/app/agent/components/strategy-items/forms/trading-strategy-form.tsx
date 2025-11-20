@@ -1,0 +1,183 @@
+import { MultiSelect } from "@valuecell/multi-select";
+import { Eye, Plus } from "lucide-react";
+import { useCreateStrategyPrompt } from "@/api/strategy";
+import { Button } from "@/components/ui/button";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { TRADING_SYMBOLS } from "@/constants/agent";
+import { withForm } from "@/hooks/use-form";
+import type { StrategyPrompt } from "@/types/strategy";
+import NewPromptModal from "../modals/new-prompt-modal";
+import ViewStrategyModal from "../modals/view-strategy-modal";
+
+export const TradingStrategyForm = withForm({
+  defaultValues: {
+    strategy_name: "",
+    initial_capital: 1000,
+    max_leverage: 8,
+    symbols: TRADING_SYMBOLS,
+    template_id: "",
+  },
+  props: {
+    prompts: [] as StrategyPrompt[],
+  },
+  render({ form, prompts }) {
+    const { mutateAsync: createStrategyPrompt } = useCreateStrategyPrompt();
+
+    return (
+      <FieldGroup className="gap-6">
+        <form.AppField name="strategy_name">
+          {(field) => (
+            <field.TextField
+              label="Strategy Name"
+              placeholder="Enter strategy name"
+            />
+          )}
+        </form.AppField>
+
+        {/* Transaction Configuration */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-2">
+            <div className="h-4 w-1 rounded-sm bg-black" />
+            <h3 className="font-semibold text-lg leading-tight">
+              Transaction configuration
+            </h3>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex gap-4">
+              <form.AppField name="initial_capital">
+                {(field) => (
+                  <field.TextField
+                    className="flex-1"
+                    label="Initial Capital"
+                    placeholder="Enter Initial Capital"
+                    onChange={(e) => field.handleChange(Number(e.target.value))}
+                  />
+                )}
+              </form.AppField>
+
+              <form.AppField name="max_leverage">
+                {(field) => (
+                  <field.TextField
+                    className="flex-1"
+                    label="Max Leverage"
+                    placeholder="Max Leverage"
+                    onChange={(e) => field.handleChange(Number(e.target.value))}
+                  />
+                )}
+              </form.AppField>
+            </div>
+
+            <form.Field name="symbols">
+              {(field) => (
+                <Field>
+                  <FieldLabel className="font-medium text-base text-gray-950">
+                    Trading Symbols
+                  </FieldLabel>
+                  <MultiSelect
+                    options={TRADING_SYMBOLS}
+                    value={field.state.value}
+                    onValueChange={(value) => field.handleChange(value)}
+                    placeholder="Select trading symbols..."
+                    searchPlaceholder="Search or add symbols..."
+                    emptyText="No symbols found."
+                    maxDisplayed={5}
+                    creatable
+                  />
+                  <FieldError errors={field.state.meta.errors} />
+                </Field>
+              )}
+            </form.Field>
+          </div>
+        </div>
+
+        {/* Trading Strategy Prompt */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-2">
+            <div className="h-4 w-1 rounded-sm bg-black" />
+            <h3 className="font-semibold text-lg leading-tight">
+              Trading strategy prompt
+            </h3>
+          </div>
+
+          <div className="space-y-4">
+            <form.Field name="template_id">
+              {(field) => (
+                <Field>
+                  <FieldLabel className="font-medium text-base text-gray-950">
+                    System Prompt Template
+                  </FieldLabel>
+                  <div className="flex items-center gap-3">
+                    <Select
+                      value={field.state.value}
+                      onValueChange={(value) => {
+                        field.handleChange(value);
+                      }}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        {prompts.length > 0 &&
+                          prompts.map((prompt) => (
+                            <SelectItem key={prompt.id} value={prompt.id}>
+                              {prompt.name}
+                            </SelectItem>
+                          ))}
+                        <NewPromptModal
+                          onSave={async (value) => {
+                            const { data: prompt } =
+                              await createStrategyPrompt(value);
+                            form.setFieldValue("template_id", prompt.id);
+                          }}
+                        >
+                          <Button
+                            className="w-full"
+                            type="button"
+                            variant="outline"
+                          >
+                            <Plus />
+                            New Prompt
+                          </Button>
+                        </NewPromptModal>
+                      </SelectContent>
+                    </Select>
+
+                    <ViewStrategyModal
+                      prompt={prompts.find(
+                        (prompt) => prompt.id === field.state.value,
+                      )}
+                    >
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="hover:bg-gray-50"
+                      >
+                        <Eye />
+                        View Strategy
+                      </Button>
+                    </ViewStrategyModal>
+                  </div>
+                  <FieldError errors={field.state.meta.errors} />
+                </Field>
+              )}
+            </form.Field>
+          </div>
+        </div>
+      </FieldGroup>
+    );
+  },
+});

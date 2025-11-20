@@ -1,18 +1,23 @@
-import type { FC } from "react";
+import type { FC, InputHTMLAttributes } from "react";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useFieldContext } from "@/hooks/use-form";
 
-interface TextFieldProps {
+type TextFieldProps = {
   label: string;
   placeholder: string;
-}
+  className?: string;
+} & InputHTMLAttributes<HTMLInputElement>;
 
-export const TextField: FC<TextFieldProps> = ({ label, placeholder }) => {
+export const TextField: FC<TextFieldProps> = ({
+  label,
+  placeholder,
+  className,
+}) => {
   const field = useFieldContext<string | number>();
 
   return (
-    <Field>
+    <Field className={className}>
       <FieldLabel className="font-medium text-base text-gray-950">
         {label}
       </FieldLabel>
