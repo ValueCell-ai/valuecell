@@ -12,13 +12,15 @@ from sqlalchemy.orm import Session
 from valuecell.agents.common.trading.models import (
     StrategyStatus,
     StrategyStatusContent,
+    StrategyType,
     UserRequest,
 )
 from valuecell.config.loader import get_config_loader
 from valuecell.core.coordinate.orchestrator import AgentOrchestrator
 from valuecell.core.types import CommonResponseEvent, UserInput, UserInputMetadata
 from valuecell.server.api.schemas.base import SuccessResponse
-from valuecell.server.api.schemas.strategy import StrategyType
+
+# Note: Strategy type is now part of TradingConfig in the request body.
 from valuecell.server.db.connection import get_db
 from valuecell.server.db.repositories import get_strategy_repository
 from valuecell.utils.uuid import generate_conversation_id, generate_uuid
@@ -33,10 +35,6 @@ def create_strategy_agent_router() -> APIRouter:
     @router.post("/create")
     async def create_strategy_agent(
         request: UserRequest,
-        strategy_type: StrategyType = Query(
-            default=StrategyType.PROMPT,
-            description="'prompt based strategy' or 'grid strategy'",
-        ),
         db: Session = Depends(get_db),
     ):
         """
@@ -104,17 +102,21 @@ def create_strategy_agent_router() -> APIRouter:
 
             query = user_request.model_dump_json()
 
-            # Select target agent based on strategy_type (enum)
-            if strategy_type == StrategyType.PROMPT:
+            # Use enum directly for comparison; derive human-readable label for metadata
+            strategy_type_enum = (
+                user_request.trading_config.strategy_type or StrategyType.PROMPT
+            )
+
+            if strategy_type_enum == StrategyType.PROMPT:
                 agent_name = "PromptBasedStrategyAgent"
-            elif strategy_type == StrategyType.GRID:
+            elif strategy_type_enum == StrategyType.GRID:
                 agent_name = "GridStrategyAgent"
             else:
                 raise HTTPException(
                     status_code=400,
                     detail=(
-                        f"Unsupported strategy_type: '{strategy_type}'. "
-                        "Use 'prompt based strategy' or 'grid strategy'"
+                        f"Unsupported strategy_type: '{strategy_type_enum}'. "
+                        "Use 'PromptBasedStrategy' or 'GridStrategy'"
                     ),
                 )
 
@@ -152,7 +154,7 @@ def create_strategy_agent_router() -> APIRouter:
                             )
                             metadata = {
                                 "agent_name": agent_name,
-                                "strategy_type": strategy_type.value,
+                                "strategy_type": strategy_type_enum,
                                 "model_provider": request.llm_model_config.provider,
                                 "model_id": request.llm_model_config.model_id,
                                 "exchange_id": request.exchange_config.exchange_id,
@@ -193,7 +195,7 @@ def create_strategy_agent_router() -> APIRouter:
                     )
                     metadata = {
                         "agent_name": agent_name,
-                        "strategy_type": strategy_type.value,
+                        "strategy_type": strategy_type_enum,
                         "model_provider": request.llm_model_config.provider,
                         "model_id": request.llm_model_config.model_id,
                         "exchange_id": request.exchange_config.exchange_id,
@@ -229,7 +231,7 @@ def create_strategy_agent_router() -> APIRouter:
                     )
                     metadata = {
                         "agent_name": agent_name,
-                        "strategy_type": strategy_type.value,
+                        "strategy_type": strategy_type_enum,
                         "model_provider": request.llm_model_config.provider,
                         "model_id": request.llm_model_config.model_id,
                         "exchange_id": request.exchange_config.exchange_id,
@@ -268,7 +270,7 @@ def create_strategy_agent_router() -> APIRouter:
                 )
                 metadata = {
                     "agent_name": agent_name,
-                    "strategy_type": strategy_type.value,
+                    "strategy_type": strategy_type_enum,
                     "model_provider": request.llm_model_config.provider,
                     "model_id": request.llm_model_config.model_id,
                     "exchange_id": request.exchange_config.exchange_id,
