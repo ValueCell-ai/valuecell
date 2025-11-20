@@ -253,16 +253,60 @@ class CCXTExecutionGateway(ExecutionGateway):
     def _sanitize_client_order_id(self, raw_id: str) -> str:
         """Sanitize client order id to satisfy exchange constraints.
 
-        - Remove non-alphanumeric characters (safe for OKX 'clOrdId')
-        - Truncate to 32 characters (common OKX limit)
-        - If empty after sanitization, derive a short hash
-        """
-        safe = "".join(ch for ch in (raw_id or "") if ch.isalnum())
-        if not safe:
-            import hashlib
+        Constraints:
+        - Gate.io: max 28 chars, alphanumeric + '.-_'
+        - OKX: max 32 chars, alphanumeric only
+        - Binance: max 36 chars (typically), alphanumeric + '.-_:'
+        - Others: default to 32 chars (MD5 length) for safety
 
-            safe = hashlib.sha1((raw_id or "").encode()).hexdigest()[:16]
-        return safe[:32]
+        Strategy:
+        1. Filter allowed characters based on exchange rules.
+        2. Check length limit.
+        3. If too long, use MD5 hash (32 chars) and truncate if necessary.
+        """
+        if not raw_id:
+            return ""
+
+        # 1. Determine allowed characters and max length
+        # Default: alphanumeric + basic separators
+        allowed_chars = set(
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_:"
+        )
+        max_len = 32
+
+        if self.exchange_id == "gate":
+            # Gate.io: max 28 chars, alphanumeric + .-_ (no colon)
+            max_len = 28
+            allowed_chars = set(
+                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-_"
+            )
+        elif self.exchange_id == "okx":
+            # OKX: max 32 chars, alphanumeric only
+            max_len = 32
+            allowed_chars = set(
+                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+            )
+        elif self.exchange_id == "binance":
+            # Binance: max 36 chars
+            max_len = 36
+        elif self.exchange_id == "bybit":
+            # Bybit: max 36 chars
+            max_len = 36
+
+        # Filter characters
+        safe = "".join(ch for ch in raw_id if ch in allowed_chars)
+
+        # 2. Check length
+        if safe and len(safe) <= max_len:
+            return safe
+
+        # 3. Fallback: MD5 hash (32 chars)
+        import hashlib
+
+        hashed = hashlib.md5(raw_id.encode()).hexdigest()
+
+        # If hash is still too long (e.g. Gate.io 28), truncate it
+        return hashed[:max_len]
 
     def _build_order_params(self, inst: TradeInstruction, order_type: str) -> Dict:
         """Build exchange-specific order params with safe defaults.
@@ -276,16 +320,12 @@ class CCXTExecutionGateway(ExecutionGateway):
 
         exid = self.exchange_id
 
-        # Idempotency / client order id (sanitize for OKX)
+        # Idempotency / client order id
         # Hyperliquid doesn't support clientOrderId
         if exid != "hyperliquid":
             raw_client_id = params.get("clientOrderId", inst.instruction_id)
             if raw_client_id:
-                client_id = (
-                    self._sanitize_client_order_id(raw_client_id)
-                    if exid == "okx"
-                    else raw_client_id
-                )
+                client_id = self._sanitize_client_order_id(raw_client_id)
                 params["clientOrderId"] = client_id
 
         # Default tdMode for OKX on all orders
@@ -519,6 +559,139 @@ class CCXTExecutionGateway(ExecutionGateway):
             logger.warning(f"Could not fetch Binance futures balance: {e}")
             return None
 
+    def _extract_fee_from_order(
+        self, order: Dict, symbol: str, filled_qty: float, avg_price: float
+    ) -> float:
+        """Extract fee cost from order response with exchange-specific fallbacks.
+
+        Supports multiple exchange fee structures:
+        - Standard CCXT unified 'fee' field
+        - Binance 'fills' array with commission details
+        - OKX 'info.fee' field
+        - Bybit 'info.cumExecFee' field
+        - Other exchange-specific formats
+
+        Args:
+            order: Order response from exchange
+            symbol: Trading symbol
+            filled_qty: Filled quantity
+            avg_price: Average execution price
+
+        Returns:
+            Fee cost in quote currency (USDT/USD), or 0.0 if not available
+        """
+        fee_cost = 0.0
+
+        try:
+            # Method 1: Standard CCXT unified fee field
+            if "fee" in order and order["fee"]:
+                fee_info = order["fee"]
+                cost = fee_info.get("cost")
+                if cost is not None and cost > 0:
+                    fee_cost = float(cost)
+                    logger.debug(f"  💰 Fee from CCXT unified field: {fee_cost}")
+                    return fee_cost
+
+            # Method 2: Exchange-specific extraction from 'info' field
+            info = order.get("info", {})
+
+            if self.exchange_id == "binance":
+                # Binance: Extract from 'fills' array
+                fills = info.get("fills", [])
+                if fills:
+                    for fill in fills:
+                        commission = float(fill.get("commission", 0.0))
+                        commission_asset = fill.get("commissionAsset", "")
+
+                        # If fee is in quote currency (USDT/BUSD/USD), add directly
+                        if commission_asset in ("USDT", "BUSD", "USD", "USDC"):
+                            fee_cost += commission
+                        # If fee is in BNB or other asset, log it but don't convert
+                        elif commission > 0:
+                            logger.info(
+                                f"  💰 Fee paid in {commission_asset}: {commission}"
+                            )
+                            # Could implement conversion logic here if needed
+
+                    if fee_cost > 0:
+                        logger.debug(f"  💰 Fee from Binance fills: {fee_cost}")
+                        return fee_cost
+
+            elif self.exchange_id == "okx":
+                # OKX: fee is in 'info.fee' or 'info.fillFee'
+                fee_str = info.get("fee") or info.get("fillFee")
+                if fee_str:
+                    fee_cost = abs(float(fee_str))  # OKX returns negative fee
+                    logger.debug(f"  💰 Fee from OKX info: {fee_cost}")
+                    return fee_cost
+
+            elif self.exchange_id == "bybit":
+                # Bybit: cumExecFee or execFee
+                cum_fee = info.get("cumExecFee") or info.get("execFee")
+                if cum_fee:
+                    fee_cost = float(cum_fee)
+                    logger.debug(f"  💰 Fee from Bybit info: {fee_cost}")
+                    return fee_cost
+
+            elif self.exchange_id in ("gate", "gateio"):
+                # Gate.io: fee field in info
+                fee_str = info.get("fee")
+                if fee_str:
+                    fee_cost = float(fee_str)
+                    logger.debug(f"  💰 Fee from Gate.io info: {fee_cost}")
+                    return fee_cost
+
+            elif self.exchange_id == "kucoin":
+                # KuCoin: fee in info
+                fee_str = info.get("fee")
+                if fee_str:
+                    fee_cost = float(fee_str)
+                    logger.debug(f"  💰 Fee from KuCoin info: {fee_cost}")
+                    return fee_cost
+
+            elif self.exchange_id == "mexc":
+                # MEXC: commission in fills
+                fills = info.get("fills", [])
+                if fills:
+                    for fill in fills:
+                        commission = float(fill.get("commission", 0.0))
+                        fee_cost += commission
+
+                    if fee_cost > 0:
+                        logger.debug(f"  💰 Fee from MEXC fills: {fee_cost}")
+                        return fee_cost
+
+            elif self.exchange_id == "bitget":
+                # Bitget: fee in info.feeDetail
+                fee_detail = info.get("feeDetail", {})
+                if fee_detail:
+                    total_fee = float(fee_detail.get("totalFee", 0.0))
+                    if total_fee > 0:
+                        fee_cost = total_fee
+                        logger.debug(f"  💰 Fee from Bitget info: {fee_cost}")
+                        return fee_cost
+
+            elif self.exchange_id == "hyperliquid":
+                # Hyperliquid: typically no fee field, might need special handling
+                # Check if there's a fee in info
+                fee_str = info.get("fee")
+                if fee_str:
+                    fee_cost = float(fee_str)
+                    logger.debug(f"  💰 Fee from Hyperliquid info: {fee_cost}")
+                    return fee_cost
+
+            # Method 3: Estimate from trading fee rate if available (last resort)
+            if fee_cost == 0.0 and filled_qty > 0 and avg_price > 0:
+                # Don't estimate, just log that fee wasn't found
+                logger.debug(
+                    f"  💰 No fee information found for {symbol} on {self.exchange_id}"
+                )
+
+        except Exception as e:
+            logger.warning(f"  ⚠️ Error extracting fee for {symbol}: {e}")
+
+        return fee_cost
+
     async def execute(
         self,
         instructions: List[TradeInstruction],
@@ -602,6 +775,51 @@ class CCXTExecutionGateway(ExecutionGateway):
         # Fallback to generic submission
         return await self._submit_order(inst, exchange)
 
+    def _apply_exchange_specific_precision(
+        self, symbol: str, amount: float, price: float | None, exchange: ccxt.Exchange
+    ) -> tuple[float, float | None]:
+        """Apply exchange-specific precision rules.
+
+        Especially important for Hyperliquid (integers for some, decimals for others)
+        and handling min/max constraints robustly.
+        """
+        try:
+            # 1. Standard CCXT precision
+            # Some exchanges raise errors if amount < precision (e.g. Binance)
+            # We catch this and return 0.0 to signal invalid amount
+            try:
+                amount = float(exchange.amount_to_precision(symbol, amount))
+            except Exception as e:
+                # Catch generic errors from amount_to_precision, including precision violations
+                # Log warning but return 0.0 to allow clean skipping downstream
+                logger.warning(
+                    f"  ⚠️ Amount {amount} failed precision check for {symbol}: {e}"
+                )
+                amount = 0.0
+
+            if price is not None:
+                price = float(exchange.price_to_precision(symbol, price))
+
+            # 2. Hyperliquid specific handling
+            if self.exchange_id == "hyperliquid":
+                market = (getattr(exchange, "markets", {}) or {}).get(symbol) or {}
+                price_precision = market.get("precision", {}).get("price")
+
+                # If precision is 1.0 (integer only), force integer price
+                if price is not None and price_precision == 1.0:
+                    price = float(int(price))
+                    logger.debug(
+                        f"  🔢 Hyperliquid: Rounded price to integer {price} for {symbol}"
+                    )
+
+            return amount, price
+
+        except Exception as e:
+            logger.warning(f"  ⚠️ Precision application failed for {symbol}: {e}")
+            # Return original values on error, but for 'amount too small' cases this might
+            # just lead to downstream rejection. If we couldn't fix it here, we let it flow.
+            return amount, price
+
     async def _submit_order(
         self,
         inst: TradeInstruction,
@@ -653,6 +871,7 @@ class CCXTExecutionGateway(ExecutionGateway):
         price = float(inst.limit_price) if inst.limit_price else None
 
         # For OKX derivatives, amount must be in contracts; convert from base units if needed
+        ct_val = None
         try:
             market = (getattr(exchange, "markets", {}) or {}).get(symbol) or {}
             if self.exchange_id == "okx" and market.get("contract"):
@@ -671,16 +890,23 @@ class CCXTExecutionGateway(ExecutionGateway):
         except Exception:
             pass
 
-        # Align precision if supported
-        try:
-            amount = float(exchange.amount_to_precision(symbol, amount))
-        except Exception:
-            pass
-        if price is not None:
-            try:
-                price = float(exchange.price_to_precision(symbol, price))
-            except Exception:
-                pass
+        # Apply precision
+        amount, price = self._apply_exchange_specific_precision(
+            symbol, amount, price, exchange
+        )
+
+        # If amount became zero after precision/rounding (e.g. < min precision), skip order
+        if amount <= 0:
+            return TxResult(
+                instruction_id=inst.instruction_id,
+                instrument=inst.instrument,
+                side=local_side,
+                requested_qty=float(inst.quantity),
+                filled_qty=0.0,
+                status=TxStatus.REJECTED,
+                reason="amount_too_small_for_precision",
+                meta=inst.meta,
+            )
 
         # Reject orders below exchange minimums (do not lift to min)
         try:
@@ -830,26 +1056,10 @@ class CCXTExecutionGateway(ExecutionGateway):
                         # For sell orders, set price lower to ensure execution
                         price = price * (1 - slippage_pct)
 
-                    # Apply CCXT price precision (critical for Hyperliquid)
-                    # This handles both integer prices (BTC) and decimal prices (WIF, ENA, etc.)
-                    try:
-                        price = float(exchange.price_to_precision(symbol, price))
-                        logger.debug(f"  🔢 Price after precision: {price}")
-                    except Exception as e:
-                        logger.warning(f"  ⚠️ Could not apply price precision: {e}")
-                        # Fallback: try integer conversion for high-value assets
-                        try:
-                            market = (getattr(exchange, "markets", {}) or {}).get(
-                                symbol
-                            ) or {}
-                            price_precision = market.get("precision", {}).get("price")
-                            if price_precision is not None and price_precision == 0:
-                                price = float(int(price))
-                                logger.debug(
-                                    f"  🔢 Fallback: rounded to integer {price}"
-                                )
-                        except Exception:
-                            pass
+                    # Apply precision again on the simulated price
+                    _, price = self._apply_exchange_specific_precision(
+                        symbol, amount, price, exchange
+                    )
 
                     # Use IoC (Immediate or Cancel) to simulate market execution
                     params["timeInForce"] = "Ioc"
@@ -926,6 +1136,11 @@ class CCXTExecutionGateway(ExecutionGateway):
 
         # Parse order response
         filled_qty = float(order.get("filled", 0.0))
+
+        # For OKX derivatives, filled quantity is in contracts; convert back to base units
+        if self.exchange_id == "okx" and ct_val and ct_val > 0 and filled_qty > 0:
+            filled_qty = filled_qty * ct_val
+
         avg_price = float(order.get("average") or 0.0)
         fee_cost = 0.0
 
@@ -933,10 +1148,7 @@ class CCXTExecutionGateway(ExecutionGateway):
             f"  📊 Final parsed: filled_qty={filled_qty}, avg_price={avg_price}"
         )
 
-        # Extract fee information
-        if "fee" in order and order["fee"]:
-            fee_info = order["fee"]
-            fee_cost = float(fee_info.get("cost", 0.0))
+        fee_cost = self._extract_fee_from_order(order, symbol, filled_qty, avg_price)
 
         # Calculate slippage if applicable
         slippage_bps = None
