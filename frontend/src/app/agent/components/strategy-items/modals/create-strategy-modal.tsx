@@ -1,12 +1,9 @@
-import { useForm } from "@tanstack/react-form";
-import { MultiSelect } from "@valuecell/multi-select";
-import { Check, Eye, Plus } from "lucide-react";
+import { Check } from "lucide-react";
 import type { FC } from "react";
-import { memo, useEffect, useState } from "react";
+import { memo, useState } from "react";
 import { z } from "zod";
 import {
   useCreateStrategy,
-  useCreateStrategyPrompt,
   useGetStrategyApiKey,
   useGetStrategyPrompts,
 } from "@/api/strategy";
@@ -17,34 +14,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import CloseButton from "@/components/valuecell/button/close-button";
-import PngIcon from "@/components/valuecell/png-icon";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
-import {
-  MODEL_PROVIDER_MAP,
-  MODEL_PROVIDERS,
-  TRADING_SYMBOLS,
-} from "@/constants/agent";
-import { EXCHANGE_ICONS, MODEL_PROVIDER_ICONS } from "@/constants/icons";
-import NewPromptModal from "./new-prompt-modal";
-import ViewStrategyModal from "./view-strategy-modal";
+import { MODEL_PROVIDER_MAP, TRADING_SYMBOLS } from "@/constants/agent";
+import { useAppForm } from "@/hooks/use-form";
+import { AIModelForm } from "../forms/ai-model-form";
+import { ExchangeForm } from "../forms/exchange-form";
+import { TradingStrategyForm } from "../forms/trading-strategy-form";
 
 interface CreateStrategyModalProps {
   children?: React.ReactNode;
@@ -60,84 +37,57 @@ const step1Schema = z.object({
 });
 
 // Step 2 Schema: Exchanges (conditional validation with superRefine)
-const step2Schema = z
-  .object({
-    trading_mode: z.enum(["live", "virtual"]),
-    exchange_id: z.string(),
-    api_key: z.string(),
-    secret_key: z.string(),
-    passphrase: z.string(), // Required string, but can be empty for non-OKX exchanges
-    wallet_address: z.string(), // For Hyperliquid
-    private_key: z.string(), // For Hyperliquid
-  })
-  .superRefine((data, ctx) => {
-    // Only validate exchange credentials when live trading is selected
-    if (data.trading_mode === "live") {
-      // Hyperliquid uses different authentication
-      if (data.exchange_id === "hyperliquid") {
-        if (!data.wallet_address?.trim()) {
-          ctx.addIssue({
-            code: "custom",
-            message: "Wallet Address is required for Hyperliquid",
-            path: ["wallet_address"],
-          });
-        }
-        if (!data.private_key?.trim()) {
-          ctx.addIssue({
-            code: "custom",
-            message: "Private Key is required for Hyperliquid",
-            path: ["private_key"],
-          });
-        }
-      } else {
-        // Standard exchanges require API key and secret
-        const fields = [
-          {
-            name: "exchange_id",
-            label: "Exchange",
-            value: data.exchange_id,
-          },
-          {
-            name: "api_key",
-            label: "API key",
-            value: data.api_key,
-          },
-          {
-            name: "secret_key",
-            label: "Secret key",
-            value: data.secret_key,
-          },
-        ];
+// Base schema with all fields optional (empty strings allowed)
+const baseStep2Fields = {
+  exchange_id: z.string(),
+  api_key: z.string(),
+  secret_key: z.string(),
+  passphrase: z.string(),
+  wallet_address: z.string(),
+  private_key: z.string(),
+};
 
-        for (const field of fields) {
-          if (!field.value?.trim()) {
-            ctx.addIssue({
-              code: "custom",
-              message: `${field.label} is required for live trading`,
-              path: [field.name],
-            });
-          }
-        }
+const step2Schema = z.union([
+  // Virtual Trading
+  z.object({
+    ...baseStep2Fields,
+    trading_mode: z.literal("virtual"),
+  }),
 
-        // OKX and Coinbase require passphrase
-        if (
-          (data.exchange_id === "okx" ||
-            data.exchange_id === "coinbaseexchange") &&
-          !data.passphrase?.trim()
-        ) {
-          ctx.addIssue({
-            code: "custom",
-            message: `Passphrase is required for ${data.exchange_id === "okx" ? "OKX" : "Coinbase Exchange"}`,
-            path: ["passphrase"],
-          });
-        }
-      }
-    }
-    // Virtual trading mode: no validation needed for exchange fields
-  });
+  // Live Trading - Hyperliquid
+  z.object({
+    ...baseStep2Fields,
+    trading_mode: z.literal("live"),
+    exchange_id: z.literal("hyperliquid"),
+    wallet_address: z
+      .string()
+      .min(1, "Wallet Address is required for Hyperliquid"),
+    private_key: z.string().min(1, "Private Key is required for Hyperliquid"),
+  }),
+
+  // Live Trading - OKX & Coinbase (Require Passphrase)
+  z.object({
+    ...baseStep2Fields,
+    trading_mode: z.literal("live"),
+    exchange_id: z.enum(["okx", "coinbaseexchange"]),
+    api_key: z.string().min(1, "API key is required"),
+    secret_key: z.string().min(1, "Secret key is required"),
+    passphrase: z.string().min(1, "Passphrase is required"),
+  }),
+
+  // Live Trading - Standard Exchanges
+  z.object({
+    ...baseStep2Fields,
+    trading_mode: z.literal("live"),
+    exchange_id: z.enum(["binance", "blockchaincom", "gate", "mexc"]),
+    api_key: z.string().min(1, "API key is required"),
+    secret_key: z.string().min(1, "Secret key is required"),
+  }),
+]);
 
 // Step 3 Schema: Trading Strategy
 const step3Schema = z.object({
+  strategy_type: z.enum(["PromptBasedStrategy", "GridStrategy"]),
   strategy_name: z.string().min(1, "Strategy name is required"),
   initial_capital: z.number().min(0, "Initial capital must be positive"),
   max_leverage: z.number().min(1, "Leverage must be at least 1"),
@@ -156,6 +106,7 @@ const StepIndicator: FC<{ currentStep: StepNumber }> = ({ currentStep }) => {
     isCompleted: stepNumber < currentStep,
     isCurrent: stepNumber === currentStep,
     isActive: stepNumber <= currentStep,
+    isLast: stepNumber === STEPS.length,
   });
 
   const renderStepNumber = (
@@ -191,9 +142,10 @@ const StepIndicator: FC<{ currentStep: StepNumber }> = ({ currentStep }) => {
 
   return (
     <div className="flex items-start">
-      {STEPS.map((step, index) => {
-        const { isCompleted, isCurrent, isActive } = getStepState(step.number);
-        const isLastStep = index === STEPS.length - 1;
+      {STEPS.map((step) => {
+        const { isCompleted, isCurrent, isActive, isLast } = getStepState(
+          step.number,
+        );
 
         return (
           <div key={step.number} className="flex min-w-0 flex-1 items-start">
@@ -213,7 +165,7 @@ const StepIndicator: FC<{ currentStep: StepNumber }> = ({ currentStep }) => {
                   {step.title}
                 </span>
 
-                {!isLastStep && (
+                {!isLast && (
                   <div
                     className={`h-0.5 min-w-0 flex-1 ${
                       isCompleted ? "bg-gray-950" : "bg-gray-200"
@@ -232,16 +184,13 @@ const StepIndicator: FC<{ currentStep: StepNumber }> = ({ currentStep }) => {
 const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState<StepNumber>(1);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
-
-  const { data: llmConfigs } = useGetStrategyApiKey();
+  const { data: llmConfigs = [] } = useGetStrategyApiKey();
   const { data: prompts = [] } = useGetStrategyPrompts();
   const { mutateAsync: createStrategy, isPending: isCreatingStrategy } =
     useCreateStrategy();
-  const { mutateAsync: createStrategyPrompt } = useCreateStrategyPrompt();
 
   // Step 1 Form: AI Models
-  const form1 = useForm({
+  const form1 = useAppForm({
     defaultValues: {
       provider: "openrouter",
       model_id: MODEL_PROVIDER_MAP.openrouter[0],
@@ -258,7 +207,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
   });
 
   // Step 2 Form: Exchanges
-  const form2 = useForm({
+  const form2 = useAppForm({
     defaultValues: {
       trading_mode: "live" as "live" | "virtual",
       exchange_id: "okx",
@@ -277,8 +226,9 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
   });
 
   // Step 3 Form: Trading Strategy
-  const form3 = useForm({
+  const form3 = useAppForm({
     defaultValues: {
+      strategy_type: "PromptBasedStrategy",
       strategy_name: "",
       initial_capital: 1000,
       max_leverage: 8,
@@ -302,7 +252,6 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
 
   const resetAll = () => {
     setCurrentStep(1);
-    setSelectedTemplateId("");
     form1.reset();
     form2.reset();
     form3.reset();
@@ -314,12 +263,6 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
       setCurrentStep((prev) => (prev - 1) as StepNumber);
     }
   };
-
-  useEffect(() => {
-    if (!selectedTemplateId && prompts.length > 0) {
-      setSelectedTemplateId(prompts[0].id);
-    }
-  }, [selectedTemplateId, prompts]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -340,594 +283,17 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
         </DialogTitle>
 
         {/* Form content with scroll */}
-        <ScrollContainer>
-          <div className="px-1 py-2">
-            {/* Step 1: AI Models */}
-            {currentStep === 1 && (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  form1.handleSubmit();
-                }}
-              >
-                <FieldGroup className="gap-6">
-                  <form1.Field name="provider">
-                    {(field) => {
-                      return (
-                        <Field>
-                          <FieldLabel className="font-medium text-base text-gray-950">
-                            Model Platform
-                          </FieldLabel>
-                          <Select
-                            value={field.state.value}
-                            onValueChange={(value) => {
-                              field.handleChange(value);
-                              form1.setFieldValue(
-                                "model_id",
-                                MODEL_PROVIDER_MAP[
-                                  value as keyof typeof MODEL_PROVIDER_MAP
-                                ][0],
-                              );
-                              const apikey = llmConfigs?.find(
-                                (config) => config.provider === value,
-                              )?.api_key;
-                              if (apikey) {
-                                form1.setFieldValue("api_key", apikey);
-                              }
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {MODEL_PROVIDERS.map((provider) => (
-                                <SelectItem key={provider} value={provider}>
-                                  <div className="flex items-center gap-2">
-                                    <PngIcon
-                                      src={MODEL_PROVIDER_ICONS[provider]}
-                                      className="size-4"
-                                    />
-                                    {provider}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FieldError errors={field.state.meta.errors} />
-                        </Field>
-                      );
-                    }}
-                  </form1.Field>
+        <ScrollContainer className="px-1 py-2">
+          {/* Step 1: AI Models */}
+          {currentStep === 1 && <AIModelForm form={form1} llms={llmConfigs} />}
 
-                  <form1.Field name="model_id">
-                    {(field) => {
-                      const currentProvider = form1.state.values
-                        .provider as keyof typeof MODEL_PROVIDER_MAP;
-                      const availableModels =
-                        MODEL_PROVIDER_MAP[currentProvider] || [];
+          {/* Step 2: Exchanges */}
+          {currentStep === 2 && <ExchangeForm form={form2} />}
 
-                      return (
-                        <Field key={currentProvider}>
-                          <FieldLabel className="font-medium text-base text-gray-950">
-                            Select Model
-                          </FieldLabel>
-                          <Select
-                            value={field.state.value}
-                            onValueChange={field.handleChange}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableModels.length > 0 ? (
-                                availableModels.map((model) => (
-                                  <SelectItem key={model} value={model}>
-                                    {model}
-                                  </SelectItem>
-                                ))
-                              ) : (
-                                <SelectItem value="" disabled>
-                                  No models available
-                                </SelectItem>
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <FieldError errors={field.state.meta.errors} />
-                        </Field>
-                      );
-                    }}
-                  </form1.Field>
-
-                  <form1.Field key={form1.state.values.provider} name="api_key">
-                    {(field) => {
-                      return (
-                        <Field>
-                          <FieldLabel className="font-medium text-base text-gray-950">
-                            API key
-                          </FieldLabel>
-                          <Input
-                            value={field.state.value}
-                            onChange={(e) => field.handleChange(e.target.value)}
-                            onBlur={field.handleBlur}
-                            placeholder="Enter API Key"
-                          />
-                          <FieldError errors={field.state.meta.errors} />
-                        </Field>
-                      );
-                    }}
-                  </form1.Field>
-                </FieldGroup>
-              </form>
-            )}
-
-            {/* Step 2: Exchanges */}
-            {currentStep === 2 && (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  form2.handleSubmit();
-                }}
-              >
-                <FieldGroup className="gap-6">
-                  <form2.Field name="trading_mode">
-                    {(field) => {
-                      const isLiveTrading = field.state.value === "live";
-
-                      return (
-                        <>
-                          <Field>
-                            <FieldLabel className="font-medium text-base text-gray-950">
-                              Transaction Type
-                            </FieldLabel>
-                            <RadioGroup
-                              value={field.state.value}
-                              onValueChange={(value) => {
-                                const newMode = value as "live" | "virtual";
-                                form2.reset();
-                                if (newMode === "virtual") {
-                                  form2.setFieldValue("exchange_id", "");
-                                }
-
-                                field.handleChange(newMode);
-                              }}
-                              className="flex items-center gap-6"
-                            >
-                              <div className="flex items-center gap-2">
-                                <RadioGroupItem value="live" id="live" />
-                                <Label htmlFor="live" className="text-sm">
-                                  Live Trading
-                                </Label>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <RadioGroupItem value="virtual" id="virtual" />
-                                <Label htmlFor="virtual" className="text-sm">
-                                  Virtual Trading
-                                </Label>
-                              </div>
-                            </RadioGroup>
-                          </Field>
-
-                          {isLiveTrading && (
-                            <>
-                              <form2.Field
-                                name="exchange_id"
-                                key={form2.state.values.trading_mode}
-                              >
-                                {(field) => (
-                                  <Field>
-                                    <FieldLabel className="font-medium text-base text-gray-950">
-                                      Select Exchange
-                                    </FieldLabel>
-                                    <Select
-                                      value={field.state.value}
-                                      onValueChange={field.handleChange}
-                                    >
-                                      <SelectTrigger>
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="okx">
-                                          <div className="flex items-center gap-2">
-                                            <PngIcon src={EXCHANGE_ICONS.okx} />
-                                            OKX
-                                          </div>
-                                        </SelectItem>
-                                        <SelectItem value="binance">
-                                          <div className="flex items-center gap-2">
-                                            <PngIcon
-                                              src={EXCHANGE_ICONS.binance}
-                                            />
-                                            Binance
-                                          </div>
-                                        </SelectItem>
-                                        <SelectItem value="blockchaincom">
-                                          <div className="flex items-center gap-2">
-                                            <PngIcon
-                                              src={EXCHANGE_ICONS.blockchaincom}
-                                            />
-                                            Blockchain.com
-                                          </div>
-                                        </SelectItem>
-                                        <SelectItem value="coinbaseexchange">
-                                          <div className="flex items-center gap-2">
-                                            <PngIcon
-                                              src={
-                                                EXCHANGE_ICONS.coinbaseexchange
-                                              }
-                                            />
-                                            Coinbase Exchange
-                                          </div>
-                                        </SelectItem>
-                                        <SelectItem value="gate">
-                                          <div className="flex items-center gap-2">
-                                            <PngIcon
-                                              src={EXCHANGE_ICONS.gate}
-                                            />
-                                            Gate.io
-                                          </div>
-                                        </SelectItem>
-                                        <SelectItem value="hyperliquid">
-                                          <div className="flex items-center gap-2">
-                                            <PngIcon
-                                              src={EXCHANGE_ICONS.hyperliquid}
-                                            />
-                                            Hyperliquid
-                                          </div>
-                                        </SelectItem>
-                                        <SelectItem value="mexc">
-                                          <div className="flex items-center gap-2">
-                                            <PngIcon
-                                              src={EXCHANGE_ICONS.mexc}
-                                            />
-                                            MEXC
-                                          </div>
-                                        </SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                    <FieldError
-                                      errors={field.state.meta.errors}
-                                    />
-                                  </Field>
-                                )}
-                              </form2.Field>
-
-                              {/* Show different fields based on exchange type */}
-                              <form2.Field name="exchange_id">
-                                {(exchangeField) => (
-                                  <>
-                                    {exchangeField.state.value ===
-                                    "hyperliquid" ? (
-                                      <>
-                                        {/* Hyperliquid: Wallet Address */}
-                                        <form2.Field name="wallet_address">
-                                          {(field) => (
-                                            <Field>
-                                              <FieldLabel className="font-medium text-base text-gray-950">
-                                                Wallet Address
-                                              </FieldLabel>
-                                              <Input
-                                                value={field.state.value}
-                                                onChange={(e) =>
-                                                  field.handleChange(
-                                                    e.target.value,
-                                                  )
-                                                }
-                                                onBlur={field.handleBlur}
-                                                placeholder="Enter Main Wallet Address (0x...)"
-                                              />
-                                              <FieldError
-                                                errors={field.state.meta.errors}
-                                              />
-                                            </Field>
-                                          )}
-                                        </form2.Field>
-
-                                        {/* Hyperliquid: Private Key */}
-                                        <form2.Field name="private_key">
-                                          {(field) => (
-                                            <Field>
-                                              <FieldLabel className="font-medium text-base text-gray-950">
-                                                Private Key
-                                              </FieldLabel>
-                                              <Input
-                                                type="password"
-                                                value={field.state.value}
-                                                onChange={(e) =>
-                                                  field.handleChange(
-                                                    e.target.value,
-                                                  )
-                                                }
-                                                onBlur={field.handleBlur}
-                                                placeholder="Enter API Wallet Private Key (0x...)"
-                                              />
-                                              <FieldError
-                                                errors={field.state.meta.errors}
-                                              />
-                                            </Field>
-                                          )}
-                                        </form2.Field>
-                                      </>
-                                    ) : (
-                                      <>
-                                        {/* Standard exchanges: API Key */}
-                                        <form2.Field name="api_key">
-                                          {(field) => (
-                                            <Field>
-                                              <FieldLabel className="font-medium text-base text-gray-950">
-                                                API key
-                                              </FieldLabel>
-                                              <Input
-                                                value={field.state.value}
-                                                onChange={(e) =>
-                                                  field.handleChange(
-                                                    e.target.value,
-                                                  )
-                                                }
-                                                onBlur={field.handleBlur}
-                                                placeholder="Enter API Key"
-                                              />
-                                              <FieldError
-                                                errors={field.state.meta.errors}
-                                              />
-                                            </Field>
-                                          )}
-                                        </form2.Field>
-
-                                        {/* Standard exchanges: Secret Key */}
-                                        <form2.Field name="secret_key">
-                                          {(field) => (
-                                            <Field>
-                                              <FieldLabel className="font-medium text-base text-gray-950">
-                                                Secret Key
-                                              </FieldLabel>
-                                              <Input
-                                                value={field.state.value}
-                                                onChange={(e) =>
-                                                  field.handleChange(
-                                                    e.target.value,
-                                                  )
-                                                }
-                                                onBlur={field.handleBlur}
-                                                placeholder="Enter Secret Key"
-                                              />
-                                              <FieldError
-                                                errors={field.state.meta.errors}
-                                              />
-                                            </Field>
-                                          )}
-                                        </form2.Field>
-                                      </>
-                                    )}
-                                  </>
-                                )}
-                              </form2.Field>
-
-                              {/* Passphrase field - only shown for OKX and Coinbase Exchange */}
-                              <form2.Field name="exchange_id">
-                                {(exchangeField) =>
-                                  (exchangeField.state.value === "okx" ||
-                                    exchangeField.state.value ===
-                                      "coinbaseexchange") && (
-                                    <form2.Field name="passphrase">
-                                      {(field) => (
-                                        <Field>
-                                          <FieldLabel className="font-medium text-base text-gray-950">
-                                            Passphrase
-                                          </FieldLabel>
-                                          <Input
-                                            value={field.state.value}
-                                            onChange={(e) =>
-                                              field.handleChange(e.target.value)
-                                            }
-                                            onBlur={field.handleBlur}
-                                            placeholder={`Enter Passphrase (Required for ${exchangeField.state.value === "okx" ? "OKX" : "Coinbase Exchange"})`}
-                                          />
-                                          <FieldError
-                                            errors={field.state.meta.errors}
-                                          />
-                                        </Field>
-                                      )}
-                                    </form2.Field>
-                                  )
-                                }
-                              </form2.Field>
-                            </>
-                          )}
-                        </>
-                      );
-                    }}
-                  </form2.Field>
-                </FieldGroup>
-              </form>
-            )}
-
-            {/* Step 3: Trading Strategy */}
-            {currentStep === 3 && (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  form3.handleSubmit();
-                }}
-              >
-                <FieldGroup className="gap-6">
-                  <form3.Field name="strategy_name">
-                    {(field) => (
-                      <Field>
-                        <FieldLabel className="font-medium text-base text-gray-950">
-                          Strategy Name
-                        </FieldLabel>
-                        <Input
-                          value={field.state.value}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                          onBlur={field.handleBlur}
-                          placeholder="Enter strategy name"
-                        />
-                        <FieldError errors={field.state.meta.errors} />
-                      </Field>
-                    )}
-                  </form3.Field>
-
-                  {/* Transaction Configuration */}
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-2">
-                      <div className="h-4 w-1 rounded-sm bg-black" />
-                      <h3 className="font-semibold text-lg leading-tight">
-                        Transaction configuration
-                      </h3>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="flex gap-4">
-                        <form3.Field name="initial_capital">
-                          {(field) => (
-                            <Field className="flex-1">
-                              <FieldLabel className="font-medium text-base text-gray-950">
-                                Initial Capital
-                              </FieldLabel>
-                              <Input
-                                type="number"
-                                value={field.state.value}
-                                onChange={(e) =>
-                                  field.handleChange(Number(e.target.value))
-                                }
-                                onBlur={field.handleBlur}
-                              />
-                              <FieldError errors={field.state.meta.errors} />
-                            </Field>
-                          )}
-                        </form3.Field>
-
-                        <form3.Field name="max_leverage">
-                          {(field) => (
-                            <Field className="flex-1">
-                              <FieldLabel className="font-medium text-base text-gray-950">
-                                Max Leverage
-                              </FieldLabel>
-                              <Input
-                                type="number"
-                                value={field.state.value}
-                                onChange={(e) =>
-                                  field.handleChange(Number(e.target.value))
-                                }
-                                onBlur={field.handleBlur}
-                              />
-                              <FieldError errors={field.state.meta.errors} />
-                            </Field>
-                          )}
-                        </form3.Field>
-                      </div>
-
-                      <form3.Field name="symbols">
-                        {(field) => (
-                          <Field>
-                            <FieldLabel className="font-medium text-base text-gray-950">
-                              Trading Symbols
-                            </FieldLabel>
-                            <MultiSelect
-                              options={TRADING_SYMBOLS}
-                              value={field.state.value}
-                              onValueChange={(value) =>
-                                field.handleChange(value)
-                              }
-                              placeholder="Select trading symbols..."
-                              searchPlaceholder="Search or add symbols..."
-                              emptyText="No symbols found."
-                              maxDisplayed={5}
-                              creatable
-                            />
-                            <FieldError errors={field.state.meta.errors} />
-                          </Field>
-                        )}
-                      </form3.Field>
-                    </div>
-                  </div>
-
-                  {/* Trading Strategy Prompt */}
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-2">
-                      <div className="h-4 w-1 rounded-sm bg-black" />
-                      <h3 className="font-semibold text-lg leading-tight">
-                        Trading strategy prompt
-                      </h3>
-                    </div>
-
-                    <div className="space-y-4">
-                      <form3.Field name="template_id">
-                        {(field) => (
-                          <Field>
-                            <FieldLabel className="font-medium text-base text-gray-950">
-                              System Prompt Template
-                            </FieldLabel>
-                            <div className="flex items-center gap-3">
-                              <Select
-                                value={field.state.value}
-                                onValueChange={(value) => {
-                                  field.handleChange(value);
-                                  setSelectedTemplateId(value);
-                                }}
-                              >
-                                <SelectTrigger className="flex-1">
-                                  <SelectValue />
-                                </SelectTrigger>
-
-                                <SelectContent>
-                                  {prompts.length > 0 &&
-                                    prompts.map((prompt) => (
-                                      <SelectItem
-                                        key={prompt.id}
-                                        value={prompt.id}
-                                      >
-                                        {prompt.name}
-                                      </SelectItem>
-                                    ))}
-                                  <NewPromptModal
-                                    onSave={async (value) => {
-                                      const { data: prompt } =
-                                        await createStrategyPrompt(value);
-                                      form3.setFieldValue(
-                                        "template_id",
-                                        prompt.id,
-                                      );
-                                      setSelectedTemplateId(prompt.id);
-                                    }}
-                                  >
-                                    <Button
-                                      className="w-full"
-                                      type="button"
-                                      variant="outline"
-                                    >
-                                      <Plus />
-                                      New Prompt
-                                    </Button>
-                                  </NewPromptModal>
-                                </SelectContent>
-                              </Select>
-
-                              <ViewStrategyModal
-                                prompt={prompts.find(
-                                  (prompt) => prompt.id === selectedTemplateId,
-                                )}
-                              >
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  className="hover:bg-gray-50"
-                                >
-                                  <Eye />
-                                  View Strategy
-                                </Button>
-                              </ViewStrategyModal>
-                            </div>
-                            <FieldError errors={field.state.meta.errors} />
-                          </Field>
-                        )}
-                      </form3.Field>
-                    </div>
-                  </div>
-                </FieldGroup>
-              </form>
-            )}
-          </div>
+          {/* Step 3: Trading Strategy */}
+          {currentStep === 3 && (
+            <TradingStrategyForm form={form3} prompts={prompts} />
+          )}
         </ScrollContainer>
 
         {/* Footer buttons */}
