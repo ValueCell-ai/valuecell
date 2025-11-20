@@ -98,7 +98,7 @@ def create_strategy_agent_router() -> APIRouter:
 
             query = user_request.model_dump_json()
 
-            agent_name = "StrategyAgent"
+            agent_name = "PromptBasedStrategyAgent"
 
             # Build UserInput for orchestrator
             user_input_meta = UserInputMetadata(

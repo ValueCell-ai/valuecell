@@ -1,6 +1,6 @@
 {
-  "name": "StrategyAgent",
-  "display_name": "Strategy Agent",
+  "name": "PromptBasedStrategyAgent",
+  "display_name": "Prompt-based Strategy Agent",
   "url": "http://localhost:10006/",
   "description": "LLM-driven strategy composer that turns market features into normalized trade instructions. Includes a simple runtime for demo and testing.",
   "capabilities": {
@@ -27,6 +27,6 @@
     "author": "ValueCell Team",
     "tags": ["strategy", "trading", "llm", "demo"],
     "notes": "This card is a lightweight example; replace model api_key and tune parameters for production use.",
-    "local_agent_class": "valuecell.agents.prompt_strategy_agent.core:StrategyAgent"
+    "local_agent_class": "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
   }
 }
