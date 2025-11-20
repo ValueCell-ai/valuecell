@@ -32,13 +32,13 @@ class TradeType(str, Enum):
 class TradeSide(str, Enum):
     """Low-level execution side (exchange primitive).
 
-    This remains distinct from `LlmDecisionAction` which encodes *intent* at a
+    This remains distinct from `TradeDecisionAction` which encodes *intent* at a
     position semantic level (open_long/close_short/etc). TradeSide is kept for:
     - direct mapping to exchange APIs that require BUY/SELL
     - conveying slippage/fee direction in execution records
 
     Removal consideration: if the pipeline fully normalizes around
-    LlmDecisionAction -> (final target delta), we can derive side on the fly:
+    TradeDecisionAction -> (final target delta), we can derive side on the fly:
         OPEN_LONG, CLOSE_SHORT -> BUY
         OPEN_SHORT, CLOSE_LONG -> SELL
     For now we keep it explicit to avoid recomputation and ease auditing.
@@ -291,13 +291,6 @@ class UserRequest(BaseModel):
         return values
 
 
-# =========================
-# Minimal DTOs for Strategy Agent (LLM-driven composer, no StrategyHint)
-# These DTOs define the data contract across modules following the
-# simplified pipeline: data -> features -> composer(LLM+rules) -> execution -> history/digest.
-# =========================
-
-
 class InstrumentRef(BaseModel):
     """Identifies a tradable instrument.
 
@@ -482,8 +475,8 @@ class PortfolioView(BaseModel):
     )
 
 
-class LlmDecisionAction(str, Enum):
-    """Position-oriented high-level actions produced by the LLM plan.
+class TradeDecisionAction(str, Enum):
+    """Position-oriented high-level actions produced by the plan.
 
     Semantics:
     - OPEN_LONG: open/increase long; if currently short, flatten then open long
@@ -501,7 +494,7 @@ class LlmDecisionAction(str, Enum):
 
 
 def derive_side_from_action(
-    action: Optional[LlmDecisionAction],
+    action: Optional[TradeDecisionAction],
 ) -> Optional["TradeSide"]:
     """Derive execution side (BUY/SELL) from a high-level action.
 
@@ -509,16 +502,16 @@ def derive_side_from_action(
     """
     if action is None:
         return None
-    if action in (LlmDecisionAction.OPEN_LONG, LlmDecisionAction.CLOSE_SHORT):
+    if action in (TradeDecisionAction.OPEN_LONG, TradeDecisionAction.CLOSE_SHORT):
         return TradeSide.BUY
-    if action in (LlmDecisionAction.OPEN_SHORT, LlmDecisionAction.CLOSE_LONG):
+    if action in (TradeDecisionAction.OPEN_SHORT, TradeDecisionAction.CLOSE_LONG):
         return TradeSide.SELL
     # NOOP or future adjust/cancel actions: no executable side
     return None
 
 
-class LlmDecisionItem(BaseModel):
-    """LLM plan item. Interprets target_qty as operation size (magnitude).
+class TradeDecisionItem(BaseModel):
+    """Trade plan item. Interprets target_qty as operation size (magnitude).
 
     Unlike the previous "final target position" semantics, target_qty here
     is the size to operate (same unit as position quantity). The composer
@@ -526,7 +519,7 @@ class LlmDecisionItem(BaseModel):
     """
 
     instrument: InstrumentRef
-    action: LlmDecisionAction
+    action: TradeDecisionAction
     target_qty: float = Field(
         ...,
         description="Operation size for this action (units), e.g., open/close long/short",
@@ -543,11 +536,11 @@ class LlmDecisionItem(BaseModel):
     )
 
 
-class LlmPlanProposal(BaseModel):
-    """Structured LLM output before rule normalization."""
+class TradePlanProposal(BaseModel):
+    """Structured output before rule normalization."""
 
     ts: int
-    items: List[LlmDecisionItem] = Field(default_factory=list)
+    items: List[TradeDecisionItem] = Field(default_factory=list)
     rationale: Optional[str] = Field(
         default=None, description="Optional natural language rationale"
     )
@@ -573,7 +566,7 @@ class TradeInstruction(BaseModel):
         ..., description="Decision cycle id to correlate instructions and history"
     )
     instrument: InstrumentRef
-    action: Optional[LlmDecisionAction] = Field(
+    action: Optional[TradeDecisionAction] = Field(
         default=None,
         description="High-level intent action for dispatch ('open_long'|'open_short'|'close_long'|'close_short'|'noop')",
     )
@@ -607,12 +600,15 @@ class TradeInstruction(BaseModel):
         if act is None:
             return self
         try:
-            if act == LlmDecisionAction.NOOP:
+            if act == TradeDecisionAction.NOOP:
                 # Composer should not emit NOOP instructions; tolerate in lenient mode
                 return self
-            if act in (LlmDecisionAction.OPEN_LONG, LlmDecisionAction.CLOSE_SHORT):
+            if act in (TradeDecisionAction.OPEN_LONG, TradeDecisionAction.CLOSE_SHORT):
                 expected = TradeSide.BUY
-            elif act in (LlmDecisionAction.OPEN_SHORT, LlmDecisionAction.CLOSE_LONG):
+            elif act in (
+                TradeDecisionAction.OPEN_SHORT,
+                TradeDecisionAction.CLOSE_LONG,
+            ):
                 expected = TradeSide.SELL
             else:
                 return self
@@ -684,7 +680,7 @@ MarketSnapShotType = Dict[str, Dict[str, Any]]
 
 
 class ComposeContext(BaseModel):
-    """Context assembled for the LLM-driven composer."""
+    """Context assembled for the composer."""
 
     ts: int
     compose_id: str = Field(

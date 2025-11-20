@@ -242,3 +242,78 @@ async def send_discord_message(
         if raise_for_status:
             resp.raise_for_status()
         return resp.text
+
+
+def prune_none(obj):
+    """Recursively remove None, empty dict, and empty list values."""
+    if isinstance(obj, dict):
+        pruned = {k: prune_none(v) for k, v in obj.items() if v is not None}
+        return {k: v for k, v in pruned.items() if v not in (None, {}, [])}
+    if isinstance(obj, list):
+        pruned = [prune_none(v) for v in obj]
+        return [v for v in pruned if v not in (None, {}, [])]
+    return obj
+
+
+def extract_market_section(market_data: List[Dict]) -> Dict:
+    """Extract decision-critical metrics from market feature entries."""
+
+    compact: Dict[str, Dict] = {}
+    for item in market_data:
+        symbol = (item.get("instrument") or {}).get("symbol")
+        if not symbol:
+            continue
+
+        values = item.get("values") or {}
+        entry: Dict[str, float] = {}
+
+        for feature_key, alias in (
+            ("price.last", "last"),
+            ("price.close", "close"),
+            ("price.open", "open"),
+            ("price.high", "high"),
+            ("price.low", "low"),
+            ("price.bid", "bid"),
+            ("price.ask", "ask"),
+            ("price.change_pct", "change_pct"),
+            ("price.volume", "volume"),
+        ):
+            if feature_key in values and values[feature_key] is not None:
+                entry[alias] = values[feature_key]
+
+        if values.get("open_interest") is not None:
+            entry["open_interest"] = values["open_interest"]
+
+        if values.get("funding.rate") is not None:
+            entry["funding_rate"] = values["funding.rate"]
+        if values.get("funding.mark_price") is not None:
+            entry["mark_price"] = values["funding.mark_price"]
+
+        normalized = {k: v for k, v in entry.items() if v is not None}
+        if normalized:
+            compact[symbol] = normalized
+
+    return compact
+
+
+def group_features(features: List[FeatureVector]) -> Dict:
+    """Organize features by grouping metadata and trim payload noise.
+
+    Prefers the FeatureVector.meta group_by_key when present, otherwise
+    falls back to the interval tag. This allows callers to introduce
+    ad-hoc groupings (e.g., market snapshots) without overloading the
+    interval field.
+    """
+    grouped: Dict[str, List] = {}
+
+    for fv in features:
+        data = fv.model_dump(mode="json")
+        meta = data.get("meta") or {}
+        group_key = meta.get(FEATURE_GROUP_BY_KEY)
+
+        if not group_key:
+            continue
+
+        grouped.setdefault(group_key, []).append(data)
+
+    return grouped
