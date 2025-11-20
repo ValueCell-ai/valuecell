@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from loguru import logger
+
 from valuecell.utils.uuid import generate_uuid
 
 from ..decision import BaseComposer, LlmComposer
@@ -8,12 +10,12 @@ from ..execution import BaseExecutionGateway
 from ..execution.factory import create_execution_gateway
 from ..features import DefaultFeaturesPipeline
 from ..features.interfaces import BaseFeaturesPipeline
-from ..models import Constraints, DecisionCycleResult, TradingMode, UserRequest
-from ..portfolio.in_memory import InMemoryPortfolioService
-from ..trading_history import (
+from ..history import (
     InMemoryHistoryRecorder,
     RollingDigestBuilder,
 )
+from ..models import Constraints, DecisionCycleResult, TradingMode, UserRequest
+from ..portfolio.in_memory import InMemoryPortfolioService
 from ..utils import fetch_free_cash_from_gateway
 from .coordinator import DefaultDecisionCoordinator
 
@@ -25,13 +27,25 @@ async def _create_execution_gateway(request: UserRequest) -> BaseExecutionGatewa
     # In LIVE mode, fetch exchange balance and set initial capital from free cash
     try:
         if request.exchange_config.trading_mode == TradingMode.LIVE:
-            free_cash = await fetch_free_cash_from_gateway(
+            free_cash, _ = await fetch_free_cash_from_gateway(
                 execution_gateway, request.trading_config.symbols
             )
             request.trading_config.initial_capital = float(free_cash)
     except Exception:
-        # Do not fail runtime creation if balance fetch or parsing fails
-        pass
+        # Log the error but continue - user might have set initial_capital manually
+        logger.exception(
+            "Failed to fetch exchange balance for LIVE mode. Will use configured initial_capital instead."
+        )
+
+    # Validate initial capital for LIVE mode
+    if request.exchange_config.trading_mode == TradingMode.LIVE:
+        initial_cap = request.trading_config.initial_capital or 0.0
+        if initial_cap <= 0:
+            logger.error(
+                f"LIVE trading mode has initial_capital={initial_cap}. "
+                "This usually means balance fetch failed or account has no funds. "
+                "Strategy will not be able to trade without capital."
+            )
 
     return execution_gateway
 

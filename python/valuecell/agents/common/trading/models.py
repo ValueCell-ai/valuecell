@@ -156,6 +156,14 @@ class ExchangeConfig(BaseModel):
         default=None,
         description="API passphrase (required for some exchanges like OKX)",
     )
+    wallet_address: Optional[str] = Field(
+        default=None,
+        description="Wallet address (required for Hyperliquid)",
+    )
+    private_key: Optional[str] = Field(
+        default=None,
+        description="Private key (required for Hyperliquid)",
+    )
     testnet: bool = Field(
         default=False, description="Use testnet/sandbox mode for testing"
     )
@@ -320,15 +328,22 @@ class Candle(BaseModel):
     interval: str = Field(..., description='Interval string, e.g., "1m", "5m"')
 
 
+CommonKeyType = str
+CommonValueType = float | str | int
+
+
 class FeatureVector(BaseModel):
     """Computed features for a single instrument at a point in time."""
 
-    ts: int
+    ts: int = Field(
+        ...,
+        description="Feature vector timestamp in ms",
+    )
     instrument: InstrumentRef
-    values: Dict[str, float] = Field(
+    values: Dict[CommonKeyType, CommonValueType | List[CommonValueType]] = Field(
         default_factory=dict, description="Feature name to numeric value"
     )
-    meta: Optional[Dict[str, float | int | str]] = Field(
+    meta: Optional[Dict[CommonKeyType, CommonValueType]] = Field(
         default=None,
         description=(
             "Optional metadata about the source window: keys MAY include interval, "

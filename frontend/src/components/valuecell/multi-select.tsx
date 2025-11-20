@@ -35,6 +35,7 @@ export interface MultiSelectProps {
   disabled?: boolean;
   maxSelected?: number;
   maxDisplayed?: number;
+  creatable?: boolean;
 }
 
 export const MultiSelect = React.forwardRef<
@@ -54,12 +55,14 @@ export const MultiSelect = React.forwardRef<
       disabled = false,
       maxSelected,
       maxDisplayed = 3,
+      creatable = false,
     },
     ref,
   ) => {
     const [open, setOpen] = React.useState(false);
     const [internalValue, setInternalValue] =
       React.useState<string[]>(defaultValue);
+    const [inputValue, setInputValue] = React.useState("");
 
     // Normalize options to MultiSelectOption[]
     const normalizedOptions = React.useMemo<MultiSelectOption[]>(() => {
@@ -105,9 +108,16 @@ export const MultiSelect = React.forwardRef<
       onValueChange?.([]);
     };
 
-    const selectedOptions = normalizedOptions.filter((opt) =>
-      selectedValues.includes(opt.value),
-    );
+    const selectedOptions = React.useMemo(() => {
+      const opts = [...normalizedOptions];
+      // Add selected values that are not in options (for custom values)
+      selectedValues.forEach((val) => {
+        if (!opts.find((o) => o.value === val)) {
+          opts.push({ value: val, label: val });
+        }
+      });
+      return opts.filter((opt) => selectedValues.includes(opt.value));
+    }, [normalizedOptions, selectedValues]);
 
     // Get displayed badges and count for remaining
     const displayedOptions = selectedOptions.slice(0, maxDisplayed);
@@ -200,7 +210,12 @@ export const MultiSelect = React.forwardRef<
           sideOffset={4}
         >
           <Command>
-            <CommandInput placeholder={searchPlaceholder} className="h-9" />
+            <CommandInput
+              placeholder={searchPlaceholder}
+              className="h-9"
+              value={inputValue}
+              onValueChange={setInputValue}
+            />
             <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandList className="max-h-[300px]">
               <CommandGroup onWheel={(e) => e.stopPropagation()}>
@@ -247,6 +262,21 @@ export const MultiSelect = React.forwardRef<
                     </CommandItem>
                   );
                 })}
+                {creatable &&
+                  inputValue.length > 0 &&
+                  !normalizedOptions.some((o) => o.value === inputValue) &&
+                  !selectedValues.includes(inputValue) && (
+                    <CommandItem
+                      value={inputValue}
+                      onSelect={() => {
+                        handleSelect(inputValue);
+                        setInputValue("");
+                      }}
+                      className="cursor-pointer py-2 text-muted-foreground"
+                    >
+                      Create "{inputValue}"
+                    </CommandItem>
+                  )}
               </CommandGroup>
             </CommandList>
           </Command>

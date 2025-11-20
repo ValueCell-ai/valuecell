@@ -8,7 +8,11 @@ from typing import Dict, List, Optional
 from agno.agent import Agent as AgnoAgent
 from loguru import logger
 
-from valuecell.agents.common.trading.models import (
+from valuecell.utils import env as env_utils
+from valuecell.utils import model as model_utils
+
+from ...constants import FEATURE_GROUP_BY_KEY
+from ...models import (
     ComposeContext,
     ComposeResult,
     Constraints,
@@ -20,13 +24,10 @@ from valuecell.agents.common.trading.models import (
     TradeSide,
     UserRequest,
 )
-from valuecell.agents.common.trading.utils import (
+from ...utils import (
     extract_price_map,
     send_discord_message,
 )
-from valuecell.utils import env as env_utils
-from valuecell.utils import model as model_utils
-
 from ..interfaces import BaseComposer
 from .system_prompt import SYSTEM_PROMPT
 
@@ -171,7 +172,7 @@ class LlmComposer(BaseComposer):
         for fv in features:
             data = fv.model_dump(mode="json")
             meta = data.get("meta") or {}
-            group_key = meta.get("group_by_key")
+            group_key = meta.get(FEATURE_GROUP_BY_KEY)
 
             if not group_key:
                 continue
