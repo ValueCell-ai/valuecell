@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from loguru import logger
 from sqlalchemy.orm import Session
 
-from valuecell.agents.strategy_agent.models import (
+from valuecell.agents.common.trading.models import (
     StrategyStatus,
     StrategyStatusContent,
     UserRequest,
@@ -18,6 +18,7 @@ from valuecell.config.loader import get_config_loader
 from valuecell.core.coordinate.orchestrator import AgentOrchestrator
 from valuecell.core.types import CommonResponseEvent, UserInput, UserInputMetadata
 from valuecell.server.api.schemas.base import SuccessResponse
+from valuecell.server.api.schemas.strategy import StrategyType as StrategySummaryType
 from valuecell.server.db.connection import get_db
 from valuecell.server.db.repositories import get_strategy_repository
 from valuecell.utils.uuid import generate_conversation_id, generate_uuid
@@ -31,7 +32,12 @@ def create_strategy_agent_router() -> APIRouter:
 
     @router.post("/create")
     async def create_strategy_agent(
-        request: UserRequest, db: Session = Depends(get_db)
+        request: UserRequest,
+        strategy_type: StrategySummaryType = Query(
+            default=StrategySummaryType.PROMPT,
+            description="'prompt based strategy' or 'grid strategy'",
+        ),
+        db: Session = Depends(get_db),
     ):
         """
         Create a strategy through StrategyAgent and return final JSON result.
@@ -98,7 +104,19 @@ def create_strategy_agent_router() -> APIRouter:
 
             query = user_request.model_dump_json()
 
-            agent_name = "StrategyAgent"
+            # Select target agent based on strategy_type (enum)
+            if strategy_type == StrategySummaryType.PROMPT:
+                agent_name = "PromptBasedStrategyAgent"
+            elif strategy_type == StrategySummaryType.GRID:
+                agent_name = "GridStrategyAgent"
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Unsupported strategy_type: '{strategy_type}'. "
+                        "Use 'prompt based strategy' or 'grid strategy'"
+                    ),
+                )
 
             # Build UserInput for orchestrator
             user_input_meta = UserInputMetadata(
@@ -134,6 +152,7 @@ def create_strategy_agent_router() -> APIRouter:
                             )
                             metadata = {
                                 "agent_name": agent_name,
+                                "strategy_type": strategy_type.value,
                                 "model_provider": request.llm_model_config.provider,
                                 "model_id": request.llm_model_config.model_id,
                                 "exchange_id": request.exchange_config.exchange_id,
@@ -174,6 +193,7 @@ def create_strategy_agent_router() -> APIRouter:
                     )
                     metadata = {
                         "agent_name": agent_name,
+                        "strategy_type": strategy_type.value,
                         "model_provider": request.llm_model_config.provider,
                         "model_id": request.llm_model_config.model_id,
                         "exchange_id": request.exchange_config.exchange_id,
@@ -209,6 +229,7 @@ def create_strategy_agent_router() -> APIRouter:
                     )
                     metadata = {
                         "agent_name": agent_name,
+                        "strategy_type": strategy_type.value,
                         "model_provider": request.llm_model_config.provider,
                         "model_id": request.llm_model_config.model_id,
                         "exchange_id": request.exchange_config.exchange_id,
@@ -246,7 +267,8 @@ def create_strategy_agent_router() -> APIRouter:
                     or f"Strategy-{fallback_strategy_id.split('-')[-1][:8]}"
                 )
                 metadata = {
-                    "agent_name": "StrategyAgent",
+                    "agent_name": agent_name,
+                    "strategy_type": strategy_type.value,
                     "model_provider": request.llm_model_config.provider,
                     "model_id": request.llm_model_config.model_id,
                     "exchange_id": request.exchange_config.exchange_id,
@@ -291,6 +313,7 @@ def create_strategy_agent_router() -> APIRouter:
         """Delete a strategy created by StrategyAgent.
 
         - Validates the strategy exists.
+        - Ensures the strategy is stopped before deletion (idempotent stop).
         - Optionally cascades deletion to holdings, portfolio snapshots, and details.
         - Returns a success response when completed.
         """
@@ -300,13 +323,22 @@ def create_strategy_agent_router() -> APIRouter:
             if not strategy:
                 raise HTTPException(status_code=404, detail="Strategy not found")
 
+            # Stop strategy before deletion (best-effort, idempotent)
+            try:
+                current_status = getattr(strategy, "status", None)
+                if current_status != "stopped":
+                    repo.upsert_strategy(strategy_id=id, status="stopped")
+            except Exception:
+                # Do not fail deletion due to stop failure; proceed to deletion
+                pass
+
             ok = repo.delete_strategy(id, cascade=cascade)
             if not ok:
                 raise HTTPException(status_code=500, detail="Failed to delete strategy")
 
             return SuccessResponse.create(
                 data={"strategy_id": id},
-                msg=f"Strategy '{id}' deleted successfully",
+                msg=f"Strategy '{id}' stopped (if running) and deleted successfully",
             )
         except HTTPException:
             raise

@@ -1,0 +1,32 @@
+{
+  "name": "PromptBasedStrategyAgent",
+  "display_name": "Prompt-based Strategy Agent",
+  "url": "http://localhost:10006/",
+  "description": "LLM-driven strategy composer that turns market features into normalized trade instructions. Includes a simple runtime for demo and testing.",
+  "capabilities": {
+    "streaming": true,
+    "push_notifications": true
+  },
+  "skills": [
+    {
+      "id": "strategy_run",
+      "name": "Run Strategy",
+      "description": "Start a strategy using the provided model, exchange and trading configuration.",
+      "examples": [
+        "Run strategy with DeepSeek model on BTC-USD and ETH-USD",
+        "Start a virtual backtest with $10,000 initial capital for BTC"
+      ],
+      "tags": ["strategy", "run", "trading", "compose"]
+    }
+  ],
+  "enabled": true,
+  "metadata": {
+    "hidden": true,
+    "planner_passthrough": true,
+    "version": "0.1.0",
+    "author": "ValueCell Team",
+    "tags": ["strategy", "trading", "llm", "demo"],
+    "notes": "This card is a lightweight example; replace model api_key and tune parameters for production use.",
+    "local_agent_class": "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
+  }
+}

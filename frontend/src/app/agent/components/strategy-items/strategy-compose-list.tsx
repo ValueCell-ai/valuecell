@@ -1,5 +1,6 @@
 import { ChevronDown, History } from "lucide-react";
 import { type FC, memo, useMemo, useState } from "react";
+import { ValueCellAgentPng } from "@/assets/png";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -10,11 +11,11 @@ import {
 } from "@/components/ui/popover";
 import { PngIcon } from "@/components/valuecell/png-icon";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
-import { SYMBOL_ICONS } from "@/constants/icons";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import {
   formatChange,
   getChangeType,
+  getCoinCapIcon,
   isNullOrUndefined,
   numberFixed,
 } from "@/lib/utils";
@@ -46,7 +47,7 @@ const StrategyComposeItem: FC<StrategyComposeItemProps> = ({ compose }) => {
       {/* AI Reasoning Logic */}
       <p className="text-gray-400 text-xs">AI reasoning logic</p>
       <Collapsible open={isReasoningOpen} onOpenChange={setIsReasoningOpen}>
-        <CollapsibleTrigger className="flex items-start justify-between rounded-lg bg-white px-3 py-2 text-left shadow-sm transition-colors hover:bg-gray-50">
+        <CollapsibleTrigger className="flex w-full items-start justify-between rounded-lg bg-white px-3 py-2 text-left shadow-sm transition-colors hover:bg-gray-50">
           <span
             className={`text-gray-700 text-sm leading-relaxed ${
               isReasoningOpen ? "" : "line-clamp-1"
@@ -103,8 +104,9 @@ const ActionItem: FC<{ action: StrategyAction }> = ({ action }) => {
         <Button className="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm transition-colors hover:bg-gray-50">
           <div className="flex items-center gap-2">
             <PngIcon
-              src={SYMBOL_ICONS[action.symbol as keyof typeof SYMBOL_ICONS]}
+              src={getCoinCapIcon(action.symbol)}
               className="size-5"
+              callback={ValueCellAgentPng}
             />
             <span className="font-bold text-gray-900 text-sm">
               {action.symbol}
@@ -129,8 +131,9 @@ const ActionItem: FC<{ action: StrategyAction }> = ({ action }) => {
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <PngIcon
-              src={SYMBOL_ICONS[action.symbol as keyof typeof SYMBOL_ICONS]}
+              src={getCoinCapIcon(action.symbol)}
               className="size-5"
+              callback={ValueCellAgentPng}
             />
             <span className="font-bold text-base text-gray-900">
               {action.symbol}

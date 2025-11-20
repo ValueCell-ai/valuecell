@@ -17,7 +17,10 @@ class AgentService:
 
     @staticmethod
     def get_all_agents(
-        db: Session, enabled_only: bool = False, name_filter: Optional[str] = None
+        db: Session,
+        enabled_only: bool = False,
+        name_filter: Optional[str] = None,
+        exclude_hidden: bool = True,
     ) -> AgentListData:
         """
         Get all agents from database with optional filters.
@@ -51,22 +54,29 @@ class AgentService:
         agents = query.order_by(Agent.created_at.desc()).all()
 
         # Convert to data models
-        agent_data_list = [
-            AgentData(
-                id=agent.id,
-                agent_name=agent.name,
-                display_name=agent.display_name,
-                description=agent.description,
-                version=agent.version,
-                enabled=agent.enabled,
-                icon_url=agent.icon_url,
-                agent_metadata=agent.agent_metadata,
-                config=agent.config,
-                created_at=agent.created_at,
-                updated_at=agent.updated_at,
+        agent_data_list = []
+        for _agent_entity in agents:
+            if (
+                _agent_entity.agent_metadata
+                and exclude_hidden
+                and _agent_entity.agent_metadata.get("hidden", False)
+            ):
+                continue
+
+            agent = AgentData(
+                id=_agent_entity.id,
+                agent_name=_agent_entity.name,
+                display_name=_agent_entity.display_name,
+                description=_agent_entity.description,
+                version=_agent_entity.version,
+                enabled=_agent_entity.enabled,
+                icon_url=_agent_entity.icon_url,
+                agent_metadata=_agent_entity.agent_metadata,
+                config=_agent_entity.config,
+                created_at=_agent_entity.created_at,
+                updated_at=_agent_entity.updated_at,
             )
-            for agent in agents
-        ]
+            agent_data_list.append(agent)
 
         # Calculate statistics
         total_count = len(agent_data_list)

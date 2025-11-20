@@ -39,9 +39,4 @@ export { default as OpenAiCompatiblePng } from "./model-providers/openai-compati
 export { default as OpenRouterPng } from "./model-providers/openrouter.png";
 export { default as SiliconFlowPng } from "./model-providers/siliconflow.png";
 
-export { default as BtcPng } from "./symbols/btc.png";
-export { default as DogePng } from "./symbols/doge.png";
-export { default as EthPng } from "./symbols/eth.png";
-export { default as SolPng } from "./symbols/sol.png";
-export { default as XrpPng } from "./symbols/xrp.png";
 export { default as TrendPng } from "./trend.png";

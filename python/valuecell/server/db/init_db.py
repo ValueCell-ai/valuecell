@@ -420,7 +420,7 @@ class DatabaseInitializer:
                     template_path = (
                         Path(__file__).resolve().parents[2]
                         / "agents"
-                        / "strategy_agent"
+                        / "prompt_strategy_agent"
                         / "templates"
                         / "default.txt"
                     )

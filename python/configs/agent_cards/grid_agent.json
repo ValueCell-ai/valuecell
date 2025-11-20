@@ -1,0 +1,21 @@
+{
+  "name": "GridStrategyAgent",
+  "display_name": "Grid Strategy Agent",
+  "url": "http://localhost:10007/",
+  "description": "LLM-driven strategy composer that turns market features into normalized trade instructions. Includes a simple runtime for demo and testing.",
+  "capabilities": {
+    "streaming": true,
+    "push_notifications": true
+  },
+  "skills": [],
+  "enabled": true,
+  "metadata": {
+    "hidden": true,
+    "planner_passthrough": true,
+    "version": "0.1.0",
+    "author": "ValueCell Team",
+    "tags": ["strategy", "trading", "llm", "demo"],
+    "notes": "This card is a lightweight example; replace model api_key and tune parameters for production use.",
+    "local_agent_class": "valuecell.agents.grid_agent.grid_agent:GridStrategyAgent"
+  }
+}
