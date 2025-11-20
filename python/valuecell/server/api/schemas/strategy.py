@@ -3,11 +3,17 @@ Strategy API schemas for handling strategy-related requests and responses.
 """
 
 from datetime import datetime
+from enum import Enum
 from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
 from .base import SuccessResponse
+
+
+class StrategyType(str, Enum):
+    PROMPT = "prompt based strategy"
+    GRID = "grid strategy"
 
 
 class StrategySummaryData(BaseModel):
@@ -17,6 +23,10 @@ class StrategySummaryData(BaseModel):
         ..., description="Runtime strategy identifier from StrategyAgent"
     )
     strategy_name: Optional[str] = Field(None, description="User-defined strategy name")
+    strategy_type: Optional[StrategyType] = Field(
+        None,
+        description="Strategy type identifier: 'prompt based strategy' or 'grid strategy'",
+    )
     status: Literal["running", "stopped"] = Field(..., description="Strategy status")
     trading_mode: Optional[Literal["live", "virtual"]] = Field(
         None, description="Trading mode: live or virtual"

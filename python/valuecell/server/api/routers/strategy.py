@@ -21,6 +21,7 @@ from valuecell.server.api.schemas.strategy import (
     StrategyStatusSuccessResponse,
     StrategyStatusUpdateResponse,
     StrategySummaryData,
+    StrategyType,
 )
 from valuecell.server.db import get_db
 from valuecell.server.db.models.strategy import Strategy
@@ -103,6 +104,14 @@ def create_strategy_router() -> APIRouter:
                 except Exception:
                     return None
 
+            def normalize_strategy_type(meta: dict) -> Optional[StrategyType]:
+                raw = (meta.get("strategy_type") or "").strip().lower()
+                if raw == "prompt based strategy":
+                    return StrategyType.PROMPT
+                if raw == "grid strategy":
+                    return StrategyType.GRID
+                return None
+
             strategy_data_list = []
             for s in strategies:
                 meta = s.strategy_metadata or {}
@@ -110,6 +119,7 @@ def create_strategy_router() -> APIRouter:
                 item = StrategySummaryData(
                     strategy_id=s.strategy_id,
                     strategy_name=s.name,
+                    strategy_type=normalize_strategy_type(meta),
                     status=map_status(s.status),
                     trading_mode=normalize_trading_mode(meta, cfg),
                     unrealized_pnl=to_optional_float(meta.get("unrealized_pnl", 0.0)),
