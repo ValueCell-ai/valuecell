@@ -273,19 +273,40 @@ def create_models_router() -> APIRouter:
             endpoint_env = connection.get("endpoint_env")
 
             # Update API key via env var
-            if payload.api_key and api_key_env:
+            # Accept empty string as a deliberate clear; skip only when field is omitted
+            if api_key_env and (payload.api_key is not None):
                 _set_env(api_key_env, payload.api_key)
 
-            # Update base_url via env when endpoint_env exists (Azure), otherwise YAML
-            if payload.base_url:
+            # Update base_url via env when endpoint_env exists (Azure),
+            # otherwise prefer updating the env placeholder if present; fallback to YAML
+            # Accept empty string as a deliberate clear; skip only when field is omitted
+            if payload.base_url is not None:
                 if endpoint_env:
                     _set_env(endpoint_env, payload.base_url)
                 else:
+                    # Try to detect ${ENV_VAR:default} syntax in provider YAML
                     path = _provider_yaml(provider)
                     data = _load_yaml(path)
-                    data.setdefault("connection", {})
-                    data["connection"]["base_url"] = payload.base_url
-                    _write_yaml(path, data)
+                    connection_raw = data.get("connection", {})
+                    raw_base = connection_raw.get("base_url")
+                    env_var_name = None
+                    if (
+                        isinstance(raw_base, str)
+                        and raw_base.startswith("${")
+                        and "}" in raw_base
+                    ):
+                        try:
+                            inner = raw_base[2 : raw_base.index("}")]
+                            env_var_name = inner.split(":", 1)[0]
+                        except Exception:
+                            env_var_name = None
+
+                    if env_var_name:
+                        _set_env(env_var_name, payload.base_url)
+                    else:
+                        data.setdefault("connection", {})
+                        data["connection"]["base_url"] = payload.base_url
+                        _write_yaml(path, data)
 
             _refresh_configs()
 
