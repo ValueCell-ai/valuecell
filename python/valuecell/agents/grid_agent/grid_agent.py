@@ -5,18 +5,21 @@ This agent reuses:
 - Rule-based decision composer `GridComposer`
 
 Usage:
-    from valuecell.agents.strategy_agent.grid_agent import GridStrategyAgent
+    from valuecell.agents.grid_agent.grid_agent import GridStrategyAgent
     agent = GridStrategyAgent()
     await agent.stream(request)
 """
 
 from __future__ import annotations
 
-from .agent import BaseStrategyAgent
-from .decision.grid_composer import GridComposer
-from .decision.interfaces import Composer
-from .features.pipeline import DefaultFeaturesPipeline, FeaturesPipeline
-from .models import UserRequest
+from valuecell.agents.common.trading.base_agent import BaseStrategyAgent
+from valuecell.agents.common.trading.decision.grid_composer.grid_composer import (
+    GridComposer,
+)
+from valuecell.agents.common.trading.decision.interfaces import BaseComposer
+from valuecell.agents.common.trading.features.interfaces import BaseFeaturesPipeline
+from valuecell.agents.common.trading.features.pipeline import DefaultFeaturesPipeline
+from valuecell.agents.common.trading.models import UserRequest
 
 
 class GridStrategyAgent(BaseStrategyAgent):
@@ -27,10 +30,12 @@ class GridStrategyAgent(BaseStrategyAgent):
       add long on down moves; reduce on reversals.
     """
 
-    def _build_features_pipeline(self, request: UserRequest) -> FeaturesPipeline | None:
+    def _build_features_pipeline(
+        self, request: UserRequest
+    ) -> BaseFeaturesPipeline | None:
         return DefaultFeaturesPipeline.from_request(request)
 
-    def _create_decision_composer(self, request: UserRequest) -> Composer | None:
+    def _create_decision_composer(self, request: UserRequest) -> BaseComposer | None:
         # Adjust step_pct / max_steps / base_fraction as needed
         return GridComposer(
             request=request,

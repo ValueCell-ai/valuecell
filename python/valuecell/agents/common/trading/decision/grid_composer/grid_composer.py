@@ -5,17 +5,17 @@ from typing import List, Optional
 
 from loguru import logger
 
-from ..models import (
+from ...models import (
     ComposeContext,
+    ComposeResult,
     InstrumentRef,
     LlmDecisionAction,
     LlmDecisionItem,
     LlmPlanProposal,
     MarketType,
-    TradeInstruction,
     UserRequest,
 )
-from .composer import LlmComposer
+from ..prompt_based.composer import LlmComposer
 
 
 class GridComposer(LlmComposer):
@@ -54,7 +54,7 @@ class GridComposer(LlmComposer):
         self._max_steps = int(max_steps)
         self._base_fraction = float(base_fraction)
 
-    async def compose(self, context: ComposeContext) -> List[TradeInstruction]:
+    async def compose(self, context: ComposeContext) -> ComposeResult:
         # Prepare buying power/constraints/price map, then generate plan and reuse parent normalization
         equity, allowed_lev, constraints, _projected_gross, price_map = (
             self._init_buying_power_context(context)
@@ -262,7 +262,7 @@ class GridComposer(LlmComposer):
             logger.debug(
                 "GridComposer produced NOOP plan for compose_id={}", context.compose_id
             )
-            return []
+            return ComposeResult(instructions=[], rationale="Grid NOOP")
 
         plan = LlmPlanProposal(
             ts=ts,
@@ -270,4 +270,5 @@ class GridComposer(LlmComposer):
             rationale=f"Grid step={self._step_pct:.4f}, base_fraction={self._base_fraction:.3f}",
         )
         # Reuse parent normalization: quantity filters, buying power, cap_factor, reduceOnly, etc.
-        return self._normalize_plan(context, plan)
+        normalized = self._normalize_plan(context, plan)
+        return ComposeResult(instructions=normalized, rationale=plan.rationale)
