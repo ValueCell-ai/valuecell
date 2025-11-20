@@ -291,6 +291,7 @@ def create_strategy_agent_router() -> APIRouter:
         """Delete a strategy created by StrategyAgent.
 
         - Validates the strategy exists.
+        - Ensures the strategy is stopped before deletion (idempotent stop).
         - Optionally cascades deletion to holdings, portfolio snapshots, and details.
         - Returns a success response when completed.
         """
@@ -300,13 +301,22 @@ def create_strategy_agent_router() -> APIRouter:
             if not strategy:
                 raise HTTPException(status_code=404, detail="Strategy not found")
 
+            # Stop strategy before deletion (best-effort, idempotent)
+            try:
+                current_status = getattr(strategy, "status", None)
+                if current_status != "stopped":
+                    repo.upsert_strategy(strategy_id=id, status="stopped")
+            except Exception:
+                # Do not fail deletion due to stop failure; proceed to deletion
+                pass
+
             ok = repo.delete_strategy(id, cascade=cascade)
             if not ok:
                 raise HTTPException(status_code=500, detail="Failed to delete strategy")
 
             return SuccessResponse.create(
                 data={"strategy_id": id},
-                msg=f"Strategy '{id}' deleted successfully",
+                msg=f"Strategy '{id}' stopped (if running) and deleted successfully",
             )
         except HTTPException:
             raise
