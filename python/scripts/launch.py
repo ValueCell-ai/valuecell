@@ -5,8 +5,8 @@ Allows users to select an agent from available options and launch it using uv.
 
 import os
 import shlex
-import subprocess
 import signal
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Dict
