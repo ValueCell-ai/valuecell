@@ -44,10 +44,10 @@ def load_env_file_early() -> None:
             if not sys_env.exists() and example_file.exists():
                 ensure_system_env_dir()
                 shutil.copy(example_file, sys_env)
-                if os.getenv("VALUECELL_DEBUG", "false").lower() == "true":
+                if os.getenv("AGENT_DEBUG_MODE", "false").lower() == "true":
                     logger.info(f"✓ Created system .env from example: {sys_env}")
         except Exception as e:
-            if os.getenv("VALUECELL_DEBUG", "false").lower() == "true":
+            if os.getenv("AGENT_DEBUG_MODE", "false").lower() == "true":
                 logger.info(f"⚠️  Failed to prepare system .env: {e}")
 
         if sys_env.exists():
@@ -56,13 +56,13 @@ def load_env_file_early() -> None:
             load_dotenv(sys_env, override=True)
 
             # Optional: Log successful loading if DEBUG is enabled
-            if os.getenv("VALUECELL_DEBUG", "false").lower() == "true":
+            if os.getenv("AGENT_DEBUG_MODE", "false").lower() == "true":
                 logger.info(f"✓ Environment variables loaded from {sys_env}")
                 logger.info(f"  LANG: {os.environ.get('LANG', 'not set')}")
                 logger.info(f"  TIMEZONE: {os.environ.get('TIMEZONE', 'not set')}")
         else:
             # Only log if debug mode is enabled
-            if os.getenv("VALUECELL_DEBUG", "false").lower() == "true":
+            if os.getenv("AGENT_DEBUG_MODE", "false").lower() == "true":
                 logger.info(f"ℹ️  No system .env file found at {sys_env}")
 
     except ImportError:
@@ -71,7 +71,7 @@ def load_env_file_early() -> None:
         _load_env_file_manual()
     except Exception as e:
         # Only log errors if debug mode is enabled
-        if os.getenv("VALUECELL_DEBUG", "false").lower() == "true":
+        if os.getenv("AGENT_DEBUG_MODE", "false").lower() == "true":
             logger.info(f"⚠️  Error loading .env file: {e}")
 
 
