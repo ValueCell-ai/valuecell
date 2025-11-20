@@ -99,6 +99,7 @@ async def critical_operation() -> None:
 * Add type hints across public and internal APIs.
 * Comments and docstrings should be in English and explain why, not only what.
 * Use Protocols and TypedDict or pydantic models where appropriate.
+* Avoid excessive literal dict access (for example, using `obj['key']` everywhere); prefer typed structures such as `dataclass`, pydantic models, or `TypedDict` for clearer contracts and better type safety.
 
 ### Error Handling
 
@@ -124,6 +125,7 @@ def parse_payload(raw: str) -> dict:
 
 * Avoid nested functions; extract helpers at module level.
 * Keep functions under 200 lines. Split into well-named helpers.
+* Avoid functions with more than 10 parameters; prefer wrapping parameters in a struct or object.
 * Separate concerns: I/O, parsing, business logic, and orchestration.
 
 ### Strings and Literals
