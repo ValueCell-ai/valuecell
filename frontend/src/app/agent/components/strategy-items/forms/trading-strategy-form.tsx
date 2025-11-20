@@ -23,6 +23,7 @@ import ViewStrategyModal from "../modals/view-strategy-modal";
 
 export const TradingStrategyForm = withForm({
   defaultValues: {
+    strategy_type: "",
     strategy_name: "",
     initial_capital: 1000,
     max_leverage: 8,
@@ -37,6 +38,17 @@ export const TradingStrategyForm = withForm({
 
     return (
       <FieldGroup className="gap-6">
+        <form.AppField name="strategy_type">
+          {(field) => (
+            <field.SelectField label="Strategy Type">
+              <SelectItem value="PromptBasedStrategy">
+                Prompt Based Strategy
+              </SelectItem>
+              <SelectItem value="GridStrategy">Grid Strategy</SelectItem>
+            </field.SelectField>
+          )}
+        </form.AppField>
+
         <form.AppField name="strategy_name">
           {(field) => (
             <field.TextField

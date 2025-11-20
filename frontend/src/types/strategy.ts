@@ -3,6 +3,7 @@
 export interface Strategy {
   strategy_id: string;
   strategy_name: string;
+  strategy_type: "PromptBasedStrategy" | "GridStrategy";
   status: "running" | "stopped";
   trading_mode: "live" | "virtual";
   unrealized_pnl: number;

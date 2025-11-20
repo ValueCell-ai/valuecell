@@ -87,6 +87,7 @@ const step2Schema = z.union([
 
 // Step 3 Schema: Trading Strategy
 const step3Schema = z.object({
+  strategy_type: z.enum(["PromptBasedStrategy", "GridStrategy"]),
   strategy_name: z.string().min(1, "Strategy name is required"),
   initial_capital: z.number().min(0, "Initial capital must be positive"),
   max_leverage: z.number().min(1, "Leverage must be at least 1"),
@@ -227,6 +228,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
   // Step 3 Form: Trading Strategy
   const form3 = useAppForm({
     defaultValues: {
+      strategy_type: "PromptBasedStrategy",
       strategy_name: "",
       initial_capital: 1000,
       max_leverage: 8,
