@@ -24,7 +24,8 @@ def get_system_env_dir() -> Path:
         return base / "ValueCell"
     # macOS (posix with darwin kernel)
     if sys_platform_is_darwin():
-        return home / "Library" / "ApplicationSupport" / "ValueCell"
+        # Correct macOS Application Support directory path
+        return home / "Library" / "Application Support" / "ValueCell"
     # Linux and other Unix-like
     return home / ".config" / "valuecell"
 
