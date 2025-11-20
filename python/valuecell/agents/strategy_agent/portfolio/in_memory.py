@@ -192,14 +192,21 @@ class InMemoryPortfolioService(PortfolioService):
             notional = price * delta
             # Deduct fees from cash as well. Trade may include fee_cost (in quote ccy).
             fee = trade.fee_cost or 0.0
-            if trade.side == TradeSide.BUY:
-                # buying reduces cash by notional plus fees
-                self._view.account_balance -= notional
-                self._view.account_balance -= fee
+
+            if self._market_type == MarketType.SPOT:
+                if trade.side == TradeSide.BUY:
+                    # buying reduces cash by notional plus fees
+                    self._view.account_balance -= notional
+                    self._view.account_balance -= fee
+                else:
+                    # selling increases cash by notional minus fees
+                    self._view.account_balance += notional
+                    self._view.account_balance -= fee
             else:
-                # selling increases cash by notional minus fees
-                self._view.account_balance += notional
+                # Derivatives: Cash (Wallet Balance) only changes by Realized PnL and Fees
+                # Notional is not deducted from cash.
                 self._view.account_balance -= fee
+                self._view.account_balance += realized_delta
 
             total_realized += realized_delta
 
@@ -260,8 +267,14 @@ class InMemoryPortfolioService(PortfolioService):
         self._view.net_exposure = net
         self._view.total_unrealized_pnl = unreal
         self._view.total_realized_pnl = total_realized
-        # Equity is cash plus net exposure (correct for both long and short)
-        equity = self._view.account_balance + net
+
+        if self._market_type == MarketType.SPOT:
+            # Equity is cash plus net exposure (market value of assets)
+            equity = self._view.account_balance + net
+        else:
+            # Derivatives: Equity is Wallet Balance + Unrealized PnL
+            equity = self._view.account_balance + unreal
+
         self._view.total_value = equity
 
         # Approximate buying power using market type policy

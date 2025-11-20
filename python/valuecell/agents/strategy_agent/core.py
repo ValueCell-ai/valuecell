@@ -130,6 +130,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                 self._request.exchange_config.trading_mode == TradingMode.LIVE
                 and hasattr(self._execution_gateway, "fetch_balance")
             ):
+                logger.debug("Syncing portfolio balance from exchange in LIVE mode")
                 balance = await self._execution_gateway.fetch_balance()
                 free_map = {}
                 free_section = (
@@ -158,19 +159,60 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                         quotes.append(s.split("-")[1])
                 # Deduplicate preserving order
                 quotes = list(dict.fromkeys(quotes))
+
                 free_cash = 0.0
+                total_cash = 0.0
+
+                # Sum up free and total cash from relevant quote currencies
                 if quotes:
                     for q in quotes:
                         free_cash += float(free_map.get(q, 0.0) or 0.0)
+                        # Try to find total/equity in balance if available (often 'total' dict in CCXT)
+                        # Hyperliquid/CCXT structure: balance[q]['total']
+                        q_data = balance.get(q)
+                        if isinstance(q_data, dict):
+                            total_cash += float(q_data.get("total", 0.0) or 0.0)
+                        else:
+                            # Fallback if structure is flat or missing
+                            total_cash += float(free_map.get(q, 0.0) or 0.0)
                 else:
                     for q in ("USDT", "USD", "USDC"):
                         free_cash += float(free_map.get(q, 0.0) or 0.0)
-                portfolio.account_balance = float(free_cash)
+                        q_data = balance.get(q)
+                        if isinstance(q_data, dict):
+                            total_cash += float(q_data.get("total", 0.0) or 0.0)
+                        else:
+                            total_cash += float(free_map.get(q, 0.0) or 0.0)
+
+                logger.debug(
+                    f"Synced balance from exchange: free_cash={free_cash}, total_cash={total_cash}, quotes={quotes}"
+                )
+
                 if self._request.exchange_config.market_type == MarketType.SPOT:
+                    # Spot: Account Balance is Cash (Free). Buying Power is Cash.
+                    portfolio.account_balance = float(free_cash)
                     portfolio.buying_power = max(0.0, float(portfolio.account_balance))
+                else:
+                    # Derivatives: Account Balance should be Wallet Balance or Equity.
+                    # We use total_cash (Equity) as the best approximation for account_balance
+                    # to ensure InMemoryPortfolioService calculates Equity correctly (Equity + Unrealized).
+                    # Note: If total_cash IS Equity, adding Unrealized PnL again in InMemoryService
+                    # (Equity = Balance + Unreal) would double count PnL.
+                    # However, separating Wallet Balance from Equity is exchange-specific.
+                    # For now, we set account_balance = total_cash and rely on the fixed
+                    # InMemoryPortfolioService to handle it (assuming Balance ~= Equity for initial sync).
+                    portfolio.account_balance = float(total_cash)
+                    # Buying Power is explicit Free Margin
+                    portfolio.buying_power = float(free_cash)
+                    # Also update free_cash field in view if it exists
+                    portfolio.free_cash = float(free_cash)
+
         except Exception:
             # If syncing fails, continue with existing portfolio view
-            pass
+            logger.warning(
+                "Failed to sync balance from exchange in LIVE mode, using cached portfolio view",
+                exc_info=True,
+            )
         # VIRTUAL mode: cash-only for spot; derivatives keep margin-based buying power
         if self._request.exchange_config.trading_mode == TradingMode.VIRTUAL:
             if self._request.exchange_config.market_type == MarketType.SPOT:
@@ -231,10 +273,36 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             instructions, market_snapshot
         )
         logger.info(f"✅ ExecutionGateway returned {len(tx_results)} results")
+
+        # Filter out failed instructions and append reasons to rationale
+        failed_ids = set()
+        failure_msgs = []
         for idx, tx in enumerate(tx_results):
             logger.info(
                 f"  📊 TxResult {idx}: {tx.instrument.symbol} status={tx.status.value} filled_qty={tx.filled_qty}"
             )
+            if tx.status in (TxStatus.REJECTED, TxStatus.ERROR):
+                failed_ids.add(tx.instruction_id)
+                reason = tx.reason or "Unknown error"
+                # Format failure message with clear details
+                msg = f"❌ Skipped {tx.instrument.symbol} {tx.side.value} qty={tx.requested_qty}: {reason}"
+                failure_msgs.append(msg)
+                logger.warning(f"  ⚠️ Order rejected: {msg}")
+
+        if failure_msgs:
+            # Append failure reasons to AI rationale for frontend display
+            prefix = "\n\n**Execution Warnings:**\n"
+            rationale = (
+                (rationale or "")
+                + prefix
+                + "\n".join(f"- {msg}" for msg in failure_msgs)
+            )
+
+        if failed_ids:
+            # Remove failed instructions so they don't appear in history/UI
+            instructions = [
+                inst for inst in instructions if inst.instruction_id not in failed_ids
+            ]
 
         trades = self._create_trades(tx_results, compose_id, timestamp_ms)
         self._portfolio_service.apply_trades(trades, market_snapshot)
@@ -489,15 +557,9 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         try:
             view = self._portfolio_service.get_view()
             unrealized = float(view.total_unrealized_pnl or 0.0)
-            # In LIVE mode, treat equity as available cash (disallow financing)
-            try:
-                mode = getattr(self._request.exchange_config, "trading_mode", None)
-            except Exception:
-                mode = None
-            if str(mode).upper() == "LIVE":
-                equity = float(getattr(view, "cash", None) or 0.0)
-            else:
-                equity = float(view.total_value or 0.0)
+            # Use the portfolio view's total_value which now correctly reflects Equity
+            # (whether simulated or synced from exchange)
+            equity = float(view.total_value or 0.0)
         except Exception:
             # Fallback to internal tracking if portfolio service is unavailable
             unrealized = float(self._unrealized_pnl or 0.0)

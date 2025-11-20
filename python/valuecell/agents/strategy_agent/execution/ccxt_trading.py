@@ -41,9 +41,11 @@ class CCXTExecutionGateway(ExecutionGateway):
     def __init__(
         self,
         exchange_id: str,
-        api_key: str,
-        secret_key: str,
+        api_key: str = "",
+        secret_key: str = "",
         passphrase: Optional[str] = None,
+        wallet_address: Optional[str] = None,
+        private_key: Optional[str] = None,
         testnet: bool = False,
         default_type: str = "swap",
         margin_mode: str = "cross",
@@ -53,10 +55,12 @@ class CCXTExecutionGateway(ExecutionGateway):
         """Initialize CCXT exchange gateway.
 
         Args:
-            exchange_id: Exchange identifier (e.g., 'binance', 'okx', 'bybit')
-            api_key: API key for authentication
-            secret_key: Secret key for authentication
-            passphrase: Optional passphrase (required for OKX)
+            exchange_id: Exchange identifier (e.g., 'binance', 'okx', 'bybit', 'hyperliquid')
+            api_key: API key for authentication (not required for Hyperliquid)
+            secret_key: Secret key for authentication (not required for Hyperliquid)
+            passphrase: Optional passphrase (required for OKX, Coinbase Exchange)
+            wallet_address: Wallet address (required for Hyperliquid)
+            private_key: Private key (required for Hyperliquid)
             testnet: Whether to use testnet/sandbox mode
             default_type: Default market type ('spot', 'future', 'swap', "margin")
             margin_mode: Default margin mode ('isolated' or 'cross')
@@ -67,6 +71,8 @@ class CCXTExecutionGateway(ExecutionGateway):
         self.api_key = api_key
         self.secret_key = secret_key
         self.passphrase = passphrase
+        self.wallet_address = wallet_address
+        self.private_key = private_key
         self.testnet = testnet
         self.default_type = default_type
         self.margin_mode = margin_mode
@@ -104,10 +110,8 @@ class CCXTExecutionGateway(ExecutionGateway):
                 f"Available: {', '.join(ccxt.exchanges)}"
             )
 
-        # Build configuration
+        # Build configuration based on exchange type
         config = {
-            "apiKey": self.api_key,
-            "secret": self.secret_key,
             "enableRateLimit": True,  # Respect rate limits
             "options": {
                 "defaultType": self._choose_default_type_for_exchange(),
@@ -115,9 +119,25 @@ class CCXTExecutionGateway(ExecutionGateway):
             },
         }
 
-        # Add passphrase if provided (required for OKX)
-        if self.passphrase:
-            config["password"] = self.passphrase
+        # Hyperliquid uses wallet-based authentication
+        if self.exchange_id == "hyperliquid":
+            if self.wallet_address:
+                config["walletAddress"] = self.wallet_address
+            if self.private_key:
+                config["privateKey"] = self.private_key
+            # Disable builder fees by default (can be overridden in ccxt_options)
+            if "builderFee" not in config["options"]:
+                config["options"]["builderFee"] = False
+            if "approvedBuilderFee" not in config["options"]:
+                config["options"]["approvedBuilderFee"] = False
+        else:
+            # Standard API key/secret authentication
+            config["apiKey"] = self.api_key
+            config["secret"] = self.secret_key
+
+            # Add passphrase if provided (required for OKX, Coinbase Exchange)
+            if self.passphrase:
+                config["password"] = self.passphrase
 
         # Create exchange instance
         self._exchange = exchange_class(config)
@@ -257,14 +277,16 @@ class CCXTExecutionGateway(ExecutionGateway):
         exid = self.exchange_id
 
         # Idempotency / client order id (sanitize for OKX)
-        raw_client_id = params.get("clientOrderId", inst.instruction_id)
-        if raw_client_id:
-            client_id = (
-                self._sanitize_client_order_id(raw_client_id)
-                if exid == "okx"
-                else raw_client_id
-            )
-            params["clientOrderId"] = client_id
+        # Hyperliquid doesn't support clientOrderId
+        if exid != "hyperliquid":
+            raw_client_id = params.get("clientOrderId", inst.instruction_id)
+            if raw_client_id:
+                client_id = (
+                    self._sanitize_client_order_id(raw_client_id)
+                    if exid == "okx"
+                    else raw_client_id
+                )
+                params["clientOrderId"] = client_id
 
         # Default tdMode for OKX on all orders
         if exid == "okx":
@@ -284,6 +306,9 @@ class CCXTExecutionGateway(ExecutionGateway):
             params.setdefault("reduceOnly", False)
         elif exid == "bybit":
             params.setdefault("reduce_only", False)
+        elif exid == "hyperliquid":
+            # Hyperliquid only uses 'reduceOnly' (not 'reduce_only')
+            params.setdefault("reduceOnly", False)
 
         # Enforce single-sided mode: strip positionSide/posSide if present
         try:
@@ -780,11 +805,71 @@ class CCXTExecutionGateway(ExecutionGateway):
         except Exception:
             pass
 
+        # Hyperliquid special handling for market orders
+        # Hyperliquid doesn't have true market orders; use IoC (Immediate or Cancel) to simulate
+        if self.exchange_id == "hyperliquid" and order_type == "market":
+            try:
+                logger.debug(
+                    "  📊 Hyperliquid: Converting market order to IoC limit order"
+                )
+
+                # Fetch current market price
+                if price is None:
+                    ticker = await exchange.fetch_ticker(symbol)
+                    price = float(ticker.get("last") or ticker.get("close") or 0.0)
+
+                if price > 0:
+                    # Calculate slippage price based on direction
+                    slippage_pct = (
+                        inst.max_slippage_bps or 50.0
+                    ) / 10000.0  # default 50 bps = 0.5%
+                    if side == "buy":
+                        # For buy orders, set price higher to ensure execution
+                        price = price * (1 + slippage_pct)
+                    else:
+                        # For sell orders, set price lower to ensure execution
+                        price = price * (1 - slippage_pct)
+
+                    # Apply CCXT price precision (critical for Hyperliquid)
+                    # This handles both integer prices (BTC) and decimal prices (WIF, ENA, etc.)
+                    try:
+                        price = float(exchange.price_to_precision(symbol, price))
+                        logger.debug(f"  🔢 Price after precision: {price}")
+                    except Exception as e:
+                        logger.warning(f"  ⚠️ Could not apply price precision: {e}")
+                        # Fallback: try integer conversion for high-value assets
+                        try:
+                            market = (getattr(exchange, "markets", {}) or {}).get(
+                                symbol
+                            ) or {}
+                            price_precision = market.get("precision", {}).get("price")
+                            if price_precision is not None and price_precision == 0:
+                                price = float(int(price))
+                                logger.debug(
+                                    f"  🔢 Fallback: rounded to integer {price}"
+                                )
+                        except Exception:
+                            pass
+
+                    # Use IoC (Immediate or Cancel) to simulate market execution
+                    params["timeInForce"] = "Ioc"
+                    logger.debug(
+                        f"  💰 Using IoC limit order: {side} @ {price} (slippage: {slippage_pct:.2%})"
+                    )
+                else:
+                    logger.warning(
+                        f"  ⚠️ Could not determine market price for {symbol}, will try without price"
+                    )
+            except Exception as e:
+                logger.warning(f"  ⚠️ Could not setup Hyperliquid market order: {e}")
+                # Fallback: let exchange handle it
+
         # Create order
         try:
             logger.info(
                 f"  🔨 Creating {order_type} order: {side} {amount} {symbol} @ {price if price else 'market'}"
             )
+            logger.debug(f"  📋 Order params: {params}")
             order = await exchange.create_order(
                 symbol=symbol,
                 type=order_type,
@@ -797,8 +882,24 @@ class CCXTExecutionGateway(ExecutionGateway):
                 f"  ✓ Order created: id={order.get('id')}, status={order.get('status')}, filled={order.get('filled')}"
             )
         except Exception as e:
-            logger.error(f"  ❌ ERROR creating order for {symbol}: {e}")
-            raise RuntimeError(f"Failed to create order for {symbol}: {e}") from e
+            error_msg = str(e)
+            logger.error(f"  ❌ ERROR creating order for {symbol}: {error_msg}")
+            logger.error(
+                f"  📋 Failed order details: side={side}, amount={amount}, price={price}, type={order_type}"
+            )
+            logger.error(f"  📋 Failed order params: {params}")
+
+            # Return error result instead of raising to allow other orders to proceed
+            return TxResult(
+                instruction_id=inst.instruction_id,
+                instrument=inst.instrument,
+                side=local_side,
+                requested_qty=amount,
+                filled_qty=0.0,
+                status=TxStatus.ERROR,
+                reason=f"create_order_failed: {error_msg}",
+                meta=inst.meta,
+            )
 
         # For market orders, wait for fill and fetch final order status
         # Many exchanges don't immediately return filled quantities for market orders
@@ -870,26 +971,42 @@ class CCXTExecutionGateway(ExecutionGateway):
         self, inst: TradeInstruction, exchange: ccxt.Exchange
     ) -> TxResult:
         # Ensure we do not mark reduceOnly on open
-        overrides = {"reduceOnly": False, "reduce_only": False}
+        # Use exchange-specific param name
+        if self.exchange_id == "bybit":
+            overrides = {"reduce_only": False}
+        else:
+            overrides = {"reduceOnly": False}
         return await self._submit_order(inst, exchange, overrides)
 
     async def _exec_open_short(
         self, inst: TradeInstruction, exchange: ccxt.Exchange
     ) -> TxResult:
-        overrides = {"reduceOnly": False, "reduce_only": False}
+        # Use exchange-specific param name
+        if self.exchange_id == "bybit":
+            overrides = {"reduce_only": False}
+        else:
+            overrides = {"reduceOnly": False}
         return await self._submit_order(inst, exchange, overrides)
 
     async def _exec_close_long(
         self, inst: TradeInstruction, exchange: ccxt.Exchange
     ) -> TxResult:
         # Force reduceOnly flags for closes
-        overrides = {"reduceOnly": True, "reduce_only": True}
+        # Use exchange-specific param name
+        if self.exchange_id == "bybit":
+            overrides = {"reduce_only": True}
+        else:
+            overrides = {"reduceOnly": True}
         return await self._submit_order(inst, exchange, overrides)
 
     async def _exec_close_short(
         self, inst: TradeInstruction, exchange: ccxt.Exchange
     ) -> TxResult:
-        overrides = {"reduceOnly": True, "reduce_only": True}
+        # Use exchange-specific param name
+        if self.exchange_id == "bybit":
+            overrides = {"reduce_only": True}
+        else:
+            overrides = {"reduceOnly": True}
         return await self._submit_order(inst, exchange, overrides)
 
     async def _exec_noop(self, inst: TradeInstruction) -> TxResult:

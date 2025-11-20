@@ -35,21 +35,33 @@ async def create_execution_gateway(config: ExchangeConfig) -> ExecutionGateway:
         if not config.exchange_id:
             raise ValueError(
                 "exchange_id is required for live trading mode. "
-                "Please specify an exchange (e.g., 'binance', 'okx', 'bybit')"
+                "Please specify an exchange (e.g., 'binance', 'okx', 'bybit', 'hyperliquid')"
             )
 
-        if not config.api_key or not config.secret_key:
-            raise ValueError(
-                f"API credentials are required for live trading on {config.exchange_id}. "
-                "Please provide api_key and secret_key in ExchangeConfig."
-            )
+        # Validate credentials based on exchange type
+        if config.exchange_id.lower() == "hyperliquid":
+            # Hyperliquid requires wallet_address and private_key
+            if not config.wallet_address or not config.private_key:
+                raise ValueError(
+                    "Hyperliquid requires wallet_address and private_key. "
+                    "Please provide both in ExchangeConfig."
+                )
+        else:
+            # Standard exchanges require api_key and secret_key
+            if not config.api_key or not config.secret_key:
+                raise ValueError(
+                    f"API credentials are required for live trading on {config.exchange_id}. "
+                    "Please provide api_key and secret_key in ExchangeConfig."
+                )
 
         # Create CCXT gateway with full configuration
         gateway = CCXTExecutionGateway(
             exchange_id=config.exchange_id,
-            api_key=config.api_key,
-            secret_key=config.secret_key,
+            api_key=config.api_key or "",
+            secret_key=config.secret_key or "",
             passphrase=config.passphrase,
+            wallet_address=config.wallet_address,
+            private_key=config.private_key,
             testnet=config.testnet,
             default_type=config.market_type.value,
             margin_mode=config.margin_mode.value,

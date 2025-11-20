@@ -155,6 +155,14 @@ class ExchangeConfig(BaseModel):
         default=None,
         description="API passphrase (required for some exchanges like OKX)",
     )
+    wallet_address: Optional[str] = Field(
+        default=None,
+        description="Wallet address (required for Hyperliquid)",
+    )
+    private_key: Optional[str] = Field(
+        default=None,
+        description="Private key (required for Hyperliquid)",
+    )
     testnet: bool = Field(
         default=False, description="Use testnet/sandbox mode for testing"
     )

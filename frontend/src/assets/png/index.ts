@@ -23,6 +23,11 @@ export { default as ValueCellAgentPng } from "./agents/ValueCellAgent.png";
 export { default as WarrenBuffettPng } from "./agents/WarrenBuffett.png";
 
 export { default as BinancePng } from "./exchanges/binance.png";
+export { default as BlockchainPng } from "./exchanges/blockchain.png";
+export { default as CoinbasePng } from "./exchanges/coinbase.png";
+export { default as GatePng } from "./exchanges/gate.png";
+export { default as HyperliquidPng } from "./exchanges/hyperliquid.png";
+export { default as MexcPng } from "./exchanges/mexc.png";
 export { default as OkxPng } from "./exchanges/okx.png";
 export { default as IconGroupPng } from "./icon-group.png";
 export { default as MessageGroupPng } from "./message-group.png";
