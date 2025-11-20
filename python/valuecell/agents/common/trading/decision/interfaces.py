@@ -10,11 +10,12 @@ from ..models import (
     ComposeContext,
     ComposeResult,
     Constraints,
-    TradeDecisionAction,
-    TradePlanProposal,
     MarketType,
+    TradeDecisionAction,
     TradeInstruction,
+    TradePlanProposal,
     TradeSide,
+    UserRequest,
 )
 from ..utils import extract_price_map
 
@@ -28,6 +29,17 @@ class BaseComposer(ABC):
     Input: ComposeContext
     Output: TradeInstruction list
     """
+
+    def __init__(
+        self,
+        request: UserRequest,
+        *,
+        default_slippage_bps: int = 25,
+        quantity_precision: float = 1e-9,
+    ) -> None:
+        self._request = request
+        self._default_slippage_bps = default_slippage_bps
+        self._quantity_precision = quantity_precision
 
     @abstractmethod
     async def compose(self, context: ComposeContext) -> ComposeResult:
