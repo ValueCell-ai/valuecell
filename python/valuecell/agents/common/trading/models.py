@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from valuecell.agents.common.trading.constants import (
+from .constants import (
     DEFAULT_AGENT_MODEL,
     DEFAULT_CAP_FACTOR,
     DEFAULT_INITIAL_CAPITAL,
