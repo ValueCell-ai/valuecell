@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import ccxt.pro as ccxtpro
 import httpx
@@ -18,21 +18,26 @@ def get_current_timestamp_ms() -> int:
     return int(datetime.now(timezone.utc).timestamp() * 1000)
 
 
-async def fetch_free_cash_from_gateway(execution_gateway, symbols: list[str]) -> float:
+async def fetch_free_cash_from_gateway(
+    execution_gateway, symbols: list[str]
+) -> Tuple[float, float]:
     """Fetch exchange balance via `execution_gateway.fetch_balance()` and
     aggregate free cash for the given `symbols` (quote currencies).
 
     Returns aggregated free cash as float. Returns 0.0 on error or when
     balance shape cannot be parsed.
     """
+    logger.info("Fetching exchange balance for LIVE trading mode")
     try:
         if not hasattr(execution_gateway, "fetch_balance"):
-            return 0.0
+            return 0.0, 0.0
         balance = await execution_gateway.fetch_balance()
     except Exception:
-        return 0.0
+        return 0.0, 0.0
 
+    logger.info(f"Raw balance response: {balance}")
     free_map: dict[str, float] = {}
+    # ccxt balance may be shaped as: {'free': {...}, 'used': {...}, 'total': {...}}
     try:
         free_section = balance.get("free") if isinstance(balance, dict) else None
     except Exception:
@@ -41,6 +46,7 @@ async def fetch_free_cash_from_gateway(execution_gateway, symbols: list[str]) ->
     if isinstance(free_section, dict):
         free_map = {str(k).upper(): float(v or 0.0) for k, v in free_section.items()}
     else:
+        # fallback: per-ccy dicts: balance['USDT'] = {'free': x, 'used': y, 'total': z}
         iterable = balance.items() if isinstance(balance, dict) else []
         for k, v in iterable:
             if isinstance(v, dict) and "free" in v:
@@ -49,30 +55,49 @@ async def fetch_free_cash_from_gateway(execution_gateway, symbols: list[str]) ->
                 except Exception:
                     continue
 
-    # collect quote currencies from configured symbols
+    logger.info(f"Parsed free balance map: {free_map}")
+    # Derive quote currencies from symbols, fallback to common USD-stable quotes
     quotes: list[str] = []
     for sym in symbols or []:
         s = str(sym).upper()
-        if "/" in s:
-            parts = s.split("/")
-            if len(parts) == 2:
-                quotes.append(parts[1])
-        elif "-" in s:
-            parts = s.split("-")
-            if len(parts) == 2:
-                quotes.append(parts[1])
-    quotes = list(dict.fromkeys(quotes))  # unique order-preserving
+        if "/" in s and len(s.split("/")) == 2:
+            quotes.append(s.split("/")[1])
+        elif "-" in s and len(s.split("-")) == 2:
+            quotes.append(s.split("-")[1])
+
+    # Deduplicate preserving order
+    quotes = list(dict.fromkeys(quotes))
+    logger.info(f"Quote currencies from symbols: {quotes}")
 
     free_cash = 0.0
+    total_cash = 0.0
+
+    # Sum up free and total cash from relevant quote currencies
     if quotes:
         for q in quotes:
             free_cash += float(free_map.get(q, 0.0) or 0.0)
+            # Try to find total/equity in balance if available (often 'total' dict in CCXT)
+            # Hyperliquid/CCXT structure: balance[q]['total']
+            q_data = balance.get(q)
+            if isinstance(q_data, dict):
+                total_cash += float(q_data.get("total", 0.0) or 0.0)
+            else:
+                # Fallback if structure is flat or missing
+                total_cash += float(free_map.get(q, 0.0) or 0.0)
     else:
-        # fallback to common stablecoins
         for q in ("USDT", "USD", "USDC"):
             free_cash += float(free_map.get(q, 0.0) or 0.0)
+            q_data = balance.get(q)
+            if isinstance(q_data, dict):
+                total_cash += float(q_data.get("total", 0.0) or 0.0)
+            else:
+                total_cash += float(free_map.get(q, 0.0) or 0.0)
 
-    return float(free_cash)
+    logger.debug(
+        f"Synced balance from exchange: free_cash={free_cash}, total_cash={total_cash}, quotes={quotes}"
+    )
+
+    return float(free_cash), float(total_cash)
 
 
 def extract_market_snapshot_features(

@@ -9,6 +9,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict
 
+from valuecell.utils.env import ensure_system_env_dir, get_system_env_path
+
 # Mapping from agent name to analyst key (for ai-hedge-fund agents)
 MAP_NAME_ANALYST: Dict[str, str] = {
     "AswathDamodaranAgent": "aswath_damodaran",
@@ -47,13 +49,14 @@ AGENTS = [
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent.parent
 PYTHON_DIR = PROJECT_DIR / "python"
-ENV_PATH = PROJECT_DIR / ".env"
+ENV_PATH = get_system_env_path()
 
 # Convert paths to POSIX format (forward slashes) for cross-platform compatibility
 # as_posix() works on both Windows and Unix systems
 PROJECT_DIR_STR = PROJECT_DIR.as_posix()
 PYTHON_DIR_STR = PYTHON_DIR.as_posix()
-ENV_PATH_STR = ENV_PATH.as_posix()
+# Quote path to handle spaces (e.g., macOS Application Support)
+ENV_PATH_STR = f'"{ENV_PATH.as_posix()}"'
 
 AUTO_TRADING_ENV_OVERRIDES = {
     "AUTO_TRADING_EXCHANGE": os.getenv("AUTO_TRADING_EXCHANGE"),
@@ -97,11 +100,24 @@ FRONTEND_URL = "http://localhost:1420"
 
 def check_envfile_is_set():
     if not ENV_PATH.exists():
-        print(
-            f".env file not found at {ENV_PATH}. Please create it with necessary environment variables. "
-            "check python/.env.example for reference."
-        )
-        exit(1)
+        # Attempt to create system .env from repository example
+        example = PROJECT_DIR / ".env.example"
+        if example.exists():
+            try:
+                import shutil
+
+                ensure_system_env_dir()
+                shutil.copy(example, ENV_PATH)
+                print(f"Created system .env from example: {ENV_PATH}")
+            except Exception as e:
+                print(f"Failed to create system .env from example: {e}")
+        # Re-check after attempt
+        if not ENV_PATH.exists():
+            print(
+                f"System .env not found at {ENV_PATH}. Please create it with necessary environment variables. "
+                "System paths — macOS: ~/Library/Application Support/ValueCell/.env; Linux: ~/.config/valuecell/.env; Windows: %APPDATA%\\ValueCell\\.env."
+            )
+            exit(1)
 
 
 def main():

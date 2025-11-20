@@ -26,17 +26,41 @@ class SimpleMarketDataSource(BaseMarketDataSource):
     def __init__(self, exchange_id: Optional[str] = None) -> None:
         self._exchange_id = exchange_id or "binance"
 
+    def _normalize_symbol(self, symbol: str) -> str:
+        """Normalize symbol format for specific exchanges.
+
+        For Hyperliquid: converts BTC-USDC to BTC/USDC:USDC (swap format)
+        For other exchanges: converts BTC-USDC to BTC/USDC:USDC
+
+        Args:
+            symbol: Symbol in format 'BTC-USDC', 'ETH-USDT', etc.
+
+        Returns:
+            Normalized CCXT symbol for the specific exchange
+        """
+        # Replace dash with slash
+        base_symbol = symbol.replace("-", "/")
+
+        # For most exchanges (especially those requiring settlement currency)
+        if ":" not in base_symbol:
+            parts = base_symbol.split("/")
+            if len(parts) == 2:
+                # Add settlement currency (e.g., BTC/USDC -> BTC/USDC:USDC)
+                base_symbol = f"{parts[0]}/{parts[1]}:{parts[1]}"
+
+        return base_symbol
+
     async def get_recent_candles(
         self, symbols: List[str], interval: str, lookback: int
     ) -> List[Candle]:
-        async def _fetch(symbol: str) -> List[List]:
+        async def _fetch(symbol: str, normalized_symbol: str) -> List[List]:
             # instantiate exchange class by name (e.g., ccxtpro.kraken)
             exchange_cls = get_exchange_cls(self._exchange_id)
             exchange = exchange_cls({"newUpdates": False})
             try:
-                # ccxt.pro uses async fetch_ohlcv
+                # ccxt.pro uses async fetch_ohlcv with normalized symbol
                 data = await exchange.fetch_ohlcv(
-                    symbol, timeframe=interval, since=None, limit=lookback
+                    normalized_symbol, timeframe=interval, since=None, limit=lookback
                 )
                 return data
             finally:
@@ -49,7 +73,9 @@ class SimpleMarketDataSource(BaseMarketDataSource):
         # Run fetch for each symbol sequentially
         for symbol in symbols:
             try:
-                raw = await _fetch(symbol)
+                # Normalize symbol format for the exchange (e.g., BTC-USDC -> BTC/USDC:USDC)
+                normalized_symbol = self._normalize_symbol(symbol)
+                raw = await _fetch(symbol, normalized_symbol)
                 # raw is list of [ts, open, high, low, close, volume]
                 for row in raw:
                     ts, open_v, high_v, low_v, close_v, vol = row
@@ -70,12 +96,17 @@ class SimpleMarketDataSource(BaseMarketDataSource):
                         )
                     )
             except Exception as exc:
-                logger.error(
-                    "Failed to fetch candles for {} from {}, return empty candles. Error: {}",
+                logger.warning(
+                    "Failed to fetch candles for {} (normalized: {}) from {}, data interval is {}, return empty candles. Error: {}",
                     symbol,
+                    normalized_symbol,
                     self._exchange_id,
+                    interval,
                     exc,
                 )
+        logger.debug(
+            f"Fetch candles for {len(candles)} symbols: {symbols}, interval: {interval}, lookback: {lookback}"
+        )
         return candles
 
     async def get_market_snapshot(self, symbols: List[str]) -> MarketSnapShotType:
@@ -190,6 +221,7 @@ class SimpleMarketDataSource(BaseMarketDataSource):
                             symbol,
                             self._exchange_id,
                         )
+                    logger.debug(f"Fetch market snapshot for {sym} data: {snapshot}")
                 except Exception:
                     logger.exception(
                         "Failed to fetch market snapshot for {} at {}",

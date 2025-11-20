@@ -7,9 +7,10 @@ from typing import List
 import yaml
 from fastapi import APIRouter, HTTPException, Query
 
-from valuecell.config.constants import CONFIG_DIR, PROJECT_ROOT
+from valuecell.config.constants import CONFIG_DIR
 from valuecell.config.loader import get_config_loader
 from valuecell.config.manager import get_config_manager
+from valuecell.utils.env import get_system_env_path
 
 from ..schemas import LLMProviderConfigData, SuccessResponse
 from ..schemas.model import (
@@ -41,17 +42,20 @@ def create_models_router() -> APIRouter:
 
     # ---- Utility helpers (local to router) ----
     def _env_paths() -> List[Path]:
-        """Return the repository root .env as the single source of truth.
-
-        Only use repo-root/.env and do not write python/.env.
-        """
-        repo_env = PROJECT_ROOT.parent / ".env"
-        return [repo_env]
+        """Return only system .env path for writes (single source of truth)."""
+        system_env = get_system_env_path()
+        return [system_env]
 
     def _set_env(key: str, value: str) -> bool:
         os.environ[key] = value
         updated_any = False
         for env_file in _env_paths():
+            # Ensure parent directory exists for system env file
+            try:
+                env_file.parent.mkdir(parents=True, exist_ok=True)
+            except Exception:
+                # Best effort; continue even if directory creation fails
+                pass
             lines: List[str] = []
             if env_file.exists():
                 with open(env_file, "r", encoding="utf-8") as f:
