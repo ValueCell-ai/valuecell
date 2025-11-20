@@ -14,7 +14,7 @@ def get_system_env_dir() -> Path:
 
     - macOS: ~/Library/Application Support/ValueCell
     - Linux: ~/.config/valuecell
-    - Windows: %APPDATA%\ValueCell
+    - Windows: %APPDATA%\\ValueCell
     """
     home = Path.home()
     # Windows
@@ -55,7 +55,7 @@ def sys_platform_is_darwin() -> bool:
 def agent_debug_mode_enabled() -> bool:
     """Return whether agent debug mode is enabled via environment.
 
-    Checks `AGENT_DEBUG_MODE` first; falls back to `VALUECELL_DEBUG`.
+    Checks `AGENT_DEBUG_MODE`.
     """
-    flag = os.getenv("AGENT_DEBUG_MODE", os.getenv("VALUECELL_DEBUG", "false"))
+    flag = os.getenv("AGENT_DEBUG_MODE", "false")
     return str(flag).lower() == "true"

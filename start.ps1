@@ -161,10 +161,12 @@ function Start-Backend {
         return
     }
     
-    Write-Info "Starting backend (uv run scripts/launch.py)..."
+    Write-Info "Starting backend in debug mode (AGENT_DEBUG_MODE=true)..."
     Push-Location $PY_DIR
     try {
-        & uv run --with questionary --with colorama scripts/launch.py
+        # Set debug mode for local development
+        $env:AGENT_DEBUG_MODE = "true"
+        & uv run python -m valuecell.server.main
     } catch {
         Write-Err "Failed to start backend: $_"
     } finally {
@@ -247,6 +249,12 @@ Usage: .\start.ps1 [options]
 Description:
   - Checks whether bun and uv are installed; missing tools will be auto-installed via PowerShell scripts.
   - Then installs backend and frontend dependencies and starts services.
+  - Environment variables are loaded from system path:
+    * macOS: ~/Library/Application Support/ValueCell/.env
+    * Linux: ~/.config/valuecell/.env
+    * Windows: %APPDATA%\ValueCell\.env
+  - The .env file will be auto-created from .env.example on first run.
+  - Debug mode is automatically enabled (AGENT_DEBUG_MODE=true) for local development.
 
 Options:
   -NoFrontend     Start backend only

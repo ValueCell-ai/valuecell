@@ -43,7 +43,7 @@ We welcome code contributions! See the [Development Setup](#development-setup) s
 
 > Multi-agent system architecture: [CORE_ARCHITECTURE](../docs/CORE_ARCHITECTURE.md)  
 > Configuration documentation: [CONFIGURATION_GUIDE](../docs/CONFIGURATION_GUIDE.md)  
-> Agent development guide: [CONTRIBUTING_AN_AGENT](../docs/CONTRIBUTING_AN_AGENT.md)
+> Agent development guide: [CONTRIBUTING_AN_AGENT](../docs/CONTRIBUTE_AN_AGENT.md)
 
 
 ## Development Setup
@@ -63,15 +63,18 @@ We welcome code contributions! See the [Development Setup](#development-setup) s
    cd valuecell
    ```
 
-2. **Configure environment variables**
+2. **First run**
 
    ```bash
-   cp .env.example .env
-   # Edit .env with your API keys
+   sh start.sh # MacOS, Linux
+   .\start.ps1 # Windows
    ```
+3. **Configuration**
+   The project will automatically create a config file (.env) in your system ValueCell directory.
+   You can configure your API key via the GUI settings tab.
+   Refer to [Configuration Guide](../docs/CONFIGURATION_GUIDE.md) for details.
 
-Refer to [Configuration Guide](../docs/CONFIGURATION_GUIDE.md) for details.
-
+### Development Run
 **Install backend dependencies:**
 
 ```bash
@@ -92,7 +95,7 @@ cd frontend
 bun install
 ```
 
-### Backend and Agents
+### Backend
 
 For detailed information on building and contributing agents, see the [Agent Development Guide](../docs/CONTRIBUTING_AN_AGENT.md).
 
@@ -105,15 +108,6 @@ cd python
 python -m valuecell.server.main
 ```
 
-**Run the Research Agent:**
-
-```bash
-cd python
-python -m valuecell.agents.research_agent
-```
-
-> [!TIP]
-> Set your environment first. At minimum, configure `OPENROUTER_API_KEY` (or `GOOGLE_API_KEY`) and `SEC_EMAIL`. See [Configuration Guide](../docs/CONFIGURATION_GUIDE.md).
 
 ### Code Style
 
@@ -127,26 +121,6 @@ This section shows how to run the backend locally and build new agents.
 - Agents: under `valuecell.agents.<agent_name>` with a `__main__.py` for `python -m`.
 - Core contracts: `valuecell.core.types` define response events and data shapes.
 - Streaming helpers: `valuecell.core.agent.responses.streaming` for emitting events.
-
-#### Launch backend
-
-Run the API server (from the `python/` folder):
-
-```bash
-cd python
-python -m valuecell.server.main
-```
-
-Run the built‑in Research Agent as a standalone service:
-
-```bash
-cd python
-python -m valuecell.agents.research_agent
-```
-
-> [!TIP]
-> Set your environment first. At minimum, configure `OPENROUTER_API_KEY` (or `GOOGLE_API_KEY`) and `SEC_EMAIL`. See `docs/CONFIGURATION_GUIDE.md`.
-> Optional: set `AGENT_DEBUG_MODE=true` to trace model behavior locally.
 
 #### Create a new Agent
 
@@ -326,6 +300,7 @@ We use **Biome** for linting and formatting.
 ```bash
 cd frontend
 bun run check:fix  # Auto-fix all issues
+bun run format:fix # Auto lint code
 ```
 
 **Key style rules:**
