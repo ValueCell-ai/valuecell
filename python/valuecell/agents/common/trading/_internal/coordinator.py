@@ -20,8 +20,10 @@ from ..models import (
     FeatureVector,
     HistoryRecord,
     MarketType,
+    PriceMode,
     StrategyStatus,
     StrategySummary,
+    TradeDecisionAction,
     TradeHistoryEntry,
     TradeInstruction,
     TradeSide,
@@ -58,6 +60,11 @@ class DecisionCoordinator(ABC):
     @abstractmethod
     async def run_once(self) -> DecisionCycleResult:
         """Execute one decision cycle and return the result."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def close_all_positions(self) -> None:
+        """Close all open positions for this strategy."""
         raise NotImplementedError
 
     @abstractmethod
@@ -530,6 +537,99 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                 payload={"trades": trade_payload},
             ),
         ]
+
+    async def execute_instructions(
+        self, instructions: List[TradeInstruction]
+    ) -> List[TxResult]:
+        """Execute a list of instructions directly via the gateway."""
+        if not instructions:
+            return []
+        return await self._execution_gateway.execute(instructions)
+
+    async def close_all_positions(self) -> List[TradeHistoryEntry]:
+        """Close all open positions for the strategy.
+
+        Generates and executes market orders to close all existing positions found
+        in the current portfolio view. Returns the list of executed trades.
+        """
+        try:
+            logger.info("Closing all positions for strategy {}", self.strategy_id)
+
+            # Get current positions
+            portfolio = self.portfolio_service.get_view()
+
+            if not portfolio.positions:
+                logger.info(
+                    "No open positions to close for strategy {}", self.strategy_id
+                )
+                return []
+
+            instructions = []
+            compose_id = generate_uuid("close_all")
+            timestamp_ms = get_current_timestamp_ms()
+
+            for symbol, pos in portfolio.positions.items():
+                quantity = float(pos.quantity)
+                if quantity == 0:
+                    continue
+
+                # Determine side and action
+                side = TradeSide.SELL if quantity > 0 else TradeSide.BUY
+                action = (
+                    TradeDecisionAction.CLOSE_LONG
+                    if quantity > 0
+                    else TradeDecisionAction.CLOSE_SHORT
+                )
+
+                # Create instruction with reduceOnly flag for closing
+                inst = TradeInstruction(
+                    instruction_id=generate_uuid("inst"),
+                    compose_id=compose_id,
+                    instrument=pos.instrument,
+                    action=action,
+                    side=side,
+                    quantity=abs(quantity),
+                    price_mode=PriceMode.MARKET,
+                    meta={
+                        "rationale": "Strategy stopped: closing all positions",
+                        "reduceOnly": True,
+                    },
+                )
+                instructions.append(inst)
+
+            if not instructions:
+                return []
+
+            logger.info("Executing {} close instructions", len(instructions))
+
+            # Execute instructions
+            tx_results = await self.execute_instructions(instructions)
+
+            # Create trades and apply to portfolio
+            trades = self._create_trades(tx_results, compose_id, timestamp_ms)
+            self.portfolio_service.apply_trades(trades, market_features=[])
+
+            # Record to in-memory history
+            for trade in trades:
+                self._history_recorder.record(
+                    HistoryRecord(
+                        ts=timestamp_ms,
+                        kind="execution",
+                        reference_id=compose_id,
+                        payload={"trades": [trade.model_dump(mode="json")]},
+                    )
+                )
+
+            logger.info(
+                "Successfully closed all positions, generated {} trades", len(trades)
+            )
+            return trades
+
+        except Exception:
+            logger.exception(
+                "Failed to close all positions for strategy {}", self.strategy_id
+            )
+            return []
 
     async def close(self) -> None:
         """Release resources for the execution gateway if it supports closing."""

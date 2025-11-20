@@ -222,6 +222,23 @@ class BaseStrategyAgent(BaseAgent, ABC):
             logger.exception("StrategyAgent stream failed: {}", err)
             yield streaming.message_chunk(f"StrategyAgent error: {err}")
         finally:
+            # Enforce position closure on normal stop (e.g., user clicked stop)
+            if stop_reason == "normal_exit":
+                try:
+                    trades = await runtime.coordinator.close_all_positions()
+                    if trades:
+                        controller.persist_trades(trades)
+                except Exception:
+                    logger.exception(
+                        "Error closing positions on stop for strategy {}", strategy_id
+                    )
+                    # If closing positions fails, we should consider this an error state
+                    # to prevent the strategy from being marked as cleanly stopped if it still has positions.
+                    # However, the user intent was to stop.
+                    # Let's log it and proceed, but maybe mark status as ERROR instead of STOPPED?
+                    # For now, we stick to STOPPED but log the error clearly.
+                    stop_reason = "error_closing_positions"
+
             # Call user hook before finalization
             try:
                 self._on_stop(runtime, request, stop_reason)

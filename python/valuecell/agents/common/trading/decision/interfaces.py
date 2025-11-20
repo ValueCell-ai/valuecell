@@ -445,15 +445,11 @@ class BaseComposer(ABC):
             meta["rationale"] = item.rationale
 
         # For derivatives/perpetual markets, mark reduceOnly when instruction reduces absolute exposure to avoid accidental reverse opens
+        # Note: Exchange-specific parameter name normalization (e.g., reduceOnly vs reduce_only) is handled by the execution gateway
         try:
             if self._request.exchange_config.market_type != MarketType.SPOT:
                 if abs(final_target) < abs(current_qty):
                     meta["reduceOnly"] = True
-                    # Bybit uses a different param key
-                    if (
-                        self._request.exchange_config.exchange_id or ""
-                    ).lower() == "bybit":
-                        meta["reduce_only"] = True
         except Exception:
             # Ignore any exception; do not block instruction creation
             pass
