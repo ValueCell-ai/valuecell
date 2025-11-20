@@ -46,6 +46,35 @@ def add_column_if_not_exists(engine, table_name: str, column_name: str, column_t
         return False
 
 
+def index_exists(engine, table_name: str, index_name: str) -> bool:
+    """Check if an index exists on a table."""
+    inspector = inspect(engine)
+    indexes = [idx["name"] for idx in inspector.get_indexes(table_name)]
+    return index_name in indexes
+
+
+def create_index_if_not_exists(engine, table_name: str, column_name: str, index_name: str = None):
+    """Create an index on a column if it doesn't exist."""
+    if index_name is None:
+        index_name = f"ix_{table_name}_{column_name}"
+    
+    if index_exists(engine, table_name, index_name):
+        logger.info(f"Index {index_name} already exists, skipping")
+        return True
+
+    try:
+        with engine.connect() as conn:
+            conn.execute(
+                text(f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name}({column_name})")
+            )
+            conn.commit()
+        logger.info(f"Created index {index_name} on {table_name}.{column_name}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to create index {index_name}: {e}")
+        return False
+
+
 def migrate_strategy_portfolio_views():
     """Migrate strategy_portfolio_views table to add missing columns."""
     db_manager = get_database_manager()
@@ -79,6 +108,54 @@ def migrate_strategy_portfolio_views():
     return success
 
 
+def migrate_strategy_details():
+    """Migrate strategy_details table to add missing columns."""
+    db_manager = get_database_manager()
+    engine = db_manager.get_engine()
+
+    # Check if table exists
+    inspector = inspect(engine)
+    if "strategy_details" not in inspector.get_table_names():
+        logger.warning("Table strategy_details does not exist, skipping migration")
+        return True
+
+    logger.info("Migrating strategy_details table...")
+
+    # Columns to add with their types and whether they need an index
+    # (name, type, nullable, needs_index)
+    columns_to_add = [
+        ("compose_id", "VARCHAR(200)", True, True),
+        ("instruction_id", "VARCHAR(200)", True, True),
+        ("avg_exec_price", "NUMERIC(20, 8)", True, False),
+        ("realized_pnl", "NUMERIC(20, 8)", True, False),
+        ("realized_pnl_pct", "NUMERIC(10, 6)", True, False),
+        ("notional_entry", "NUMERIC(20, 8)", True, False),
+        ("notional_exit", "NUMERIC(20, 8)", True, False),
+        ("fee_cost", "NUMERIC(20, 8)", True, False),
+        ("entry_time", "TIMESTAMP", True, False),
+        ("exit_time", "TIMESTAMP", True, False),
+    ]
+
+    success = True
+    for column_name, column_type, nullable, needs_index in columns_to_add:
+        # Add column if it doesn't exist
+        if not add_column_if_not_exists(engine, "strategy_details", column_name, column_type, nullable):
+            success = False
+
+        # Create index if column exists and needs index
+        if column_exists(engine, "strategy_details", column_name) and needs_index:
+            index_name = f"ix_strategy_details_{column_name}"
+            if not create_index_if_not_exists(engine, "strategy_details", column_name, index_name):
+                logger.warning(f"Failed to create index on {column_name}, but column exists")
+
+    if success:
+        logger.info("Migration completed successfully")
+    else:
+        logger.error("Migration completed with errors")
+
+    return success
+
+
 def main():
     """Run database migrations."""
     logger.info("Starting database migration...")
@@ -87,6 +164,11 @@ def main():
     try:
         # Migrate strategy_portfolio_views
         if not migrate_strategy_portfolio_views():
+            logger.error("Migration failed")
+            sys.exit(1)
+
+        # Migrate strategy_details
+        if not migrate_strategy_details():
             logger.error("Migration failed")
             sys.exit(1)
 
