@@ -104,11 +104,34 @@ def create_strategy_router() -> APIRouter:
                 except Exception:
                     return None
 
-            def normalize_strategy_type(meta: dict) -> Optional[StrategyType]:
-                raw = (meta.get("strategy_type") or "").strip().lower()
-                if raw == "prompt based strategy":
+            def normalize_strategy_type(meta: dict, cfg: dict) -> Optional[StrategyType]:
+                val = meta.get("strategy_type")
+                if not val:
+                    val = (cfg.get("trading_config", {}) or {}).get("strategy_type")
+                if val is None:
+                    agent_name = str(meta.get("agent_name") or "").lower()
+                    if "prompt" in agent_name:
+                        return StrategyType.PROMPT
+                    if "grid" in agent_name:
+                        return StrategyType.GRID
+                    return None
+
+                raw = str(val).strip().lower()
+                if raw.startswith("strategytype."):
+                    raw = raw.split(".", 1)[1]
+                raw_compact = "".join(ch for ch in raw if ch.isalnum())
+
+                if raw in ("prompt based strategy", "grid strategy"):
+                    return StrategyType.PROMPT if raw.startswith("prompt") else StrategyType.GRID
+                if raw_compact in ("promptbasedstrategy", "gridstrategy"):
+                    return StrategyType.PROMPT if raw_compact.startswith("prompt") else StrategyType.GRID
+                if raw in ("prompt", "grid"):
+                    return StrategyType.PROMPT if raw == "prompt" else StrategyType.GRID
+
+                agent_name = str(meta.get("agent_name") or "").lower()
+                if "prompt" in agent_name:
                     return StrategyType.PROMPT
-                if raw == "grid strategy":
+                if "grid" in agent_name:
                     return StrategyType.GRID
                 return None
 
@@ -119,7 +142,7 @@ def create_strategy_router() -> APIRouter:
                 item = StrategySummaryData(
                     strategy_id=s.strategy_id,
                     strategy_name=s.name,
-                    strategy_type=normalize_strategy_type(meta),
+                    strategy_type=normalize_strategy_type(meta, cfg),
                     status=map_status(s.status),
                     trading_mode=normalize_trading_mode(meta, cfg),
                     unrealized_pnl=to_optional_float(meta.get("unrealized_pnl", 0.0)),
