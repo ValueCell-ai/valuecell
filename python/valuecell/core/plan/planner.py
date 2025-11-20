@@ -207,14 +207,21 @@ class ExecutionPlanner:
                 "Please configure a valid API key or provider settings and retry."
             )
 
-        run_response = agent.run(
-            PlannerInput(
-                target_agent_name=user_input.target_agent_name,
-                query=user_input.query,
-            ),
-            session_id=conversation_id,
-            user_id=user_input.meta.user_id,
-        )
+        try:
+            run_response = agent.run(
+                PlannerInput(
+                    target_agent_name=user_input.target_agent_name,
+                    query=user_input.query,
+                ),
+                session_id=conversation_id,
+                user_id=user_input.meta.user_id,
+            )
+        except Exception as exc:
+            logger.exception("Planner run failed: %s", exc)
+            return [], (
+                f"Planner encountered an error during execution: {exc}. "
+                "Please try again later."
+            )
 
         # Handle user input requests through Human-in-the-Loop workflow
         while run_response.is_paused:

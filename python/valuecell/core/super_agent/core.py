@@ -93,12 +93,19 @@ class SuperAgent:
                 reason="SuperAgent unavailable: missing model/provider configuration",
             )
 
-        response = await agent.arun(
-            user_input.query,
-            session_id=user_input.meta.conversation_id,
-            user_id=user_input.meta.user_id,
-            add_history_to_context=True,
-        )
+        try:
+            response = await agent.arun(
+                user_input.query,
+                session_id=user_input.meta.conversation_id,
+                user_id=user_input.meta.user_id,
+                add_history_to_context=True,
+            )
+        except Exception as e:
+            return SuperAgentOutcome(
+                decision=SuperAgentDecision.ANSWER,
+                reason=f"SuperAgent encountered an error: {e}.",
+            )
+
         outcome = response.content
         if not isinstance(outcome, SuperAgentOutcome):
             try:
