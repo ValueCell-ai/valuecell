@@ -104,7 +104,9 @@ def create_strategy_router() -> APIRouter:
                 except Exception:
                     return None
 
-            def normalize_strategy_type(meta: dict, cfg: dict) -> Optional[StrategyType]:
+            def normalize_strategy_type(
+                meta: dict, cfg: dict
+            ) -> Optional[StrategyType]:
                 val = meta.get("strategy_type")
                 if not val:
                     val = (cfg.get("trading_config", {}) or {}).get("strategy_type")
@@ -122,9 +124,17 @@ def create_strategy_router() -> APIRouter:
                 raw_compact = "".join(ch for ch in raw if ch.isalnum())
 
                 if raw in ("prompt based strategy", "grid strategy"):
-                    return StrategyType.PROMPT if raw.startswith("prompt") else StrategyType.GRID
+                    return (
+                        StrategyType.PROMPT
+                        if raw.startswith("prompt")
+                        else StrategyType.GRID
+                    )
                 if raw_compact in ("promptbasedstrategy", "gridstrategy"):
-                    return StrategyType.PROMPT if raw_compact.startswith("prompt") else StrategyType.GRID
+                    return (
+                        StrategyType.PROMPT
+                        if raw_compact.startswith("prompt")
+                        else StrategyType.GRID
+                    )
                 if raw in ("prompt", "grid"):
                     return StrategyType.PROMPT if raw == "prompt" else StrategyType.GRID
 
