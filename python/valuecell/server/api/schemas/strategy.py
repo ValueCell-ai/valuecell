@@ -12,8 +12,8 @@ from .base import SuccessResponse
 
 
 class StrategyType(str, Enum):
-    PROMPT = "prompt based strategy"
-    GRID = "grid strategy"
+    PROMPT = "PromptBasedStrategy"
+    GRID = "GridStrategy"
 
 
 class StrategySummaryData(BaseModel):
