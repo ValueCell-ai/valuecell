@@ -18,7 +18,7 @@ from valuecell.config.loader import get_config_loader
 from valuecell.core.coordinate.orchestrator import AgentOrchestrator
 from valuecell.core.types import CommonResponseEvent, UserInput, UserInputMetadata
 from valuecell.server.api.schemas.base import SuccessResponse
-from valuecell.server.api.schemas.strategy import StrategyType as StrategySummaryType
+from valuecell.server.api.schemas.strategy import StrategyType
 from valuecell.server.db.connection import get_db
 from valuecell.server.db.repositories import get_strategy_repository
 from valuecell.utils.uuid import generate_conversation_id, generate_uuid
@@ -33,8 +33,8 @@ def create_strategy_agent_router() -> APIRouter:
     @router.post("/create")
     async def create_strategy_agent(
         request: UserRequest,
-        strategy_type: StrategySummaryType = Query(
-            default=StrategySummaryType.PROMPT,
+        strategy_type: StrategyType = Query(
+            default=StrategyType.PROMPT,
             description="'prompt based strategy' or 'grid strategy'",
         ),
         db: Session = Depends(get_db),
@@ -105,9 +105,9 @@ def create_strategy_agent_router() -> APIRouter:
             query = user_request.model_dump_json()
 
             # Select target agent based on strategy_type (enum)
-            if strategy_type == StrategySummaryType.PROMPT:
+            if strategy_type == StrategyType.PROMPT:
                 agent_name = "PromptBasedStrategyAgent"
-            elif strategy_type == StrategySummaryType.GRID:
+            elif strategy_type == StrategyType.GRID:
                 agent_name = "GridStrategyAgent"
             else:
                 raise HTTPException(
