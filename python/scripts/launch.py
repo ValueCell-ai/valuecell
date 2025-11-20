@@ -4,6 +4,7 @@ Allows users to select an agent from available options and launch it using uv.
 """
 
 import os
+import shlex
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -139,7 +140,7 @@ def main():
     os.makedirs(log_dir, exist_ok=True)
     print(f"Logs will be saved to {log_dir}/")
 
-    processes = []
+    # processes = []
     logfiles = []
 
     print(
@@ -153,12 +154,29 @@ def main():
     logfile = open(logfile_path, "w")
     logfiles.append(logfile)
     process = subprocess.Popen(
-        BACKEND_COMMAND, shell=True, stdout=logfile, stderr=logfile
+        shlex.split(BACKEND_COMMAND),
+        shell=False,
+        stdout=logfile,
+        stderr=logfile,
     )
-    processes.append(process)
+    # processes.append(process)
+    # for process in processes:
+    #     process.wait()
+    print(f"Backend (and agents) started with PID: {process.pid}")
 
-    for process in processes:
+    try:
         process.wait()
+    except KeyboardInterrupt:
+        print("\nStopping backend...")
+
+        process.terminate()
+
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            print("Backend forced killed.")
+
     for logfile in logfiles:
         logfile.close()
     print(f"All agents finished. Check {log_dir}/ for output.")
