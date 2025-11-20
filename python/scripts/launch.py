@@ -93,9 +93,7 @@ MAP_NAME_COMMAND[NEWS_AGENT_NAME] = (
 MAP_NAME_COMMAND[STRATEGY_AGENT_NAME] = (
     f"uv run --env-file {ENV_PATH_STR} -m valuecell.agents.strategy_agent"
 )
-BACKEND_COMMAND = (
-    f"cd {PYTHON_DIR_STR} && uv run --env-file {ENV_PATH_STR} -m valuecell.server.main"
-)
+BACKEND_COMMAND = f"uv run --env-file {ENV_PATH_STR} -m valuecell.server.main"
 FRONTEND_URL = "http://localhost:1420"
 
 
@@ -158,6 +156,7 @@ def main():
         shell=False,
         stdout=logfile,
         stderr=logfile,
+        cwd=PYTHON_DIR_STR,
     )
     # processes.append(process)
     # for process in processes:
