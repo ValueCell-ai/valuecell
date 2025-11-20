@@ -1,5 +1,6 @@
 import { LineChart, Wallet } from "lucide-react";
 import { type FC, memo } from "react";
+import { ValueCellAgentPng } from "@/assets/png";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -12,8 +13,12 @@ import {
 import MultiLineChart from "@/components/valuecell/charts/model-multi-line";
 import { PngIcon } from "@/components/valuecell/png-icon";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
-import { SYMBOL_ICONS } from "@/constants/icons";
-import { formatChange, getChangeType, numberFixed } from "@/lib/utils";
+import {
+  formatChange,
+  getChangeType,
+  getCoinCapIcon,
+  numberFixed,
+} from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
 import type { PortfolioSummary, Position } from "@/types/strategy";
 
@@ -36,7 +41,8 @@ const PositionRow: FC<PositionRowProps> = ({ position }) => {
       <TableCell>
         <div className="flex items-center gap-2">
           <PngIcon
-            src={SYMBOL_ICONS[position.symbol as keyof typeof SYMBOL_ICONS]}
+            src={getCoinCapIcon(position.symbol)}
+            callback={ValueCellAgentPng}
           />
           <p className="font-medium text-gray-950 text-sm">{position.symbol}</p>
         </div>
