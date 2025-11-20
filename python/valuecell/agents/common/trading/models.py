@@ -10,7 +10,6 @@ from .constants import (
     DEFAULT_INITIAL_CAPITAL,
     DEFAULT_MAX_LEVERAGE,
     DEFAULT_MAX_POSITIONS,
-    DEFAULT_MAX_SYMBOLS,
     DEFAULT_MODEL_PROVIDER,
 )
 
@@ -234,8 +233,6 @@ class TradingConfig(BaseModel):
     def validate_symbols(cls, v):
         if not v or len(v) == 0:
             raise ValueError("At least one symbol is required")
-        if len(v) > DEFAULT_MAX_SYMBOLS:
-            raise ValueError(f"Maximum {DEFAULT_MAX_SYMBOLS} symbols allowed")
         # Normalize symbols to uppercase
         return [s.upper() for s in v]
 
