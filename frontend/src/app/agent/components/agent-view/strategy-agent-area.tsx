@@ -78,9 +78,12 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
             onStrategyStop={async (strategyId) =>
               await stopStrategy(strategyId)
             }
-            onStrategyDelete={async (strategyId) =>
-              await deleteStrategy(strategyId)
-            }
+            onStrategyDelete={async (strategyId) => {
+              await deleteStrategy(strategyId);
+              if (strategyId === selectedStrategy?.strategy_id) {
+                setSelectedStrategy(strategies[0]);
+              }
+            }}
           />
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-4">
