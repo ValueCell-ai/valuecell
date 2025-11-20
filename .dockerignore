@@ -1,0 +1,72 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+README*
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Node modules (will be installed in container)
+node_modules/
+frontend/node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+python/.venv/
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.db-journal
+valuecell.db
+
+# LanceDB
+lancedb/
+
+# Build artifacts
+frontend/build/
+frontend/dist/
+*.tsbuildinfo
+
+# Tauri
+frontend/src-tauri/target/
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Other
+*.code-workspace
+Makefile
+start.sh
+start.ps1
+

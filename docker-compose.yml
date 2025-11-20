@@ -1,0 +1,46 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: valuecell-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./python:/app/python
+      - ./logs:/app/logs
+      - ./valuecell.db:/app/valuecell.db
+      - ./lancedb:/app/lancedb
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - CORS_ORIGINS=http://localhost:1420,http://localhost:3000
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: valuecell-frontend
+    ports:
+      - "1420:1420"
+    volumes:
+      - ./frontend:/app/frontend
+      - /app/frontend/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_API_BASE_URL=http://localhost:8000/api/v1
+      - TAURI_DEV_HOST=0.0.0.0
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+
