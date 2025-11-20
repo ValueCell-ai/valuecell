@@ -2,11 +2,8 @@ import {
   AzurePng,
   BinancePng,
   BlockchainPng,
-  BtcPng,
   CoinbasePng,
   DeepSeekPng,
-  DogePng,
-  EthPng,
   GatePng,
   GooglePng,
   HyperliquidPng,
@@ -16,8 +13,6 @@ import {
   OpenAiPng,
   OpenRouterPng,
   SiliconFlowPng,
-  SolPng,
-  XrpPng,
 } from "@/assets/png";
 
 export const MODEL_PROVIDER_ICONS = {
@@ -39,12 +34,4 @@ export const EXCHANGE_ICONS = {
   hyperliquid: HyperliquidPng,
   mexc: MexcPng,
   okx: OkxPng,
-};
-
-export const SYMBOL_ICONS = {
-  "BTC/USDT": BtcPng,
-  "ETH/USDT": EthPng,
-  "SOL/USDT": SolPng,
-  "DOGE/USDT": DogePng,
-  "XRP/USDT": XrpPng,
 };

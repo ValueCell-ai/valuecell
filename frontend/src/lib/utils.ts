@@ -61,3 +61,8 @@ export function getChangeType(changePercent: number | null): StockChangeType {
   }
   return changePercent > 0 ? "positive" : "negative";
 }
+
+export const getCoinCapIcon = (symbol: string) => {
+  const fixedSymbol = symbol.split(/[-/]/)[0].toLowerCase();
+  return `https://assets.coincap.io/assets/icons/${fixedSymbol}@2x.png`;
+};

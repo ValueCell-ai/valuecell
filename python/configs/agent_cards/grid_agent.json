@@ -10,6 +10,7 @@
   "skills": [],
   "enabled": true,
   "metadata": {
+    "hidden": true,
     "planner_passthrough": true,
     "version": "0.1.0",
     "author": "ValueCell Team",
