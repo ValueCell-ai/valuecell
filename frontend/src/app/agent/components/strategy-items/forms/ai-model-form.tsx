@@ -1,16 +1,5 @@
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { FieldGroup } from "@/components/ui/field";
+import { SelectItem } from "@/components/ui/select";
 import PngIcon from "@/components/valuecell/png-icon";
 import { MODEL_PROVIDER_MAP, MODEL_PROVIDERS } from "@/constants/agent";
 import { MODEL_PROVIDER_ICONS } from "@/constants/icons";
@@ -44,39 +33,21 @@ export const AIModelForm = withForm({
           }}
           name="provider"
         >
-          {(field) => {
-            return (
-              <Field>
-                <FieldLabel className="font-medium text-base text-gray-950">
-                  Model Platform
-                </FieldLabel>
-                <Select
-                  value={field.state.value}
-                  onValueChange={(value) => {
-                    field.handleChange(value);
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MODEL_PROVIDERS.map((provider) => (
-                      <SelectItem key={provider} value={provider}>
-                        <div className="flex items-center gap-2">
-                          <PngIcon
-                            src={MODEL_PROVIDER_ICONS[provider]}
-                            className="size-4"
-                          />
-                          {provider}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FieldError errors={field.state.meta.errors} />
-              </Field>
-            );
-          }}
+          {(field) => (
+            <field.SelectField label="Model Platform">
+              {MODEL_PROVIDERS.map((provider) => (
+                <SelectItem key={provider} value={provider}>
+                  <div className="flex items-center gap-2">
+                    <PngIcon
+                      src={MODEL_PROVIDER_ICONS[provider]}
+                      className="size-4"
+                    />
+                    {provider}
+                  </div>
+                </SelectItem>
+              ))}
+            </field.SelectField>
+          )}
         </form.AppField>
 
         <form.AppField name="model_id">
@@ -86,33 +57,19 @@ export const AIModelForm = withForm({
             const availableModels = MODEL_PROVIDER_MAP[currentProvider] || [];
 
             return (
-              <Field key={currentProvider}>
-                <FieldLabel className="font-medium text-base text-gray-950">
-                  Select Model
-                </FieldLabel>
-                <Select
-                  value={field.state.value}
-                  onValueChange={field.handleChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableModels.length > 0 ? (
-                      availableModels.map((model) => (
-                        <SelectItem key={model} value={model}>
-                          {model}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="" disabled>
-                        No models available
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-                <FieldError errors={field.state.meta.errors} />
-              </Field>
+              <field.SelectField label="Select Model">
+                {availableModels.length > 0 ? (
+                  availableModels.map((model) => (
+                    <SelectItem key={model} value={model}>
+                      {model}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="" disabled>
+                    No models available
+                  </SelectItem>
+                )}
+              </field.SelectField>
             );
           }}
         </form.AppField>
