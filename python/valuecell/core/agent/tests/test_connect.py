@@ -376,6 +376,47 @@ async def test_get_all_agent_cards_returns_local_cards(tmp_path: Path):
     assert all(isinstance(card, AgentCard) for card in all_cards.values())
 
 
+def test_agent_context_reads_metadata_flags(tmp_path: Path):
+    dir_path = tmp_path / "agent_cards"
+    dir_path.mkdir(parents=True)
+
+    card = make_card_dict("MetaVisible", "http://127.0.0.1:8910", True)
+    card["metadata"] = {"planner_passthrough": True, "hidden": True}
+
+    _write_card(dir_path / "MetaVisible.json", card)
+
+    rc = RemoteConnections()
+    rc.load_from_dir(str(dir_path))
+
+    ctx = rc._contexts["MetaVisible"]
+    assert ctx.metadata == card["metadata"]
+    assert ctx.planner_passthrough is True
+    assert ctx.hidden is True
+
+
+def test_get_planable_agent_cards_filters_flags(tmp_path: Path):
+    dir_path = tmp_path / "agent_cards"
+    dir_path.mkdir(parents=True)
+
+    visible = make_card_dict("Planable", "http://127.0.0.1:8920", True)
+    hidden = make_card_dict("Hidden", "http://127.0.0.1:8921", True)
+    passthrough = make_card_dict("Passthrough", "http://127.0.0.1:8922", True)
+    hidden["metadata"] = {"hidden": True}
+    passthrough["metadata"] = {"planner_passthrough": True}
+
+    _write_card(dir_path / "Planable.json", visible)
+    _write_card(dir_path / "Hidden.json", hidden)
+    _write_card(dir_path / "Passthrough.json", passthrough)
+
+    rc = RemoteConnections()
+    rc.load_from_dir(str(dir_path))
+
+    planable = rc.get_planable_agent_cards()
+
+    assert set(planable.keys()) == {"Planable"}
+    assert planable["Planable"].name == "Planable"
+
+
 @pytest.mark.asyncio
 async def test_resolve_local_agent_class_from_metadata(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch

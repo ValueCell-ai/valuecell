@@ -33,8 +33,7 @@ class AgentContext:
     listener_task: Optional[asyncio.Task] = None
     listener_url: Optional[str] = None
     client: Optional[AgentClient] = None
-    # Planner passthrough flag derived from raw agent card JSON
-    planner_passthrough: bool = False
+    metadata: Optional[Dict[str, Any]] = None
     # Listener preferences
     desired_listener_host: Optional[str] = None
     desired_listener_port: Optional[int] = None
@@ -50,6 +49,23 @@ class AgentContext:
     agent_instance: Optional[BaseAgent] = None
     agent_instance_class: Optional[Type[BaseAgent]] = None
     agent_task: Optional[asyncio.Task] = None
+
+    def _get_metadata_flag(self, key: str) -> Optional[bool]:
+        """Retrieve a boolean-like flag from stored metadata or card."""
+        if isinstance(self.metadata, dict) and key in self.metadata:
+            return bool(self.metadata[key])
+
+        return None
+
+    @property
+    def planner_passthrough(self) -> bool:
+        flag = self._get_metadata_flag("planner_passthrough")
+        return bool(flag) if flag is not None else False
+
+    @property
+    def hidden(self) -> bool:
+        flag = self._get_metadata_flag("hidden")
+        return bool(flag) if flag is not None else False
 
 
 _LOCAL_AGENT_CLASS_CACHE: Dict[str, Type[Any]] = {}
@@ -179,21 +195,13 @@ class RemoteConnections:
                     continue
                 if not agent_card_dict.get("enabled", True):
                     continue
-                metadata = (
-                    agent_card_dict.get("metadata")
-                    if isinstance(agent_card_dict.get("metadata"), dict)
-                    else {}
+                raw_metadata = agent_card_dict.get("metadata")
+                metadata: Dict[str, Any] = (
+                    dict(raw_metadata) if isinstance(raw_metadata, dict) else {}
                 )
-                class_spec = (
-                    metadata.get(AGENT_METADATA_CLASS_KEY)
-                    if isinstance(metadata, dict)
-                    else None
-                )
-                agent_instance_class = None
-                # Detect planner passthrough from raw JSON (top-level or metadata)
-                passthrough = bool(agent_card_dict.get("planner_passthrough"))
-                if not passthrough:
-                    passthrough = bool(metadata.get("planner_passthrough"))
+                class_spec = metadata.get(AGENT_METADATA_CLASS_KEY)
+                if not isinstance(class_spec, str):
+                    class_spec = None
                 local_agent_card = parse_local_agent_card_dict(agent_card_dict)
                 if not local_agent_card:
                     continue
@@ -201,11 +209,8 @@ class RemoteConnections:
                     name=agent_name,
                     url=local_agent_card.url,
                     local_agent_card=local_agent_card,
-                    planner_passthrough=passthrough,
-                    agent_instance_class=agent_instance_class,
-                    agent_class_spec=(
-                        class_spec if isinstance(class_spec, str) else None
-                    ),
+                    metadata=metadata or None,
+                    agent_class_spec=class_spec,
                 )
             except (json.JSONDecodeError, FileNotFoundError, KeyError) as e:
                 logger.warning(
@@ -522,10 +527,26 @@ class RemoteConnections:
 
         return agent_cards
 
+    def get_planable_agent_cards(self) -> Dict[str, AgentCard]:
+        """Return AgentCards that are available for planning workflows."""
+        self._ensure_remote_contexts_loaded()
+        planable_cards: Dict[str, AgentCard] = {}
+        for name, ctx in self._contexts.items():
+            if ctx.planner_passthrough or ctx.hidden:
+                continue
+            card = None
+            if ctx.client and ctx.client.agent_card:
+                card = ctx.client.agent_card
+            elif ctx.local_agent_card:
+                card = ctx.local_agent_card
+            if card:
+                planable_cards[name] = card
+        return planable_cards
+
     def is_planner_passthrough(self, agent_name: str) -> bool:
         """Return True if the named agent is marked as planner passthrough.
 
-        The flag is read once from raw JSON on load and cached in AgentContext.
+        The flag is read from stored metadata associated with the AgentContext.
         """
         self._ensure_remote_contexts_loaded()
         ctx = self._contexts.get(agent_name)
