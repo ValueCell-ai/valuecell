@@ -45,7 +45,7 @@
             "tags": ["monitor","alerts","tracking"]
         }
     ],
-    "enabled": true,
+    "enabled": false,
     "metadata": {
         "version": "1.0.0",
         "author": "ValueCell Team",
