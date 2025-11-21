@@ -41,7 +41,7 @@ export function formatPrice(price: number, currency: string, decimals = 2) {
  * Format percentage change with sign
  */
 export function formatChange(
-  changePercent: number | null,
+  changePercent?: number,
   suffix = "",
   decimals = 2,
 ): string {

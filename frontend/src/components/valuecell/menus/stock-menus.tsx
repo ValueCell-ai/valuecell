@@ -9,7 +9,7 @@ interface Stock {
   companyName: string;
   currency: StockCurrency;
   price: string;
-  changePercent: number | null;
+  changePercent?: number;
   icon?: string;
   iconBgColor?: string;
 }
