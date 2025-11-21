@@ -33,7 +33,7 @@ function StockList() {
         price: stockPrice?.price_formatted ?? "N/A",
         currency: stockPrice?.currency ?? "USD",
         changeAmount: stockPrice?.change ?? 0,
-        changePercent: stockPrice?.change_percent ?? null,
+        changePercent: stockPrice?.change_percent,
       }),
       [stock, stockPrice],
     );

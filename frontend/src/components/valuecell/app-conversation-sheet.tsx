@@ -44,6 +44,7 @@ const AppConversationSheet: FC<{ children: ReactNode }> = ({ children }) => {
       <SheetContent side="left" className="w-[300px]">
         <SheetHeader>
           <SheetTitle>Conversation List</SheetTitle>
+          <SheetDescription />
         </SheetHeader>
 
         <ScrollContainer className="w-full flex-1 px-4">
@@ -122,7 +123,6 @@ const AppConversationSheet: FC<{ children: ReactNode }> = ({ children }) => {
           </SidebarMenu>
         </ScrollContainer>
       </SheetContent>
-      <SheetDescription></SheetDescription>
     </Sheet>
   );
 };

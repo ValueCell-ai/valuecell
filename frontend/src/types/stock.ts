@@ -21,7 +21,7 @@ export interface StockPrice {
   price_formatted: string;
   timestamp: string;
   change: number;
-  change_percent: number | null;
+  change_percent?: number;
   market_cap_formatted: string;
   source: string;
   currency: StockCurrency;

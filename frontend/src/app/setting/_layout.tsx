@@ -11,22 +11,22 @@ import { cn } from "@/lib/utils";
 
 const settingNavItems = [
   {
+    id: "models",
+    icon: Cpu,
+    label: "Models",
+    path: "/setting",
+  },
+  {
     id: "general",
     icon: Settings,
     label: "General",
-    path: "/setting",
+    path: "/setting/general",
   },
   {
     id: "memory",
     icon: Brain,
     label: "Memory",
     path: "/setting/memory",
-  },
-  {
-    id: "models",
-    icon: Cpu,
-    label: "Models",
-    path: "/setting/models",
   },
   // {
   //   id: "language",

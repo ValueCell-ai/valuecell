@@ -11,7 +11,7 @@ export interface SparklineStock {
   price: number;
   currency: StockCurrency;
   changeAmount: number;
-  changePercent: number | null;
+  changePercent?: number;
   sparklineData: SparklineData;
 }
 
