@@ -65,6 +65,31 @@ def detect_browser_language(accept_language_header: str) -> str:
     return DEFAULT_LANGUAGE
 
 
+def detect_user_region() -> str:
+    """Detect user region based on IP geolocation.
+
+    Returns:
+        Region code: 'us' for United States, 'default' for others
+    """
+    try:
+        import httpx
+
+        with httpx.Client(timeout=3.0) as client:
+            resp = client.get("https://ipapi.co/json/")
+            if resp.status_code == 200:
+                data = resp.json()
+                country_code = data.get("country_code", "").upper()
+
+                if country_code == "US":
+                    return "us"
+
+                return "default"
+            return "default"
+    except Exception:
+        # If detection fails, return default
+        return "default"
+
+
 def get_timezone_for_language(language: str) -> str:
     """Get default timezone for a language.
 
