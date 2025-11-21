@@ -55,7 +55,7 @@ export function formatChange(
 /**
  * Get stock change type: "positive" (up), "negative" (down), or "neutral" (no change)
  */
-export function getChangeType(changePercent: number | null): StockChangeType {
+export function getChangeType(changePercent?: number): StockChangeType {
   if (isNullOrUndefined(changePercent) || changePercent === 0) {
     return "neutral";
   }

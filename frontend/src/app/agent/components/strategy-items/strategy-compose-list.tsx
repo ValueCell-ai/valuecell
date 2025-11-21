@@ -5,10 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import { PngIcon } from "@/components/valuecell/png-icon";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
@@ -47,7 +47,10 @@ const StrategyComposeItem: FC<StrategyComposeItemProps> = ({ compose }) => {
       {/* AI Reasoning Logic */}
       <p className="text-gray-400 text-xs">AI reasoning logic</p>
       <Collapsible open={isReasoningOpen} onOpenChange={setIsReasoningOpen}>
-        <CollapsibleTrigger className="flex w-full items-start justify-between rounded-lg bg-white px-3 py-2 text-left shadow-sm transition-colors hover:bg-gray-50">
+        <CollapsibleTrigger
+          data-active={isReasoningOpen}
+          className="flex w-full cursor-pointer items-start justify-between rounded-md border-gradient bg-white px-3 py-2 text-left"
+        >
           <span
             className={`text-gray-700 text-sm leading-relaxed ${
               isReasoningOpen ? "" : "line-clamp-1"
@@ -91,7 +94,8 @@ const ActionItem: FC<{ action: StrategyAction }> = ({ action }) => {
     : `${numberFixed(action.entry_price, 4)}`;
 
   const [pnl_value, changeType] = useMemo(() => {
-    if (!action.action.includes("close")) return ["-", getChangeType(null)];
+    if (!action.action.includes("close"))
+      return ["-", getChangeType(undefined)];
 
     const changeType = getChangeType(action.realized_pnl);
     const formatPnl = formatChange(action.realized_pnl, "", 4);
@@ -99,16 +103,16 @@ const ActionItem: FC<{ action: StrategyAction }> = ({ action }) => {
   }, [action.realized_pnl, action.action]);
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button className="flex items-center justify-between rounded-lg bg-white p-3 shadow-sm transition-colors hover:bg-gray-50">
+    <HoverCard openDelay={300}>
+      <HoverCardTrigger asChild>
+        <Button className="flex items-center justify-between rounded-md border-gradient bg-white p-3">
           <div className="flex items-center gap-2">
             <PngIcon
               src={getCoinCapIcon(action.symbol)}
               className="size-5"
               callback={ValueCellAgentPng}
             />
-            <span className="font-bold text-gray-900 text-sm">
+            <span className="font-medium text-gray-950 text-sm">
               {action.symbol}
             </span>
 
@@ -125,10 +129,13 @@ const ActionItem: FC<{ action: StrategyAction }> = ({ action }) => {
             </span>
           )}
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="p-4" side="right">
-        {/* Popover Header */}
-        <div className="mb-4 flex items-center justify-between">
+      </HoverCardTrigger>
+      <HoverCardContent
+        className="rounded-xl border border-gray-200 p-4 shadow-[0_-4px_100px_8px_rgba(17,17,17,0.08)]"
+        side="right"
+      >
+        {/* HoverCard Header */}
+        <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <PngIcon
               src={getCoinCapIcon(action.symbol)}
@@ -149,7 +156,7 @@ const ActionItem: FC<{ action: StrategyAction }> = ({ action }) => {
         </div>
 
         {/* Popover Tags */}
-        <div className="mb-6 flex gap-2">
+        <div className="mb-4 flex gap-2">
           <span className="rounded-md bg-gray-100 px-2 py-1 font-medium text-gray-900 text-xs">
             {action.action_display}
           </span>
@@ -159,7 +166,7 @@ const ActionItem: FC<{ action: StrategyAction }> = ({ action }) => {
         </div>
 
         {/* Data Grid */}
-        <div className="mb-4 grid grid-cols-2 gap-y-3 text-gray-500 text-xs">
+        <div className="mb-4 grid grid-cols-[auto_1fr] gap-y-1 text-nowrap text-gray-500 text-xs">
           <span>Time</span>
           <span className="text-right">
             {TimeUtils.formatUTC(
@@ -190,8 +197,8 @@ const ActionItem: FC<{ action: StrategyAction }> = ({ action }) => {
             {action.rationale}
           </p>
         </div>
-      </PopoverContent>
-    </Popover>
+      </HoverCardContent>
+    </HoverCard>
   );
 };
 
