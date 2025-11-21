@@ -31,7 +31,9 @@ class SimpleMarketDataSource(BaseMarketDataSource):
             if region == "us":
                 # Use OKX for United States users (best support for USDT perpetuals)
                 self._exchange_id = "okx"
-                logger.info("Detected US region, using okx exchange (USDT perpetuals supported)")
+                logger.info(
+                    "Detected US region, using okx exchange (USDT perpetuals supported)"
+                )
             else:
                 # Use regular Binance for other regions
                 self._exchange_id = "binance"
