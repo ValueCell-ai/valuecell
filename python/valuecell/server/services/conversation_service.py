@@ -24,6 +24,14 @@ from valuecell.server.api.schemas.conversation import (
 )
 from valuecell.utils import resolve_db_path
 
+# Agent names used by strategy creation flows; conversations from these agents
+# should be excluded from the general conversation list returned to clients.
+# Keep this set small and focused; extend if new strategy agents are added.
+STRATEGY_AGENT_NAMES = {
+    "PromptBasedStrategyAgent",
+    "GridStrategyAgent",
+}
+
 
 class ConversationService:
     """Service for managing conversation operations."""
@@ -50,6 +58,20 @@ class ConversationService:
         conversations = await self.conversation_manager.list_user_conversations(
             user_id=user_id
         )
+
+        # Exclude conversations initiated by strategy agents from general listing.
+        # We match by known names and a conservative substring check to future-proof.
+        conversations = [
+            conv
+            for conv in conversations
+            if not (
+                (conv.agent_name or "") in STRATEGY_AGENT_NAMES
+                or (
+                    (conv.agent_name or "")
+                    and "StrategyAgent" in (conv.agent_name or "")
+                )
+            )
+        ]
 
         # Apply pagination
         total = len(conversations)
