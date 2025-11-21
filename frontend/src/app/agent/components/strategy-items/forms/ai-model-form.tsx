@@ -76,7 +76,7 @@ export const AIModelForm = withForm({
 
         <form.AppField name="api_key">
           {(field) => (
-            <field.TextField label="API key" placeholder="Enter API Key" />
+            <field.PasswordField label="API key" placeholder="Enter API Key" />
           )}
         </form.AppField>
       </FieldGroup>

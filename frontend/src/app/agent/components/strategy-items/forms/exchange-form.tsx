@@ -75,14 +75,18 @@ export const ExchangeForm = withForm({
         >
           {(field) => (
             <field.RadioField label="Transaction Type">
-              <RadioGroupItem value="live" id="live" />
-              <Label htmlFor="live" className="text-sm">
-                Live Trading
-              </Label>
-              <RadioGroupItem value="virtual" id="virtual" />
-              <Label htmlFor="virtual" className="text-sm">
-                Virtual Trading
-              </Label>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="live" id="live" />
+                <Label htmlFor="live" className="text-sm">
+                  Live Trading
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="virtual" id="virtual" />
+                <Label htmlFor="virtual" className="text-sm">
+                  Virtual Trading
+                </Label>
+              </div>
             </field.RadioField>
           )}
         </form.AppField>
@@ -123,7 +127,7 @@ export const ExchangeForm = withForm({
                           </form.AppField>
                           <form.AppField name="private_key">
                             {(field) => (
-                              <field.TextField
+                              <field.PasswordField
                                 label="Private Key"
                                 placeholder="Enter Wallet Private Key"
                               />
@@ -134,7 +138,7 @@ export const ExchangeForm = withForm({
                         <>
                           <form.AppField name="api_key">
                             {(field) => (
-                              <field.TextField
+                              <field.PasswordField
                                 label="API Key"
                                 placeholder="Enter API Key"
                               />
@@ -142,7 +146,7 @@ export const ExchangeForm = withForm({
                           </form.AppField>
                           <form.AppField name="secret_key">
                             {(field) => (
-                              <field.TextField
+                              <field.PasswordField
                                 label="Secret Key"
                                 placeholder="Enter Secret Key"
                               />
@@ -153,7 +157,7 @@ export const ExchangeForm = withForm({
                             exchangeId === "coinbaseexchange") && (
                             <form.AppField name="passphrase">
                               {(field) => (
-                                <field.TextField
+                                <field.PasswordField
                                   label="Passphrase"
                                   placeholder="Enter Passphrase"
                                 />

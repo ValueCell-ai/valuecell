@@ -1,6 +1,7 @@
 import { createFormHook, createFormHookContexts } from "@tanstack/react-form";
 import {
   NumberField,
+  PasswordField,
   RadioField,
   SelectField,
   TextField,
@@ -12,6 +13,7 @@ export const { useAppForm, withForm } = createFormHook({
   fieldComponents: {
     TextField,
     NumberField,
+    PasswordField,
     SelectField,
     RadioField,
   },
