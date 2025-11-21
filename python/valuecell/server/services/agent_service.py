@@ -55,11 +55,21 @@ class AgentService:
 
         # Convert to data models
         agent_data_list = []
+        # Agents that are hidden by default unless explicitly enabled
+        HIDE_UNLESS_ENABLED = {"research_agent", "news_agent"}
         for _agent_entity in agents:
             if (
                 _agent_entity.agent_metadata
                 and exclude_hidden
                 and _agent_entity.agent_metadata.get("hidden", False)
+            ):
+                continue
+
+            # Hide research/news agents by default when not enabled
+            if (
+                exclude_hidden
+                and (_agent_entity.name in HIDE_UNLESS_ENABLED)
+                and (not _agent_entity.enabled)
             ):
                 continue
 
