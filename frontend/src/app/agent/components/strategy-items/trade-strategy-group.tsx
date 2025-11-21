@@ -114,9 +114,9 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
               <AlertDialogHeader>
                 <AlertDialogTitle>Stop Trading Strategy?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to stop the strategy "
-                  {strategy.strategy_name}"? <br /> This action will halt all
-                  trading activities for this strategy.
+                  Stopping the strategy "{strategy.strategy_name}" will stop it
+                  immediately and trigger a forced liquidation. Do you want to
+                  proceed?
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -142,8 +142,9 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete Strategy?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to delete the strategy "
-                  {strategy.strategy_name}"?
+                  Deleting the strategy "{strategy.strategy_name}" will stop it
+                  immediately and trigger a forced liquidation. Do you want to
+                  proceed?
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
