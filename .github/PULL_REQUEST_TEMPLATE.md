@@ -3,7 +3,7 @@
 ### 1. Related Issue
 Closes # (issue number)
 
-### Type of Change (select one)
+### 2. Type of Change (select one)
 Type of Change: Bug Fix / New Feature / Code Refactor / Documentation Update / Other: __________
 
 ### 3. Description
