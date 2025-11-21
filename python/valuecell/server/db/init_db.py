@@ -454,6 +454,50 @@ class DatabaseInitializer:
                         pass
                     logger.error("Failed to insert default strategy prompt: %s", e)
 
+                # Insert aggressive strategy prompt from template if not present
+                try:
+                    aggressive_path = (
+                        Path(__file__).resolve().parents[2]
+                        / "agents"
+                        / "prompt_strategy_agent"
+                        / "templates"
+                        / "aggressive.txt"
+                    )
+                    aggressive_id = "prompt-system-aggressive"
+                    aggressive_existing = (
+                        session.query(StrategyPrompt)
+                        .filter(StrategyPrompt.id == aggressive_id)
+                        .first()
+                    )
+                    if not aggressive_existing:
+                        if aggressive_path.exists():
+                            aggressive_content = aggressive_path.read_text(
+                                encoding="utf-8"
+                            )
+                            aggressive_prompt = StrategyPrompt(
+                                id=aggressive_id,
+                                name="System Aggressive",
+                                content=aggressive_content,
+                            )
+                            session.add(aggressive_prompt)
+                            session.commit()
+                            logger.info(
+                                "Inserted aggressive strategy prompt: %s",
+                                aggressive_id,
+                            )
+                        else:
+                            logger.warning(
+                                "Aggressive strategy prompt template not found: %s",
+                                aggressive_path,
+                            )
+                except Exception as e:
+                    # Do not fail the whole DB init for prompt insertion; log and continue
+                    try:
+                        session.rollback()
+                    except Exception:
+                        pass
+                    logger.error("Failed to insert aggressive strategy prompt: %s", e)
+
                 logger.info("Default agent data initialization completed")
                 return True
 
