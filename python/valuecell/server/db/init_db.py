@@ -6,6 +6,18 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+# Smart path handling: try import first, add path only if needed
+# This allows running the script directly: uv run valuecell/server/db/init_db.py
+try:
+    import valuecell  # noqa: F401
+except ImportError:
+    # If import fails, add the Python package root to sys.path
+    # Calculate path: init_db.py -> db -> server -> valuecell -> python (root)
+    _current_file = Path(__file__).resolve()
+    _python_root = _current_file.parent.parent.parent.parent
+    if str(_python_root) not in sys.path:
+        sys.path.insert(0, str(_python_root))
+
 from sqlalchemy import inspect, text
 from sqlalchemy.exc import SQLAlchemyError
 
