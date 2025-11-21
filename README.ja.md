@@ -43,12 +43,8 @@ Discord コミュニティへのご参加をお待ちしています。使用中
 
 # スクリーンショット
 
-<p align="center">
+p align="center">
   <img src="assets/product/homepage.png" style="width: 100%; height: auto;">
-</p>
-
-<p align="center">
-  <img src="assets/product/agent_market.png" style="width: 100%; height: auto;">
 </p>
 
 <p align="center">
@@ -57,6 +53,14 @@ Discord コミュニティへのご参加をお待ちしています。使用中
 
 <p align="center">
   <img src="assets/product/AutoTradingAgent.png" style="width: 100%; height: auto;">
+</p>
+
+<p align="center">
+  <img src="assets/product/Model_Configuration.png" style="width: 100%; height: auto;">
+</p>
+
+<p align="center">
+  <img src="assets/product/agent_market.png" style="width: 100%; height: auto;">
 </p>
 
 # 主な機能
@@ -73,7 +77,7 @@ Discord コミュニティへのご参加をお待ちしています。使用中
 - **その他**: さらに多くのエージェントを計画中...
 
 ## 柔軟な統合
-- **複数のLLMプロバイダー**: OpenRouter、SiliconFlow、GoogleおよびOpenAIをサポート
+- **複数のLLMプロバイダー**: OpenRouter、SiliconFlow、Azure、Openai-compatible、Google、OpenAIおよびDeepSeekをサポート
 - **人気の市場データ**: 米国市場、暗号市場、香港市場、中国市場など
 - **マルチエージェントフレームワーク対応**: A2AプロトコルによるLangchain、Agnoをサポート、研究開発の統合を行う
  **マ取引所接続**: OKX と Binance へのリアルタイムルーティングに対応し、安全ガードレールを内蔵
@@ -187,7 +191,7 @@ bash start.sh
 
 ## 🤖 強化されたエージェント機能
 ### 取引能力
-- **暗号通貨**: OKX と Binance の取引所に対応、今後さらに多くの取引所を順次追加予定です…
+- **暗号通貨**: OKX、BinanceとHyperliquid の取引所に対応、今後さらに多くの取引所を順次追加予定です…
 - **証券**: AI証券取引を段階的にサポート
 
 ### 市場拡大

@@ -56,7 +56,7 @@ ValueCell 是一個社群驅動的多智能體金融應用產品，我們的計�
 </p>
 
 <p align="center">
-  <img src="assets/product/NewPushAgent.png" style="width: 100%; height: auto;">
+  <img src="assets/product/Model_Configuration.png" style="width: 100%; height: auto;">
 </p>
 
 <p align="center">
@@ -77,7 +77,7 @@ ValueCell 是一個社群驅動的多智能體金融應用產品，我們的計�
 - **其他智能體**：更多智能體正在規劃中...
 
 ## 彈性整合
-- **多家大型語言模型供應商**：支援 OpenRouter、SiliconFlow、Google 與 OpenAI
+- **多家大型語言模型供應商**：支援 OpenRouter、SiliconFlow、Openai-compatible、Azure、Google、OpenAI 與 DeepSeek
 - **熱門市場資料**：涵蓋美國市場、加密貨幣、香港市場、中國市場等
 - **多智能體框架相容**：透過 A2A 協議，支援 LangChain、Agno 等主流 Agent 框架，進行研發整合
 **交易所連接**：支援即時路由至 OKX 和 Binance，並內建安全防護機制
@@ -192,7 +192,7 @@ bash start.sh
 
 ## 🤖 強化智能體能力
 ### 交易能力
-- **加密貨幣**：支援 OKX、Binance 交易所，更多交易所規劃接入中…
+- **加密貨幣**：支援 OKX、Binance、Hyperliquid交易所，更多交易所規劃接入中…
 - **證券**：逐步支援 AI 證券交易
 
 ### 市場擴展
