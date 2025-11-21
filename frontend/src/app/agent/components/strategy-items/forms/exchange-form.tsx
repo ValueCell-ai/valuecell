@@ -1,27 +1,53 @@
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import { FieldGroup } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { RadioGroupItem } from "@/components/ui/radio-group";
+import { SelectItem } from "@/components/ui/select";
 import PngIcon from "@/components/valuecell/png-icon";
 import { EXCHANGE_ICONS } from "@/constants/icons";
 import { withForm } from "@/hooks/use-form";
 
+const EXCHANGE_OPTIONS = [
+  {
+    value: "okx",
+    label: "OKX",
+    icon: EXCHANGE_ICONS.okx,
+  },
+  {
+    value: "binance",
+    label: "Binance",
+    icon: EXCHANGE_ICONS.binance,
+  },
+  {
+    value: "hyperliquid",
+    label: "Hyperliquid",
+    icon: EXCHANGE_ICONS.hyperliquid,
+  },
+  {
+    value: "blockchaincom",
+    label: "Blockchain.com",
+    icon: EXCHANGE_ICONS.blockchaincom,
+  },
+  {
+    value: "coinbaseexchange",
+    label: "Coinbase Exchange",
+    icon: EXCHANGE_ICONS.coinbaseexchange,
+  },
+  {
+    value: "gate",
+    label: "Gate.io",
+    icon: EXCHANGE_ICONS.gate,
+  },
+  {
+    value: "mexc",
+    label: "MEXC",
+    icon: EXCHANGE_ICONS.mexc,
+  },
+];
+
 export const ExchangeForm = withForm({
   defaultValues: {
     trading_mode: "live" as "live" | "virtual",
-    exchange_id: "okx",
+    exchange_id: "",
     api_key: "",
     secret_key: "",
     passphrase: "",
@@ -31,248 +57,118 @@ export const ExchangeForm = withForm({
   render({ form }) {
     return (
       <FieldGroup className="gap-6">
-        <form.AppField name="trading_mode">
-          {(field) => {
-            const isLiveTrading = field.state.value === "live";
+        <form.AppField
+          listeners={{
+            onChange: ({ value }) => {
+              form.reset({
+                trading_mode: value,
+                exchange_id: value === "live" ? "okx" : "",
+                api_key: "",
+                secret_key: "",
+                passphrase: "",
+                wallet_address: "",
+                private_key: "",
+              });
+            },
+          }}
+          name="trading_mode"
+        >
+          {(field) => (
+            <field.RadioField label="Transaction Type">
+              <RadioGroupItem value="live" id="live" />
+              <Label htmlFor="live" className="text-sm">
+                Live Trading
+              </Label>
+              <RadioGroupItem value="virtual" id="virtual" />
+              <Label htmlFor="virtual" className="text-sm">
+                Virtual Trading
+              </Label>
+            </field.RadioField>
+          )}
+        </form.AppField>
 
+        <form.Subscribe selector={(state) => state.values.trading_mode}>
+          {(tradingMode) => {
             return (
-              <>
-                <Field>
-                  <FieldLabel className="font-medium text-base text-gray-950">
-                    Transaction Type
-                  </FieldLabel>
-                  <RadioGroup
-                    value={field.state.value}
-                    onValueChange={(value) => {
-                      const newMode = value as "live" | "virtual";
-                      form.reset();
-                      if (newMode === "virtual") {
-                        form.setFieldValue("exchange_id", "");
-                      }
+              tradingMode === "live" && (
+                <>
+                  <form.AppField name="exchange_id">
+                    {(field) => (
+                      <field.SelectField label="Select Exchange">
+                        {EXCHANGE_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <div className="flex items-center gap-2">
+                              <PngIcon src={option.icon} />
+                              {option.label}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </field.SelectField>
+                    )}
+                  </form.AppField>
 
-                      field.handleChange(newMode);
-                    }}
-                    className="flex items-center gap-6"
+                  <form.Subscribe
+                    selector={(state) => state.values.exchange_id}
                   >
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="live" id="live" />
-                      <Label htmlFor="live" className="text-sm">
-                        Live Trading
-                      </Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="virtual" id="virtual" />
-                      <Label htmlFor="virtual" className="text-sm">
-                        Virtual Trading
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </Field>
-
-                {isLiveTrading && (
-                  <>
-                    <form.Field
-                      name="exchange_id"
-                      key={form.state.values.trading_mode}
-                    >
-                      {(field) => (
-                        <Field>
-                          <FieldLabel className="font-medium text-base text-gray-950">
-                            Select Exchange
-                          </FieldLabel>
-                          <Select
-                            value={field.state.value}
-                            onValueChange={field.handleChange}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="okx">
-                                <div className="flex items-center gap-2">
-                                  <PngIcon src={EXCHANGE_ICONS.okx} />
-                                  OKX
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="binance">
-                                <div className="flex items-center gap-2">
-                                  <PngIcon src={EXCHANGE_ICONS.binance} />
-                                  Binance
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="blockchaincom">
-                                <div className="flex items-center gap-2">
-                                  <PngIcon src={EXCHANGE_ICONS.blockchaincom} />
-                                  Blockchain.com
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="coinbaseexchange">
-                                <div className="flex items-center gap-2">
-                                  <PngIcon
-                                    src={EXCHANGE_ICONS.coinbaseexchange}
-                                  />
-                                  Coinbase Exchange
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="gate">
-                                <div className="flex items-center gap-2">
-                                  <PngIcon src={EXCHANGE_ICONS.gate} />
-                                  Gate.io
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="hyperliquid">
-                                <div className="flex items-center gap-2">
-                                  <PngIcon src={EXCHANGE_ICONS.hyperliquid} />
-                                  Hyperliquid
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="mexc">
-                                <div className="flex items-center gap-2">
-                                  <PngIcon src={EXCHANGE_ICONS.mexc} />
-                                  MEXC
-                                </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FieldError errors={field.state.meta.errors} />
-                        </Field>
-                      )}
-                    </form.Field>
-
-                    {/* Show different fields based on exchange type */}
-                    <form.Field name="exchange_id">
-                      {(exchangeField) => (
+                    {(exchangeId) => {
+                      return exchangeId === "hyperliquid" ? (
                         <>
-                          {exchangeField.state.value === "hyperliquid" ? (
-                            <>
-                              {/* Hyperliquid: Wallet Address */}
-                              <form.Field name="wallet_address">
-                                {(field) => (
-                                  <Field>
-                                    <FieldLabel className="font-medium text-base text-gray-950">
-                                      Wallet Address
-                                    </FieldLabel>
-                                    <Input
-                                      value={field.state.value}
-                                      onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                      }
-                                      onBlur={field.handleBlur}
-                                      placeholder="Enter Main Wallet Address (0x...)"
-                                    />
-                                    <FieldError
-                                      errors={field.state.meta.errors}
-                                    />
-                                  </Field>
-                                )}
-                              </form.Field>
+                          <form.AppField name="wallet_address">
+                            {(field) => (
+                              <field.TextField
+                                label="Wallet Address"
+                                placeholder="Enter Main Wallet Address"
+                              />
+                            )}
+                          </form.AppField>
+                          <form.AppField name="private_key">
+                            {(field) => (
+                              <field.TextField
+                                label="Private Key"
+                                placeholder="Enter Wallet Private Key"
+                              />
+                            )}
+                          </form.AppField>
+                        </>
+                      ) : (
+                        <>
+                          <form.AppField name="api_key">
+                            {(field) => (
+                              <field.TextField
+                                label="API Key"
+                                placeholder="Enter API Key"
+                              />
+                            )}
+                          </form.AppField>
+                          <form.AppField name="secret_key">
+                            {(field) => (
+                              <field.TextField
+                                label="Secret Key"
+                                placeholder="Enter Secret Key"
+                              />
+                            )}
+                          </form.AppField>
 
-                              {/* Hyperliquid: Private Key */}
-                              <form.Field name="private_key">
-                                {(field) => (
-                                  <Field>
-                                    <FieldLabel className="font-medium text-base text-gray-950">
-                                      Private Key
-                                    </FieldLabel>
-                                    <Input
-                                      type="password"
-                                      value={field.state.value}
-                                      onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                      }
-                                      onBlur={field.handleBlur}
-                                      placeholder="Enter API Wallet Private Key (0x...)"
-                                    />
-                                    <FieldError
-                                      errors={field.state.meta.errors}
-                                    />
-                                  </Field>
-                                )}
-                              </form.Field>
-                            </>
-                          ) : (
-                            <>
-                              {/* Standard exchanges: API Key */}
-                              <form.Field name="api_key">
-                                {(field) => (
-                                  <Field>
-                                    <FieldLabel className="font-medium text-base text-gray-950">
-                                      API key
-                                    </FieldLabel>
-                                    <Input
-                                      value={field.state.value}
-                                      onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                      }
-                                      onBlur={field.handleBlur}
-                                      placeholder="Enter API Key"
-                                    />
-                                    <FieldError
-                                      errors={field.state.meta.errors}
-                                    />
-                                  </Field>
-                                )}
-                              </form.Field>
-
-                              {/* Standard exchanges: Secret Key */}
-                              <form.Field name="secret_key">
-                                {(field) => (
-                                  <Field>
-                                    <FieldLabel className="font-medium text-base text-gray-950">
-                                      Secret Key
-                                    </FieldLabel>
-                                    <Input
-                                      value={field.state.value}
-                                      onChange={(e) =>
-                                        field.handleChange(e.target.value)
-                                      }
-                                      onBlur={field.handleBlur}
-                                      placeholder="Enter Secret Key"
-                                    />
-                                    <FieldError
-                                      errors={field.state.meta.errors}
-                                    />
-                                  </Field>
-                                )}
-                              </form.Field>
-                            </>
+                          {(exchangeId === "okx" ||
+                            exchangeId === "coinbaseexchange") && (
+                            <form.AppField name="passphrase">
+                              {(field) => (
+                                <field.TextField
+                                  label="Passphrase"
+                                  placeholder="Enter Passphrase"
+                                />
+                              )}
+                            </form.AppField>
                           )}
                         </>
-                      )}
-                    </form.Field>
-
-                    {/* Passphrase field - only shown for OKX and Coinbase Exchange */}
-                    <form.Field name="exchange_id">
-                      {(exchangeField) =>
-                        (exchangeField.state.value === "okx" ||
-                          exchangeField.state.value === "coinbaseexchange") && (
-                          <form.Field name="passphrase">
-                            {(field) => (
-                              <Field>
-                                <FieldLabel className="font-medium text-base text-gray-950">
-                                  Passphrase
-                                </FieldLabel>
-                                <Input
-                                  value={field.state.value}
-                                  onChange={(e) =>
-                                    field.handleChange(e.target.value)
-                                  }
-                                  onBlur={field.handleBlur}
-                                  placeholder={`Enter Passphrase (Required for ${exchangeField.state.value === "okx" ? "OKX" : "Coinbase Exchange"})`}
-                                />
-                                <FieldError errors={field.state.meta.errors} />
-                              </Field>
-                            )}
-                          </form.Field>
-                        )
-                      }
-                    </form.Field>
-                  </>
-                )}
-              </>
+                      );
+                    }}
+                  </form.Subscribe>
+                </>
+              )
             );
           }}
-        </form.AppField>
+        </form.Subscribe>
       </FieldGroup>
     );
   },

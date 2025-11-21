@@ -26,14 +26,15 @@ export const TradingStrategyForm = withForm({
     strategy_type: "",
     strategy_name: "",
     initial_capital: 1000,
-    max_leverage: 8,
+    max_leverage: 2,
     symbols: TRADING_SYMBOLS,
     template_id: "",
   },
   props: {
     prompts: [] as StrategyPrompt[],
+    tradingMode: "live" as "live" | "virtual",
   },
-  render({ form, prompts }) {
+  render({ form, prompts, tradingMode }) {
     const { mutateAsync: createStrategyPrompt } = useCreateStrategyPrompt();
 
     return (
@@ -58,137 +59,121 @@ export const TradingStrategyForm = withForm({
           )}
         </form.AppField>
 
-        {/* Transaction Configuration */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-1 rounded-sm bg-black" />
-            <h3 className="font-semibold text-lg leading-tight">
-              Transaction configuration
-            </h3>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex gap-4">
-              <form.AppField name="initial_capital">
-                {(field) => (
-                  <field.TextField
-                    className="flex-1"
-                    label="Initial Capital"
-                    placeholder="Enter Initial Capital"
-                    onChange={(e) => field.handleChange(Number(e.target.value))}
-                  />
-                )}
-              </form.AppField>
-
-              <form.AppField name="max_leverage">
-                {(field) => (
-                  <field.TextField
-                    className="flex-1"
-                    label="Max Leverage"
-                    placeholder="Max Leverage"
-                    onChange={(e) => field.handleChange(Number(e.target.value))}
-                  />
-                )}
-              </form.AppField>
-            </div>
-
-            <form.Field name="symbols">
+        <FieldGroup className="flex flex-row gap-4">
+          {tradingMode === "virtual" && (
+            <form.AppField name="initial_capital">
               {(field) => (
-                <Field>
-                  <FieldLabel className="font-medium text-base text-gray-950">
-                    Trading Symbols
-                  </FieldLabel>
-                  <MultiSelect
-                    options={TRADING_SYMBOLS}
-                    value={field.state.value}
-                    onValueChange={(value) => field.handleChange(value)}
-                    placeholder="Select trading symbols..."
-                    searchPlaceholder="Search or add symbols..."
-                    emptyText="No symbols found."
-                    maxDisplayed={5}
-                    creatable
-                  />
-                  <FieldError errors={field.state.meta.errors} />
-                </Field>
+                <field.NumberField
+                  className="flex-1"
+                  label="Initial Capital"
+                  placeholder="Enter Initial Capital"
+                />
               )}
-            </form.Field>
-          </div>
-        </div>
+            </form.AppField>
+          )}
 
-        {/* Trading Strategy Prompt */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-1 rounded-sm bg-black" />
-            <h3 className="font-semibold text-lg leading-tight">
-              Trading strategy prompt
-            </h3>
-          </div>
+          <form.AppField name="max_leverage">
+            {(field) => (
+              <field.NumberField
+                className="flex-1"
+                label="Max Leverage"
+                placeholder="Max Leverage"
+              />
+            )}
+          </form.AppField>
+        </FieldGroup>
 
-          <div className="space-y-4">
-            <form.Field name="template_id">
-              {(field) => (
-                <Field>
-                  <FieldLabel className="font-medium text-base text-gray-950">
-                    System Prompt Template
-                  </FieldLabel>
-                  <div className="flex items-center gap-3">
-                    <Select
-                      value={field.state.value}
-                      onValueChange={(value) => {
-                        field.handleChange(value);
-                      }}
-                    >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue />
-                      </SelectTrigger>
+        <form.Field name="symbols">
+          {(field) => (
+            <Field>
+              <FieldLabel className="font-medium text-base text-gray-950">
+                Trading Symbols
+              </FieldLabel>
+              <MultiSelect
+                options={TRADING_SYMBOLS}
+                value={field.state.value}
+                onValueChange={(value) => field.handleChange(value)}
+                placeholder="Select trading symbols..."
+                searchPlaceholder="Search or add symbols..."
+                emptyText="No symbols found."
+                maxDisplayed={5}
+                creatable
+              />
+              <FieldError errors={field.state.meta.errors} />
+            </Field>
+          )}
+        </form.Field>
 
-                      <SelectContent>
-                        {prompts.length > 0 &&
-                          prompts.map((prompt) => (
-                            <SelectItem key={prompt.id} value={prompt.id}>
-                              {prompt.name}
-                            </SelectItem>
-                          ))}
-                        <NewPromptModal
-                          onSave={async (value) => {
-                            const { data: prompt } =
-                              await createStrategyPrompt(value);
-                            form.setFieldValue("template_id", prompt.id);
+        <form.Subscribe selector={(state) => state.values.strategy_type}>
+          {(strategyType) => {
+            return (
+              strategyType === "PromptBasedStrategy" && (
+                <form.Field name="template_id">
+                  {(field) => (
+                    <Field>
+                      <FieldLabel className="font-medium text-base text-gray-950">
+                        System Prompt Template
+                      </FieldLabel>
+                      <div className="flex items-center gap-3">
+                        <Select
+                          value={field.state.value}
+                          onValueChange={(value) => {
+                            field.handleChange(value);
                           }}
                         >
+                          <SelectTrigger className="flex-1">
+                            <SelectValue />
+                          </SelectTrigger>
+
+                          <SelectContent>
+                            {prompts.length > 0 &&
+                              prompts.map((prompt) => (
+                                <SelectItem key={prompt.id} value={prompt.id}>
+                                  {prompt.name}
+                                </SelectItem>
+                              ))}
+                            <NewPromptModal
+                              onSave={async (value) => {
+                                const { data: prompt } =
+                                  await createStrategyPrompt(value);
+                                form.setFieldValue("template_id", prompt.id);
+                              }}
+                            >
+                              <Button
+                                className="w-full"
+                                type="button"
+                                variant="outline"
+                              >
+                                <Plus />
+                                New Prompt
+                              </Button>
+                            </NewPromptModal>
+                          </SelectContent>
+                        </Select>
+
+                        <ViewStrategyModal
+                          prompt={prompts.find(
+                            (prompt) => prompt.id === field.state.value,
+                          )}
+                        >
                           <Button
-                            className="w-full"
                             type="button"
                             variant="outline"
+                            className="hover:bg-gray-50"
                           >
-                            <Plus />
-                            New Prompt
+                            <Eye />
+                            View Strategy
                           </Button>
-                        </NewPromptModal>
-                      </SelectContent>
-                    </Select>
-
-                    <ViewStrategyModal
-                      prompt={prompts.find(
-                        (prompt) => prompt.id === field.state.value,
-                      )}
-                    >
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="hover:bg-gray-50"
-                      >
-                        <Eye />
-                        View Strategy
-                      </Button>
-                    </ViewStrategyModal>
-                  </div>
-                  <FieldError errors={field.state.meta.errors} />
-                </Field>
-              )}
-            </form.Field>
-          </div>
-        </div>
+                        </ViewStrategyModal>
+                      </div>
+                      <FieldError errors={field.state.meta.errors} />
+                    </Field>
+                  )}
+                </form.Field>
+              )
+            );
+          }}
+        </form.Subscribe>
       </FieldGroup>
     );
   },

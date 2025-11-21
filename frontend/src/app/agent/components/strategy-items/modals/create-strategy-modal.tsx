@@ -89,8 +89,11 @@ const step2Schema = z.union([
 const step3Schema = z.object({
   strategy_type: z.enum(["PromptBasedStrategy", "GridStrategy"]),
   strategy_name: z.string().min(1, "Strategy name is required"),
-  initial_capital: z.number().min(0, "Initial capital must be positive"),
-  max_leverage: z.number().min(1, "Leverage must be at least 1"),
+  initial_capital: z.number().min(1, "Initial capital must be at least 1"),
+  max_leverage: z
+    .number()
+    .min(1, "Leverage must be at least 1")
+    .max(5, "Leverage must be at most 5"),
   symbols: z.array(z.string()).min(1, "At least one symbol is required"),
   template_id: z.string().min(1, "Template selection is required"),
 });
@@ -231,7 +234,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
       strategy_type: "PromptBasedStrategy",
       strategy_name: "",
       initial_capital: 1000,
-      max_leverage: 8,
+      max_leverage: 2,
       symbols: TRADING_SYMBOLS,
       template_id: prompts.length > 0 ? prompts[0].id : "",
     },
@@ -292,7 +295,11 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
 
           {/* Step 3: Trading Strategy */}
           {currentStep === 3 && (
-            <TradingStrategyForm form={form3} prompts={prompts} />
+            <TradingStrategyForm
+              form={form3}
+              prompts={prompts}
+              tradingMode={form2.state.values.trading_mode}
+            />
           )}
         </ScrollContainer>
 
