@@ -56,7 +56,7 @@ Welcome to join our Discord community to share feedback and issues you encounter
 </p>
 
 <p align="center">
-  <img src="assets/product/NewPushAgent.png" style="width: 100%; height: auto;">
+  <img src="assets/product/Model_Configuration.png" style="width: 100%; height: auto;">
 </p>
 
 <p align="center">
@@ -78,7 +78,7 @@ Welcome to join our Discord community to share feedback and issues you encounter
 - **Others**: More agents are in planning...
 
 ## Flexible Integrations
-- **Multiple LLM Providers**: Support OpenRouter, SiliconFlow, Google and OpenAI 
+- **Multiple LLM Providers**: Support OpenRouter, SiliconFlow,Azure,Openai-compatible,Google,OpenAI and DeepSeek
 - **Popular Market Data**: Cover US market, Crypto market, Hong Kong market, China market and more
 - **Multi-Agent Framework Compatible**: Support Langchain, Agno by A2A Protocol for research and development integration
 - **Exchange Connectivity**: Live routing to OKX and Binance, featuring built-in guardrails
@@ -193,7 +193,7 @@ Details on development processes and standards are provided below:[CONTRIBUTING.
 
 ## 🤖 Enhanced Agent Capabilities
 ### Trading Capabilities
-- **Crypto**: Supports OKX and Binance exchanges, with more exchanges planned for integration...
+- **Crypto**: Supports OKX、Binance and Hyperliquid exchanges, with more exchanges planned for integration...
 - **Securities**: Gradually support AI securities trading
 
 ### Market Expansion
