@@ -25,9 +25,9 @@ export default [
 
   ...prefix("/setting", [
     layout("app/setting/_layout.tsx", [
-      index("app/setting/general.tsx"),
+      index("app/setting/models.tsx"),
+      route("/general", "app/setting/general.tsx"),
       route("/memory", "app/setting/memory.tsx"),
-      route("/models", "app/setting/models.tsx"),
     ]),
   ]),
 

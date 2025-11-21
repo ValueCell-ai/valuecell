@@ -149,6 +149,12 @@ const AppSidebar: FC = () => {
           to: "/home",
         },
         {
+          id: "strategy",
+          icon: StrategyAgent,
+          label: "Strategy",
+          to: "/agent/StrategyAgent",
+        },
+        {
           id: "market",
           icon: ChartBarVertical,
           label: "Market",
@@ -195,15 +201,6 @@ const AppSidebar: FC = () => {
               </NavLink>
             );
           })}
-
-          <NavLink to="/agent/StrategyAgent">
-            <SidebarMenuItem
-              data-active={verifyActive("/agent/StrategyAgent")}
-              className="cursor-pointer bg-white p-2 text-gray-700 hover:bg-neutral-300"
-            >
-              <SvgIcon name={StrategyAgent} className="size-6" />
-            </SidebarMenuItem>
-          </NavLink>
 
           <AppConversationSheet>
             <SidebarMenuItem className="cursor-pointer bg-white p-2 text-gray-700 hover:bg-neutral-300">
