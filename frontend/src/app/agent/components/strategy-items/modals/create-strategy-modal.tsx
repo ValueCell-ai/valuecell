@@ -2,11 +2,7 @@ import { Check } from "lucide-react";
 import type { FC } from "react";
 import { memo, useState } from "react";
 import { z } from "zod";
-import {
-  useCreateStrategy,
-  useGetStrategyApiKey,
-  useGetStrategyPrompts,
-} from "@/api/strategy";
+import { useCreateStrategy, useGetStrategyPrompts } from "@/api/strategy";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,7 +13,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import CloseButton from "@/components/valuecell/button/close-button";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
-import { MODEL_PROVIDER_MAP, TRADING_SYMBOLS } from "@/constants/agent";
+import { TRADING_SYMBOLS } from "@/constants/agent";
 import { useAppForm } from "@/hooks/use-form";
 import { AIModelForm } from "../forms/ai-model-form";
 import { ExchangeForm } from "../forms/exchange-form";
@@ -89,8 +85,11 @@ const step2Schema = z.union([
 const step3Schema = z.object({
   strategy_type: z.enum(["PromptBasedStrategy", "GridStrategy"]),
   strategy_name: z.string().min(1, "Strategy name is required"),
-  initial_capital: z.number().min(0, "Initial capital must be positive"),
-  max_leverage: z.number().min(1, "Leverage must be at least 1"),
+  initial_capital: z.number().min(1, "Initial capital must be at least 1"),
+  max_leverage: z
+    .number()
+    .min(1, "Leverage must be at least 1")
+    .max(5, "Leverage must be at most 5"),
   symbols: z.array(z.string()).min(1, "At least one symbol is required"),
   template_id: z.string().min(1, "Template selection is required"),
 });
@@ -184,7 +183,7 @@ const StepIndicator: FC<{ currentStep: StepNumber }> = ({ currentStep }) => {
 const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState<StepNumber>(1);
-  const { data: llmConfigs = [] } = useGetStrategyApiKey();
+
   const { data: prompts = [] } = useGetStrategyPrompts();
   const { mutateAsync: createStrategy, isPending: isCreatingStrategy } =
     useCreateStrategy();
@@ -192,11 +191,9 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
   // Step 1 Form: AI Models
   const form1 = useAppForm({
     defaultValues: {
-      provider: "openrouter",
-      model_id: MODEL_PROVIDER_MAP.openrouter[0],
-      api_key:
-        llmConfigs?.find((config) => config.provider === "openrouter")
-          ?.api_key || "",
+      provider: "",
+      model_id: "",
+      api_key: "",
     },
     validators: {
       onSubmit: step1Schema,
@@ -231,7 +228,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
       strategy_type: "PromptBasedStrategy",
       strategy_name: "",
       initial_capital: 1000,
-      max_leverage: 8,
+      max_leverage: 2,
       symbols: TRADING_SYMBOLS,
       template_id: prompts.length > 0 ? prompts[0].id : "",
     },
@@ -285,14 +282,18 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
         {/* Form content with scroll */}
         <ScrollContainer className="px-1 py-2">
           {/* Step 1: AI Models */}
-          {currentStep === 1 && <AIModelForm form={form1} llms={llmConfigs} />}
+          {currentStep === 1 && <AIModelForm form={form1} />}
 
           {/* Step 2: Exchanges */}
           {currentStep === 2 && <ExchangeForm form={form2} />}
 
           {/* Step 3: Trading Strategy */}
           {currentStep === 3 && (
-            <TradingStrategyForm form={form3} prompts={prompts} />
+            <TradingStrategyForm
+              form={form3}
+              prompts={prompts}
+              tradingMode={form2.state.values.trading_mode}
+            />
           )}
         </ScrollContainer>
 
