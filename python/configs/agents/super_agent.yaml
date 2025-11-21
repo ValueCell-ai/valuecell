@@ -15,19 +15,21 @@
 name: "Super Agent"
 enabled: true
 
+# TODO support agent level model config
+
 # Model Configuration
 # Super Agent typically needs a capable reasoning model
-models:
-  # Primary model for triage, reasoning, and query enrichment
-  primary:
-    model_id: "anthropic/claude-haiku-4.5"
-    provider: "openrouter"  # Must explicitly specify provider (not null)
-    
-    # Provider-specific model mappings for fallback
-    # Used when primary provider fails and fallback is attempted
-    provider_models:
-      siliconflow: "deepseek-ai/DeepSeek-V3.1-Terminus"  # Similar capability to Claude Haiku
-      google: "gemini-2.5-flash"  # Fast and efficient like Claude Haiku
+#models:
+#  # Primary model for triage, reasoning, and query enrichment
+#  primary:
+#    model_id: "anthropic/claude-haiku-4.5"
+#    provider: "openrouter"  # Must explicitly specify provider (not null)
+#
+#    # Provider-specific model mappings for fallback
+#    # Used when primary provider fails and fallback is attempted
+#    provider_models:
+#      siliconflow: "deepseek-ai/DeepSeek-V3.1-Terminus"  # Similar capability to Claude Haiku
+#      google: "gemini-2.5-flash"  # Fast and efficient like Claude Haiku
 
 # Environment Variable Overrides
 # Format: ENV_VAR_NAME -> config.path
