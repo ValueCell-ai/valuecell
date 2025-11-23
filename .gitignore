@@ -228,3 +228,7 @@ lancedb
 logs
 .knowledge
 .txt
+
+# Local configs
+python/configs/
+python/uv.lock
