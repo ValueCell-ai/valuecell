@@ -108,7 +108,9 @@ ValueCell 是一个基于Python的应用程序，且有完备的前端操作页�
 2. **配置环境变量**
 
    ```bash
-   cp .env.example .env
+   cp .env.example ~/.config/valuecell/.env (Linux)
+   cp .env.example ~/Library/Application Support/ValueCell/.env(macOS)
+   cp .env.example %APPDATA%\ValueCell\.env (Windows)
    ```
    
    使用您的API密钥和偏好设置编辑`.env`文件。此配置文件在所有智能体之间共享。详见 [配置指南](docs/CONFIGURATION_GUIDE.md)

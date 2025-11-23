@@ -106,7 +106,9 @@ For optimal performance and streamlined development, we recommend installing the
 2. **Configure environment variables**
 
    ```bash
-   cp .env.example .env
+   cp .env.example ~/.config/valuecell/.env (Linux)
+   cp .env.example ~/Library/Application Support/ValueCell/.env(macOS)
+   cp .env.example %APPDATA%\ValueCell\.env (Windows)
    ```
    
    Edit the `.env` file with your API keys and preferences. This configuration file is shared across all agents. See [Configuration Guide](docs/CONFIGURATION_GUIDE.md) for details.

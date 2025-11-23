@@ -105,7 +105,9 @@ ValueCellは包括的なWebインターフェースを備えたPythonベース�
 2. **環境変数の設定**
 
    ```bash
-   cp .env.example .env
+   cp .env.example ~/.config/valuecell/.env (Linux)
+   cp .env.example ~/Library/Application Support/ValueCell/.env(macOS)
+   cp .env.example %APPDATA%\ValueCell\.env (Windows)
    ```
 
    APIキーと設定を`.env`ファイルに記入してください。この設定ファイルはすべてのエージェント間で共有されます。設定の詳細については、[設定ガイド](docs/CONFIGURATION_GUIDE.md) をご参照ください。
