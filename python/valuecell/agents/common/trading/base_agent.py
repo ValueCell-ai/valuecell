@@ -10,6 +10,7 @@ from valuecell.agents.common.trading._internal.runtime import create_strategy_ru
 from valuecell.agents.common.trading._internal.stream_controller import StreamController
 from valuecell.agents.common.trading.models import (
     ComponentType,
+    StopReason,
     StrategyStatus,
     StrategyStatusContent,
     UserRequest,
@@ -104,7 +105,7 @@ class BaseStrategyAgent(BaseAgent, ABC):
         pass
 
     def _on_stop(
-        self, runtime: StrategyRuntime, request: UserRequest, reason: str
+        self, runtime: StrategyRuntime, request: UserRequest, reason: StopReason | str
     ) -> None:
         """Hook called before finalization when strategy stops.
 
@@ -144,7 +145,11 @@ class BaseStrategyAgent(BaseAgent, ABC):
             return
 
         # Create runtime (calls _build_decision, _build_features_pipeline internally)
-        runtime = await self._create_runtime(request)
+        # Reuse externally supplied strategy_id if present for continuation semantics.
+        strategy_id_override = request.trading_config.strategy_id
+        runtime = await self._create_runtime(
+            request, strategy_id_override=strategy_id_override
+        )
         strategy_id = runtime.strategy_id
         logger.info(
             "Created runtime for strategy_id={} conversation={} task={}",
@@ -175,10 +180,17 @@ class BaseStrategyAgent(BaseAgent, ABC):
         except Exception:
             logger.exception("Error in _on_start hook for strategy {}", strategy_id)
 
+        stop_reason = StopReason.NORMAL_EXIT
         try:
             logger.info("Starting decision loop for strategy_id={}", strategy_id)
-            # Persist initial portfolio snapshot and strategy summary
-            controller.persist_initial_state(runtime)
+            # Idempotent initial state persistence: skip if already exists (resume).
+            if not controller.has_initial_state():
+                controller.persist_initial_state(runtime)
+            else:
+                logger.info(
+                    "Detected existing initial state; skipping duplicate persist for strategy_id={}",
+                    strategy_id,
+                )
 
             # Main decision loop
             while controller.is_running():
@@ -211,19 +223,19 @@ class BaseStrategyAgent(BaseAgent, ABC):
                 "Strategy_id={} is no longer running, exiting decision loop",
                 strategy_id,
             )
-            stop_reason = "normal_exit"
+            stop_reason = StopReason.NORMAL_EXIT
 
         except asyncio.CancelledError:
-            stop_reason = "cancelled"
+            stop_reason = StopReason.CANCELLED
             logger.info("Strategy {} cancelled", strategy_id)
             raise
         except Exception as err:  # noqa: BLE001
-            stop_reason = "error"
+            stop_reason = StopReason.ERROR
             logger.exception("StrategyAgent stream failed: {}", err)
             yield streaming.message_chunk(f"StrategyAgent error: {err}")
         finally:
             # Enforce position closure on normal stop (e.g., user clicked stop)
-            if stop_reason == "normal_exit":
+            if stop_reason == StopReason.NORMAL_EXIT:
                 try:
                     trades = await runtime.coordinator.close_all_positions()
                     if trades:
@@ -237,7 +249,7 @@ class BaseStrategyAgent(BaseAgent, ABC):
                     # However, the user intent was to stop.
                     # Let's log it and proceed, but maybe mark status as ERROR instead of STOPPED?
                     # For now, we stick to STOPPED but log the error clearly.
-                    stop_reason = "error_closing_positions"
+                    stop_reason = StopReason.ERROR_CLOSING_POSITIONS
 
             # Call user hook before finalization
             try:
@@ -245,11 +257,22 @@ class BaseStrategyAgent(BaseAgent, ABC):
             except Exception:
                 logger.exception("Error in _on_stop hook for strategy {}", strategy_id)
 
-            # Finalize: close resources and mark stopped
+            # Persist a final portfolio snapshot regardless of stop reason (best-effort)
+            try:
+                controller.persist_portfolio_snapshot(runtime)
+            except Exception:
+                logger.exception(
+                    "Failed to persist final portfolio snapshot for strategy {}",
+                    strategy_id,
+                )
+
+            # Finalize: close resources and mark stopped/paused/error
             await controller.finalize(runtime, reason=stop_reason)
             yield streaming.done()
 
-    async def _create_runtime(self, request: UserRequest) -> StrategyRuntime:
+    async def _create_runtime(
+        self, request: UserRequest, strategy_id_override: str | None = None
+    ) -> StrategyRuntime:
         """Create strategy runtime with custom components.
 
         Calls user hooks to build custom decision composer and features pipeline.
@@ -272,5 +295,8 @@ class BaseStrategyAgent(BaseAgent, ABC):
         # Create runtime with custom components
         # The runtime factory will use defaults if composer/features are None
         return await create_strategy_runtime(
-            request, composer=composer, features_pipeline=features_pipeline
+            request,
+            composer=composer,
+            features_pipeline=features_pipeline,
+            strategy_id_override=strategy_id_override,
         )
