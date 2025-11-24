@@ -1,7 +1,9 @@
 import logging
 from datetime import datetime
+from time import time
 from decimal import Decimal
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Callable, Any
+from func_timeout import func_timeout, FunctionTimedOut
 
 import pandas as pd
 
@@ -62,6 +64,7 @@ class BaoStockAdapter(BaseDataAdapter):
             f"1{Interval.MONTH.value}": "m",
         }
 
+
     def validate_ticker(self, ticker: str) -> bool:
         """Validate if ticker is supported by BaoStock.
         Args:
@@ -85,7 +88,7 @@ class BaoStockAdapter(BaseDataAdapter):
         ]:
             return False
 
-        if len(ticker_code) != bs.cons.STOCK_CODE_LENGTH:  # type: ignore
+        if len(ticker_code) != bs.cons.STOCK_CODE_LENGTH:
             return False
 
         return True
@@ -143,8 +146,9 @@ class BaoStockAdapter(BaseDataAdapter):
         results: List[AssetSearchResult] = []
         logger.error(f"Searching assets on BaoStock with query: {query.query}")
         try:
-            self._baostock_login()
-            rs = bs.query_stock_basic(code_name=query.query)  # type: ignore
+            rs = self._baostock_api_call_wrapper(
+                lambda: bs.query_stock_basic(code=query.query)
+            )
             if rs.error_code != "0":
                 logger.warning(f"BaoStock asset search failed: {rs.error_msg}")
                 return results
@@ -163,11 +167,21 @@ class BaoStockAdapter(BaseDataAdapter):
                         f"Unknown exchange code: {exchange_code} for asset {code}"
                     )
                     continue
+                type = row["type"]
+                if str(type) == "1":
+                    asset_type = AssetType.STOCK
+                elif str(type) == "2":
+                    asset_type = AssetType.INDEX
+                else:
+                    logger.warning(
+                        f"Unsupported asset type: {type} for asset {code}"
+                    )
+                    continue
 
                 ticker = f"{exchange.value}:{code[2:]}"
                 result = AssetSearchResult(
                     ticker=ticker,
-                    asset_type=AssetType.STOCK,
+                    asset_type=asset_type,
                     names={
                         "zh-Hans": code_name,
                         "zh-CN": code_name,
@@ -246,6 +260,10 @@ class BaoStockAdapter(BaseDataAdapter):
                 asset_type=AssetType.STOCK,
                 exchanges={Exchange.SSE, Exchange.SZSE},
             ),
+            AdapterCapability(
+                asset_type=AssetType.INDEX,
+                exchanges={Exchange.SSE, Exchange.SZSE},
+            ),
         ]
 
     def get_asset_info(self, ticker: str) -> Optional[Asset]:
@@ -263,8 +281,9 @@ class BaoStockAdapter(BaseDataAdapter):
         exchange, ticker_code = result
 
         try:
-            self._baostock_login()
-            rs = bs.query_stock_basic(code=ticker_code)  # type: ignore
+            rs = self._baostock_api_call_wrapper(
+                lambda: bs.query_stock_basic(code=ticker_code)
+            )
             if rs.error_code != "0" or rs.next() is False:
                 logger.warning(
                     f"Failed to fetch asset info for ticker {ticker}: {rs.error_msg}"
@@ -306,16 +325,17 @@ class BaoStockAdapter(BaseDataAdapter):
         prices: List[AssetPrice] = []
 
         try:
-            self._baostock_login()
-            rs = bs.query_history_k_data_plus(  # type: ignore
-                code=ticker,
-                fields="date,time,code,open,high,low,close,volume,amount",
-                start_date=start_date.strftime("%Y-%m-%d"),
-                end_date=end_date.strftime("%Y-%m-%d")
-                if end_date is not None
-                else None,
-                frequency=period,
-                adjustflag="2",  # pre-adjusted
+            rs = self._baostock_api_call_wrapper(
+                lambda: bs.query_history_k_data_plus(
+                    code=ticker,
+                    fields="date,time,code,open,high,low,close,volume,amount",
+                    start_date=start_date.strftime("%Y-%m-%d"),
+                    end_date=end_date.strftime("%Y-%m-%d")
+                    if end_date is not None
+                    else None,
+                    frequency=period,
+                    adjustflag="2",  # pre-adjusted
+                )
             )
             if rs is None or rs.error_code != "0":
                 logger.warning(
@@ -372,16 +392,17 @@ class BaoStockAdapter(BaseDataAdapter):
         _, ticker_code = result
 
         try:
-            self._baostock_login()
-            rs = bs.query_history_k_data_plus(  # type: ignore
-                code=ticker_code,
-                fields="date,code,open,high,low,close,volume,amount,turn",
-                start_date=start_date.strftime("%Y-%m-%d"),
-                end_date=end_date.strftime("%Y-%m-%d")
-                if end_date is not None
-                else None,
-                frequency=interval,
-                adjustflag="2",  # pre-adjusted
+            rs = self._baostock_api_call_wrapper(
+                lambda: bs.query_history_k_data_plus(
+                    code=ticker_code,
+                    fields="date,code,open,high,low,close,volume,preclose,pctChg",
+                    start_date=start_date.strftime("%Y-%m-%d"),
+                    end_date=end_date.strftime("%Y-%m-%d")
+                    if end_date is not None
+                    else None,
+                    frequency=interval,
+                    adjustflag="2",  # pre-adjusted
+                )
             )
             if rs is None or rs.error_code != "0":
                 logger.warning(
@@ -392,6 +413,10 @@ class BaoStockAdapter(BaseDataAdapter):
             data_frame = rs.get_data()
             for _, row in data_frame.iterrows():
                 close_price = Decimal(str(row["close"]))
+                preclose_price = Decimal(str(row["preclose"]))
+                change = None
+                if close_price is not None and preclose_price is not None:
+                    change = close_price - preclose_price
                 price = AssetPrice(
                     ticker=ticker,
                     price=close_price,
@@ -402,8 +427,8 @@ class BaoStockAdapter(BaseDataAdapter):
                     low_price=Decimal(str(row["low"])),
                     close_price=close_price,
                     volume=Decimal(row["volume"]),
-                    change=Decimal(row["amount"]),
-                    change_percent=Decimal(row["turn"]),
+                    change=change,
+                    change_percent=Decimal(row["pctChg"]),
                     source=self.source,
                 )
                 prices.append(price)
@@ -431,6 +456,13 @@ class BaoStockAdapter(BaseDataAdapter):
             currency = "CNY"
             timezone = "Asia/Shanghai"
             name = asset_data.get("code_name", ticker)
+            type = asset_data.get("type")
+            if str(type) == "1":
+                asset_type = AssetType.STOCK
+            elif str(type) == "2":
+                asset_type = AssetType.INDEX
+            else:
+                asset_type = AssetType.STOCK  # Default to STOCK
 
             localized_names = LocalizedName()
             # Set localized names if not "ticker"
@@ -449,7 +481,7 @@ class BaoStockAdapter(BaseDataAdapter):
 
             asset = Asset(
                 ticker=ticker,
-                asset_type=AssetType.STOCK,  # Only stock
+                asset_type=asset_type,
                 names=localized_names,
                 market_info=market_info,
             )
@@ -528,8 +560,92 @@ class BaoStockAdapter(BaseDataAdapter):
 
     def _baostock_login(self):
         """Login to BaoStock service."""
-        self._logging_status = bs.login() # type: ignore
+        self._logging_status = bs.login()
         if self._logging_status.error_code != "0":
             raise ConnectionError(
                 f"BaoStock login failed: {self._logging_status.error_msg}"
             )
+        # record last successful login time (seconds since epoch)
+        try:
+            self._last_login_time = time()
+        except Exception:
+            # fallback: don't block if time cannot be recorded
+            self._last_login_time = None
+        
+    def _baostock_api_call_wrapper(
+            self, api_call: Callable[..., Any]
+        ) -> Any:
+        """Wrapper for BaoStock API calls to handle login, session TTL and retries.
+
+        - Ensures a valid login exists (with optional TTL `session_ttl` in config).
+        - Uses `self.timeout` (or config `timeout`) for `func_timeout`.
+        - Retries once after re-login when a timeout occurs or when the BaoStock
+            response object has a non-'0' `error_code`.
+
+        Args:
+            api_call: callable BaoStock API function
+            *args: positional args forwarded to `api_call`
+            **kwargs: keyword args forwarded to `api_call`
+
+        Returns:
+            The raw result returned by the BaoStock API call.
+
+        Raises:
+            Exception: Last exception encountered if retries exhausted.
+        """
+        session_ttl = self.config.get("session_ttl", 300)
+        now = time()
+
+        # Ensure login and check TTL
+        if (
+            not hasattr(self, "_logging_status")
+            or getattr(self._logging_status, "error_code", "1") != "0"
+            or not hasattr(self, "_last_login_time")
+            or (self._last_login_time is not None and now - self._last_login_time > session_ttl)
+        ):
+            self._baostock_login()
+
+        timeout = getattr(self, "timeout", self.config.get("timeout", 10)) # seconds
+
+        attempts = 0
+        last_exc: Optional[BaseException] = None
+
+        while attempts < 2:
+            try:
+                result = func_timeout(timeout, api_call)
+
+                # If the result is a BaoStock response object, check its error_code
+                if hasattr(result, "error_code") and getattr(result, "error_code") != "0":
+                    logger.warning(
+                        "BaoStock API returned error_code=%s, msg=%s - re-login and retry",
+                        getattr(result, "error_code"),
+                        getattr(result, "error_msg", None),
+                    )
+                    self._baostock_login()
+                    attempts += 1
+                    continue
+
+                return result
+
+            except FunctionTimedOut as exc:
+                logger.warning("BaoStock API call timed out after %s seconds, retrying", timeout)
+                last_exc = exc
+                # try to re-login then retry
+                try:
+                    self._baostock_login()
+                except Exception as login_exc:
+                    logger.error("Re-login failed after timeout: %s", login_exc)
+                    raise
+                attempts += 1
+                continue
+
+            except Exception as exc:
+                logger.error("Error during BaoStock API call: %s", exc)
+                raise
+
+        # Exhausted retries
+        logger.error("BaoStock API call failed after %s attempts", attempts)
+        if last_exc:
+            raise last_exc
+        raise RuntimeError("BaoStock API call failed after retries")
+    

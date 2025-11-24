@@ -30,6 +30,7 @@ dependencies = [
     "crawl4ai>=0.7.4",
     "ccxt>=4.5.15",
     "baostock>=0.8.9",
+    "func-timeout>=4.3.5",
 ]
 
 [project.optional-dependencies]
