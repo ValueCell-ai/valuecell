@@ -109,25 +109,6 @@ export const VALUECELL_AGENT: AgentInfo = {
   },
 };
 
-export const MODEL_PROVIDERS = ["openrouter", "siliconflow"] as const;
-export const MODEL_PROVIDER_MAP: Record<
-  (typeof MODEL_PROVIDERS)[number],
-  string[]
-> = {
-  openrouter: [
-    "deepseek/deepseek-v3.1-terminus",
-    "deepseek/deepseek-v3.2-exp",
-    "qwen/qwen3-max",
-    "openai/gpt-5-pro",
-    "openai/gpt-5",
-    "google/gemini-2.5-flash",
-    "google/gemini-2.5-pro",
-    "anthropic/claude-sonnet-4.5",
-    "anthropic/claude-haiku-4.5",
-  ],
-  siliconflow: ["deepseek-ai/DeepSeek-V3.2-Exp", "Qwen/Qwen3-235B-A22B"],
-};
-
 // Trading symbols options
 export const TRADING_SYMBOLS: string[] = [
   "BTC/USDT",

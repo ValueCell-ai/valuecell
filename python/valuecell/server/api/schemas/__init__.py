@@ -35,7 +35,7 @@ from .i18n import (
     UserI18nSettingsData,
     UserI18nSettingsRequest,
 )
-from .model import LLMModelConfigData, LLMProviderConfigData
+from .model import LLMModelConfigData
 from .task import TaskCancelData
 from .user_profile import (
     CreateUserProfileRequest,
@@ -117,5 +117,4 @@ __all__ = [
     "TaskCancelData",
     # Model schemas
     "LLMModelConfigData",
-    "LLMProviderConfigData",
 ]

@@ -207,14 +207,27 @@ class ExecutionPlanner:
                 "Please configure a valid API key or provider settings and retry."
             )
 
-        run_response = agent.run(
-            PlannerInput(
-                target_agent_name=user_input.target_agent_name,
-                query=user_input.query,
-            ),
-            session_id=conversation_id,
-            user_id=user_input.meta.user_id,
-        )
+        # Be robust if model attributes are unavailable
+        try:
+            model = agent.model
+            model_description = f"{model.id} (via {model.provider})"
+        except Exception:
+            model_description = "unknown model/provider"
+        try:
+            run_response = agent.run(
+                PlannerInput(
+                    target_agent_name=user_input.target_agent_name,
+                    query=user_input.query,
+                ),
+                session_id=conversation_id,
+                user_id=user_input.meta.user_id,
+            )
+        except Exception as exc:
+            logger.exception("Planner run failed: %s", exc)
+            return [], (
+                f"Planner encountered an error during execution: {exc}. "
+                f"Please check the capabilities of your model `{model_description}` and try again later."
+            )
 
         # Handle user input requests through Human-in-the-Loop workflow
         while run_response.is_paused:
@@ -242,12 +255,6 @@ class ExecutionPlanner:
         # Parse planning result and create tasks
         plan_raw = run_response.content
         if not isinstance(plan_raw, PlannerResponse):
-            # Be robust if model attributes are unavailable
-            try:
-                model = agent.model
-                model_description = f"{model.id} (via {model.provider})"
-            except Exception:
-                model_description = "unknown model/provider"
             return (
                 [],
                 (
@@ -263,6 +270,32 @@ class ExecutionPlanner:
             guidance_message = plan_raw.guidance_message or plan_raw.reason
             logger.info(f"Planner needs user guidance: {guidance_message}")
             return [], guidance_message  # Return empty task list with guidance
+
+        planable_cards = self.agent_connections.get_planable_agent_cards()
+        planable_agent_names = set(planable_cards.keys())
+        invalid_agents = {
+            t.agent_name
+            for t in plan_raw.tasks
+            if t.agent_name not in planable_agent_names
+        }
+        if invalid_agents:
+            available_agents = (
+                ", ".join(sorted(planable_agent_names))
+                if planable_agent_names
+                else "none"
+            )
+            invalid_list = ", ".join(sorted(invalid_agents))
+            guidance_message = (
+                "Planner selected unsupported agent(s):"
+                f" {invalid_list}."
+                f" Maybe the chosen model `{model_description}` hallucinated."
+            )
+            logger.warning(
+                "Planner proposed unsupported agents: %s (available: %s)",
+                invalid_list,
+                available_agents,
+            )
+            return [], guidance_message
 
         # Create tasks from planner response
         tasks = []
@@ -346,7 +379,7 @@ class ExecutionPlanner:
         return "The requested agent could not be found or is not available."
 
     def tool_get_enabled_agents(self) -> str:
-        map_agent_name_to_card = self.agent_connections.get_all_agent_cards()
+        map_agent_name_to_card = self.agent_connections.get_planable_agent_cards()
         parts = []
         for agent_name, card in map_agent_name_to_card.items():
             parts.append(f"<{agent_name}>")

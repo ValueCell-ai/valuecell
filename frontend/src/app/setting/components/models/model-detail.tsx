@@ -232,7 +232,7 @@ export function ModelDetail({ provider }: ModelDetailProps) {
           </FieldGroup>
 
           {/* Models section */}
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <div className="font-medium text-base text-gray-950">Models</div>
               <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -332,9 +332,9 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                 {providerDetail.models.map((m) => (
                   <div
                     key={m.model_id}
-                    className="flex items-center justify-between py-2"
+                    className="flex items-center justify-between"
                   >
-                    <span className="font-normal text-base text-gray-950">
+                    <span className="font-normal text-gray-950 text-sm">
                       {m.model_name}
                     </span>
 

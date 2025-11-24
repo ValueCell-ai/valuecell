@@ -18,6 +18,17 @@ def persist_trade_history(
     """
     repo = get_strategy_repository()
     try:
+        # Skip if strategy does not exist (e.g., deleted)
+        try:
+            if repo.get_strategy_by_strategy_id(strategy_id) is None:
+                logger.info(
+                    "Skip persisting trade detail: strategy={} not found (possibly deleted)",
+                    strategy_id,
+                )
+                return None
+        except Exception:
+            # If existence check fails, proceed but errors will be handled below
+            pass
         # map direction and type
         ttype = trade.type.value if trade.type is not None else None
         side = trade.side.value if trade.side is not None else None
@@ -127,6 +138,17 @@ def persist_portfolio_view(view: agent_models.PortfolioView) -> bool:
     repo = get_strategy_repository()
     strategy_id = view.strategy_id
     try:
+        # Skip if strategy does not exist (e.g., deleted)
+        try:
+            if repo.get_strategy_by_strategy_id(strategy_id) is None:
+                logger.info(
+                    "Skip persisting portfolio view: strategy={} not found (possibly deleted)",
+                    strategy_id,
+                )
+                return False
+        except Exception:
+            # If existence check fails, continue and let foreign key constraints guard writes
+            pass
         if not strategy_id:
             logger.error("persist_portfolio_view missing strategy_id on view")
             return False
@@ -211,10 +233,16 @@ def persist_strategy_summary(summary: agent_models.StrategySummary) -> bool:
     repo = get_strategy_repository()
     strategy_id = summary.strategy_id
     try:
+        # Only update existing strategies; do NOT recreate missing ones
         strategy = repo.get_strategy_by_strategy_id(strategy_id)
-        existing_meta = (
-            (strategy.strategy_metadata or {}) if strategy is not None else {}
-        )
+        if strategy is None:
+            logger.info(
+                "Skip persisting strategy summary: strategy={} not found (possibly deleted)",
+                strategy_id,
+            )
+            return False
+
+        existing_meta = strategy.strategy_metadata or {}
         meta = {**dict(existing_meta), **summary.model_dump(exclude_none=True)}
         updated = repo.upsert_strategy(strategy_id, metadata=meta)
         return updated is not None
@@ -241,6 +269,14 @@ def set_strategy_status(strategy_id: str, status: str) -> bool:
     """Set the status field for a strategy (convenience wrapper around upsert)."""
     repo = get_strategy_repository()
     try:
+        # Only update if strategy exists; avoid recreating deleted strategies
+        if repo.get_strategy_by_strategy_id(strategy_id) is None:
+            logger.info(
+                "Skip setting status for strategy={} to {}: strategy not found",
+                strategy_id,
+                status,
+            )
+            return False
         updated = repo.upsert_strategy(strategy_id, status=status)
         return updated is not None
     except Exception:

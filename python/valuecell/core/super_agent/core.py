@@ -93,19 +93,29 @@ class SuperAgent:
                 reason="SuperAgent unavailable: missing model/provider configuration",
             )
 
-        response = await agent.arun(
-            user_input.query,
-            session_id=user_input.meta.conversation_id,
-            user_id=user_input.meta.user_id,
-            add_history_to_context=True,
-        )
+        try:
+            model = agent.model
+            model_description = f"{model.id} (via {model.provider})"
+        except Exception:
+            model_description = "unknown model/provider"
+        try:
+            response = await agent.arun(
+                user_input.query,
+                session_id=user_input.meta.conversation_id,
+                user_id=user_input.meta.user_id,
+                add_history_to_context=True,
+            )
+        except Exception as e:
+            return SuperAgentOutcome(
+                decision=SuperAgentDecision.ANSWER,
+                reason=(
+                    f"SuperAgent encountered an error: {e}."
+                    f"Please check the capabilities of your model `{model_description}` and try again later."
+                ),
+            )
+
         outcome = response.content
         if not isinstance(outcome, SuperAgentOutcome):
-            try:
-                model = agent.model
-                model_description = f"{model.id} (via {model.provider})"
-            except Exception:
-                model_description = "unknown model/provider"
             answer_content = (
                 f"SuperAgent produced a malformed response: `{outcome}`. "
                 f"Please check the capabilities of your model `{model_description}` and try again later."

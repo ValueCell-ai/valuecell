@@ -1,10 +1,11 @@
+import { useStore } from "@tanstack/react-form";
+import { useEffect } from "react";
+import { useGetModelProviderDetail, useGetModelProviders } from "@/api/setting";
 import { FieldGroup } from "@/components/ui/field";
 import { SelectItem } from "@/components/ui/select";
 import PngIcon from "@/components/valuecell/png-icon";
-import { MODEL_PROVIDER_MAP, MODEL_PROVIDERS } from "@/constants/agent";
 import { MODEL_PROVIDER_ICONS } from "@/constants/icons";
 import { withForm } from "@/hooks/use-form";
-import type { LlmConfig } from "@/types/strategy";
 
 export const AIModelForm = withForm({
   defaultValues: {
@@ -12,34 +13,44 @@ export const AIModelForm = withForm({
     provider: "",
     api_key: "",
   },
-  props: {
-    llms: [] as LlmConfig[],
-  },
-  render({ form, llms }) {
+
+  render({ form }) {
+    const { data: modelProviders = [], isLoading: isLoadingModelProviders } =
+      useGetModelProviders();
+    const provider = useStore(form.store, (state) => state.values.provider);
+    const { data: modelProviderDetail } = useGetModelProviderDetail(provider);
+
+    useEffect(() => {
+      if (!modelProviderDetail) return;
+
+      form.setFieldValue(
+        "model_id",
+        modelProviderDetail.default_model_id ?? "",
+      );
+      form.setFieldValue("api_key", modelProviderDetail.api_key ?? "");
+    }, [modelProviderDetail]);
+
+    if (isLoadingModelProviders) return <div>Loading...</div>;
+
     return (
       <FieldGroup className="gap-6">
         <form.AppField
-          listeners={{
-            onChange: ({ value }) => {
-              form.setFieldValue(
-                "model_id",
-                MODEL_PROVIDER_MAP[value as keyof typeof MODEL_PROVIDER_MAP][0],
-              );
-              const api_key = llms.find(
-                (config) => config.provider === value,
-              )?.api_key;
-              if (api_key) form.setFieldValue("api_key", api_key);
-            },
-          }}
           name="provider"
+          defaultValue={
+            modelProviders.length > 0 ? modelProviders[0].provider : ""
+          }
         >
           {(field) => (
             <field.SelectField label="Model Platform">
-              {MODEL_PROVIDERS.map((provider) => (
+              {modelProviders.map(({ provider }) => (
                 <SelectItem key={provider} value={provider}>
                   <div className="flex items-center gap-2">
                     <PngIcon
-                      src={MODEL_PROVIDER_ICONS[provider]}
+                      src={
+                        MODEL_PROVIDER_ICONS[
+                          provider as keyof typeof MODEL_PROVIDER_ICONS
+                        ]
+                      }
                       className="size-4"
                     />
                     {provider}
@@ -51,32 +62,30 @@ export const AIModelForm = withForm({
         </form.AppField>
 
         <form.AppField name="model_id">
-          {(field) => {
-            const currentProvider = form.state.values
-              .provider as keyof typeof MODEL_PROVIDER_MAP;
-            const availableModels = MODEL_PROVIDER_MAP[currentProvider] || [];
-
-            return (
-              <field.SelectField label="Select Model">
-                {availableModels.length > 0 ? (
-                  availableModels.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="" disabled>
-                    No models available
-                  </SelectItem>
-                )}
-              </field.SelectField>
-            );
-          }}
+          {(field) => (
+            <field.SelectField label="Select Model">
+              {modelProviderDetail?.models &&
+              modelProviderDetail?.models.length > 0 ? (
+                modelProviderDetail?.models.map(
+                  (model) =>
+                    model.model_id && (
+                      <SelectItem key={model.model_id} value={model.model_id}>
+                        {model.model_name}
+                      </SelectItem>
+                    ),
+                )
+              ) : (
+                <SelectItem value="__no_models_available__" disabled>
+                  No models available
+                </SelectItem>
+              )}
+            </field.SelectField>
+          )}
         </form.AppField>
 
         <form.AppField name="api_key">
           {(field) => (
-            <field.TextField label="API key" placeholder="Enter API Key" />
+            <field.PasswordField label="API key" placeholder="Enter API Key" />
           )}
         </form.AppField>
       </FieldGroup>

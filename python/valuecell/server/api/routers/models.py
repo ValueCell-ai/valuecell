@@ -12,7 +12,7 @@ from valuecell.config.loader import get_config_loader
 from valuecell.config.manager import get_config_manager
 from valuecell.utils.env import get_system_env_path
 
-from ..schemas import LLMProviderConfigData, SuccessResponse
+from ..schemas import SuccessResponse
 from ..schemas.model import (
     AddModelRequest,
     ModelItem,
@@ -133,54 +133,6 @@ def create_models_router() -> APIRouter:
             "deepseek": "https://platform.deepseek.com/api_keys",
         }
         return mapping.get(provider)
-
-    # ---- Existing: LLM config list ----
-    @router.get(
-        "/llm/config",
-        response_model=SuccessResponse[List[LLMProviderConfigData]],
-        summary="Get available LLMModelConfigs",
-        description=(
-            "Return a list of LLM model configurations for the primary provider "
-            "and any enabled fallback providers. API keys may be omitted if not configured."
-        ),
-    )
-    async def get_llm_model_config() -> SuccessResponse[List[LLMProviderConfigData]]:
-        try:
-            manager = get_config_manager()
-
-            providers = [manager.primary_provider] + manager.fallback_providers
-            seen = set()
-            ordered = [p for p in providers if not (p in seen or seen.add(p))]
-
-            configs: List[LLMProviderConfigData] = []
-            for provider in ordered:
-                provider_cfg = manager.get_provider_config(provider)
-                if provider_cfg is None:
-                    configs.append(
-                        LLMProviderConfigData(
-                            provider=DEFAULT_MODEL_PROVIDER, api_key=None
-                        )
-                    )
-                else:
-                    configs.append(
-                        LLMProviderConfigData(
-                            provider=provider_cfg.name,
-                            api_key=provider_cfg.api_key,
-                        )
-                    )
-
-            if not configs:
-                configs.append(
-                    LLMProviderConfigData(provider=DEFAULT_MODEL_PROVIDER, api_key=None)
-                )
-
-            return SuccessResponse.create(
-                data=configs, msg=f"Retrieved {len(configs)} LLM provider configs"
-            )
-        except Exception as e:
-            raise HTTPException(
-                status_code=500, detail=f"Failed to get LLM config list: {str(e)}"
-            )
 
     @router.get(
         "/providers",
