@@ -1,0 +1,97 @@
+name: Tauri build on Windows
+
+on:
+  push:
+    branches: 
+      - "release"
+
+jobs:
+  build-windows:
+    strategy:
+      matrix:
+        include:
+          - args: ""
+            target: 'x86_64-pc-windows-msvc'
+
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Add UV Package Manager To Tauri Project
+        shell: pwsh
+        run: |
+          cd frontend/src-tauri
+          New-Item -ItemType Directory -Force -Path binaries | Out-Null
+          $ARCH = $env:PROCESSOR_ARCHITECTURE
+          Write-Host "Current runner architecture: $ARCH"
+          Write-Host "Matrix target: ${{ matrix.args }}"
+          
+          # Download Windows version of uv
+          $UV_VERSION = "0.9.9"
+          $UV_ARCH = "x86_64-pc-windows-msvc"
+          Write-Host "Downloading uv for ${UV_ARCH}..."
+          
+          $UV_URL = "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-${UV_ARCH}.zip"
+          $UV_ZIP = "uv-${UV_ARCH}.zip"
+          $TEMP_DIR = "temp_${UV_ARCH}"
+          
+          Invoke-WebRequest -Uri $UV_URL -OutFile $UV_ZIP
+          
+          # Extract zip file
+          New-Item -ItemType Directory -Force -Path ${TEMP_DIR} | Out-Null
+          Expand-Archive -Path $UV_ZIP -DestinationPath ${TEMP_DIR} -Force
+          
+          # Find uv.exe after extraction
+          $UV_PATH = Get-ChildItem -Path ${TEMP_DIR} -Filter "uv.exe" -Recurse | Select-Object -First 1
+          if (-not $UV_PATH) {
+            Write-Host "Error: uv.exe not found for ${UV_ARCH} after extraction"
+            Write-Host "Contents of ${TEMP_DIR}:"
+            Get-ChildItem -Path ${TEMP_DIR} -Recurse
+            exit 1
+          }
+          Write-Host "Found uv at: $($UV_PATH.FullName)"
+          
+          # Move uv.exe to binaries directory
+          Copy-Item $UV_PATH.FullName "binaries/uv-${UV_ARCH}.exe"
+          
+          # Clean up
+          Remove-Item -Recurse -Force ${TEMP_DIR}
+          Remove-Item -Force $UV_ZIP
+          
+          # Debug: List all files in binaries directory
+          Write-Host "Contents of binaries directory:"
+          Get-ChildItem -Path binaries -Recurse
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: "./frontend/package.json"
+      
+      - name: Install Dependencies
+        run: |
+          cd frontend
+          bun install
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # tagName: v__VERSION__
+          # releaseName: ValueCell-${{ matrix.target }}-__VERSION__
+          # releaseDraft: true
+          # prerelease: false
+          args: ${{ matrix.args }}
+          
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          path: |
+            frontend/src-tauri/target/release/bundle/msi/*.msi
+            frontend/src-tauri/target/release/bundle/nsis/*.exe
+          name: ValueCell-${{ matrix.target }}-${{ github.sha }}
+          retention-days: 3
+
