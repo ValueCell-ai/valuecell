@@ -171,8 +171,46 @@ class BaseStrategyAgent(BaseAgent, ABC):
             component_type=ComponentType.STATUS.value,
         )
 
+        # Run the remainder of the stream (decision loop and finalization) in
+        # a background task so the HTTP/streaming response can return immediately
+        # after sending the initial status. The background runner will wait for
+        # the persistence layer to mark the strategy as running before proceeding.
+        # Start background task and don't await it so HTTP responder can finish
+        bg_task = asyncio.create_task(
+            self._run_background_decision(controller, runtime)
+        )
+
+        # Add a done callback to surface exceptions to logs
+        def _bg_done_callback(t: asyncio.Task):
+            try:
+                t.result()
+            except asyncio.CancelledError:
+                logger.info("Background task for strategy {} cancelled", strategy_id)
+            except Exception as exc:
+                logger.exception(
+                    "Background task for strategy {} failed: {}", strategy_id, exc
+                )
+
+        bg_task.add_done_callback(_bg_done_callback)
+
+        # Return the initial payload and immediately close the stream
+        yield streaming.done()
+
+    async def _run_background_decision(
+        self,
+        controller: StreamController,
+        runtime: StrategyRuntime,
+    ) -> None:
+        """Background runner for the decision loop and finalization.
+
+        This method was extracted from the `stream()` function so it can be
+        referenced and tested independently, and so supervisors can cancel it
+        if needed.
+        """
         # Wait until strategy is marked as running in persistence layer
         await controller.wait_running()
+        strategy_id = runtime.strategy_id
+        request = runtime.request
 
         # Call user hook for custom initialization
         try:
@@ -231,8 +269,7 @@ class BaseStrategyAgent(BaseAgent, ABC):
             raise
         except Exception as err:  # noqa: BLE001
             stop_reason = StopReason.ERROR
-            logger.exception("StrategyAgent stream failed: {}", err)
-            yield streaming.message_chunk(f"StrategyAgent error: {err}")
+            logger.exception("StrategyAgent background run failed: {}", err)
         finally:
             # Enforce position closure on normal stop (e.g., user clicked stop)
             if stop_reason == StopReason.NORMAL_EXIT:
@@ -268,7 +305,6 @@ class BaseStrategyAgent(BaseAgent, ABC):
 
             # Finalize: close resources and mark stopped/paused/error
             await controller.finalize(runtime, reason=stop_reason)
-            yield streaming.done()
 
     async def _create_runtime(
         self, request: UserRequest, strategy_id_override: str | None = None
