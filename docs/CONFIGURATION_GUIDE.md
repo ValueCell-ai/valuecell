@@ -58,10 +58,19 @@ bash start.sh
 
 The system will auto-detect available providers based on configured API keys.
 
-> **Note**: If you get database compatibility errors, delete these directories:
-> - `lancedb/`
-> - `valuecell.db`
-> - `.knowledgebase`
+> **Note**: If you get database compatibility errors, delete these locations:
+> - LanceDB directory (system application directory, same as `.env`):
+>   - macOS: `~/Library/Application Support/ValueCell/lancedb`
+>   - Linux: `~/.config/valuecell/lancedb`
+>   - Windows: `%APPDATA%\\ValueCell\\lancedb`
+> - Knowledge directory (system application directory, same as `.env`):
+>   - macOS: `~/Library/Application Support/ValueCell/.knowledge`
+>   - Linux: `~/.config/valuecell/.knowledge`
+>   - Windows: `%APPDATA%\\ValueCell\\.knowledge`
+> - SQLite database file (system application directory, same as `.env`):
+>   - macOS: `~/Library/Application Support/ValueCell/valuecell.db`
+>   - Linux: `~/.config/valuecell/valuecell.db`
+>   - Windows: `%APPDATA%\\ValueCell\\valuecell.db`
 
 ---
 
