@@ -4,21 +4,28 @@ on:
   push:
     branches: 
       - "release"
-permissions:
-  contents: write
+  pull_request:
+    branches:
+      - "main"
 
 jobs:
   build-macos:
     strategy:
       matrix:
         include:
-          - args: --target aarch64-apple-darwin
-            target: 'aarch64-apple-darwin'
+          # - platform: macos-latest
+          #   args: --target aarch64-apple-darwin
+          #   target: 'aarch64-apple-darwin'
             
-          - args: --target x86_64-apple-darwin
-            target: 'x86_64-apple-darwin'
+          # - platform: macos-latest
+          #   args: --target x86_64-apple-darwin
+          #   target: 'x86_64-apple-darwin'
 
-    runs-on: macos-latest
+          - platform: windows-latest
+            args: ""
+            target: 'windows'
+
+    runs-on: ${{ matrix.platform }}
     env:
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
@@ -109,7 +116,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
-          targets: aarch64-apple-darwin,x86_64-apple-darwin
+          targets: ${{matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin'}}
 
       - uses: tauri-apps/tauri-action@v0
         env:
