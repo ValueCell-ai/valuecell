@@ -228,3 +228,5 @@ lancedb
 logs
 .knowledge
 .txt
+*.key
+*.pub
