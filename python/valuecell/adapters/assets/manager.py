@@ -117,6 +117,20 @@ class AdapterManager:
         except Exception as e:
             logger.error(f"Failed to configure AKShare adapter: {e}")
 
+    def configure_baostock(self, **kwargs) -> None:
+        """Configure and register BaoStock adapter.
+
+        Args:
+            **kwargs: Additional configuration
+        """
+        try:
+            from .baostock_adapter import BaoStockAdapter
+
+            adapter = BaoStockAdapter(**kwargs)
+            self.register_adapter(adapter)
+        except Exception as e:
+            logger.error(f"Failed to configure BaoStock adapter: {e}")
+
     def get_available_adapters(self) -> List[DataSource]:
         """Get list of available data adapters."""
         with self.lock:

@@ -60,6 +60,7 @@ class DataSource(str, Enum):
 
     YFINANCE = "yfinance"
     AKSHARE = "akshare"
+    BAOSTOCK = "baostock"
     # TODO: Add other data sources later
     # TUSHARE = "tushare"
     # FINNHUB = "finnhub"
