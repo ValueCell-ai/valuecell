@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from valuecell.utils.ts import get_current_timestamp_ms
+
 from .constants import (
     DEFAULT_AGENT_MODEL,
     DEFAULT_CAP_FACTOR,
@@ -12,7 +14,6 @@ from .constants import (
     DEFAULT_MAX_POSITIONS,
     DEFAULT_MODEL_PROVIDER,
 )
-from valuecell.utils.ts import get_current_timestamp_ms
 
 
 class TradingMode(str, Enum):

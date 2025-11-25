@@ -86,7 +86,9 @@ class LlmComposer(BaseComposer):
                 return ComposeResult(instructions=[], rationale=plan.rationale)
         except Exception as exc:  # noqa: BLE001
             logger.error("LLM invocation failed: {}", exc)
-            return ComposeResult(instructions=[], rationale="LLM invocation failed")
+            return ComposeResult(
+                instructions=[], rationale=f"LLM invocation failed: {exc}"
+            )
 
         # Optionally forward non-NOOP plan rationale to Discord webhook (env-driven)
         try:
