@@ -157,7 +157,7 @@ def create_strategy_router() -> APIRouter:
                     stop_reason_display = (
                         f"{"(" + stop_reason + ")" if stop_reason else ''}"
                         f"{stop_reason_detail if stop_reason_detail else ''}".strip()
-                    ) or "unknown reason"
+                    ) or "..."
 
                 item = StrategySummaryData(
                     strategy_id=s.strategy_id,
