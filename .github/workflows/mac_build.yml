@@ -4,6 +4,7 @@ on:
   push:
     branches: 
       - "release"
+  workflow_dispatch:
 permissions:
   contents: write
 
@@ -119,16 +120,19 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ env.CERT_ID }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD}}
         with:
-          # tagName: v__VERSION__
-          # releaseName: ValueCell-${{ matrix.target }}-__VERSION__
-          # releaseDraft: true
-          # prerelease: false
+          tagName: v__VERSION__
+          releaseName: ValueCell-__VERSION__-beta
+          releaseDraft: true
+          prerelease: false
+          assetNamePattern: ValueCell-[version]-beta-[platform]-[arch][ext]
           args: ${{ matrix.args }}
           
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v5
-        with:
-          path: frontend/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
-          name: ValueCell-${{ matrix.target }}-${{ github.sha }}
-          retention-days: 3
+      # - name: Upload Artifacts
+      #   uses: actions/upload-artifact@v5
+      #   with:
+      #     path: frontend/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+      #     name: ValueCell-${{ matrix.target }}-${{ github.sha }}
+      #     retention-days: 3

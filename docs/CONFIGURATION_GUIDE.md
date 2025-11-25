@@ -278,7 +278,7 @@ models:
     
     # Fallback models for different providers
     provider_models:
-      siliconflow: "qwen/qwen-max"
+      siliconflow: "qwen/qwen3-max"
       google: "gemini-2.5-flash"
     
     # Model-specific parameters (override provider defaults)

@@ -2,14 +2,13 @@
 Agent stream service for handling streaming agent interactions.
 """
 
-import logging
 from typing import AsyncGenerator, Optional
+
+from loguru import logger
 
 from valuecell.core.coordinate.orchestrator import AgentOrchestrator
 from valuecell.core.types import UserInput, UserInputMetadata
 from valuecell.utils.uuid import generate_conversation_id
-
-logger = logging.getLogger(__name__)
 
 
 class AgentStreamService:

@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from valuecell.utils.ts import get_current_timestamp_ms
+
 from .constants import (
     DEFAULT_AGENT_MODEL,
     DEFAULT_CAP_FACTOR,
@@ -202,6 +204,10 @@ class TradingConfig(BaseModel):
         default=StrategyType.PROMPT,
         description="Strategy type: 'prompt based strategy' or 'grid strategy'",
     )
+    strategy_id: Optional[str] = Field(
+        default=None,
+        description="Reuse existing strategy id to continue execution (resume semantics without extra flags)",
+    )
     initial_capital: Optional[float] = Field(
         default=DEFAULT_INITIAL_CAPITAL,
         description="Initial capital for trading in USD",
@@ -242,6 +248,7 @@ class TradingConfig(BaseModel):
         description="Notional cap factor used by the composer to limit per-symbol exposure (e.g., 1.5)",
         gt=0,
     )
+    # Grid parameters are model-decided at runtime; no user-configurable grid_* fields.
 
     @field_validator("symbols")
     @classmethod
@@ -333,6 +340,29 @@ class Candle(BaseModel):
     interval: str = Field(..., description='Interval string, e.g., "1m", "5m"')
 
 
+class GridParamAdvice(BaseModel):
+    """LLM-advised grid parameter set.
+
+    Advisor should return sensible values within typical ranges:
+    - grid_step_pct: 0.0005 ~ 0.01
+    - grid_max_steps: 1 ~ 5
+    - grid_base_fraction: 0.03 ~ 0.10
+    """
+
+    ts: int = Field(..., description="Advice timestamp in ms")
+    grid_step_pct: float = Field(..., gt=0)
+    grid_max_steps: int = Field(..., gt=0)
+    grid_base_fraction: float = Field(..., gt=0)
+    # Optional zone and discretization
+    grid_lower_pct: Optional[float] = Field(default=None, gt=0)
+    grid_upper_pct: Optional[float] = Field(default=None, gt=0)
+    grid_count: Optional[int] = Field(default=None, gt=0)
+    advisor_rationale: Optional[str] = Field(
+        default=None,
+        description="Model-provided reasoning explaining how grid parameters were chosen",
+    )
+
+
 CommonKeyType = str
 CommonValueType = float | str | int
 
@@ -360,12 +390,28 @@ class FeatureVector(BaseModel):
 
 
 class StrategyStatus(str, Enum):
-    """High-level runtime status for strategies (for UI health dot)."""
+    """High-level runtime status for strategies (simplified).
+
+    Removed legacy PAUSED and ERROR states; cancellation or errors now finalize
+    to STOPPED with error context stored separately (e.g., strategy_metadata).
+    """
 
     RUNNING = "running"
-    PAUSED = "paused"
     STOPPED = "stopped"
+
+
+class StopReason(str, Enum):
+    """Canonical stop reasons recorded in strategy metadata.
+
+    Stored values are the enum `.value` strings so other services (DB, repos)
+    can compare without importing the enum if necessary, but code should
+    prefer using the enum when available.
+    """
+
+    NORMAL_EXIT = "normal_exit"
+    CANCELLED = "cancelled"
     ERROR = "error"
+    ERROR_CLOSING_POSITIONS = "error_closing_positions"
 
 
 class Constraints(BaseModel):
@@ -547,11 +593,31 @@ class TradeDecisionItem(BaseModel):
         default=None, description="Optional natural language rationale"
     )
 
+    # TODO: Remove this validator when the model supports InstrumentRef.
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_instrument(cls, data):
+        """Normalize instrument field: allow string shorthand for InstrumentRef.
+
+        Some LLMs return instrument as a plain string (e.g., "ETH/USDT") instead
+        of an object {"symbol": "ETH/USDT"}. This validator handles both formats.
+        """
+        if not isinstance(data, dict):
+            return data
+        values = dict(data)
+        instrument = values.get("instrument")
+        if isinstance(instrument, str):
+            values["instrument"] = {"symbol": instrument}
+        return values
+
 
 class TradePlanProposal(BaseModel):
     """Structured output before rule normalization."""
 
-    ts: int
+    ts: Optional[int] = Field(
+        default_factory=get_current_timestamp_ms,
+        description="Proposal timestamp in ms (if available)",
+    )
     items: List[TradeDecisionItem] = Field(default_factory=list)
     rationale: Optional[str] = Field(
         default=None, description="Optional natural language rationale"

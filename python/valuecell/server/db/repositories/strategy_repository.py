@@ -48,6 +48,31 @@ class StrategyRepository:
             if not self.db_session:
                 session.close()
 
+    def list_strategies_by_status(
+        self, statuses: list[str], limit: Optional[int] = None
+    ) -> list[Strategy]:
+        """Return strategies whose status is in the provided list.
+
+        Used by auto-resume logic to identify strategies that should be resumed
+        after a process restart. Best-effort: errors return empty list.
+        """
+        if not statuses:
+            return []
+        session = self._get_session()
+        try:
+            q = session.query(Strategy).filter(Strategy.status.in_(statuses))
+            if limit:
+                q = q.limit(limit)
+            items = q.all()
+            for item in items:
+                session.expunge(item)
+            return items
+        except Exception:
+            return []
+        finally:
+            if not self.db_session:
+                session.close()
+
     def upsert_strategy(
         self,
         strategy_id: str,
