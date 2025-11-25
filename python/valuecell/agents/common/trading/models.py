@@ -547,6 +547,23 @@ class TradeDecisionItem(BaseModel):
         default=None, description="Optional natural language rationale"
     )
 
+    # TODO: Remove this validator when the model supports InstrumentRef.
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_instrument(cls, data):
+        """Normalize instrument field: allow string shorthand for InstrumentRef.
+
+        Some LLMs return instrument as a plain string (e.g., "ETH/USDT") instead
+        of an object {"symbol": "ETH/USDT"}. This validator handles both formats.
+        """
+        if not isinstance(data, dict):
+            return data
+        values = dict(data)
+        instrument = values.get("instrument")
+        if isinstance(instrument, str):
+            values["instrument"] = {"symbol": instrument}
+        return values
+
 
 class TradePlanProposal(BaseModel):
     """Structured output before rule normalization."""
