@@ -155,7 +155,7 @@ def create_strategy_router() -> APIRouter:
                     stop_reason = meta.get("stop_reason")
                     stop_reason_detail = meta.get("stop_reason_detail")
                     stop_reason_display = (
-                        f"{stop_reason + ': ' if stop_reason else ''}"
+                        f"{"(" + stop_reason + ")" if stop_reason else ''}"
                         f"{stop_reason_detail if stop_reason_detail else ''}".strip()
                     ) or "unknown reason"
 
