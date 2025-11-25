@@ -21,7 +21,7 @@ from valuecell.core.event.factory import ResponseFactory
 from valuecell.core.event.router import RouteResult, SideEffectKind
 from valuecell.core.event.service import EventResponseService
 from valuecell.core.plan.models import ExecutionPlan
-from valuecell.core.task.models import Task
+from valuecell.core.task.models import Task, TaskStatus
 from valuecell.core.task.service import DEFAULT_EXECUTION_POLL_INTERVAL, TaskService
 from valuecell.core.task.temporal import calculate_next_execution_delay
 from valuecell.core.types import (
@@ -362,6 +362,12 @@ class TaskExecutor:
                     if side_effect.kind == SideEffectKind.FAIL_TASK:
                         await self._task_service.fail_task(
                             task.task_id, side_effect.reason or ""
+                        )
+                        # Sync the failure back to persisted conversation items
+                        await self._conversation_service.manager.update_task_component_status(
+                            task_id=task.task_id,
+                            status=TaskStatus.FAILED.value,
+                            error_reason=side_effect.reason,
                         )
                 if route_result.done:
                     return
