@@ -170,6 +170,8 @@ class LlmComposer(BaseComposer):
             "features.1m = structural trends (240 periods), features.1s = realtime signals (180 periods). "
             "market.funding_rate: positive = longs pay shorts. "
             "Respect constraints and risk_flags. Prefer NOOP when edge unclear. "
+            "Always include a concise top-level 'rationale'. "
+            "If you choose NOOP (items is empty), set 'rationale' to explain why: reference current prices and 'price.change_pct' vs thresholds, and any constraints or risk flags that led to NOOP. "
             "Output JSON with items array."
         )
 
