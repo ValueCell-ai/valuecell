@@ -1,11 +1,17 @@
+import { getVersion } from "@tauri-apps/api/app";
+import { isTauri } from "@tauri-apps/api/core";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useUpdateToast } from "@/hooks/use-update-toast";
 import type { StockColorMode } from "@/store/settings-store";
 import { useSettingsActions, useStockColorMode } from "@/store/settings-store";
 
 export default function GeneralPage() {
   const stockColorMode = useStockColorMode();
   const { setStockColorMode } = useSettingsActions();
+  const { checkAndUpdate } = useUpdateToast();
 
   return (
     <div className="flex flex-col gap-5 px-16 py-10">
@@ -43,6 +49,21 @@ export default function GeneralPage() {
             </Label>
           </RadioGroup>
         </div>
+
+        {isTauri() && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium text-foreground text-sm">
+                App Updates
+              </h3>
+              <Badge variant="secondary">v{getVersion()}</Badge>
+            </div>
+
+            <Button size="sm" onClick={checkAndUpdate}>
+              Check for Updates
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
