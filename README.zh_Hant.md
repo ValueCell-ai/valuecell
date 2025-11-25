@@ -84,16 +84,23 @@ ValueCell 是一個社群驅動的多智能體金融應用產品，我們的計�
 
 # 快速開始
 
+## 給使用者
+
+若要快速開始使用，請從 GitHub 的[發布頁面](https://github.com/ValueCell-ai/valuecell/releases)下載適用於 MacOS 或 Windows 的最新 ValueCell 應用程式。您也可以從我們的官方網站 [https://valuecell.ai](https://valuecell.ai) 下載應用程式。
+
+安裝後，使用 ValueCell 前請先設定您偏好的模型供應商。請參閱應用程式內的指示或文件。
+
+## 給開發者
 ValueCell 是以 Python 為基礎的應用，並具備完整的前端操作介面。參考下列設定即可快速啟動。
 
-## 前置條件
+### 前置條件
 
 為了獲得最佳效能與簡化開發流程，建議安裝下列工具：
 
 **[uv](https://docs.astral.sh/uv/getting-started/installation/)** - 以 Rust 構建的超速 Python 套件與專案管理工具  
 **[bun](https://github.com/oven-sh/bun#install)** - 高效能的 JavaScript/TypeScript 工具包，整合執行時、打包器、測試與套件管理
 
-## 安裝
+### 安裝
 
 1. **克隆倉庫**
 
@@ -110,7 +117,7 @@ ValueCell 是以 Python 為基礎的應用，並具備完整的前端操作介�
 
    使用您的 API 密鑰與偏好設定編輯 `.env` 檔案。此設定檔會在所有智能體間共用。詳見 [配置指南](docs/CONFIGURATION_GUIDE.md)。
 
-## 設定
+### 設定
 
 更多系統設定詳情說明可以參考[CONFIGURATION_GUIDE](./docs/CONFIGURATION_GUIDE.md)
 
@@ -122,7 +129,6 @@ ValueCell 是以 Python 為基礎的應用，並具備完整的前端操作介�
 - **其他配置**：對於調研類型的 Agent 來說，需要配置更多環境變數，可以仔細閱讀 `.env.example` 中的說明
 
 - **官方推薦**：配置 OpenRouter + 任意提供嵌入模型的供應商。原因：可以快速實現多廠商模型切換，以及 RAG+Memory 的 AI 能力
-  
 
 ## 啟動應用程式
 
@@ -143,11 +149,11 @@ bash start.sh
 - **Web UI**：於瀏覽器開啟 [http://localhost:1420](http://localhost:1420)
 - **日誌**：在 `logs/{timestamp}/*.log` 檢視應用程式日誌，追蹤後端服務與各智能體的詳細執行資訊
 
-## 下一步
+### 下一步
 
 應用程式啟動後，你可以透過網頁介面探索並使用 ValueCell 的各項功能與能力
 
-## 實盤交易
+## 即時交易
 
 - 配置 AI 模型: 透過網頁介面新增你的 AI 模型 API Key。
 - 配置交易所: 設定 Binance/HyperLiquid/OKX/Coinbase... API 憑證
