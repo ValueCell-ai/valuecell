@@ -250,6 +250,7 @@ class BaseStrategyAgent(BaseAgent, ABC):
             logger.exception("Error in _on_start hook for strategy {}", strategy_id)
 
         stop_reason = StopReason.NORMAL_EXIT
+        stop_reason_detail: Optional[str] = None
         try:
             logger.info("Starting decision loop for strategy_id={}", strategy_id)
             # Always attempt to persist an initial state (idempotent write).
@@ -295,6 +296,7 @@ class BaseStrategyAgent(BaseAgent, ABC):
         except Exception as err:  # noqa: BLE001
             stop_reason = StopReason.ERROR
             logger.exception("StrategyAgent background run failed: {}", err)
+            stop_reason_detail = str(err)
         finally:
             # Enforce position closure on normal stop (e.g., user clicked stop)
             if stop_reason == StopReason.NORMAL_EXIT:
@@ -329,7 +331,9 @@ class BaseStrategyAgent(BaseAgent, ABC):
                 )
 
             # Finalize: close resources and mark stopped/paused/error
-            await controller.finalize(runtime, reason=stop_reason)
+            await controller.finalize(
+                runtime, reason=stop_reason, reason_detail=stop_reason_detail
+            )
 
     async def _create_runtime(
         self, request: UserRequest, strategy_id_override: str | None = None
