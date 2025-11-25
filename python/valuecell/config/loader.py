@@ -24,17 +24,15 @@ Example:
     config = loader.load_agent_config("research_agent")
 """
 
-import logging
 import os
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import yaml
+from loguru import logger
 
 from .constants import CONFIG_DIR
-
-logger = logging.getLogger(__name__)
 
 
 class ConfigLoader:
