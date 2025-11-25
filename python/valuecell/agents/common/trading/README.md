@@ -297,12 +297,12 @@ class MyFeaturesPipeline(BaseFeaturesPipeline):
 class MyCustomAgent(BaseStrategyAgent):
     """Agent with custom feature computation."""
     
-    def _build_features_pipeline(
+    async def _build_features_pipeline(
         self, request: UserRequest
     ) -> BaseFeaturesPipeline | None:
         return MyFeaturesPipeline(request)
     
-    def _create_decision_composer(self, request: UserRequest):
+    async def _create_decision_composer(self, request: UserRequest):
         # Use default LLM composer
         return None
 ```
@@ -345,11 +345,11 @@ class RuleBasedComposer(BaseComposer):
 class RuleBasedAgent(BaseStrategyAgent):
     """Agent using rule-based decisions."""
     
-    def _build_features_pipeline(self, request: UserRequest):
+    async def _build_features_pipeline(self, request: UserRequest):
         # Use default pipeline
         return None
     
-    def _create_decision_composer(self, request: UserRequest):
+    async def _create_decision_composer(self, request: UserRequest):
         return RuleBasedComposer(request)
 ```
 
@@ -359,12 +359,12 @@ class RuleBasedAgent(BaseStrategyAgent):
 class MonitoredAgent(BaseStrategyAgent):
     """Agent with custom monitoring and logging."""
     
-    def _on_start(self, runtime, request):
+    async def _on_start(self, runtime, request):
         """Called once after runtime creation."""
         self.cycle_count = 0
         print(f"Strategy {runtime.strategy_id} starting...")
     
-    def _on_cycle_result(self, result, runtime, request):
+    async def _on_cycle_result(self, result, runtime, request):
         """Called after each cycle completes."""
         self.cycle_count += 1
         print(f"Cycle {self.cycle_count}: "
@@ -374,15 +374,15 @@ class MonitoredAgent(BaseStrategyAgent):
         # Send metrics to external monitoring
         # ... custom logic ...
     
-    def _on_stop(self, runtime, request, reason):
+    async def _on_stop(self, runtime, request, reason):
         """Called before finalization."""
         print(f"Strategy stopping: {reason}")
         print(f"Total cycles: {self.cycle_count}")
     
-    def _build_features_pipeline(self, request):
+    async def _build_features_pipeline(self, request):
         return None  # Use defaults
     
-    def _create_decision_composer(self, request):
+    async def _create_decision_composer(self, request):
         return None  # Use defaults
 ```
 
@@ -422,11 +422,11 @@ from .features import MyFeaturesPipeline  # if custom
 from .composer import MyComposer  # if custom
 
 class MyAgent(BaseStrategyAgent):
-    def _build_features_pipeline(self, request: UserRequest):
+    async def _build_features_pipeline(self, request: UserRequest):
         # Return custom pipeline or None for default
         return MyFeaturesPipeline(request)
     
-    def _create_decision_composer(self, request: UserRequest):
+    async def _create_decision_composer(self, request: UserRequest):
         # Return custom composer or None for default
         return MyComposer(request)
 ```

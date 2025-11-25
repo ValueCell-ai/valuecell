@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from valuecell.utils.ts import get_current_timestamp_ms
+
 from .constants import (
     DEFAULT_AGENT_MODEL,
     DEFAULT_CAP_FACTOR,
@@ -202,6 +204,10 @@ class TradingConfig(BaseModel):
         default=StrategyType.PROMPT,
         description="Strategy type: 'prompt based strategy' or 'grid strategy'",
     )
+    strategy_id: Optional[str] = Field(
+        default=None,
+        description="Reuse existing strategy id to continue execution (resume semantics without extra flags)",
+    )
     initial_capital: Optional[float] = Field(
         default=DEFAULT_INITIAL_CAPITAL,
         description="Initial capital for trading in USD",
@@ -384,12 +390,28 @@ class FeatureVector(BaseModel):
 
 
 class StrategyStatus(str, Enum):
-    """High-level runtime status for strategies (for UI health dot)."""
+    """High-level runtime status for strategies (simplified).
+
+    Removed legacy PAUSED and ERROR states; cancellation or errors now finalize
+    to STOPPED with error context stored separately (e.g., strategy_metadata).
+    """
 
     RUNNING = "running"
-    PAUSED = "paused"
     STOPPED = "stopped"
+
+
+class StopReason(str, Enum):
+    """Canonical stop reasons recorded in strategy metadata.
+
+    Stored values are the enum `.value` strings so other services (DB, repos)
+    can compare without importing the enum if necessary, but code should
+    prefer using the enum when available.
+    """
+
+    NORMAL_EXIT = "normal_exit"
+    CANCELLED = "cancelled"
     ERROR = "error"
+    ERROR_CLOSING_POSITIONS = "error_closing_positions"
 
 
 class Constraints(BaseModel):
@@ -571,11 +593,31 @@ class TradeDecisionItem(BaseModel):
         default=None, description="Optional natural language rationale"
     )
 
+    # TODO: Remove this validator when the model supports InstrumentRef.
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_instrument(cls, data):
+        """Normalize instrument field: allow string shorthand for InstrumentRef.
+
+        Some LLMs return instrument as a plain string (e.g., "ETH/USDT") instead
+        of an object {"symbol": "ETH/USDT"}. This validator handles both formats.
+        """
+        if not isinstance(data, dict):
+            return data
+        values = dict(data)
+        instrument = values.get("instrument")
+        if isinstance(instrument, str):
+            values["instrument"] = {"symbol": instrument}
+        return values
+
 
 class TradePlanProposal(BaseModel):
     """Structured output before rule normalization."""
 
-    ts: int
+    ts: Optional[int] = Field(
+        default_factory=get_current_timestamp_ms,
+        description="Proposal timestamp in ms (if available)",
+    )
     items: List[TradeDecisionItem] = Field(default_factory=list)
     rationale: Optional[str] = Field(
         default=None, description="Optional natural language rationale"

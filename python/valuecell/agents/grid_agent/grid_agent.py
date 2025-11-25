@@ -30,13 +30,15 @@ class GridStrategyAgent(BaseStrategyAgent):
       add long on down moves; reduce on reversals.
     """
 
-    def _build_features_pipeline(
+    async def _build_features_pipeline(
         self, request: UserRequest
     ) -> BaseFeaturesPipeline | None:
         return DefaultFeaturesPipeline.from_request(request)
 
-    def _create_decision_composer(self, request: UserRequest) -> BaseComposer | None:
-        # Use code-level defaults and optionally enable LLM-advised params
+    async def _create_decision_composer(
+        self, request: UserRequest
+    ) -> BaseComposer | None:
+        # Adjust step_pct / max_steps / base_fraction as needed
         return GridComposer(
             request=request,
             step_pct=0.001,  # 0.1% per step (more sensitive)

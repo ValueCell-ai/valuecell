@@ -10,19 +10,21 @@ from valuecell.agents.common.trading._internal.runtime import create_strategy_ru
 from valuecell.agents.common.trading._internal.stream_controller import StreamController
 from valuecell.agents.common.trading.models import (
     ComponentType,
+    StopReason,
     StrategyStatus,
     StrategyStatusContent,
     UserRequest,
 )
 from valuecell.core.agent.responses import streaming
 from valuecell.core.types import BaseAgent, StreamResponse
+from valuecell.server.db.repositories.strategy_repository import get_strategy_repository
 
 if TYPE_CHECKING:
     from valuecell.agents.common.trading._internal.runtime import (
         DecisionCycleResult,
         StrategyRuntime,
     )
-    from valuecell.agents.common.trading.decision import Composer
+    from valuecell.agents.common.trading.decision import BaseComposer
     from valuecell.agents.common.trading.features.interfaces import BaseFeaturesPipeline
 
 
@@ -43,7 +45,7 @@ class BaseStrategyAgent(BaseAgent, ABC):
     """
 
     @abstractmethod
-    def _build_features_pipeline(
+    async def _build_features_pipeline(
         self, request: UserRequest
     ) -> BaseFeaturesPipeline | None:
         """Build the features pipeline for the strategy.
@@ -60,7 +62,9 @@ class BaseStrategyAgent(BaseAgent, ABC):
         """
         raise NotImplementedError
 
-    def _create_decision_composer(self, request: UserRequest) -> Composer | None:
+    async def _create_decision_composer(
+        self, request: UserRequest
+    ) -> BaseComposer | None:
         """Build the decision composer for the strategy.
 
         Override to provide a custom composer. Return None to use default LLM composer.
@@ -73,7 +77,7 @@ class BaseStrategyAgent(BaseAgent, ABC):
         """
         return None
 
-    def _on_start(self, runtime: StrategyRuntime, request: UserRequest) -> None:
+    async def _on_start(self, runtime: StrategyRuntime, request: UserRequest) -> None:
         """Hook called after runtime creation, before first cycle.
 
         Use for custom initialization, caching, or metric registration.
@@ -85,7 +89,7 @@ class BaseStrategyAgent(BaseAgent, ABC):
         """
         pass
 
-    def _on_cycle_result(
+    async def _on_cycle_result(
         self,
         result: DecisionCycleResult,
         runtime: StrategyRuntime,
@@ -103,8 +107,8 @@ class BaseStrategyAgent(BaseAgent, ABC):
         """
         pass
 
-    def _on_stop(
-        self, runtime: StrategyRuntime, request: UserRequest, reason: str
+    async def _on_stop(
+        self, runtime: StrategyRuntime, request: UserRequest, reason: StopReason | str
     ) -> None:
         """Hook called before finalization when strategy stops.
 
@@ -144,7 +148,11 @@ class BaseStrategyAgent(BaseAgent, ABC):
             return
 
         # Create runtime (calls _build_decision, _build_features_pipeline internally)
-        runtime = await self._create_runtime(request)
+        # Reuse externally supplied strategy_id if present for continuation semantics.
+        strategy_id_override = request.trading_config.strategy_id
+        runtime = await self._create_runtime(
+            request, strategy_id_override=strategy_id_override
+        )
         strategy_id = runtime.strategy_id
         logger.info(
             "Created runtime for strategy_id={} conversation={} task={}",
@@ -166,18 +174,57 @@ class BaseStrategyAgent(BaseAgent, ABC):
             component_type=ComponentType.STATUS.value,
         )
 
+        # Run the remainder of the stream (decision loop and finalization) in
+        # a background task so the HTTP/streaming response can return immediately
+        # after sending the initial status. The background runner will wait for
+        # the persistence layer to mark the strategy as running before proceeding.
+        # Start background task and don't await it so HTTP responder can finish
+        bg_task = asyncio.create_task(
+            self._run_background_decision(controller, runtime)
+        )
+
+        # Add a done callback to surface exceptions to logs
+        def _bg_done_callback(t: asyncio.Task):
+            try:
+                t.result()
+            except asyncio.CancelledError:
+                logger.info("Background task for strategy {} cancelled", strategy_id)
+            except Exception as exc:
+                logger.exception(
+                    "Background task for strategy {} failed: {}", strategy_id, exc
+                )
+
+        bg_task.add_done_callback(_bg_done_callback)
+
+        # Return the initial payload and immediately close the stream
+        yield streaming.done()
+
+    async def _run_background_decision(
+        self,
+        controller: StreamController,
+        runtime: StrategyRuntime,
+    ) -> None:
+        """Background runner for the decision loop and finalization.
+
+        This method was extracted from the `stream()` function so it can be
+        referenced and tested independently, and so supervisors can cancel it
+        if needed.
+        """
         # Wait until strategy is marked as running in persistence layer
         await controller.wait_running()
+        strategy_id = runtime.strategy_id
+        request = runtime.request
 
         # Call user hook for custom initialization
         try:
-            self._on_start(runtime, request)
+            await self._on_start(runtime, request)
         except Exception:
             logger.exception("Error in _on_start hook for strategy {}", strategy_id)
 
+        stop_reason = StopReason.NORMAL_EXIT
         try:
             logger.info("Starting decision loop for strategy_id={}", strategy_id)
-            # Persist initial portfolio snapshot and strategy summary
+            # Always attempt to persist an initial state (idempotent write).
             controller.persist_initial_state(runtime)
 
             # Main decision loop
@@ -194,7 +241,7 @@ class BaseStrategyAgent(BaseAgent, ABC):
 
                 # Call user hook for post-cycle logic
                 try:
-                    self._on_cycle_result(result, runtime, request)
+                    await self._on_cycle_result(result, runtime, request)
                 except Exception:
                     logger.exception(
                         "Error in _on_cycle_result hook for strategy {}", strategy_id
@@ -211,19 +258,18 @@ class BaseStrategyAgent(BaseAgent, ABC):
                 "Strategy_id={} is no longer running, exiting decision loop",
                 strategy_id,
             )
-            stop_reason = "normal_exit"
+            stop_reason = StopReason.NORMAL_EXIT
 
         except asyncio.CancelledError:
-            stop_reason = "cancelled"
+            stop_reason = StopReason.CANCELLED
             logger.info("Strategy {} cancelled", strategy_id)
             raise
         except Exception as err:  # noqa: BLE001
-            stop_reason = "error"
-            logger.exception("StrategyAgent stream failed: {}", err)
-            yield streaming.message_chunk(f"StrategyAgent error: {err}")
+            stop_reason = StopReason.ERROR
+            logger.exception("StrategyAgent background run failed: {}", err)
         finally:
             # Enforce position closure on normal stop (e.g., user clicked stop)
-            if stop_reason == "normal_exit":
+            if stop_reason == StopReason.NORMAL_EXIT:
                 try:
                     trades = await runtime.coordinator.close_all_positions()
                     if trades:
@@ -237,19 +283,29 @@ class BaseStrategyAgent(BaseAgent, ABC):
                     # However, the user intent was to stop.
                     # Let's log it and proceed, but maybe mark status as ERROR instead of STOPPED?
                     # For now, we stick to STOPPED but log the error clearly.
-                    stop_reason = "error_closing_positions"
+                    stop_reason = StopReason.ERROR_CLOSING_POSITIONS
 
             # Call user hook before finalization
             try:
-                self._on_stop(runtime, request, stop_reason)
+                await self._on_stop(runtime, request, stop_reason)
             except Exception:
                 logger.exception("Error in _on_stop hook for strategy {}", strategy_id)
 
-            # Finalize: close resources and mark stopped
-            await controller.finalize(runtime, reason=stop_reason)
-            yield streaming.done()
+            # Persist a final portfolio snapshot regardless of stop reason (best-effort)
+            try:
+                controller.persist_portfolio_snapshot(runtime)
+            except Exception:
+                logger.exception(
+                    "Failed to persist final portfolio snapshot for strategy {}",
+                    strategy_id,
+                )
 
-    async def _create_runtime(self, request: UserRequest) -> StrategyRuntime:
+            # Finalize: close resources and mark stopped/paused/error
+            await controller.finalize(runtime, reason=stop_reason)
+
+    async def _create_runtime(
+        self, request: UserRequest, strategy_id_override: str | None = None
+    ) -> StrategyRuntime:
         """Create strategy runtime with custom components.
 
         Calls user hooks to build custom decision composer and features pipeline.
@@ -261,16 +317,43 @@ class BaseStrategyAgent(BaseAgent, ABC):
         Returns:
             StrategyRuntime instance
         """
+        # If a strategy id override is provided (resume case), try to
+        # initialize the request's initial_capital from the persisted
+        # portfolio snapshot so the runtime's portfolio service will be
+        # constructed with the persisted equity.
+        initial_capital_override = None
+        if strategy_id_override:
+            try:
+                repo = get_strategy_repository()
+                snap = repo.get_latest_portfolio_snapshot(strategy_id_override)
+                if snap is not None:
+                    initial_capital_override = float(
+                        snap.total_value or snap.cash or 0.0
+                    )
+                    logger.info(
+                        "Initialized request.trading_config.initial_capital from persisted snapshot for strategy_id={}",
+                        strategy_id_override,
+                    )
+            except Exception:
+                logger.exception(
+                    "Failed to initialize initial_capital from persisted snapshot for strategy_id={}",
+                    strategy_id_override,
+                )
+
         # Let user build custom composer (or None for default)
-        composer = self._create_decision_composer(request)
+        composer = await self._create_decision_composer(request)
 
         # Let user build custom features pipeline (or None for default)
         # The coordinator invokes this pipeline each cycle to fetch data
         # and compute the feature vectors consumed by the decision step.
-        features_pipeline = self._build_features_pipeline(request)
+        features_pipeline = await self._build_features_pipeline(request)
 
         # Create runtime with custom components
         # The runtime factory will use defaults if composer/features are None
         return await create_strategy_runtime(
-            request, composer=composer, features_pipeline=features_pipeline
+            request,
+            composer=composer,
+            features_pipeline=features_pipeline,
+            strategy_id_override=strategy_id_override,
+            initial_capital_override=initial_capital_override,
         )

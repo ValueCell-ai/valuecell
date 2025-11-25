@@ -243,7 +243,13 @@ def persist_strategy_summary(summary: agent_models.StrategySummary) -> bool:
             return False
 
         existing_meta = strategy.strategy_metadata or {}
-        meta = {**dict(existing_meta), **summary.model_dump(exclude_none=True)}
+        meta = {
+            **dict(existing_meta),
+            **summary.model_dump(
+                exclude_none=True,
+                exclude={"strategy_id", "status"},
+            ),
+        }
         updated = repo.upsert_strategy(strategy_id, metadata=meta)
         return updated is not None
     except Exception:

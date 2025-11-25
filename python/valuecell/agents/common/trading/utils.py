@@ -1,5 +1,4 @@
 import os
-from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
 import ccxt.pro as ccxtpro
@@ -11,11 +10,6 @@ from valuecell.agents.common.trading.constants import (
     FEATURE_GROUP_BY_MARKET_SNAPSHOT,
 )
 from valuecell.agents.common.trading.models import FeatureVector
-
-
-def get_current_timestamp_ms() -> int:
-    """Get current timestamp in milliseconds."""
-    return int(datetime.now(timezone.utc).timestamp() * 1000)
 
 
 async def fetch_free_cash_from_gateway(
