@@ -336,6 +336,8 @@ class StreamController:
             metadata["stop_reason"] = getattr(reason, "value", reason)
             if reason_detail is not None:
                 metadata["stop_reason_detail"] = reason_detail
+            else:
+                metadata.pop("stop_reason_detail", None)
             repo.upsert_strategy(strategy_id=self.strategy_id, metadata=metadata)
         except Exception:
             logger.warning(
