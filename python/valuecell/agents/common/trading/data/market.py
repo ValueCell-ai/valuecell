@@ -120,7 +120,7 @@ class SimpleMarketDataSource(BaseMarketDataSource):
                     exc,
                 )
         logger.debug(
-            f"Fetch candles for {len(candles)} symbols: {symbols}, interval: {interval}, lookback: {lookback}"
+            f"Fetch {len(candles)} candles symbols: {symbols}, interval: {interval}, lookback: {lookback}"
         )
         return candles
 
