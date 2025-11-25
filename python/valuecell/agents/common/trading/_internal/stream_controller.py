@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 from loguru import logger
 
 from valuecell.agents.common.trading import models as agent_models
+from valuecell.server.db.repositories.strategy_repository import get_strategy_repository
 from valuecell.server.services import strategy_persistence
 from valuecell.utils.ts import get_current_timestamp_ms
 
@@ -124,6 +125,38 @@ class StreamController:
                 "Failed to persist initial portfolio/summary for {}", self.strategy_id
             )
 
+    def has_initial_state(self) -> bool:
+        """Return True if an initial portfolio snapshot already exists.
+
+        This allows idempotent strategy restarts without duplicating the first snapshot.
+        """
+        try:
+            repo = get_strategy_repository()
+            snap = repo.get_latest_portfolio_snapshot(self.strategy_id)
+            return snap is not None
+        except Exception:
+            logger.warning(
+                "has_initial_state check failed for strategy {}", self.strategy_id
+            )
+            return False
+
+    def get_latest_portfolio_snapshot(self):
+        """Return the latest stored portfolio snapshot or None.
+
+        This is a convenience wrapper around the repository call so callers
+        can inspect persisted initial state (for resume semantics).
+        """
+        try:
+            repo = get_strategy_repository()
+            snap = repo.get_latest_portfolio_snapshot(self.strategy_id)
+            return snap
+        except Exception:
+            logger.warning(
+                "Failed to fetch latest portfolio snapshot for strategy {}",
+                self.strategy_id,
+            )
+            return None
+
     def persist_cycle_results(self, result: DecisionCycleResult) -> None:
         """Persist trades, portfolio view, and strategy summary for a cycle.
 
@@ -184,8 +217,33 @@ class StreamController:
         except Exception:
             logger.exception("Error persisting cycle results for {}", self.strategy_id)
 
+    def persist_portfolio_snapshot(self, runtime: StrategyRuntime) -> None:
+        """Persist a final portfolio snapshot (used at shutdown).
+
+        Mirrors portfolio part of cycle persistence but without trades or summary refresh.
+        Errors are logged and swallowed.
+        """
+        try:
+            view = runtime.coordinator.portfolio_service.get_view()
+            try:
+                view.strategy_id = self.strategy_id
+            except Exception:
+                pass
+            ok = strategy_persistence.persist_portfolio_view(view)
+            if ok:
+                logger.info(
+                    "Persisted final portfolio snapshot for strategy={}",
+                    self.strategy_id,
+                )
+        except Exception:
+            logger.exception(
+                "Failed to persist final portfolio snapshot for {}", self.strategy_id
+            )
+
     async def finalize(
-        self, runtime: StrategyRuntime, reason: str = "normal_exit"
+        self,
+        runtime: StrategyRuntime,
+        reason: agent_models.StopReason | str = agent_models.StopReason.NORMAL_EXIT,
     ) -> None:
         """Finalize strategy: close resources and mark as stopped.
 
@@ -207,28 +265,28 @@ class StreamController:
                 "Failed to close runtime resources for strategy {}", self.strategy_id
             )
 
-        if reason == "error_closing_positions":
-            # Special case: we failed to close positions, so mark as ERROR to alert user
-            final_status = agent_models.StrategyStatus.ERROR.value
-        else:
-            final_status = agent_models.StrategyStatus.STOPPED.value
+        # With simplified statuses, all terminal states map to STOPPED.
+        # Preserve the detailed stop reason in strategy metadata for resume logic.
+        final_status = agent_models.StrategyStatus.STOPPED.value
 
         # Mark strategy as stopped/error in persistence
         try:
             strategy_persistence.set_strategy_status(self.strategy_id, final_status)
+            reason_value = getattr(reason, "value", reason)
             logger.info(
                 "Marked strategy {} as {} (reason: {})",
                 self.strategy_id,
                 final_status,
-                reason,
+                reason_value,
             )
         except Exception:
             logger.exception(
                 "Failed to mark strategy {} for {} (reason: {})",
                 final_status,
                 self.strategy_id,
-                reason,
+                getattr(reason, "value", reason),
             )
+        self._record_stop_reason(reason)
 
     def is_running(self) -> bool:
         """Check if strategy is still running according to persistence layer."""
@@ -258,4 +316,26 @@ class StreamController:
         except Exception:
             logger.exception(
                 "Error persisting ad-hoc trades for strategy {}", self.strategy_id
+            )
+
+    def _record_stop_reason(self, reason: agent_models.StopReason | str) -> None:
+        """Persist last stop reason inside strategy metadata for resume decisions.
+
+        Accept either a StopReason enum or a raw string; store the normalized
+        string value in the DB metadata.
+        """
+        try:
+            repo = get_strategy_repository()
+            strategy = repo.get_strategy_by_strategy_id(self.strategy_id)
+            if strategy is None:
+                return
+            metadata = dict(strategy.strategy_metadata or {})
+            normalized = getattr(reason, "value", reason)
+            if metadata.get("stop_reason") == normalized:
+                return
+            metadata["stop_reason"] = normalized
+            repo.upsert_strategy(strategy_id=self.strategy_id, metadata=metadata)
+        except Exception:
+            logger.warning(
+                "Failed to record stop reason for strategy %s", self.strategy_id
             )

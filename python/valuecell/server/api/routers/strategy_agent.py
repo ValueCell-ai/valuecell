@@ -23,6 +23,7 @@ from valuecell.server.api.schemas.base import SuccessResponse
 # Note: Strategy type is now part of TradingConfig in the request body.
 from valuecell.server.db.connection import get_db
 from valuecell.server.db.repositories import get_strategy_repository
+from valuecell.server.services.strategy_autoresume import auto_resume_strategies
 from valuecell.utils.uuid import generate_conversation_id, generate_uuid
 
 
@@ -31,6 +32,14 @@ def create_strategy_agent_router() -> APIRouter:
 
     router = APIRouter(prefix="/strategies", tags=["strategies"])
     orchestrator = AgentOrchestrator()
+
+    @router.on_event("startup")
+    async def _startup_auto_resume() -> None:
+        """Schedule strategy auto-resume on FastAPI startup."""
+        try:
+            await auto_resume_strategies(orchestrator)
+        except Exception:
+            logger.warning("Failed to schedule strategy auto-resume startup task")
 
     @router.post("/create")
     async def create_strategy_agent(

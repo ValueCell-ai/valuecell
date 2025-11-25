@@ -64,6 +64,8 @@ async def create_strategy_runtime(
     request: UserRequest,
     composer: Optional[BaseComposer] = None,
     features_pipeline: Optional[BaseFeaturesPipeline] = None,
+    strategy_id_override: Optional[str] = None,
+    initial_capital_override: Optional[float] = None,
 ) -> StrategyRuntime:
     """Create a strategy runtime with async initialization (supports both paper and live trading).
 
@@ -108,8 +110,10 @@ async def create_strategy_runtime(
     execution_gateway = await _create_execution_gateway(request)
 
     # Create strategy runtime components
-    strategy_id = generate_uuid("strategy")
-    initial_capital = request.trading_config.initial_capital or 0.0
+    strategy_id = strategy_id_override or generate_uuid("strategy")
+    initial_capital = (
+        initial_capital_override or request.trading_config.initial_capital or 0.0
+    )
     constraints = Constraints(
         max_positions=request.trading_config.max_positions,
         max_leverage=request.trading_config.max_leverage,
