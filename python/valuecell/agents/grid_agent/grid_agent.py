@@ -36,10 +36,11 @@ class GridStrategyAgent(BaseStrategyAgent):
         return DefaultFeaturesPipeline.from_request(request)
 
     def _create_decision_composer(self, request: UserRequest) -> BaseComposer | None:
-        # Adjust step_pct / max_steps / base_fraction as needed
+        # Use code-level defaults and optionally enable LLM-advised params
         return GridComposer(
             request=request,
-            step_pct=0.005,  # ~0.5% per step
-            max_steps=3,  # up to 3 steps per cycle
-            base_fraction=0.08,  # base order size = equity * 8%
+            step_pct=0.001,  # 0.1% per step (more sensitive)
+            max_steps=3,
+            base_fraction=0.08,
+            use_llm_params=True,
         )

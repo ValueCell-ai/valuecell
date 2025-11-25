@@ -9,7 +9,6 @@ from valuecell.agents.common.trading.models import (
     MarketSnapShotType,
 )
 from valuecell.agents.common.trading.utils import get_exchange_cls, normalize_symbol
-from valuecell.utils.i18n_utils import detect_user_region
 
 from .interfaces import BaseMarketDataSource
 
@@ -26,18 +25,7 @@ class SimpleMarketDataSource(BaseMarketDataSource):
 
     def __init__(self, exchange_id: Optional[str] = None) -> None:
         if not exchange_id:
-            # Auto-detect region and select appropriate exchange
-            region = detect_user_region()
-            if region == "us":
-                # Use OKX for United States users (best support for USDT perpetuals)
-                self._exchange_id = "okx"
-                logger.info(
-                    "Detected US region, using okx exchange (USDT perpetuals supported)"
-                )
-            else:
-                # Use regular Binance for other regions
-                self._exchange_id = "binance"
-                logger.info("Detected non-US region, using binance exchange")
+            self._exchange_id = "okx"
         else:
             self._exchange_id = exchange_id
 

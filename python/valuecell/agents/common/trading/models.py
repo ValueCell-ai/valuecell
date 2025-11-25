@@ -58,6 +58,19 @@ class StrategyType(str, Enum):
     GRID = "GridStrategy"
 
 
+class GridParamsSource(str, Enum):
+    """Source of grid parameters.
+
+    - USER: honor user-provided values in trading_config
+    - LLM: fetch dynamically from the model (default)
+    - AUTO: rule-based derivation from market metrics (reserved)
+    """
+
+    USER = "user"
+    LLM = "llm"
+    AUTO = "auto"
+
+
 class ComponentType(str, Enum):
     """Component types for StrategyAgent streaming responses."""
 
@@ -242,6 +255,7 @@ class TradingConfig(BaseModel):
         description="Notional cap factor used by the composer to limit per-symbol exposure (e.g., 1.5)",
         gt=0,
     )
+    # Grid parameters are model-decided at runtime; no user-configurable grid_* fields.
 
     @field_validator("symbols")
     @classmethod
@@ -331,6 +345,29 @@ class Candle(BaseModel):
     close: float
     volume: float
     interval: str = Field(..., description='Interval string, e.g., "1m", "5m"')
+
+
+class GridParamAdvice(BaseModel):
+    """LLM-advised grid parameter set.
+
+    Advisor should return sensible values within typical ranges:
+    - grid_step_pct: 0.0005 ~ 0.01
+    - grid_max_steps: 1 ~ 5
+    - grid_base_fraction: 0.03 ~ 0.10
+    """
+
+    ts: int = Field(..., description="Advice timestamp in ms")
+    grid_step_pct: float = Field(..., gt=0)
+    grid_max_steps: int = Field(..., gt=0)
+    grid_base_fraction: float = Field(..., gt=0)
+    # Optional zone and discretization
+    grid_lower_pct: Optional[float] = Field(default=None, gt=0)
+    grid_upper_pct: Optional[float] = Field(default=None, gt=0)
+    grid_count: Optional[int] = Field(default=None, gt=0)
+    advisor_rationale: Optional[str] = Field(
+        default=None,
+        description="Model-provided reasoning explaining how grid parameters were chosen",
+    )
 
 
 CommonKeyType = str
