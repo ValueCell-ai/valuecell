@@ -2,8 +2,8 @@ name: Tauri build on macOS
 
 on:
   push:
-    branches: 
-      - "release"
+    tags:
+      - "v*"
   workflow_dispatch:
 permissions:
   contents: write
@@ -112,6 +112,11 @@ jobs:
           # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
           targets: aarch64-apple-darwin,x86_64-apple-darwin
 
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -123,16 +128,17 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD}}
         with:
-          tagName: v__VERSION__
-          releaseName: ValueCell-__VERSION__-beta
-          releaseDraft: true
+          tagName: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && 'v__VERSION__' || '' }}
+          releaseName: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && 'ValueCell-__VERSION__-beta' || '' }}
+          releaseDraft: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
           prerelease: false
           assetNamePattern: ValueCell-[version]-beta-[platform]-[arch][ext]
           args: ${{ matrix.args }}
           
-      # - name: Upload Artifacts
-      #   uses: actions/upload-artifact@v5
-      #   with:
-      #     path: frontend/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
-      #     name: ValueCell-${{ matrix.target }}-${{ github.sha }}
-      #     retention-days: 3
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v5
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        with:
+          path: frontend/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+          name: ValueCell-${{ matrix.target }}-${{ github.sha }}
+          retention-days: 3
