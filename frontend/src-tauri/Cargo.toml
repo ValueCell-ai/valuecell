@@ -28,4 +28,5 @@ anyhow = "1"
 log = "0.4"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-process = "2"
 tauri-plugin-updater = "2"

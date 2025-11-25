@@ -41,6 +41,7 @@ const queryClient = new QueryClient({
   },
 });
 
+import { AutoUpdateCheck } from "@/components/valuecell/auto-update-check";
 import { BackendHealthCheck } from "@/components/valuecell/backend-health-check";
 
 export default function Root() {
@@ -60,6 +61,7 @@ export default function Root() {
             <Toaster />
           </div>
         </SidebarProvider>
+        <AutoUpdateCheck />
       </BackendHealthCheck>
     </QueryClientProvider>
   );

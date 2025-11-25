@@ -1,42 +1,17 @@
 import { getVersion } from "@tauri-apps/api/app";
 import { isTauri } from "@tauri-apps/api/core";
-import { check, type DownloadEvent } from "@tauri-apps/plugin-updater";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useUpdateToast } from "@/hooks/use-update-toast";
 import type { StockColorMode } from "@/store/settings-store";
 import { useSettingsActions, useStockColorMode } from "@/store/settings-store";
 
 export default function GeneralPage() {
   const stockColorMode = useStockColorMode();
   const { setStockColorMode } = useSettingsActions();
-
-  const handleCheckUpdates = async () => {
-    const update = await check();
-
-    let contentLength: number | undefined;
-    let downloaded = 0;
-    if (update) {
-      await update.downloadAndInstall((event: DownloadEvent) => {
-        switch (event.event) {
-          case "Started":
-            contentLength = event.data.contentLength;
-            console.log(
-              `started downloading ${event.data.contentLength} bytes`,
-            );
-            break;
-          case "Progress":
-            downloaded += event.data.chunkLength;
-            console.log(`downloaded ${downloaded} from ${contentLength}`);
-            break;
-          case "Finished":
-            console.log("download finished");
-            break;
-        }
-      });
-    }
-  };
+  const { checkAndUpdate } = useUpdateToast();
 
   return (
     <div className="flex flex-col gap-5 px-16 py-10">
@@ -84,7 +59,7 @@ export default function GeneralPage() {
               <Badge variant="secondary">v{getVersion()}</Badge>
             </div>
 
-            <Button size="sm" onClick={handleCheckUpdates}>
+            <Button size="sm" onClick={checkAndUpdate}>
               Check for Updates
             </Button>
           </div>

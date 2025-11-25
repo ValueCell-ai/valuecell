@@ -47,7 +47,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM1MkM3MEEyMTcwMzU1QTMKUldTalZRTVhvbkFzeFh6WUhrYWprcURCTy9UcjVaYm1aaTNMVk5TMzF6TCtmS0N5SUpPYWxCdWEK",
       "endpoints": [
-        "https://github.com/ValueCell-ai/valuecell/releases/download/v0.1.1/latest.json"
+        "https://github.com/ValueCell-ai/valuecell/releases/latest/download/latest.json"
       ]
     }
   }
