@@ -52,6 +52,20 @@ class LlmComposer(BaseComposer):
         self._request = request
         self._default_slippage_bps = default_slippage_bps
         self._quantity_precision = quantity_precision
+        cfg = self._request.llm_model_config
+        self._model = model_utils.create_model_with_provider(
+            provider=cfg.provider,
+            model_id=cfg.model_id,
+            api_key=cfg.api_key,
+        )
+        self.agent = AgnoAgent(
+            model=self._model,
+            output_schema=TradePlanProposal,
+            markdown=False,
+            instructions=[SYSTEM_PROMPT],
+            use_json_mode=model_utils.model_should_use_json_mode(self._model),
+            debug_mode=env_utils.agent_debug_mode_enabled(),
+        )
 
     def _build_prompt_text(self) -> str:
         """Return a resolved prompt text by fusing custom_prompt and prompt_text.
@@ -186,24 +200,7 @@ class LlmComposer(BaseComposer):
         agent's `response.content` is returned (or validated) as a
         `LlmPlanProposal`.
         """
-
-        cfg = self._request.llm_model_config
-        model = model_utils.create_model_with_provider(
-            provider=cfg.provider,
-            model_id=cfg.model_id,
-            api_key=cfg.api_key,
-        )
-
-        # Wrap model in an Agent (consistent with parser_agent usage)
-        agent = AgnoAgent(
-            model=model,
-            output_schema=TradePlanProposal,
-            markdown=False,
-            instructions=[SYSTEM_PROMPT],
-            use_json_mode=model_utils.model_should_use_json_mode(model),
-            debug_mode=env_utils.agent_debug_mode_enabled(),
-        )
-        response = await agent.arun(prompt)
+        response = await self.agent.arun(prompt)
         # Agent may return a raw object or a wrapper with `.content`.
         content = getattr(response, "content", None) or response
         logger.debug("Received LLM response {}", content)
@@ -216,7 +213,7 @@ class LlmComposer(BaseComposer):
             items=[],
             rationale=(
                 "LLM output failed validation. The model you chose "
-                f"`{model_utils.describe_model(model)}` "
+                f"`{model_utils.describe_model(self._model)}` "
                 "may be incompatible or returned unexpected output. "
                 f"Raw output: {content}"
             ),

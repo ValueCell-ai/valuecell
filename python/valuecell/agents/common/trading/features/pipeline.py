@@ -8,7 +8,8 @@ computer—everything is orchestrated by the pipeline.
 
 from __future__ import annotations
 
-from typing import List
+import asyncio
+from typing import List, Optional, Tuple
 
 from valuecell.agents.common.trading.models import (
     FeaturesPipelineResult,
@@ -36,53 +37,66 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
         market_data_source: BaseMarketDataSource,
         candle_feature_computer: CandleBasedFeatureComputer,
         market_snapshot_computer: MarketSnapshotFeatureComputer,
-        micro_interval: str = "1s",
-        micro_lookback: int = 60 * 3,
-        medium_interval: str = "1m",
-        medium_lookback: int = 60 * 4,
+        candle_configurations: Optional[List[Tuple[str, int]]] = None,
     ) -> None:
         self._request = request
         self._market_data_source = market_data_source
         self._candle_feature_computer = candle_feature_computer
-        self._micro_interval = micro_interval
-        self._micro_lookback = micro_lookback
-        self._medium_interval = medium_interval
-        self._medium_lookback = medium_lookback
         self._symbols = list(dict.fromkeys(request.trading_config.symbols))
         self._market_snapshot_computer = market_snapshot_computer
+        self._candle_configurations = candle_configurations
+        if self._candle_configurations is None:
+            self._candle_configurations = [
+                ("1s", 60 * 3),
+                ("1m", 60 * 4),
+            ]
 
     async def build(self) -> FeaturesPipelineResult:
-        """Fetch candles, compute feature vectors, and append market features."""
-        # Determine symbols from the configured request so caller doesn't pass them
-        candles_micro = await self._market_data_source.get_recent_candles(
-            self._symbols, self._micro_interval, self._micro_lookback
-        )
-        micro_features = self._candle_feature_computer.compute_features(
-            candles=candles_micro
-        )
+        """
+        Fetch candles and market snapshot, compute feature vectors concurrently,
+        and combine results.
+        """
 
-        candles_medium = await self._market_data_source.get_recent_candles(
-            self._symbols, self._medium_interval, self._medium_lookback
-        )
-        medium_features = self._candle_feature_computer.compute_features(
-            candles=candles_medium
-        )
+        async def _fetch_candles(interval: str, lookback: int) -> List[FeatureVector]:
+            """Fetches candles and computes features for a single (interval, lookback) pair."""
+            _candles = await self._market_data_source.get_recent_candles(
+                self._symbols, interval, lookback
+            )
+            return self._candle_feature_computer.compute_features(candles=_candles)
 
-        features: List[FeatureVector] = []
-        features.extend(medium_features or [])
-        features.extend(micro_features or [])
+        async def _fetch_market_features() -> List[FeatureVector]:
+            """Fetches market snapshot for all symbols and computes features."""
+            market_snapshot = await self._market_data_source.get_market_snapshot(
+                self._symbols
+            )
+            market_snapshot = market_snapshot or {}
+            return self._market_snapshot_computer.build(
+                market_snapshot, self._request.exchange_config.exchange_id
+            )
 
-        market_snapshot = await self._market_data_source.get_market_snapshot(
-            self._symbols
+        print(
+            f"Starting concurrent data fetching for {len(self._candle_configurations)} candle sets and markets snapshot..."
         )
-        market_snapshot = market_snapshot or {}
+        tasks = [
+            _fetch_candles(interval, lookback)
+            for interval, lookback in self._candle_configurations
+        ]
+        tasks.append(_fetch_market_features())
 
-        market_features = self._market_snapshot_computer.build(
-            market_snapshot, self._request.exchange_config.exchange_id
-        )
-        features.extend(market_features)
+        # results = [ [candle_features_1], [candle_features_2], ..., [market_features] ]
+        results = await asyncio.gather(*tasks)
+        print("Concurrent data fetching complete.")
 
-        return FeaturesPipelineResult(features=features)
+        market_features: List[FeatureVector] = results.pop()
+
+        # Flatten the list of lists of candle features
+        candle_features: List[FeatureVector] = [
+            feature for sublist in results for feature in sublist
+        ]
+
+        candle_features.extend(market_features)
+
+        return FeaturesPipelineResult(features=candle_features)
 
     @classmethod
     def from_request(cls, request: UserRequest) -> DefaultFeaturesPipeline:
