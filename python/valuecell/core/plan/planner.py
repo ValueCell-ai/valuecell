@@ -11,8 +11,8 @@ and performs JSON parsing/validation of the planner's output.
 """
 
 import asyncio
-import logging
 from datetime import datetime
+from loguru import logger
 from typing import Callable, List, Optional
 
 from a2a.types import AgentCard
@@ -32,8 +32,6 @@ from .prompts import (
     PLANNER_EXPECTED_OUTPUT,
     PLANNER_INSTRUCTION,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class UserInputRequest:
