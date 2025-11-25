@@ -70,8 +70,10 @@ class TaskManager:
         """Cancel task"""
         async with self._lock:
             task = await self._get_task(task_id)
-            if not task or task.is_finished():
+            if not task:
                 return False
+            if task.is_finished():
+                return True
 
             task.cancel()
             await self._store.save_task(task)

@@ -277,7 +277,7 @@ class TestTaskManager:
         await manager._store.save_task(task)
 
         result = await manager.cancel_task("test-task-123")
-        assert result is False
+        assert result is True
 
     @pytest.mark.asyncio
     async def test_cancel_conversation_tasks(self):
