@@ -11,7 +11,7 @@ from valuecell.agents.common.trading.models import (
     InstrumentRef,
     MarketSnapShotType,
 )
-from valuecell.agents.common.trading.utils import get_current_timestamp_ms
+from valuecell.utils.ts import get_current_timestamp_ms
 
 
 class MarketSnapshotFeatureComputer:

@@ -12,6 +12,7 @@ from .constants import (
     DEFAULT_MAX_POSITIONS,
     DEFAULT_MODEL_PROVIDER,
 )
+from valuecell.utils.ts import get_current_timestamp_ms
 
 
 class TradingMode(str, Enum):
@@ -568,7 +569,10 @@ class TradeDecisionItem(BaseModel):
 class TradePlanProposal(BaseModel):
     """Structured output before rule normalization."""
 
-    ts: int
+    ts: Optional[int] = Field(
+        default_factory=get_current_timestamp_ms,
+        description="Proposal timestamp in ms (if available)",
+    )
     items: List[TradeDecisionItem] = Field(default_factory=list)
     rationale: Optional[str] = Field(
         default=None, description="Optional natural language rationale"

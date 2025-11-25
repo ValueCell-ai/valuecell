@@ -5,6 +5,7 @@ from typing import List
 
 from loguru import logger
 
+from valuecell.utils.ts import get_current_timestamp_ms
 from valuecell.utils.uuid import generate_uuid
 
 from ..decision import BaseComposer
@@ -37,7 +38,6 @@ from ..portfolio.interfaces import BasePortfolioService
 from ..utils import (
     extract_market_snapshot_features,
     fetch_free_cash_from_gateway,
-    get_current_timestamp_ms,
 )
 
 # Core interfaces for orchestration and portfolio service.

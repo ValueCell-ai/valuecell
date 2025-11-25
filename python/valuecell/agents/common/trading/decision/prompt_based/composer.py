@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 from typing import Dict
 
 from agno.agent import Agent as AgnoAgent
@@ -210,9 +209,8 @@ class LlmComposer(BaseComposer):
 
         logger.error("LLM output failed validation: {}", content)
         return TradePlanProposal(
-            ts=int(datetime.now(timezone.utc).timestamp() * 1000),
             items=[],
-            rationale="LLM output failed validation",
+            rationale=f"LLM output failed validation: {content}",
         )
 
     async def _send_plan_to_discord(self, plan: TradePlanProposal) -> None:
