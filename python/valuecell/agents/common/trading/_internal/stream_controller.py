@@ -140,6 +140,23 @@ class StreamController:
             )
             return False
 
+    def get_latest_portfolio_snapshot(self):
+        """Return the latest stored portfolio snapshot or None.
+
+        This is a convenience wrapper around the repository call so callers
+        can inspect persisted initial state (for resume semantics).
+        """
+        try:
+            repo = get_strategy_repository()
+            snap = repo.get_latest_portfolio_snapshot(self.strategy_id)
+            return snap
+        except Exception:
+            logger.warning(
+                "Failed to fetch latest portfolio snapshot for strategy {}",
+                self.strategy_id,
+            )
+            return None
+
     def persist_cycle_results(self, result: DecisionCycleResult) -> None:
         """Persist trades, portfolio view, and strategy summary for a cycle.
 

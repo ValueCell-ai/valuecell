@@ -8,6 +8,7 @@ from loguru import logger
 
 from valuecell.agents.common.trading._internal.runtime import create_strategy_runtime
 from valuecell.agents.common.trading._internal.stream_controller import StreamController
+from valuecell.server.db.repositories.strategy_repository import get_strategy_repository
 from valuecell.agents.common.trading.models import (
     ComponentType,
     StopReason,
@@ -223,14 +224,8 @@ class BaseStrategyAgent(BaseAgent, ABC):
         stop_reason = StopReason.NORMAL_EXIT
         try:
             logger.info("Starting decision loop for strategy_id={}", strategy_id)
-            # Idempotent initial state persistence: skip if already exists (resume).
-            if not controller.has_initial_state():
-                controller.persist_initial_state(runtime)
-            else:
-                logger.info(
-                    "Detected existing initial state; skipping duplicate persist for strategy_id={}",
-                    strategy_id,
-                )
+            # Always attempt to persist an initial state (idempotent write).
+            controller.persist_initial_state(runtime)
 
             # Main decision loop
             while controller.is_running():
@@ -322,6 +317,29 @@ class BaseStrategyAgent(BaseAgent, ABC):
         Returns:
             StrategyRuntime instance
         """
+        # If a strategy id override is provided (resume case), try to
+        # initialize the request's initial_capital from the persisted
+        # portfolio snapshot so the runtime's portfolio service will be
+        # constructed with the persisted equity.
+        initial_capital_override = None
+        if strategy_id_override:
+            try:
+                repo = get_strategy_repository()
+                snap = repo.get_latest_portfolio_snapshot(strategy_id_override)
+                if snap is not None:
+                    initial_capital_override = float(
+                        snap.total_value or snap.cash or 0.0
+                    )
+                    logger.info(
+                        "Initialized request.trading_config.initial_capital from persisted snapshot for strategy_id={}",
+                        strategy_id_override,
+                    )
+            except Exception:
+                logger.exception(
+                    "Failed to initialize initial_capital from persisted snapshot for strategy_id={}",
+                    strategy_id_override,
+                )
+
         # Let user build custom composer (or None for default)
         composer = await self._create_decision_composer(request)
 
@@ -337,4 +355,5 @@ class BaseStrategyAgent(BaseAgent, ABC):
             composer=composer,
             features_pipeline=features_pipeline,
             strategy_id_override=strategy_id_override,
+            initial_capital_override=initial_capital_override,
         )
