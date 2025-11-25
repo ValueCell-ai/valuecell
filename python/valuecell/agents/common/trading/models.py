@@ -58,19 +58,6 @@ class StrategyType(str, Enum):
     GRID = "GridStrategy"
 
 
-class GridParamsSource(str, Enum):
-    """Source of grid parameters.
-
-    - USER: honor user-provided values in trading_config
-    - LLM: fetch dynamically from the model (default)
-    - AUTO: rule-based derivation from market metrics (reserved)
-    """
-
-    USER = "user"
-    LLM = "llm"
-    AUTO = "auto"
-
-
 class ComponentType(str, Enum):
     """Component types for StrategyAgent streaming responses."""
 
