@@ -15,9 +15,9 @@ from typing import TYPE_CHECKING
 from loguru import logger
 
 from valuecell.agents.common.trading import models as agent_models
-from valuecell.agents.common.trading.utils import get_current_timestamp_ms
 from valuecell.server.db.repositories.strategy_repository import get_strategy_repository
 from valuecell.server.services import strategy_persistence
+from valuecell.utils.ts import get_current_timestamp_ms
 
 if TYPE_CHECKING:
     from valuecell.agents.common.trading._internal.coordinator import (

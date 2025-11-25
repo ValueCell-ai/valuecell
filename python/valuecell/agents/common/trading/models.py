@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from valuecell.utils.ts import get_current_timestamp_ms
+
 from .constants import (
     DEFAULT_AGENT_MODEL,
     DEFAULT_CAP_FACTOR,
@@ -588,7 +590,10 @@ class TradeDecisionItem(BaseModel):
 class TradePlanProposal(BaseModel):
     """Structured output before rule normalization."""
 
-    ts: int
+    ts: Optional[int] = Field(
+        default_factory=get_current_timestamp_ms,
+        description="Proposal timestamp in ms (if available)",
+    )
     items: List[TradeDecisionItem] = Field(default_factory=list)
     rationale: Optional[str] = Field(
         default=None, description="Optional natural language rationale"

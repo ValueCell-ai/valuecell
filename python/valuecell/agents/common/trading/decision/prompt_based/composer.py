@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 from typing import Dict
 
 from agno.agent import Agent as AgnoAgent
@@ -87,7 +86,9 @@ class LlmComposer(BaseComposer):
                 return ComposeResult(instructions=[], rationale=plan.rationale)
         except Exception as exc:  # noqa: BLE001
             logger.error("LLM invocation failed: {}", exc)
-            return ComposeResult(instructions=[], rationale="LLM invocation failed")
+            return ComposeResult(
+                instructions=[], rationale=f"LLM invocation failed: {exc}"
+            )
 
         # Optionally forward non-NOOP plan rationale to Discord webhook (env-driven)
         try:
@@ -210,9 +211,13 @@ class LlmComposer(BaseComposer):
 
         logger.error("LLM output failed validation: {}", content)
         return TradePlanProposal(
-            ts=int(datetime.now(timezone.utc).timestamp() * 1000),
             items=[],
-            rationale="LLM output failed validation",
+            rationale=(
+                "LLM output failed validation. The model you chose "
+                f"`{model_utils.describe_model(model)}` "
+                "may be incompatible or returned unexpected output. "
+                f"Raw output: {content}"
+            ),
         )
 
     async def _send_plan_to_discord(self, plan: TradePlanProposal) -> None:
