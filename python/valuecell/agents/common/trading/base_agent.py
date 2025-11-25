@@ -8,7 +8,6 @@ from loguru import logger
 
 from valuecell.agents.common.trading._internal.runtime import create_strategy_runtime
 from valuecell.agents.common.trading._internal.stream_controller import StreamController
-from valuecell.server.db.repositories.strategy_repository import get_strategy_repository
 from valuecell.agents.common.trading.models import (
     ComponentType,
     StopReason,
@@ -18,6 +17,7 @@ from valuecell.agents.common.trading.models import (
 )
 from valuecell.core.agent.responses import streaming
 from valuecell.core.types import BaseAgent, StreamResponse
+from valuecell.server.db.repositories.strategy_repository import get_strategy_repository
 
 if TYPE_CHECKING:
     from valuecell.agents.common.trading._internal.runtime import (
