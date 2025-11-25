@@ -167,25 +167,22 @@ def create_strategy_agent_router() -> APIRouter:
                                 "model_provider": request.llm_model_config.provider,
                                 "model_id": request.llm_model_config.model_id,
                                 "exchange_id": request.exchange_config.exchange_id,
-                                "trading_mode": (
-                                    request.exchange_config.trading_mode.value
-                                    if hasattr(
-                                        request.exchange_config.trading_mode, "value"
-                                    )
-                                    else str(request.exchange_config.trading_mode)
-                                ),
+                                "trading_mode": request.exchange_config.trading_mode.value,
                             }
-                            status_value = (
-                                status_content.status.value
-                                if hasattr(status_content.status, "value")
-                                else str(status_content.status)
-                            )
+                            status = status_content.status
+                            if status == StrategyStatus.STOPPED:
+                                metadata["stop_reason"] = (
+                                    status_content.stop_reason.value
+                                )
+                                metadata["stop_reason_detail"] = (
+                                    status_content.stop_reason_detail
+                                )
                             repo.upsert_strategy(
                                 strategy_id=status_content.strategy_id,
                                 name=name,
                                 description=None,
                                 user_id=user_input_meta.user_id,
-                                status=status_value,
+                                status=status.value,
                                 config=request.model_dump(),
                                 metadata=metadata,
                             )
@@ -214,6 +211,8 @@ def create_strategy_agent_router() -> APIRouter:
                             else str(request.exchange_config.trading_mode)
                         ),
                         "fallback": True,
+                        "stop_reason": "error",
+                        "stop_reason_detail": "No status event from orchestrator",
                     }
                     repo.upsert_strategy(
                         strategy_id=fallback_strategy_id,
@@ -230,7 +229,7 @@ def create_strategy_agent_router() -> APIRouter:
                 return StrategyStatusContent(
                     strategy_id=fallback_strategy_id, status="stopped"
                 )
-            except Exception:
+            except Exception as exc:
                 # Orchestrator failed; fallback to direct DB creation
                 fallback_strategy_id = generate_uuid("strategy")
                 try:
@@ -250,6 +249,8 @@ def create_strategy_agent_router() -> APIRouter:
                             else str(request.exchange_config.trading_mode)
                         ),
                         "fallback": True,
+                        "stop_reason": "error",
+                        "stop_reason_detail": str(exc),
                     }
                     repo.upsert_strategy(
                         strategy_id=fallback_strategy_id,
@@ -289,7 +290,8 @@ def create_strategy_agent_router() -> APIRouter:
                         else str(request.exchange_config.trading_mode)
                     ),
                     "fallback": True,
-                    "error": str(e),
+                    "stop_reason": "error",
+                    "stop_reason_detail": str(e),
                 }
                 repo.upsert_strategy(
                     strategy_id=fallback_strategy_id,

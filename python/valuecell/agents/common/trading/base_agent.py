@@ -18,6 +18,7 @@ from valuecell.agents.common.trading.models import (
 from valuecell.core.agent.responses import streaming
 from valuecell.core.types import BaseAgent, StreamResponse
 from valuecell.server.db.repositories.strategy_repository import get_strategy_repository
+from valuecell.utils import generate_uuid
 
 if TYPE_CHECKING:
     from valuecell.agents.common.trading._internal.runtime import (
@@ -141,18 +142,45 @@ class BaseStrategyAgent(BaseAgent, ABC):
         # Parse and validate request
         try:
             request = UserRequest.model_validate_json(query)
-        except ValueError as exc:
+        except Exception as exc:
             logger.exception("StrategyAgent received invalid payload")
-            yield streaming.message_chunk(str(exc))
+            # Emit structured status with error reason then close the stream
+            status_payload = StrategyStatusContent(
+                strategy_id=generate_uuid("invalid-strategy"),
+                status=StrategyStatus.STOPPED,
+                stop_reason=StopReason.ERROR,
+                stop_reason_detail=str(exc),
+            )
+            yield streaming.component_generator(
+                content=status_payload.model_dump_json(),
+                component_type=ComponentType.STATUS.value,
+            )
             yield streaming.done()
             return
 
         # Create runtime (calls _build_decision, _build_features_pipeline internally)
         # Reuse externally supplied strategy_id if present for continuation semantics.
         strategy_id_override = request.trading_config.strategy_id
-        runtime = await self._create_runtime(
-            request, strategy_id_override=strategy_id_override
-        )
+        try:
+            runtime = await self._create_runtime(
+                request, strategy_id_override=strategy_id_override
+            )
+        except Exception as exc:
+            # Runtime creation failed — surface structured status and close the stream
+            logger.exception("Failed to create strategy runtime: {}", exc)
+            status_payload = StrategyStatusContent(
+                strategy_id=strategy_id_override or generate_uuid("invalid-strategy"),
+                status=StrategyStatus.STOPPED,
+                stop_reason=StopReason.ERROR,
+                stop_reason_detail=str(exc),
+            )
+            yield streaming.component_generator(
+                content=status_payload.model_dump_json(),
+                component_type=ComponentType.STATUS.value,
+            )
+            yield streaming.done()
+            return
+
         strategy_id = runtime.strategy_id
         logger.info(
             "Created runtime for strategy_id={} conversation={} task={}",

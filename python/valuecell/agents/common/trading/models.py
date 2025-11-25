@@ -876,6 +876,14 @@ class StrategyStatusContent(BaseModel):
 
     strategy_id: str
     status: StrategyStatus
+    # Optional stop reason and human-readable detail for terminal states/errors
+    stop_reason: Optional[StopReason] = Field(
+        default=None, description="Canonical stop reason for the strategy"
+    )
+    stop_reason_detail: Optional[str] = Field(
+        default=None,
+        description="Optional human-readable detail about stop reason or error",
+    )
 
 
 class ComposeResult(BaseModel):

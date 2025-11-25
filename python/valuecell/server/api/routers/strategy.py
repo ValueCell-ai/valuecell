@@ -149,11 +149,22 @@ def create_strategy_router() -> APIRouter:
             for s in strategies:
                 meta = s.strategy_metadata or {}
                 cfg = s.config or {}
+                status = map_status(s.status)
+                stop_reason_display = ""
+                if status == "stopped":
+                    stop_reason = meta.get("stop_reason")
+                    stop_reason_detail = meta.get("stop_reason_detail")
+                    stop_reason_display = (
+                        f"{stop_reason + ': ' if stop_reason else ''}"
+                        f"{stop_reason_detail if stop_reason_detail else ''}".strip()
+                    ) or "unknown reason"
+
                 item = StrategySummaryData(
                     strategy_id=s.strategy_id,
                     strategy_name=s.name,
                     strategy_type=normalize_strategy_type(meta, cfg),
-                    status=map_status(s.status),
+                    status=status,
+                    stop_reason=stop_reason_display,
                     trading_mode=normalize_trading_mode(meta, cfg),
                     unrealized_pnl=to_optional_float(meta.get("unrealized_pnl", 0.0)),
                     unrealized_pnl_pct=to_optional_float(
