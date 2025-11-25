@@ -29,12 +29,14 @@ from loguru import logger
 from valuecell.agents.common.trading.models import (
     StopReason,
     StrategyStatus,
+    StrategyStatusContent,
     UserRequest,
 )
 from valuecell.core.coordinate.orchestrator import AgentOrchestrator
-from valuecell.core.types import UserInput, UserInputMetadata
+from valuecell.core.types import CommonResponseEvent, UserInput, UserInputMetadata
 from valuecell.server.db.models.strategy import Strategy
 from valuecell.server.db.repositories.strategy_repository import get_strategy_repository
+from valuecell.server.services import strategy_persistence
 from valuecell.utils.uuid import generate_conversation_id
 
 _AUTORESUME_STARTED = False
@@ -103,11 +105,17 @@ async def _resume_one(orchestrator: AgentOrchestrator, strategy_row: Strategy) -
 
         async for chunk in orchestrator.process_user_input(user_input):
             logger.debug("Auto-resume chunk for strategy_id={}: {}", strategy_id, chunk)
-            if chunk.event == "component_generator":
+            if chunk.event == CommonResponseEvent.COMPONENT_GENERATOR:
                 logger.info(
                     "Auto-resume dispatched strategy_id={} agent={}",
                     strategy_id,
                     agent_name,
+                )
+                status_content = StrategyStatusContent.model_validate_json(
+                    chunk.data.payload.content
+                )
+                strategy_persistence.set_strategy_status(
+                    strategy_id, status_content.status.value
                 )
                 return
 
