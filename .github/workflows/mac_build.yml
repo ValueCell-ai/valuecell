@@ -4,9 +4,6 @@ on:
   push:
     branches: 
       - "release"
-  pull_request:
-    branches:
-      - "main"
   workflow_dispatch:
 permissions:
   contents: write
@@ -19,8 +16,8 @@ jobs:
           - args: --target aarch64-apple-darwin
             target: 'aarch64-apple-darwin'
             
-          # - args: --target x86_64-apple-darwin
-          #   target: 'x86_64-apple-darwin'
+          - args: --target x86_64-apple-darwin
+            target: 'x86_64-apple-darwin'
 
     runs-on: macos-latest
     env:
@@ -127,9 +124,10 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD}}
         with:
           tagName: v__VERSION__
-          releaseName: ValueCell-${{ matrix.target }}-__VERSION__-beta
+          releaseName: ValueCell-__VERSION__-beta
           releaseDraft: true
           prerelease: false
+          assetNamePattern: ValueCell-[version]-beta-[platform]-[arch][ext]
           args: ${{ matrix.args }}
           
       # - name: Upload Artifacts
