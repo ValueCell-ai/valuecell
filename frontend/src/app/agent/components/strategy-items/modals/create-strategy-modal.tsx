@@ -15,6 +15,7 @@ import CloseButton from "@/components/valuecell/button/close-button";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { TRADING_SYMBOLS } from "@/constants/agent";
 import { useAppForm } from "@/hooks/use-form";
+import type { Strategy } from "@/types/strategy";
 import { AIModelForm } from "../forms/ai-model-form";
 import { ExchangeForm } from "../forms/exchange-form";
 import { TradingStrategyForm } from "../forms/trading-strategy-form";
@@ -225,7 +226,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
   // Step 3 Form: Trading Strategy
   const form3 = useAppForm({
     defaultValues: {
-      strategy_type: "PromptBasedStrategy",
+      strategy_type: "PromptBasedStrategy" as Strategy["strategy_type"],
       strategy_name: "",
       initial_capital: 1000,
       max_leverage: 2,
