@@ -23,7 +23,7 @@ if TYPE_CHECKING:
         DecisionCycleResult,
         StrategyRuntime,
     )
-    from valuecell.agents.common.trading.decision import Composer
+    from valuecell.agents.common.trading.decision import BaseComposer
     from valuecell.agents.common.trading.features.interfaces import BaseFeaturesPipeline
 
 
@@ -44,7 +44,7 @@ class BaseStrategyAgent(BaseAgent, ABC):
     """
 
     @abstractmethod
-    def _build_features_pipeline(
+    async def _build_features_pipeline(
         self, request: UserRequest
     ) -> BaseFeaturesPipeline | None:
         """Build the features pipeline for the strategy.
@@ -61,7 +61,9 @@ class BaseStrategyAgent(BaseAgent, ABC):
         """
         raise NotImplementedError
 
-    def _create_decision_composer(self, request: UserRequest) -> Composer | None:
+    async def _create_decision_composer(
+        self, request: UserRequest
+    ) -> BaseComposer | None:
         """Build the decision composer for the strategy.
 
         Override to provide a custom composer. Return None to use default LLM composer.
@@ -74,7 +76,7 @@ class BaseStrategyAgent(BaseAgent, ABC):
         """
         return None
 
-    def _on_start(self, runtime: StrategyRuntime, request: UserRequest) -> None:
+    async def _on_start(self, runtime: StrategyRuntime, request: UserRequest) -> None:
         """Hook called after runtime creation, before first cycle.
 
         Use for custom initialization, caching, or metric registration.
@@ -86,7 +88,7 @@ class BaseStrategyAgent(BaseAgent, ABC):
         """
         pass
 
-    def _on_cycle_result(
+    async def _on_cycle_result(
         self,
         result: DecisionCycleResult,
         runtime: StrategyRuntime,
@@ -104,7 +106,7 @@ class BaseStrategyAgent(BaseAgent, ABC):
         """
         pass
 
-    def _on_stop(
+    async def _on_stop(
         self, runtime: StrategyRuntime, request: UserRequest, reason: StopReason | str
     ) -> None:
         """Hook called before finalization when strategy stops.
@@ -214,7 +216,7 @@ class BaseStrategyAgent(BaseAgent, ABC):
 
         # Call user hook for custom initialization
         try:
-            self._on_start(runtime, request)
+            await self._on_start(runtime, request)
         except Exception:
             logger.exception("Error in _on_start hook for strategy {}", strategy_id)
 
@@ -244,7 +246,7 @@ class BaseStrategyAgent(BaseAgent, ABC):
 
                 # Call user hook for post-cycle logic
                 try:
-                    self._on_cycle_result(result, runtime, request)
+                    await self._on_cycle_result(result, runtime, request)
                 except Exception:
                     logger.exception(
                         "Error in _on_cycle_result hook for strategy {}", strategy_id
@@ -290,7 +292,7 @@ class BaseStrategyAgent(BaseAgent, ABC):
 
             # Call user hook before finalization
             try:
-                self._on_stop(runtime, request, stop_reason)
+                await self._on_stop(runtime, request, stop_reason)
             except Exception:
                 logger.exception("Error in _on_stop hook for strategy {}", strategy_id)
 
@@ -321,12 +323,12 @@ class BaseStrategyAgent(BaseAgent, ABC):
             StrategyRuntime instance
         """
         # Let user build custom composer (or None for default)
-        composer = self._create_decision_composer(request)
+        composer = await self._create_decision_composer(request)
 
         # Let user build custom features pipeline (or None for default)
         # The coordinator invokes this pipeline each cycle to fetch data
         # and compute the feature vectors consumed by the decision step.
-        features_pipeline = self._build_features_pipeline(request)
+        features_pipeline = await self._build_features_pipeline(request)
 
         # Create runtime with custom components
         # The runtime factory will use defaults if composer/features are None

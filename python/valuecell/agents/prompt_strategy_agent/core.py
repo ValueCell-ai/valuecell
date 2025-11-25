@@ -38,14 +38,16 @@ class PromptBasedStrategyAgent(BaseStrategyAgent):
                 return MyCustomPipeline(request)
     """
 
-    def _build_features_pipeline(
+    async def _build_features_pipeline(
         self, request: UserRequest
     ) -> BaseFeaturesPipeline | None:
         """Use the default features pipeline built from the user request."""
 
         return DefaultFeaturesPipeline.from_request(request)
 
-    def _create_decision_composer(self, request: UserRequest) -> BaseComposer | None:
+    async def _create_decision_composer(
+        self, request: UserRequest
+    ) -> BaseComposer | None:
         """Use default LLM-based composer."""
 
         return LlmComposer(request=request)
