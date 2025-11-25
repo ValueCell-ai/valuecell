@@ -9,7 +9,6 @@ Migration Notes:
 - Backward compatible: Environment variables still work for model_id override
 """
 
-import logging
 import os
 from typing import Optional
 
@@ -19,6 +18,7 @@ from agno.models.openai import OpenAIChat as AgnoOpenAIChatModel
 from agno.models.openai import OpenAILike as AgnoOpenAILikeModel
 from agno.models.openrouter import OpenRouter as AgnoOpenRouterModel
 from agno.models.siliconflow import Siliconflow as AgnoSiliconflowModel
+from loguru import logger
 
 from valuecell.adapters.models.factory import (
     create_embedder,
@@ -27,7 +27,14 @@ from valuecell.adapters.models.factory import (
     create_model_for_agent,
 )
 
-logger = logging.getLogger(__name__)
+
+def describe_model(model: AgnoModel) -> str:
+    try:
+        model_description = f"{model.id} (via {model.provider})"
+    except Exception:
+        model_description = "unknown model/provider"
+
+    return model_description
 
 
 def model_should_use_json_mode(model: AgnoModel) -> bool:

@@ -210,7 +210,12 @@ class LlmComposer(BaseComposer):
         logger.error("LLM output failed validation: {}", content)
         return TradePlanProposal(
             items=[],
-            rationale=f"LLM output failed validation: {content}",
+            rationale=(
+                "LLM output failed validation. The model you chose "
+                f"`{model_utils.describe_model(model)}` "
+                "may be incompatible or returned unexpected output. "
+                f"Raw output: {content}",
+            ),
         )
 
     async def _send_plan_to_discord(self, plan: TradePlanProposal) -> None:
