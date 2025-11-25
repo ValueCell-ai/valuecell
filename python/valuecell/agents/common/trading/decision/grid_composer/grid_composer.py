@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from loguru import logger
 
@@ -70,6 +70,75 @@ class GridComposer(BaseComposer):
         self._last_llm_advice_ts: Optional[int] = None
         self._llm_advice_refresh_sec: int = 300
         self._llm_advice_rationale: Optional[str] = None
+        # Apply stability: do not change params frequently unless market clearly shifts
+        self._market_change_threshold_pct: float = (
+            0.01  # 1% absolute change triggers update
+        )
+        # Minimum grid zone bounds (relative to avg price) to ensure clear trading window
+        self._min_grid_zone_pct: float = 0.10  # at least ±10%
+        # Limit per-update grid_count change to avoid oscillation
+        self._max_grid_count_delta: int = 2
+
+    def _max_abs_change_pct(self, context: ComposeContext) -> Optional[float]:
+        symbols = list(self._request.trading_config.symbols or [])
+        max_abs: Optional[float] = None
+        for fv in context.features or []:
+            try:
+                sym = str(getattr(fv.instrument, "symbol", ""))
+                if sym not in symbols:
+                    continue
+                change = fv.values.get("change_pct")
+                if change is None:
+                    change = fv.values.get("price.change_pct")
+                if change is None:
+                    last_px = fv.values.get("price.last") or fv.values.get(
+                        "price.close"
+                    )
+                    open_px = fv.values.get("price.open")
+                    if last_px is not None and open_px is not None:
+                        try:
+                            change = (float(last_px) - float(open_px)) / float(open_px)
+                        except Exception:
+                            change = None
+                if change is None:
+                    continue
+                val = abs(float(change))
+                if (max_abs is None) or (val > max_abs):
+                    max_abs = val
+            except Exception:
+                continue
+        return max_abs
+
+    def _has_clear_market_change(self, context: ComposeContext) -> bool:
+        try:
+            max_abs = self._max_abs_change_pct(context)
+            if max_abs is None:
+                return False
+            return max_abs >= float(self._market_change_threshold_pct)
+        except Exception:
+            return False
+
+    def _zone_suffix(self, context: ComposeContext) -> str:
+        """Return a concise zone description suffix for rationales.
+        Prefer price ranges based on positions' avg_price; fall back to pct.
+        """
+        if (self._grid_lower_pct is None) and (self._grid_upper_pct is None):
+            return ""
+        try:
+            zone_entries = []
+            positions = getattr(context.portfolio, "positions", None) or {}
+            for sym, pos in positions.items():
+                avg_px = getattr(pos, "avg_price", None)
+                if avg_px is None or float(avg_px) <= 0.0:
+                    continue
+                lower_bound = float(avg_px) * (1.0 - float(self._grid_lower_pct or 0.0))
+                upper_bound = float(avg_px) * (1.0 + float(self._grid_upper_pct or 0.0))
+                zone_entries.append(f"{sym}=[{lower_bound:.4f}, {upper_bound:.4f}]")
+            if zone_entries:
+                return " — zone_prices(" + "; ".join(zone_entries) + ")"
+        except Exception:
+            pass
+        return f" — zone_pct=[-{float(self._grid_lower_pct or 0.0):.4f}, +{float(self._grid_upper_pct or 0.0):.4f}]"
 
     async def compose(self, context: ComposeContext) -> ComposeResult:
         ts = int(context.ts)
@@ -89,28 +158,87 @@ class GridComposer(BaseComposer):
                 or (not self._llm_params_applied)
             )
             if source_is_llm and should_refresh:
-                advisor = GridParamAdvisor(self._request)
+                prev_params = {
+                    "grid_step_pct": self._step_pct,
+                    "grid_max_steps": self._max_steps,
+                    "grid_base_fraction": self._base_fraction,
+                    "grid_lower_pct": self._grid_lower_pct,
+                    "grid_upper_pct": self._grid_upper_pct,
+                    "grid_count": self._grid_count,
+                }
+                advisor = GridParamAdvisor(self._request, prev_params=prev_params)
                 advice = await advisor.advise(context)
                 if advice:
-                    # Apply advised params with sanity clamps — model decides dynamically
-                    self._step_pct = max(1e-6, float(advice.grid_step_pct))
-                    self._max_steps = max(1, int(advice.grid_max_steps))
-                    self._base_fraction = max(1e-6, float(advice.grid_base_fraction))
-                    # Optional zone and grid discretization
-                    if getattr(advice, "grid_lower_pct", None) is not None:
-                        self._grid_lower_pct = max(0.0, float(advice.grid_lower_pct))
-                    if getattr(advice, "grid_upper_pct", None) is not None:
-                        self._grid_upper_pct = max(0.0, float(advice.grid_upper_pct))
-                    if getattr(advice, "grid_count", None) is not None:
-                        self._grid_count = max(1, int(advice.grid_count))
-                        total_span = (self._grid_lower_pct or 0.0) + (
-                            self._grid_upper_pct or 0.0
+                    # Decide whether to apply new params based on market change
+                    apply_new = (
+                        not self._llm_params_applied
+                    ) or self._has_clear_market_change(context)
+                    if apply_new:
+                        # Apply advised params with sanity clamps — model decides dynamically
+                        self._step_pct = max(1e-6, float(advice.grid_step_pct))
+                        self._max_steps = max(1, int(advice.grid_max_steps))
+                        self._base_fraction = max(
+                            1e-6, float(advice.grid_base_fraction)
                         )
-                        if total_span > 0.0:
-                            self._step_pct = max(
-                                1e-6, total_span / float(self._grid_count)
+                        # Optional zone and grid discretization with minimum ±10% bounds
+                        if getattr(advice, "grid_lower_pct", None) is not None:
+                            proposed_lower = max(0.0, float(advice.grid_lower_pct))
+                        else:
+                            proposed_lower = self._min_grid_zone_pct
+                        if getattr(advice, "grid_upper_pct", None) is not None:
+                            proposed_upper = max(0.0, float(advice.grid_upper_pct))
+                        else:
+                            proposed_upper = self._min_grid_zone_pct
+                        # Enforce minimum zone widths
+                        self._grid_lower_pct = max(
+                            self._min_grid_zone_pct, proposed_lower
+                        )
+                        self._grid_upper_pct = max(
+                            self._min_grid_zone_pct, proposed_upper
+                        )
+                        if getattr(advice, "grid_count", None) is not None:
+                            proposed_count = max(1, int(advice.grid_count))
+                            if self._grid_count is not None:
+                                # Clamp change to avoid abrupt jumps (±self._max_grid_count_delta)
+                                lower_bound = max(
+                                    1,
+                                    int(self._grid_count)
+                                    - int(self._max_grid_count_delta),
+                                )
+                                upper_bound = int(self._grid_count) + int(
+                                    self._max_grid_count_delta
+                                )
+                                self._grid_count = max(
+                                    lower_bound, min(upper_bound, proposed_count)
+                                )
+                            else:
+                                self._grid_count = proposed_count
+                            total_span = (self._grid_lower_pct or 0.0) + (
+                                self._grid_upper_pct or 0.0
                             )
-                            self._max_steps = max(1, int(self._grid_count))
+                            if total_span > 0.0:
+                                self._step_pct = max(
+                                    1e-6, total_span / float(self._grid_count)
+                                )
+                                self._max_steps = max(1, int(self._grid_count))
+                        self._llm_params_applied = True
+                        logger.info(
+                            "Applied dynamic LLM grid params: step_pct={}, max_steps={}, base_fraction={}, lower={}, upper={}, count={}",
+                            self._step_pct,
+                            self._max_steps,
+                            self._base_fraction,
+                            self._grid_lower_pct,
+                            self._grid_upper_pct,
+                            self._grid_count,
+                        )
+                    else:
+                        logger.info(
+                            "Suppressed grid param update due to stable market (threshold={}): keeping step_pct={}, max_steps={}, base_fraction={}",
+                            self._market_change_threshold_pct,
+                            self._step_pct,
+                            self._max_steps,
+                            self._base_fraction,
+                        )
                     # Capture advisor rationale when available
                     try:
                         self._llm_advice_rationale = getattr(
@@ -118,17 +246,7 @@ class GridComposer(BaseComposer):
                         )
                     except Exception:
                         self._llm_advice_rationale = None
-                    self._llm_params_applied = True
                     self._last_llm_advice_ts = ts
-                    logger.info(
-                        "Applied dynamic LLM grid params: step_pct={}, max_steps={}, base_fraction={}, lower={}, upper={}, count={}",
-                        self._step_pct,
-                        self._max_steps,
-                        self._base_fraction,
-                        self._grid_lower_pct,
-                        self._grid_upper_pct,
-                        self._grid_count,
-                    )
         except Exception:
             # Non-fatal; continue with configured defaults
             pass
@@ -247,6 +365,45 @@ class GridComposer(BaseComposer):
                     continue
             return ", ".join(found) if found else "no snapshot price keys present"
 
+        # Resolve previous and current price pair for the symbol using best available feature
+        def resolve_prev_curr_prices(symbol: str) -> Optional[Tuple[float, float]]:
+            best_pair: Optional[Tuple[float, float]] = None
+            best_rank = 999
+            for fv in context.features or []:
+                try:
+                    if str(getattr(fv.instrument, "symbol", "")) != symbol:
+                        continue
+                    meta = fv.meta or {}
+                    interval = meta.get("interval")
+                    group_key = meta.get(FEATURE_GROUP_BY_KEY)
+                    open_px = fv.values.get("price.open")
+                    last_px = fv.values.get("price.last") or fv.values.get(
+                        "price.close"
+                    )
+                    if open_px is None or last_px is None:
+                        continue
+                    try:
+                        o = float(open_px)
+                        last_price = float(last_px)
+                        if o <= 0 or last_price <= 0:
+                            continue
+                    except Exception:
+                        continue
+                    if interval == "1s":
+                        rank = 0
+                    elif group_key == FEATURE_GROUP_BY_MARKET_SNAPSHOT:
+                        rank = 1
+                    elif interval == "1m":
+                        rank = 2
+                    else:
+                        rank = 3
+                    if rank < best_rank:
+                        best_pair = (o, last_price)
+                        best_rank = rank
+                except Exception:
+                    continue
+            return best_pair
+
         symbols = list(dict.fromkeys(self._request.trading_config.symbols))
         is_spot = self._request.exchange_config.market_type == MarketType.SPOT
         noop_reasons: List[str] = []
@@ -265,7 +422,7 @@ class GridComposer(BaseComposer):
             qty = float(getattr(pos, "quantity", 0.0) or 0.0)
             avg_px = float(getattr(pos, "avg_price", 0.0) or 0.0)
 
-            # Base order size: equity fraction converted to quantity; parent applies risk controls
+            # Base order size per grid: equity fraction converted to quantity; parent applies risk controls
             base_qty = max(0.0, (equity * self._base_fraction) / price)
             if base_qty <= 0:
                 noop_reasons.append(
@@ -281,17 +438,20 @@ class GridComposer(BaseComposer):
                 k = int(math.floor(move_pct / max(self._step_pct, 1e-9)))
                 return max(0, min(k, self._max_steps))
 
-            # No position: use latest change to trigger direction (spot long-only)
+            # No position: open when current price crosses a grid step from previous price
             if abs(qty) <= self._quantity_precision:
-                chg = latest_change_pct(symbol, allow_market_snapshot=False)
-                if chg is None:
-                    # If no micro-interval change feature available, skip conservatively
+                pair = resolve_prev_curr_prices(symbol)
+                if pair is None:
                     noop_reasons.append(
-                        f"{symbol}: 1s/1m candle change_pct unavailable; prefer NOOP"
+                        f"{symbol}: prev/curr price unavailable; prefer NOOP"
                     )
                     continue
-                if chg <= -self._step_pct:
-                    # Short-term drop → open long
+                prev_px, curr_px = pair
+                # Compute grid indices around a reference (use curr_px as temporary anchor)
+                # For initial opens, direction follows price movement across a step
+                moved_down = curr_px <= prev_px * (1.0 - self._step_pct)
+                moved_up = curr_px >= prev_px * (1.0 + self._step_pct)
+                if moved_down:
                     items.append(
                         TradeDecisionItem(
                             instrument=InstrumentRef(
@@ -314,12 +474,11 @@ class GridComposer(BaseComposer):
                                     ),
                                 )
                             ),
-                            confidence=min(1.0, abs(chg) / (2 * self._step_pct)),
-                            rationale=f"Grid open-long: change_pct={chg:.4f} ≤ -step={self._step_pct:.4f}",
+                            confidence=1.0,
+                            rationale=f"Grid open-long: crossed down ≥1 step from prev {prev_px:.4f} to {curr_px:.4f}{self._zone_suffix(context)}",
                         )
                     )
-                elif (not is_spot) and chg >= self._step_pct:
-                    # Short-term rise → open short (perpetual only)
+                elif (not is_spot) and moved_up:
                     items.append(
                         TradeDecisionItem(
                             instrument=InstrumentRef(
@@ -336,34 +495,38 @@ class GridComposer(BaseComposer):
                                     or 1.0
                                 ),
                             ),
-                            confidence=min(1.0, abs(chg) / (2 * self._step_pct)),
-                            rationale=f"Grid open-short: change_pct={chg:.4f} ≥ step={self._step_pct:.4f}",
+                            confidence=1.0,
+                            rationale=f"Grid open-short: crossed up ≥1 step from prev {prev_px:.4f} to {curr_px:.4f}{self._zone_suffix(context)}",
                         )
-                    )
-                # Otherwise NOOP: thresholds not met (or short not allowed in spot)
-                if is_spot and chg >= self._step_pct:
-                    noop_reasons.append(
-                        f"{symbol}: spot market — change_pct={chg:.4f} ≥ step={self._step_pct:.4f}, short open disabled"
                     )
                 else:
                     noop_reasons.append(
-                        f"{symbol}: no position — change_pct={chg:.4f} within [−{self._step_pct:.4f}, {self._step_pct:.4f}]"
+                        f"{symbol}: no position — no grid step crossed (prev={prev_px:.4f}, curr={curr_px:.4f})"
                     )
                 continue
 
-            # With position: adjust around average using grid
-            k = steps_from_avg(price, avg_px)
-            if k <= 0:
-                # No grid step triggered → NOOP
-                if avg_px > 0:
-                    move_pct = abs(price / avg_px - 1.0)
-                    noop_reasons.append(
-                        f"{symbol}: move_pct={move_pct:.4f} < step={self._step_pct:.4f} (around avg)"
-                    )
-                else:
-                    noop_reasons.append(
-                        f"{symbol}: missing avg_price; cannot evaluate grid steps"
-                    )
+            # With position: adjust strictly when crossing grid lines from previous to current price
+            pair = resolve_prev_curr_prices(symbol)
+            if pair is None or avg_px <= 0:
+                noop_reasons.append(
+                    f"{symbol}: missing prev/curr or avg price; cannot evaluate grid crossing"
+                )
+                continue
+            prev_px, curr_px = pair
+
+            # Compute integer grid indices relative to avg price
+            def grid_index(px: float) -> int:
+                return int(math.floor((px / avg_px - 1.0) / max(self._step_pct, 1e-9)))
+
+            gi_prev = grid_index(prev_px)
+            gi_curr = grid_index(curr_px)
+            delta_idx = gi_curr - gi_prev
+            if delta_idx == 0:
+                lower = avg_px * (1.0 - self._step_pct)
+                upper = avg_px * (1.0 + self._step_pct)
+                noop_reasons.append(
+                    f"{symbol}: position — no grid index change (prev={prev_px:.4f}, curr={curr_px:.4f}) within [{lower:.4f}, {upper:.4f}]"
+                )
                 continue
 
             # Optional: enforce configured grid zone around average
@@ -380,9 +543,9 @@ class GridComposer(BaseComposer):
 
             # Long: add on down, reduce on up
             if qty > 0:
-                down = (avg_px > 0) and (price <= avg_px * (1.0 - self._step_pct))
-                up = (avg_px > 0) and (price >= avg_px * (1.0 + self._step_pct))
-                if down:
+                # Cap per-cycle applied steps by max_steps to avoid oversized reactions
+                applied_steps = min(abs(delta_idx), int(self._max_steps))
+                if delta_idx < 0:
                     items.append(
                         TradeDecisionItem(
                             instrument=InstrumentRef(
@@ -390,7 +553,8 @@ class GridComposer(BaseComposer):
                                 exchange_id=self._request.exchange_config.exchange_id,
                             ),
                             action=TradeDecisionAction.OPEN_LONG,
-                            target_qty=base_qty * k,
+                            # per-crossing sizing: one base per grid crossed
+                            target_qty=base_qty * applied_steps,
                             leverage=1.0
                             if is_spot
                             else min(
@@ -401,11 +565,11 @@ class GridComposer(BaseComposer):
                                     or 1.0
                                 ),
                             ),
-                            confidence=min(1.0, k / float(self._max_steps)),
-                            rationale=f"Grid long add: price {price:.4f} ≤ avg {avg_px:.4f} by {k} steps",
+                            confidence=min(1.0, applied_steps / float(self._max_steps)),
+                            rationale=f"Grid long add: crossed {abs(delta_idx)} grid(s) down, applying {applied_steps} (prev={prev_px:.4f} → curr={curr_px:.4f}) around avg {avg_px:.4f}{self._zone_suffix(context)}",
                         )
                     )
-                elif up:
+                elif delta_idx > 0:
                     items.append(
                         TradeDecisionItem(
                             instrument=InstrumentRef(
@@ -413,19 +577,18 @@ class GridComposer(BaseComposer):
                                 exchange_id=self._request.exchange_config.exchange_id,
                             ),
                             action=TradeDecisionAction.CLOSE_LONG,
-                            target_qty=min(abs(qty), base_qty * k),
+                            target_qty=min(abs(qty), base_qty * applied_steps),
                             leverage=1.0,
-                            confidence=min(1.0, k / float(self._max_steps)),
-                            rationale=f"Grid long reduce: price {price:.4f} ≥ avg {avg_px:.4f} by {k} steps",
+                            confidence=min(1.0, applied_steps / float(self._max_steps)),
+                            rationale=f"Grid long reduce: crossed {abs(delta_idx)} grid(s) up, applying {applied_steps} (prev={prev_px:.4f} → curr={curr_px:.4f}) around avg {avg_px:.4f}{self._zone_suffix(context)}",
                         )
                     )
                 continue
 
             # Short: add on up, cover on down
             if qty < 0:
-                up = (avg_px > 0) and (price >= avg_px * (1.0 + self._step_pct))
-                down = (avg_px > 0) and (price <= avg_px * (1.0 - self._step_pct))
-                if up and (not is_spot):
+                applied_steps = min(abs(delta_idx), int(self._max_steps))
+                if delta_idx > 0 and (not is_spot):
                     items.append(
                         TradeDecisionItem(
                             instrument=InstrumentRef(
@@ -433,7 +596,7 @@ class GridComposer(BaseComposer):
                                 exchange_id=self._request.exchange_config.exchange_id,
                             ),
                             action=TradeDecisionAction.OPEN_SHORT,
-                            target_qty=base_qty * k,
+                            target_qty=base_qty * applied_steps,
                             leverage=min(
                                 float(self._request.trading_config.max_leverage or 1.0),
                                 float(
@@ -442,11 +605,11 @@ class GridComposer(BaseComposer):
                                     or 1.0
                                 ),
                             ),
-                            confidence=min(1.0, k / float(self._max_steps)),
-                            rationale=f"Grid short add: price {price:.4f} ≥ avg {avg_px:.4f} by {k} steps",
+                            confidence=min(1.0, applied_steps / float(self._max_steps)),
+                            rationale=f"Grid short add: crossed {abs(delta_idx)} grid(s) up, applying {applied_steps} (prev={prev_px:.4f} → curr={curr_px:.4f}) around avg {avg_px:.4f}{self._zone_suffix(context)}",
                         )
                     )
-                elif down:
+                elif delta_idx < 0:
                     items.append(
                         TradeDecisionItem(
                             instrument=InstrumentRef(
@@ -454,10 +617,10 @@ class GridComposer(BaseComposer):
                                 exchange_id=self._request.exchange_config.exchange_id,
                             ),
                             action=TradeDecisionAction.CLOSE_SHORT,
-                            target_qty=min(abs(qty), base_qty * k),
+                            target_qty=min(abs(qty), base_qty * applied_steps),
                             leverage=1.0,
-                            confidence=min(1.0, k / float(self._max_steps)),
-                            rationale=f"Grid short cover: price {price:.4f} ≤ avg {avg_px:.4f} by {k} steps",
+                            confidence=min(1.0, applied_steps / float(self._max_steps)),
+                            rationale=f"Grid short cover: crossed {abs(delta_idx)} grid(s) down, applying {applied_steps} (prev={prev_px:.4f} → curr={curr_px:.4f}) around avg {avg_px:.4f}{self._zone_suffix(context)}",
                         )
                     )
                 else:
@@ -465,7 +628,7 @@ class GridComposer(BaseComposer):
                         lower = avg_px * (1.0 - self._step_pct)
                         upper = avg_px * (1.0 + self._step_pct)
                         noop_reasons.append(
-                            f"{symbol}: short position — price {price:.4f} within grid [{lower:.4f}, {upper:.4f}]"
+                            f"{symbol}: short position — no grid index change (prev={prev_px:.4f}, curr={curr_px:.4f}) within [{lower:.4f}, {upper:.4f}]"
                         )
                     else:
                         noop_reasons.append(
@@ -478,38 +641,34 @@ class GridComposer(BaseComposer):
         src = "LLM"
         zone_desc = None
         if (self._grid_lower_pct is not None) or (self._grid_upper_pct is not None):
-            zone_desc = f"zone=[-{float(self._grid_lower_pct or 0.0):.4f}, +{float(self._grid_upper_pct or 0.0):.4f}]"
+            # Prefer price-based zone display using current positions' avg_price
+            try:
+                zone_entries = []
+                for sym, pos in (context.portfolio.positions or {}).items():
+                    avg_px = getattr(pos, "avg_price", None)
+                    if avg_px is None or float(avg_px) <= 0.0:
+                        continue
+                    lower_bound = float(avg_px) * (
+                        1.0 - float(self._grid_lower_pct or 0.0)
+                    )
+                    upper_bound = float(avg_px) * (
+                        1.0 + float(self._grid_upper_pct or 0.0)
+                    )
+                    zone_entries.append(f"{sym}=[{lower_bound:.4f}, {upper_bound:.4f}]")
+                if zone_entries:
+                    zone_desc = "zone_prices(" + "; ".join(zone_entries) + ")"
+                else:
+                    # Fallback to percent display when no avg_price available
+                    zone_desc = f"zone_pct=[-{float(self._grid_lower_pct or 0.0):.4f}, +{float(self._grid_upper_pct or 0.0):.4f}]"
+            except Exception:
+                zone_desc = f"zone_pct=[-{float(self._grid_lower_pct or 0.0):.4f}, +{float(self._grid_upper_pct or 0.0):.4f}]"
         count_desc = (
             f", count={int(self._grid_count)}" if self._grid_count is not None else ""
         )
         params_desc = f"params(source={src}, step_pct={self._step_pct:.4f}, max_steps={self._max_steps}, base_fraction={self._base_fraction:.4f}"
         if zone_desc:
-            params_desc += f", {zone_desc}{count_desc}"
-        params_desc += ")"
-        # Include available buying power and free_cash for transparency when composing rationale
-        try:
-            if self._request.exchange_config.market_type == MarketType.SPOT:
-                available_bp = max(0.0, float(equity))
-            else:
-                available_bp = max(
-                    0.0,
-                    float(equity) * float(allowed_lev) - float(_projected_gross or 0.0),
-                )
-        except Exception:
-            available_bp = None
-
-        free_cash_val = getattr(context.portfolio, "free_cash", None)
-        bp_detail = (
-            f", available_bp={float(available_bp):.4f}"
-            if available_bp is not None
-            else ""
-        )
-        fc_detail = (
-            f", free_cash={float(free_cash_val):.4f}"
-            if free_cash_val is not None
-            else ""
-        )
-        bp_desc = f"normalization=filters+leverage_cap+buying_power(equity={float(equity):.4f}, allowed_lev={float(allowed_lev):.2f}{bp_detail}{fc_detail})"
+            params_desc += f", {zone_desc}"
+        params_desc += f"{count_desc})"
         advisor_desc = (
             f"; advisor_rationale={self._llm_advice_rationale}"
             if self._llm_advice_rationale
@@ -522,13 +681,13 @@ class GridComposer(BaseComposer):
             )
             # Compose a concise rationale summarizing why no actions were emitted
             summary = "; ".join(noop_reasons) if noop_reasons else "no triggers hit"
-            rationale = f"Grid NOOP — reasons: {summary}. {params_desc}; {bp_desc}{advisor_desc}"
+            rationale = f"Grid NOOP — reasons: {summary}. {params_desc}{advisor_desc}"
             return ComposeResult(instructions=[], rationale=rationale)
 
         plan = TradePlanProposal(
             ts=ts,
             items=items,
-            rationale=f"Grid plan — {params_desc}; {bp_desc}{advisor_desc}",
+            rationale=f"Grid plan — {params_desc}{advisor_desc}",
         )
         # Reuse parent normalization: quantity filters, buying power, cap_factor, reduceOnly, etc.
         normalized = self._normalize_plan(context, plan)

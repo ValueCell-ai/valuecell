@@ -28,8 +28,12 @@ SYSTEM_PROMPT = (
 
 
 class GridParamAdvisor:
-    def __init__(self, request: UserRequest) -> None:
+    def __init__(
+        self, request: UserRequest, prev_params: Optional[dict] = None
+    ) -> None:
         self._request = request
+        # Previous applied grid params from composer (optional), used to anchor suggestions
+        self._prev_params = prev_params or {}
 
     async def advise(self, context: ComposeContext) -> Optional[GridParamAdvice]:
         cfg = self._request.llm_model_config
@@ -77,6 +81,26 @@ class GridParamAdvisor:
                 "symbols": self._request.trading_config.symbols,
                 "snapshot_metrics": metrics,
             }
+
+            # Include previous applied parameters to promote continuity and gradual changes
+            try:
+                prev = {}
+                for k in (
+                    "grid_step_pct",
+                    "grid_max_steps",
+                    "grid_base_fraction",
+                    "grid_lower_pct",
+                    "grid_upper_pct",
+                    "grid_count",
+                ):
+                    v = self._prev_params.get(k)
+                    if v is not None:
+                        prev[k] = float(v) if isinstance(v, (int, float)) else v
+                if prev:
+                    payload["previous_params"] = prev
+            except Exception:
+                # Ignore if previous params cannot be assembled
+                pass
 
             # Include portfolio/buying power context so the model scales params realistically
             try:
@@ -138,7 +162,8 @@ class GridParamAdvisor:
                 "Keep within ranges; favor smaller step_pct for high-liquidity and high-volatility pairs. "
                 "If funding.rate is high or open_interest large, prefer tighter grid and smaller base_fraction; otherwise be conservative. "
                 "Consider portfolio.equity, buying_power, free_cash, constraints.max_leverage, and cap_factor to scale base_fraction and optional grid_count. "
-                "Avoid suggesting parameter combinations that imply excessive total size under available buying_power."
+                "Avoid suggesting parameter combinations that imply excessive total size under available buying_power. "
+                "Anchor suggestions to previous_params when provided; prefer gradual adjustments (e.g., limit grid_count delta within ±2 and keep step_pct changes small) unless metrics indicate a clear regime shift."
             )
             prompt = (
                 f"{instructions}\n\nContext:\n{json.dumps(payload, ensure_ascii=False)}"
