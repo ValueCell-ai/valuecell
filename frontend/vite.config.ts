@@ -88,4 +88,12 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
+  resolve:
+    process.env.NODE_ENV === "development"
+      ? {}
+      : {
+          alias: {
+            "react-dom/server": "react-dom/server.node",
+          },
+        }
 }));

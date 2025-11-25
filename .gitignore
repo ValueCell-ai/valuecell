@@ -231,4 +231,5 @@ logs
 
 # Local configs
 python/configs/
-python/uv.lock
+
+*.key

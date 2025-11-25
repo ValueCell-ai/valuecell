@@ -9,13 +9,16 @@ Migration Notes:
 - Backward compatible: Environment variables still work for model_id override
 """
 
-import logging
 import os
 from typing import Optional
 
 from agno.models.base import Model as AgnoModel
 from agno.models.google import Gemini as AgnoGeminiModel
 from agno.models.openai import OpenAIChat as AgnoOpenAIChatModel
+from agno.models.openai import OpenAILike as AgnoOpenAILikeModel
+from agno.models.openrouter import OpenRouter as AgnoOpenRouterModel
+from agno.models.siliconflow import Siliconflow as AgnoSiliconflowModel
+from loguru import logger
 
 from valuecell.adapters.models.factory import (
     create_embedder,
@@ -24,23 +27,102 @@ from valuecell.adapters.models.factory import (
     create_model_for_agent,
 )
 
-logger = logging.getLogger(__name__)
+
+def describe_model(model: AgnoModel) -> str:
+    try:
+        model_description = f"{model.id} (via {model.provider})"
+    except Exception:
+        model_description = "unknown model/provider"
+
+    return model_description
 
 
 def model_should_use_json_mode(model: AgnoModel) -> bool:
+    """
+    Determine if a model should use JSON mode instead of structured outputs.
+
+    JSON mode is required for:
+    1. Models that support JSON mode but not OpenAI's structured outputs
+    2. OpenAI-compatible APIs that don't support response_format with json_schema
+
+    Returns True for:
+    - Google Gemini models
+    - OpenAI models (official)
+    - DeepSeek models (OpenAI-compatible but no structured outputs support)
+    - OpenRouter models (third-party proxy, safer to use JSON mode)
+    - SiliconFlow models (OpenAI-compatible but limited structured outputs support)
+    - Other OpenAI-compatible APIs (safer default)
+    """
     try:
         provider = getattr(model, "provider", None)
         name = getattr(model, "name", None)
+
+        # Google Gemini requires JSON mode
         if provider == AgnoGeminiModel.provider and name == AgnoGeminiModel.name:
+            logger.debug("Detected Gemini model - using JSON mode")
             return True
+
+        # Official OpenAI models support both, but JSON mode is more reliable
         if (
             provider == AgnoOpenAIChatModel.provider
             and name == AgnoOpenAIChatModel.name
         ):
+            logger.debug("Detected OpenAI model - using JSON mode")
             return True
-    except Exception:
-        # Any unexpected condition falls back to standard (non-JSON) mode
-        return False
+
+        # OpenRouter models - third-party proxy supporting many models
+        # Use JSON mode for compatibility across different underlying models
+        if (
+            AgnoOpenRouterModel
+            and provider == AgnoOpenRouterModel.provider
+            and name == AgnoOpenRouterModel.name
+        ):
+            logger.debug(
+                "Detected OpenRouter model - using JSON mode (third-party proxy)"
+            )
+            return True
+
+        # SiliconFlow models - OpenAI-compatible but limited structured outputs
+        if (
+            AgnoSiliconflowModel
+            and provider == AgnoSiliconflowModel.provider
+            and name == AgnoSiliconflowModel.name
+        ):
+            logger.debug("Detected SiliconFlow model - using JSON mode")
+            return True
+
+        # OpenAI-compatible models (OpenAILike) - check base_url
+        if (
+            AgnoOpenAILikeModel
+            and provider == AgnoOpenAILikeModel.provider
+            and name == AgnoOpenAILikeModel.name
+        ):
+            base_url = getattr(model, "base_url", None)
+            if base_url:
+                base_url_str = str(base_url).lower()
+
+                # DeepSeek doesn't support structured outputs, only JSON mode
+                if "deepseek.com" in base_url_str:
+                    logger.debug(
+                        "Detected DeepSeek API - forcing JSON mode "
+                        "(structured outputs not supported)"
+                    )
+                    return True
+
+                # For other OpenAI-compatible APIs, use JSON mode as safer default
+                # Most OpenAI-compatible APIs support JSON mode but not structured outputs
+                logger.debug(
+                    f"Detected OpenAI-compatible API ({base_url_str}) - using JSON mode"
+                )
+                return True
+
+    except Exception as e:
+        # Any unexpected condition falls back to JSON mode for safety
+        logger.debug(
+            f"Exception in model_should_use_json_mode: {e}, defaulting to JSON mode"
+        )
+        return True
+
     return False
 
 
