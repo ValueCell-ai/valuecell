@@ -20,7 +20,7 @@ export const useGetStrategyList = () => {
         }>
       >("/strategies"),
     select: (data) => data.data.strategies,
-    refetchInterval: 15 * 1000,
+    refetchInterval: 5 * 1000,
   });
 };
 
@@ -32,7 +32,7 @@ export const useGetStrategyDetails = (strategyId?: string) => {
         `/strategies/detail?id=${strategyId}`,
       ),
     select: (data) => data.data,
-    refetchInterval: 15 * 1000,
+    refetchInterval: 5 * 1000,
     enabled: !!strategyId,
   });
 };
@@ -45,7 +45,7 @@ export const useGetStrategyHoldings = (strategyId?: string) => {
         `/strategies/holding?id=${strategyId}`,
       ),
     select: (data) => data.data,
-    refetchInterval: 15 * 1000,
+    refetchInterval: 5 * 1000,
     enabled: !!strategyId,
   });
 };
@@ -58,7 +58,7 @@ export const useGetStrategyPriceCurve = (strategyId?: string) => {
         `/strategies/holding_price_curve?id=${strategyId}`,
       ),
     select: (data) => data.data,
-    refetchInterval: 15 * 1000,
+    refetchInterval: 5 * 1000,
     enabled: !!strategyId,
   });
 };
@@ -73,7 +73,7 @@ export const useGetStrategyPortfolioSummary = (strategyId?: string) => {
         `/strategies/portfolio_summary?id=${strategyId}`,
       ),
     select: (data) => data.data,
-    refetchInterval: 15 * 1000,
+    refetchInterval: 5 * 1000,
     enabled: !!strategyId,
   });
 };
