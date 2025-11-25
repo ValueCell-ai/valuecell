@@ -281,7 +281,9 @@ class TestSQLiteTaskStore:
 
             # Test three filters - only task1 matches all three
             tasks = await store.list_tasks(
-                conversation_id="conv-123", user_id="user-123", status=TaskStatus.RUNNING
+                conversation_id="conv-123",
+                user_id="user-123",
+                status=TaskStatus.RUNNING,
             )
             assert len(tasks) == 1
             assert tasks[0].task_id == "task-1"

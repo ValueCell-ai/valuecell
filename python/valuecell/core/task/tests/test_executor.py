@@ -312,7 +312,7 @@ async def test_execute_task_scheduled_emits_controller_and_done(
 
     emitted = [
         resp
-        async for resp in executor._execute_task(
+        async for resp in executor.execute_task(
             task, thread_id="thread", metadata=None, on_before_done=on_before_done_cb
         )
     ]

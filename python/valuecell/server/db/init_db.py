@@ -168,7 +168,7 @@ class DatabaseInitializer:
                     ON conversation_items(conversation_id, created_at)
                 """)
                 )
-                
+
                 # Create tasks table for task management
                 conn.execute(
                     text("""

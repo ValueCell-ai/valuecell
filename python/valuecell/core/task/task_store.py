@@ -298,9 +298,7 @@ class SQLiteTaskStore(TaskStore):
 
         if status is not None:
             query += " AND status = ?"
-            params.append(
-                status.value if hasattr(status, "value") else str(status)
-            )
+            params.append(status.value if hasattr(status, "value") else str(status))
 
         query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
         params.extend([limit, offset])

@@ -173,7 +173,7 @@ class TaskExecutor:
 
             try:
                 await self._task_service.update_task(task)
-                async for response in self._execute_task(
+                async for response in self.execute_task(
                     task,
                     thread_id,
                     metadata,
@@ -229,7 +229,7 @@ class TaskExecutor:
         )
         return await self._event_service.emit(component)
 
-    async def _execute_task(
+    async def execute_task(
         self,
         task: Task,
         thread_id: str,
@@ -238,6 +238,7 @@ class TaskExecutor:
         on_before_done: Optional[
             Callable[[], Awaitable[Optional[BaseResponse]]]
         ] = None,
+        resumed: bool = False,
     ) -> AsyncGenerator[BaseResponse, None]:
         task_id = task.task_id
         conversation_id = task.conversation_id
@@ -256,7 +257,7 @@ class TaskExecutor:
             },
         )
 
-        if task.is_scheduled():
+        if task.is_scheduled() and not resumed:
             yield await self._event_service.emit(
                 self._event_service.factory.schedule_task_controller_component(
                     conversation_id=conversation_id,
@@ -297,6 +298,7 @@ class TaskExecutor:
 
                 await self._sleep_with_cancellation(task, delay)
 
+                task = await self._task_service.get_task(task.task_id)
                 if task.is_finished():
                     logger.info(f"Task `{task.title}` ({task_id}) is finished.")
                     break
@@ -382,6 +384,7 @@ class TaskExecutor:
     async def _sleep_with_cancellation(self, task: Task, delay: float) -> None:
         remaining = delay
         while remaining > 0:
+            task = await self._task_service.get_task(task.task_id)
             if task.is_finished():
                 return
             sleep_for = min(self._poll_interval, remaining)
