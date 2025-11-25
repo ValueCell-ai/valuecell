@@ -85,16 +85,23 @@ Welcome to join our Discord community to share feedback and issues you encounter
 
 # Quick Start
 
+## For Users
+
+To get started quickly, download the latest ValueCell application for MacOS or Windows from the [Releases page](https://github.com/ValueCell-ai/valuecell/releases) on GitHub. You may also download the application from our official website: [https://valuecell.ai](https://valuecell.ai).
+
+After installation, please configure your preferred model provider before using ValueCell for the first time. Refer to the instructions in the application or documentation as needed.
+
+## For Developers
 ValueCell is a Python-based application featuring a comprehensive web interface. Follow this guide to set up and run the application efficiently.
 
-## Prerequisites
+### Prerequisites
 
 For optimal performance and streamlined development, we recommend installing the following tools:
 
 **[uv](https://docs.astral.sh/uv/getting-started/installation/)** - Ultra-fast Python package and project manager built in Rust  
 **[bun](https://github.com/oven-sh/bun#install)** - High-performance JavaScript/TypeScript toolkit with runtime, bundler, test runner, and package manager
 
-## Installation
+### Installation
 
 1. **Clone the repository**
 
