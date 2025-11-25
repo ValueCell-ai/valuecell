@@ -214,7 +214,7 @@ class LlmComposer(BaseComposer):
                 "LLM output failed validation. The model you chose "
                 f"`{model_utils.describe_model(model)}` "
                 "may be incompatible or returned unexpected output. "
-                f"Raw output: {content}",
+                f"Raw output: {content}"
             ),
         )
 
