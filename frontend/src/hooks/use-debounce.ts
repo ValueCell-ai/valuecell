@@ -21,3 +21,14 @@ export function useDebounce<T>(value: T, delay: number): T {
 
   return debouncedValue;
 }
+
+export function debounce(fn: () => void, delay: number) {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  return (...args: Parameters<typeof fn>) => {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+    timeout = setTimeout(() => fn(...args), delay);
+  };
+}
