@@ -50,8 +50,8 @@ class Settings:
         self.CORS_ORIGINS = cors_origins.split(",") if cors_origins != "*" else ["*"]
 
         # Database Configuration
-        # Prefer `DATABASE_URL` if provided; otherwise use system application directory default.
-        env_db = os.getenv("DATABASE_URL")
+        # Prefer `VALUECELL_DATABASE_URL` if provided; otherwise use system application directory default.
+        env_db = os.getenv("VALUECELL_DATABASE_URL")
         if env_db:
             # If it's already a full DSN (sqlite or other), use as-is
             self.DATABASE_URL = env_db

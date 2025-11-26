@@ -26,8 +26,8 @@ def resolve_db_path() -> str:
 
     Note: This function returns a filesystem path, not a SQLAlchemy DSN.
     """
-    # Prefer generic DATABASE_URL if it points to SQLite
-    db_url = os.environ.get("DATABASE_URL")
+    # Prefer generic VALUECELL_DATABASE_URL if it points to SQLite
+    db_url = os.environ.get("VALUECELL_DATABASE_URL")
     if db_url and db_url.startswith("sqlite:///"):
         return _strip_sqlite_prefix(db_url)
 

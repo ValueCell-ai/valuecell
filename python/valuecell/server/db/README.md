@@ -21,7 +21,7 @@ db/
 
 Database configuration is defined in `valuecell/server/config/settings.py`:
 
-- `DATABASE_URL`: Database connection URL. Defaults to a SQLite file under the system application directory (same place as `.env`):
+- `VALUECELL_DATABASE_URL`: Database connection URL. Defaults to a SQLite file under the system application directory (same place as `.env`):
   - macOS: `sqlite:///~/Library/Application Support/ValueCell/valuecell.db`
   - Linux: `sqlite:///~/.config/valuecell/valuecell.db`
   - Windows: `sqlite:///%APPDATA%/ValueCell/valuecell.db`
@@ -227,7 +227,7 @@ else:
 1. **Password Security**: Default admin user password is a placeholder and should be replaced with proper hashed password in production environment
 2. **Database Backup**: SQLite database file should be backed up regularly
 3. **Permission Management**: Ensure database file has appropriate filesystem permissions
-4. **Environment Variables**: Database connection can be customized through `DATABASE_URL` environment variable
+4. **Environment Variables**: Database connection can be customized through `VALUECELL_DATABASE_URL` environment variable
 
 ## Troubleshooting
 
