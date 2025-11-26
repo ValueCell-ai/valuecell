@@ -17,7 +17,6 @@ from valuecell.agents.common.trading.models import (
 )
 from valuecell.core.agent.responses import streaming
 from valuecell.core.types import BaseAgent, StreamResponse
-from valuecell.server.db.repositories.strategy_repository import get_strategy_repository
 from valuecell.utils import generate_uuid
 
 if TYPE_CHECKING:
@@ -306,21 +305,20 @@ class BaseStrategyAgent(BaseAgent, ABC):
             stop_reason_detail = str(err)
         finally:
             # Enforce position closure on normal stop (e.g., user clicked stop)
-            if stop_reason == StopReason.NORMAL_EXIT:
-                try:
-                    trades = await runtime.coordinator.close_all_positions()
-                    if trades:
-                        controller.persist_trades(trades)
-                except Exception:
-                    logger.exception(
-                        "Error closing positions on stop for strategy {}", strategy_id
-                    )
-                    # If closing positions fails, we should consider this an error state
-                    # to prevent the strategy from being marked as cleanly stopped if it still has positions.
-                    # However, the user intent was to stop.
-                    # Let's log it and proceed, but maybe mark status as ERROR instead of STOPPED?
-                    # For now, we stick to STOPPED but log the error clearly.
-                    stop_reason = StopReason.ERROR_CLOSING_POSITIONS
+            try:
+                trades = await runtime.coordinator.close_all_positions()
+                if trades:
+                    controller.persist_trades(trades)
+            except Exception:
+                logger.exception(
+                    "Error closing positions on stop for strategy {}", strategy_id
+                )
+                # If closing positions fails, we should consider this an error state
+                # to prevent the strategy from being marked as cleanly stopped if it still has positions.
+                # However, the user intent was to stop.
+                # Let's log it and proceed, but maybe mark status as ERROR instead of STOPPED?
+                # For now, we stick to STOPPED but log the error clearly.
+                stop_reason = StopReason.ERROR_CLOSING_POSITIONS
 
             # Call user hook before finalization
             try:
@@ -356,29 +354,6 @@ class BaseStrategyAgent(BaseAgent, ABC):
         Returns:
             StrategyRuntime instance
         """
-        # If a strategy id override is provided (resume case), try to
-        # initialize the request's initial_capital from the persisted
-        # portfolio snapshot so the runtime's portfolio service will be
-        # constructed with the persisted equity.
-        initial_capital_override = None
-        if strategy_id_override:
-            try:
-                repo = get_strategy_repository()
-                snap = repo.get_latest_portfolio_snapshot(strategy_id_override)
-                if snap is not None:
-                    initial_capital_override = float(
-                        snap.total_value or snap.cash or 0.0
-                    )
-                    logger.info(
-                        "Initialized request.trading_config.initial_capital from persisted snapshot for strategy_id={}",
-                        strategy_id_override,
-                    )
-            except Exception:
-                logger.exception(
-                    "Failed to initialize initial_capital from persisted snapshot for strategy_id={}",
-                    strategy_id_override,
-                )
-
         # Let user build custom composer (or None for default)
         composer = await self._create_decision_composer(request)
 
@@ -394,5 +369,4 @@ class BaseStrategyAgent(BaseAgent, ABC):
             composer=composer,
             features_pipeline=features_pipeline,
             strategy_id_override=strategy_id_override,
-            initial_capital_override=initial_capital_override,
         )
