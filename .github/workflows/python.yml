@@ -132,6 +132,7 @@ jobs:
             -r dist/requirements.txt `
             -e valuecell.server.main:main `
             -o dist/valuecell-Windows-X64.exe `
+            -j 1 `
             -v
 
 
