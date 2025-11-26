@@ -126,12 +126,15 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         shell: pwsh
         run: |
-          $whl = Get-ChildItem dist\*.whl | Select-Object -First 1
-          uvx pex $whl `
+          $filename = (Get-ChildItem dist\*.whl | Select-Object -First 1).Name
+          $relPath = ".\dist\$filename"
+          echo "Building from: $relPath"
+          uvx pex $relPath `
             -e valuecell.server.main:main `
             -o dist/valuecell-Windows-X64.exe `
             --scie eager `
             --scie-pbs-stripped
+
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
