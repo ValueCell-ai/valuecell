@@ -10,11 +10,11 @@ const ScheduledTaskControllerRenderer: FC<
   ScheduledTaskControllerRendererProps
 > = ({ content }) => {
   const { task_title, task_id, task_status } = parse(content);
-  const [isRunning, setIsRunning] = useState(task_status !== "cancelled");
+  const [isRunning, setIsRunning] = useState(task_status === "running");
   const { mutateAsync: cancelTask } = useCancelTask();
 
   useEffect(() => {
-    setIsRunning(task_status !== "cancelled");
+    setIsRunning(task_status === "running");
   }, [task_status]);
 
   const handleCancel = async () => {

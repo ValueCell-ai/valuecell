@@ -2,7 +2,10 @@ import json
 from datetime import datetime
 from typing import List, Optional
 
+from loguru import logger
+
 from valuecell.core.types import (
+    ComponentType,
     ConversationItem,
     ConversationItemEvent,
     ResponseMetadata,
@@ -229,6 +232,59 @@ class ConversationManager:
         return await self.set_conversation_status(
             conversation_id, ConversationStatus.REQUIRE_USER_INPUT
         )
+
+    async def update_task_component_status(
+        self,
+        task_id: str,
+        status: str,
+        error_reason: Optional[str] = None,
+    ) -> None:
+        """Update persisted scheduled task controller component's status and error reason.
+
+        For a given task_id, find the persisted conversation item with
+        component_type='scheduled_task_controller', update its payload's
+        task_status field, and set error_reason in metadata if provided.
+
+        Args:
+            task_id: The task identifier to search for.
+            status: New task status value (e.g., 'failed').
+            error_reason: Optional error details to store in metadata.
+        """
+        items = await self.item_store.get_items(task_id=task_id)
+        for item in items:
+            # Check if this is a scheduled_task_controller component
+            if not item.payload:
+                continue
+            try:
+                payload_obj = json.loads(item.payload)
+                if (
+                    payload_obj.get("component_type")
+                    != ComponentType.SCHEDULED_TASK_CONTROLLER
+                ):
+                    continue
+            except Exception:
+                continue
+
+            # Update task_status in payload and error_reason in metadata
+            try:
+                payload_obj = json.loads(item.payload)
+                content = payload_obj.get("content") or "{}"
+                content_obj = json.loads(content)
+                content_obj["task_status"] = status
+                payload_obj["content"] = json.dumps(content_obj)
+                item.payload = json.dumps(payload_obj)
+
+                # Update metadata with error reason if provided
+                metadata_obj = json.loads(item.metadata or "{}")
+                if error_reason:
+                    metadata_obj["error_reason"] = error_reason
+                item.metadata = json.dumps(metadata_obj, default=str)
+
+                await self.item_store.save_item(item)
+            except Exception as e:
+                logger.warning(
+                    f"Failed to update task component status for task {task_id}: {e}"
+                )
 
     async def get_conversations_by_status(
         self,

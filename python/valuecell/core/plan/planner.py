@@ -11,13 +11,13 @@ and performs JSON parsing/validation of the planner's output.
 """
 
 import asyncio
-import logging
 from datetime import datetime
 from typing import Callable, List, Optional
 
 from a2a.types import AgentCard
 from agno.agent import Agent
 from agno.db.in_memory import InMemoryDb
+from loguru import logger
 
 import valuecell.utils.model as model_utils_mod
 from valuecell.core.agent.connect import RemoteConnections
@@ -32,8 +32,6 @@ from .prompts import (
     PLANNER_EXPECTED_OUTPUT,
     PLANNER_INSTRUCTION,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class UserInputRequest:
