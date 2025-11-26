@@ -119,6 +119,7 @@ jobs:
           uvx pex dist/*.whl \
             -e valuecell.server.main:main \
             -o dist/valuecell-${{ runner.os }}-${{ runner.arch }} \
+            --python=3.12 \
             --scie eager \
             --scie-pbs-stripped
 
@@ -132,6 +133,7 @@ jobs:
           uvx pex $relPath `
             -e valuecell.server.main:main `
             -o dist/valuecell-Windows-X64.exe `
+            --python=3.12 `
             --scie eager `
             --scie-pbs-stripped
 
