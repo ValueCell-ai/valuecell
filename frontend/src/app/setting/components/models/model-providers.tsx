@@ -1,5 +1,5 @@
 import { Item, ItemGroup } from "@/components/ui/item";
-import PngIcon from "@/components/valuecell/png-icon";
+import PngIcon from "@/components/valuecell/icon/png-icon";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { MODEL_PROVIDER_ICONS } from "@/constants/icons";
 import { cn } from "@/lib/utils";

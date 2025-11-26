@@ -25,9 +25,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import AgentAvatar from "@/components/valuecell/icon/agent-avatar";
+import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
-import AgentAvatar from "./agent-avatar";
-import ScrollContainer from "./scroll/scroll-container";
 
 const AppConversationSheet: FC<{ children: ReactNode }> = ({ children }) => {
   const [searchParams] = useSearchParams();
