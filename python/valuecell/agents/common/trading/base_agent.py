@@ -305,21 +305,20 @@ class BaseStrategyAgent(BaseAgent, ABC):
             stop_reason_detail = str(err)
         finally:
             # Enforce position closure on normal stop (e.g., user clicked stop)
-            if stop_reason == StopReason.NORMAL_EXIT:
-                try:
-                    trades = await runtime.coordinator.close_all_positions()
-                    if trades:
-                        controller.persist_trades(trades)
-                except Exception:
-                    logger.exception(
-                        "Error closing positions on stop for strategy {}", strategy_id
-                    )
-                    # If closing positions fails, we should consider this an error state
-                    # to prevent the strategy from being marked as cleanly stopped if it still has positions.
-                    # However, the user intent was to stop.
-                    # Let's log it and proceed, but maybe mark status as ERROR instead of STOPPED?
-                    # For now, we stick to STOPPED but log the error clearly.
-                    stop_reason = StopReason.ERROR_CLOSING_POSITIONS
+            try:
+                trades = await runtime.coordinator.close_all_positions()
+                if trades:
+                    controller.persist_trades(trades)
+            except Exception:
+                logger.exception(
+                    "Error closing positions on stop for strategy {}", strategy_id
+                )
+                # If closing positions fails, we should consider this an error state
+                # to prevent the strategy from being marked as cleanly stopped if it still has positions.
+                # However, the user intent was to stop.
+                # Let's log it and proceed, but maybe mark status as ERROR instead of STOPPED?
+                # For now, we stick to STOPPED but log the error clearly.
+                stop_reason = StopReason.ERROR_CLOSING_POSITIONS
 
             # Call user hook before finalization
             try:
