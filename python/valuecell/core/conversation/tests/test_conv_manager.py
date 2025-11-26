@@ -11,6 +11,7 @@ import pytest
 from valuecell.core.conversation.manager import ConversationManager
 from valuecell.core.conversation.models import Conversation, ConversationStatus
 from valuecell.core.types import ConversationItem, Role, NotifyResponseEvent
+from valuecell.core.types import ComponentType
 
 
 class TestConversationManager:
@@ -673,3 +674,87 @@ class TestConversationManager:
         manager.conversation_store.list_conversations.assert_called_once_with(
             user_id, 20, 0
         )
+
+    @pytest.mark.asyncio
+    async def test_update_task_component_status_updates_item(self):
+        """update_task_component_status should update payload.content.task_status and metadata"""
+        manager = ConversationManager()
+
+        # Create a conversation item representing a scheduled_task_controller component
+        content_obj = {"task_id": "task-1", "task_title": "T"}
+        payload_obj = {
+            "component_type": ComponentType.SCHEDULED_TASK_CONTROLLER,
+            "content": json.dumps(content_obj),
+        }
+        item = ConversationItem(
+            item_id="item-1",
+            role=Role.AGENT,
+            event=NotifyResponseEvent.MESSAGE,
+            conversation_id="conv-1",
+            payload=json.dumps(payload_obj),
+            metadata="{}",
+            task_id="task-1",
+        )
+
+        manager.item_store.get_items = AsyncMock(return_value=[item])
+        manager.item_store.save_item = AsyncMock()
+
+        await manager.update_task_component_status("task-1", "failed", "boom")
+
+        # save_item called once with updated item
+        manager.item_store.save_item.assert_awaited_once()
+        saved_item = manager.item_store.save_item.call_args.args[0]
+
+        # payload should be JSON and contain content whose task_status is 'failed'
+        parsed = json.loads(saved_item.payload)
+        inner = json.loads(parsed.get("content"))
+        assert inner.get("task_status") == "failed"
+
+        # metadata should include error_reason
+        meta = json.loads(saved_item.metadata)
+        assert meta.get("error_reason") == "boom"
+
+    @pytest.mark.asyncio
+    async def test_update_task_component_status_skips_non_matching(self):
+        """Non-matching component_type should be ignored."""
+        manager = ConversationManager()
+
+        payload_obj = {"component_type": "other_component", "content": "{}"}
+        item = ConversationItem(
+            item_id="item-2",
+            role=Role.AGENT,
+            event=NotifyResponseEvent.MESSAGE,
+            conversation_id="conv-1",
+            payload=json.dumps(payload_obj),
+            metadata="{}",
+            task_id="task-2",
+        )
+
+        manager.item_store.get_items = AsyncMock(return_value=[item])
+        manager.item_store.save_item = AsyncMock()
+
+        await manager.update_task_component_status("task-2", "failed", "boom")
+
+        manager.item_store.save_item.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_update_task_component_status_skips_invalid_payload(self):
+        """Invalid JSON payload should be skipped without raising."""
+        manager = ConversationManager()
+
+        item = ConversationItem(
+            item_id="item-3",
+            role=Role.AGENT,
+            event=NotifyResponseEvent.MESSAGE,
+            conversation_id="conv-1",
+            payload="not-a-json",
+            metadata="{}",
+            task_id="task-3",
+        )
+
+        manager.item_store.get_items = AsyncMock(return_value=[item])
+        manager.item_store.save_item = AsyncMock()
+
+        await manager.update_task_component_status("task-3", "failed", "boom")
+
+        manager.item_store.save_item.assert_not_awaited()

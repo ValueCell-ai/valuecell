@@ -14,10 +14,12 @@ from valuecell.core.task.models import Task, TaskStatus
 class TestTaskManager:
     """Test TaskManager class."""
 
-    def test_init(self):
+    @pytest.mark.asyncio
+    async def test_init(self):
         """Test TaskManager initialization."""
         manager = TaskManager()
-        assert manager._tasks == {}
+        tasks = await manager._store.list_tasks()
+        assert tasks == []
 
     @pytest.mark.asyncio
     async def test_update_task(self):
@@ -38,9 +40,11 @@ class TestTaskManager:
             await manager.update_task(task)
 
             assert task.updated_at == update_time
-            assert manager._tasks["test-task-123"] == task
+            stored_task = await manager._store.load_task("test-task-123")
+            assert stored_task == task
 
-    def test_get_task_existing(self):
+    @pytest.mark.asyncio
+    async def test_get_task_existing(self):
         """Test _get_task with existing task."""
         manager = TaskManager()
         task = Task(
@@ -50,16 +54,17 @@ class TestTaskManager:
             user_id="user-123",
             agent_name="test-agent",
         )
-        manager._tasks["test-task-123"] = task
+        await manager._store.save_task(task)
 
-        result = manager._get_task("test-task-123")
+        result = await manager._get_task("test-task-123")
         assert result == task
 
-    def test_get_task_nonexistent(self):
+    @pytest.mark.asyncio
+    async def test_get_task_nonexistent(self):
         """Test _get_task with nonexistent task."""
         manager = TaskManager()
 
-        result = manager._get_task("nonexistent-task")
+        result = await manager._get_task("nonexistent-task")
         assert result is None
 
     @pytest.mark.asyncio
@@ -74,7 +79,7 @@ class TestTaskManager:
             agent_name="test-agent",
             status=TaskStatus.PENDING,
         )
-        manager._tasks["test-task-123"] = task
+        await manager._store.save_task(task)
 
         with (
             patch("valuecell.core.task.models.datetime") as mock_datetime,
@@ -109,7 +114,7 @@ class TestTaskManager:
             agent_name="test-agent",
             status=TaskStatus.RUNNING,
         )
-        manager._tasks["test-task-123"] = task
+        await manager._store.save_task(task)
 
         result = await manager.start_task("test-task-123")
         assert result is False
@@ -126,7 +131,7 @@ class TestTaskManager:
             agent_name="test-agent",
             status=TaskStatus.RUNNING,
         )
-        manager._tasks["test-task-123"] = task
+        await manager._store.save_task(task)
 
         with (
             patch("valuecell.core.task.models.datetime") as mock_datetime,
@@ -137,6 +142,7 @@ class TestTaskManager:
             result = await manager.complete_task("test-task-123")
 
             assert result is True
+            task = await manager._get_task("test-task-123")
             assert task.status == TaskStatus.COMPLETED
             assert task.completed_at == complete_time
             assert task.updated_at == complete_time
@@ -161,7 +167,7 @@ class TestTaskManager:
             agent_name="test-agent",
             status=TaskStatus.COMPLETED,
         )
-        manager._tasks["test-task-123"] = task
+        await manager._store.save_task(task)
 
         result = await manager.complete_task("test-task-123")
         assert result is False
@@ -178,7 +184,7 @@ class TestTaskManager:
             agent_name="test-agent",
             status=TaskStatus.RUNNING,
         )
-        manager._tasks["test-task-123"] = task
+        await manager._store.save_task(task)
 
         with (
             patch("valuecell.core.task.models.datetime") as mock_datetime,
@@ -189,6 +195,7 @@ class TestTaskManager:
             result = await manager.fail_task("test-task-123", "Test error")
 
             assert result is True
+            task = await manager._get_task("test-task-123")
             assert task.status == TaskStatus.FAILED
             assert task.completed_at == fail_time
             assert task.updated_at == fail_time
@@ -214,7 +221,7 @@ class TestTaskManager:
             agent_name="test-agent",
             status=TaskStatus.FAILED,
         )
-        manager._tasks["test-task-123"] = task
+        await manager._store.save_task(task)
 
         result = await manager.fail_task("test-task-123", "Test error")
         assert result is False
@@ -231,7 +238,7 @@ class TestTaskManager:
             agent_name="test-agent",
             status=TaskStatus.RUNNING,
         )
-        manager._tasks["test-task-123"] = task
+        await manager._store.save_task(task)
 
         with (
             patch("valuecell.core.task.models.datetime") as mock_datetime,
@@ -242,6 +249,7 @@ class TestTaskManager:
             result = await manager.cancel_task("test-task-123")
 
             assert result is True
+            task = await manager._get_task("test-task-123")
             assert task.status == TaskStatus.CANCELLED
             assert task.completed_at == cancel_time
             assert task.updated_at == cancel_time
@@ -266,10 +274,10 @@ class TestTaskManager:
             agent_name="test-agent",
             status=TaskStatus.COMPLETED,
         )
-        manager._tasks["test-task-123"] = task
+        await manager._store.save_task(task)
 
         result = await manager.cancel_task("test-task-123")
-        assert result is False
+        assert result is True
 
     @pytest.mark.asyncio
     async def test_cancel_conversation_tasks(self):
@@ -310,12 +318,10 @@ class TestTaskManager:
             status=TaskStatus.RUNNING,
         )
 
-        manager._tasks = {
-            "task-1": task1,
-            "task-2": task2,
-            "task-3": task3,
-            "task-4": task4,
-        }
+        await manager._store.save_task(task1)
+        await manager._store.save_task(task2)
+        await manager._store.save_task(task3)
+        await manager._store.save_task(task4)
 
         with (
             patch("valuecell.core.task.models.datetime") as mock_datetime,
@@ -326,6 +332,10 @@ class TestTaskManager:
             result = await manager.cancel_conversation_tasks("conv-123")
 
             assert result == 2  # Two tasks were cancelled
+            task1 = await manager._get_task("task-1")
+            task2 = await manager._get_task("task-2")
+            task3 = await manager._get_task("task-3")
+            task4 = await manager._get_task("task-4")
             assert task1.status == TaskStatus.CANCELLED
             assert task1.completed_at == cancel_time
             assert task1.updated_at == cancel_time
@@ -358,7 +368,7 @@ class TestTaskManager:
             agent_name="test-agent",
             status=TaskStatus.COMPLETED,
         )
-        manager._tasks["task-1"] = task
+        await manager._store.save_task(task)
 
         result = await manager.cancel_conversation_tasks("conv-123")
         assert result == 0

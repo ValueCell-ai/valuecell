@@ -8,13 +8,12 @@ This factory:
 4. Supports fallback providers for reliability
 """
 
-import logging
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
-from valuecell.config.manager import ConfigManager, ProviderConfig, get_config_manager
+from loguru import logger
 
-logger = logging.getLogger(__name__)
+from valuecell.config.manager import ConfigManager, ProviderConfig, get_config_manager
 
 
 class ModelProvider(ABC):
@@ -471,6 +470,39 @@ class OpenAICompatibleProvider(ModelProvider):
         return bool(self.config.api_key and self.config.base_url)
 
 
+class DeepSeekProvider(ModelProvider):
+    """DeepSeek model provider
+
+    DeepSeek provides OpenAI-compatible API endpoints for their models.
+    This provider uses the OpenAI-compatible interface to interact with DeepSeek's API.
+    """
+
+    def create_model(self, model_id: Optional[str] = None, **kwargs):
+        """Create DeepSeek model via agno (OpenAI-compatible)"""
+        try:
+            from agno.models.openai import OpenAILike
+        except ImportError:
+            raise ImportError(
+                "agno package not installed. Install with: pip install agno"
+            )
+
+        model_id = model_id or self.config.default_model
+        params = {**self.config.parameters, **kwargs}
+
+        logger.info(f"Creating DeepSeek model: {model_id}")
+
+        return OpenAILike(
+            id=model_id,
+            api_key=self.config.api_key,
+            base_url=self.config.base_url,
+            temperature=params.get("temperature"),
+            max_tokens=params.get("max_tokens"),
+            top_p=params.get("top_p"),
+            frequency_penalty=params.get("frequency_penalty"),
+            presence_penalty=params.get("presence_penalty"),
+        )
+
+
 class ModelFactory:
     """
     Factory for creating model instances with provider abstraction
@@ -490,6 +522,7 @@ class ModelFactory:
         "siliconflow": SiliconFlowProvider,
         "openai": OpenAIProvider,
         "openai-compatible": OpenAICompatibleProvider,
+        "deepseek": DeepSeekProvider,
     }
 
     def __init__(self, config_manager: Optional[ConfigManager] = None):

@@ -17,8 +17,15 @@ default_model: "deepseek-chat"
 # Model Parameters Defaults
 defaults:
   temperature: 0.7
+  max_tokens: 8096
 
 # Available Models (commonly used)
 models:
   - id: "deepseek-chat"
     name: "DeepSeek Chat"
+    context_length: 128000
+    description: "DeepSeek Chat model"
+  - id: "deepseek-reasoner"
+    name: "DeepSeek Reasoner"
+    context_length: 128000
+    description: "DeepSeek Reasoner model with enhanced reasoning capabilities"

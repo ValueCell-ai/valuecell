@@ -6,9 +6,13 @@ import json
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
+from loguru import logger
 
 from valuecell.server.api.schemas.agent_stream import AgentStreamRequest
-from valuecell.server.services.agent_stream_service import AgentStreamService
+from valuecell.server.services.agent_stream_service import (
+    AgentStreamService,
+    _auto_resume_recurring_tasks,
+)
 
 
 def create_agent_stream_router() -> APIRouter:
@@ -16,6 +20,13 @@ def create_agent_stream_router() -> APIRouter:
 
     router = APIRouter(prefix="/agents", tags=["Agent Stream"])
     agent_service = AgentStreamService()
+
+    @router.on_event("startup")
+    async def _startup_resume_recurring_tasks() -> None:
+        try:
+            await _auto_resume_recurring_tasks(agent_service)
+        except Exception:
+            logger.exception("Failed to schedule recurring task auto-resume")
 
     @router.post("/stream")
     async def stream_query_agent(request: AgentStreamRequest):

@@ -3,6 +3,7 @@ from typing import Optional
 
 from loguru import logger
 
+from valuecell.server.db.repositories.strategy_repository import get_strategy_repository
 from valuecell.utils.uuid import generate_uuid
 
 from ..decision import BaseComposer, LlmComposer
@@ -64,6 +65,7 @@ async def create_strategy_runtime(
     request: UserRequest,
     composer: Optional[BaseComposer] = None,
     features_pipeline: Optional[BaseFeaturesPipeline] = None,
+    strategy_id_override: Optional[str] = None,
 ) -> StrategyRuntime:
     """Create a strategy runtime with async initialization (supports both paper and live trading).
 
@@ -108,8 +110,32 @@ async def create_strategy_runtime(
     execution_gateway = await _create_execution_gateway(request)
 
     # Create strategy runtime components
-    strategy_id = generate_uuid("strategy")
-    initial_capital = request.trading_config.initial_capital or 0.0
+    strategy_id = strategy_id_override or generate_uuid("strategy")
+
+    # If an initial capital override wasn't provided, and this is a resume
+    # of an existing strategy, attempt to initialize from the persisted
+    # portfolio snapshot so the in-memory portfolio starts with the
+    # previously recorded equity.
+    initial_capital_override = None
+    if strategy_id_override:
+        try:
+            repo = get_strategy_repository()
+            snap = repo.get_latest_portfolio_snapshot(strategy_id_override)
+            if snap is not None:
+                initial_capital_override = float(snap.total_value or snap.cash or 0.0)
+                logger.info(
+                    "Initialized runtime initial_capital from persisted snapshot for strategy_id=%s",
+                    strategy_id_override,
+                )
+        except Exception:
+            logger.exception(
+                "Failed to initialize initial_capital from persisted snapshot for strategy_id=%s",
+                strategy_id_override,
+            )
+
+    initial_capital = (
+        initial_capital_override or request.trading_config.initial_capital or 0.0
+    )
     constraints = Constraints(
         max_positions=request.trading_config.max_positions,
         max_leverage=request.trading_config.max_leverage,
@@ -142,6 +168,23 @@ async def create_strategy_runtime(
         history_recorder=history_recorder,
         digest_builder=digest_builder,
     )
+
+    # If resuming an existing strategy, initialize coordinator cycle index
+    # from the latest persisted compose cycle so the in-memory coordinator
+    # continues numbering without overlap.
+    if strategy_id_override:
+        try:
+            repo = get_strategy_repository()
+            cycles = repo.get_cycles(strategy_id, limit=1)
+            if cycles:
+                latest = cycles[0]
+                if latest.cycle_index is not None:
+                    coordinator.cycle_index = int(latest.cycle_index)
+        except Exception:
+            logger.exception(
+                "Failed to initialize coordinator cycle_index from DB for strategy_id=%s",
+                strategy_id,
+            )
 
     return StrategyRuntime(
         request=request,

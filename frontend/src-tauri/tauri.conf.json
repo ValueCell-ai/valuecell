@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "ValueCell",
-  "version": "0.1.0",
-  "identifier": "com.valuecell.app",
+  "version": "0.1.5",
+  "identifier": "com.valuecell.valuecellapp",
   "build": {
     "beforeDevCommand": "bun run dev:tauri",
     "devUrl": "http://localhost:1420",
@@ -14,9 +14,9 @@
       {
         "title": "ValueCell",
         "width": 1400,
-        "height": 1000,
-        "minWidth": 1024,
-        "minHeight": 768,
+        "height": 900,
+        "minWidth": 1400,
+        "minHeight": 900,
         "hiddenTitle": true
       }
     ],
@@ -40,6 +40,15 @@
     "resources": {
       "../../python": "backend",
       "../../.env.example": ".env.example"
+    },
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM1MkM3MEEyMTcwMzU1QTMKUldTalZRTVhvbkFzeFh6WUhrYWprcURCTy9UcjVaYm1aaTNMVk5TMzF6TCtmS0N5SUpPYWxCdWEK",
+      "endpoints": [
+        "https://github.com/ValueCell-ai/valuecell/releases/latest/download/latest.json"
+      ]
     }
   }
 }

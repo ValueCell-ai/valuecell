@@ -17,13 +17,13 @@ import {
 } from "@/components/ui/select";
 import { TRADING_SYMBOLS } from "@/constants/agent";
 import { withForm } from "@/hooks/use-form";
-import type { StrategyPrompt } from "@/types/strategy";
+import type { Strategy, StrategyPrompt } from "@/types/strategy";
 import NewPromptModal from "../modals/new-prompt-modal";
 import ViewStrategyModal from "../modals/view-strategy-modal";
 
 export const TradingStrategyForm = withForm({
   defaultValues: {
-    strategy_type: "",
+    strategy_type: "" as Strategy["strategy_type"],
     strategy_name: "",
     initial_capital: 1000,
     max_leverage: 2,
@@ -39,7 +39,18 @@ export const TradingStrategyForm = withForm({
 
     return (
       <FieldGroup className="gap-6">
-        <form.AppField name="strategy_type">
+        <form.AppField
+          listeners={{
+            onChange: ({ value }: { value: Strategy["strategy_type"] }) => {
+              if (value === "GridStrategy") {
+                form.setFieldValue("symbols", [TRADING_SYMBOLS[0]]);
+              } else {
+                form.setFieldValue("symbols", TRADING_SYMBOLS);
+              }
+            },
+          }}
+          name="strategy_type"
+        >
           {(field) => (
             <field.SelectField label="Strategy Type">
               <SelectItem value="PromptBasedStrategy">
@@ -83,26 +94,35 @@ export const TradingStrategyForm = withForm({
           </form.AppField>
         </FieldGroup>
 
-        <form.Field name="symbols">
-          {(field) => (
-            <Field>
-              <FieldLabel className="font-medium text-base text-gray-950">
-                Trading Symbols
-              </FieldLabel>
-              <MultiSelect
-                options={TRADING_SYMBOLS}
-                value={field.state.value}
-                onValueChange={(value) => field.handleChange(value)}
-                placeholder="Select trading symbols..."
-                searchPlaceholder="Search or add symbols..."
-                emptyText="No symbols found."
-                maxDisplayed={5}
-                creatable
-              />
-              <FieldError errors={field.state.meta.errors} />
-            </Field>
-          )}
-        </form.Field>
+        <form.Subscribe selector={(state) => state.values.strategy_type}>
+          {(strategyType) => {
+            return (
+              <form.Field name="symbols">
+                {(field) => (
+                  <Field>
+                    <FieldLabel className="font-medium text-base text-gray-950">
+                      Trading Symbols
+                    </FieldLabel>
+                    <MultiSelect
+                      maxSelected={
+                        strategyType === "GridStrategy" ? 1 : undefined
+                      }
+                      options={TRADING_SYMBOLS}
+                      value={field.state.value}
+                      onValueChange={(value) => field.handleChange(value)}
+                      placeholder="Select trading symbols..."
+                      searchPlaceholder="Search or add symbols..."
+                      emptyText="No symbols found."
+                      maxDisplayed={5}
+                      creatable
+                    />
+                    <FieldError errors={field.state.meta.errors} />
+                  </Field>
+                )}
+              </form.Field>
+            );
+          }}
+        </form.Subscribe>
 
         <form.Subscribe selector={(state) => state.values.strategy_type}>
           {(strategyType) => {

@@ -32,26 +32,39 @@ impl BackendManager {
     fn kill_descendants_best_effort(&self, parent_pid: u32) {
         // Try to kill all descendants of the given PID (macOS/Linux)
         // This is best-effort and ignores errors on platforms without `pkill`.
+        // First, send SIGINT (Ctrl+C equivalent) and wait up to 5 seconds.
+        // If processes are still running, escalate to SIGKILL.
         let pid_str = parent_pid.to_string();
 
-        for (signal, label) in [("-TERM", "graceful"), ("-KILL", "forceful")] {
-            if let Ok((_rx, _child)) = self
-                .app
-                .shell()
-                .command("pkill")
-                .args([signal, "-P", &pid_str])
-                .spawn()
-            {
-                log::info!(
-                    "Issued {label} pkill ({signal}) for descendants of {}",
-                    parent_pid
-                );
-            }
+        // Send SIGINT (Ctrl+C equivalent)
+        if let Ok((_rx, _child)) = self
+            .app
+            .shell()
+            .command("pkill")
+            .args(["-INT", "-P", &pid_str])
+            .spawn()
+        {
+            log::info!(
+                "Issued SIGINT (Ctrl+C) pkill for descendants of {}",
+                parent_pid
+            );
+        }
 
-            // Allow graceful signal a moment to take effect before escalating.
-            if signal == "-TERM" {
-                std::thread::sleep(Duration::from_millis(150));
-            }
+        // Wait up to 3 seconds for graceful termination
+        std::thread::sleep(Duration::from_secs(3));
+
+        // Escalate to SIGKILL if processes are still running
+        if let Ok((_rx, _child)) = self
+            .app
+            .shell()
+            .command("pkill")
+            .args(["-KILL", "-P", &pid_str])
+            .spawn()
+        {
+            log::info!(
+                "Issued SIGKILL (forceful) pkill for descendants of {}",
+                parent_pid
+            );
         }
     }
 
