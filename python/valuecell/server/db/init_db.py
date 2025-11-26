@@ -1,6 +1,7 @@
 """Database initialization script for ValueCell Server."""
 
 import json
+import shutil
 import sys
 from pathlib import Path
 from typing import Optional
@@ -107,9 +108,25 @@ class DatabaseInitializer:
                 # Create parent directories if they don't exist
                 db_path.parent.mkdir(parents=True, exist_ok=True)
 
-                # Create empty database file
-                db_path.touch()
-                logger.info(f"Created database file: {db_path}")
+                # If old repo-root DB exists and new system-path DB is missing, migrate it
+                try:
+                    repo_root = (
+                        Path(__file__).resolve().parent.parent.parent.parent.parent
+                    )
+                    old_repo_db = repo_root / "valuecell.db"
+                except Exception:
+                    old_repo_db = None
+
+                if old_repo_db and old_repo_db.exists() and not db_path.exists():
+                    shutil.copy2(old_repo_db, db_path)
+                    logger.info(
+                        f"Migrated existing database file from repo root to system directory: {db_path}"
+                    )
+
+                # Ensure database file exists
+                if not db_path.exists():
+                    db_path.touch()
+                    logger.info(f"Created database file: {db_path}")
                 return True
 
             except Exception as e:

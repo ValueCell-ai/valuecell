@@ -4,6 +4,7 @@ from typing import Optional
 
 from agno.agent import Agent
 from agno.db.in_memory import InMemoryDb
+from loguru import logger
 from pydantic import BaseModel, Field
 
 import valuecell.utils.model as model_utils_mod
@@ -51,23 +52,16 @@ class SuperAgent:
 
         Returns the initialized Agent or None if initialization fails.
         """
-        if self.agent is not None:
-            return self.agent
 
-        try:
-            model = model_utils_mod.get_model_for_agent("super_agent")
-            self.agent = Agent(
-                model=model,
-                # TODO: enable tools when needed
-                # tools=[Crawl4aiTools()],
+        def _build_agent(with_model) -> Agent:
+            return Agent(
+                model=with_model,
                 markdown=False,
                 debug_mode=agent_debug_mode_enabled(),
                 instructions=[SUPER_AGENT_INSTRUCTION],
-                # output format
                 expected_output=SUPER_AGENT_EXPECTED_OUTPUT,
                 output_schema=SuperAgentOutcome,
-                use_json_mode=model_utils_mod.model_should_use_json_mode(model),
-                # context
+                use_json_mode=model_utils_mod.model_should_use_json_mode(with_model),
                 db=InMemoryDb(),
                 add_datetime_to_context=True,
                 add_history_to_context=True,
@@ -75,11 +69,58 @@ class SuperAgent:
                 read_chat_history=True,
                 enable_session_summaries=True,
             )
-            return self.agent
+
+        try:
+            expected_model = model_utils_mod.get_model_for_agent("super_agent")
+        except Exception as e:
+            logger.warning(f"SuperAgent: failed to resolve expected model: {e}")
+            expected_model = None
+
+        # Initialize if not present
+        if self.agent is None:
+            if expected_model is None:
+                self.agent = None
+                return None
+            try:
+                self.agent = _build_agent(expected_model)
+                return self.agent
+            except Exception as e:
+                logger.warning(f"SuperAgent: initialization failed: {e}")
+                self.agent = None
+                return None
+
+        # If present, check consistency with current environment-configured model
+        try:
+            current = getattr(self.agent, "model", None)
+            current_pair = (
+                getattr(current, "id", None),
+                getattr(current, "provider", None),
+            )
         except Exception:
-            # Swallow to avoid startup failure; will fallback in run()
-            self.agent = None
-            return None
+            current_pair = (None, None)
+
+        try:
+            expected_pair = (
+                getattr(expected_model, "id", None),
+                getattr(expected_model, "provider", None),
+            )
+        except Exception:
+            expected_pair = current_pair
+
+        needs_restart = expected_model is not None and (current_pair != expected_pair)
+
+        if needs_restart:
+            logger.info(
+                f"SuperAgent: detected model change {current_pair} -> {expected_pair}, restarting agent"
+            )
+            try:
+                self.agent = _build_agent(expected_model)
+            except Exception as e:
+                logger.warning(
+                    f"SuperAgent: restart failed, continuing with existing agent: {e}"
+                )
+
+        return self.agent
 
     async def run(self, user_input: UserInput) -> SuperAgentOutcome:
         """Run super agent triage."""

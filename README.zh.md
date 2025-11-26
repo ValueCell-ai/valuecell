@@ -87,16 +87,23 @@ ValueCell 是一个社区驱动的多智能体金融应用产品，我们的计�
 
 # 快速开始
 
+## 给用户
+
+要快速开始，请从 GitHub 的[发布页面](https://github.com/ValueCell-ai/valuecell/releases)下载 MacOS 或 Windows 的最新 ValueCell 应用程序。您也可以从我们的官方网站 [https://valuecell.ai](https://valuecell.ai) 下载应用程序。
+
+安装后，初次使用 ValueCell 前请配置您首选的模型提供商。请参考应用程序内的说明或文档。
+
+## 给开发者
 ValueCell 是一个基于Python的应用程序，且有完备的前端操作页面。可以参考下面配置快速运行。
 
-## 前提条件
+### 前提条件
 
 为了获得最佳性能和简化开发，我们建议安装以下工具：
 
 **[uv](https://docs.astral.sh/uv/getting-started/installation/)** - 用Rust构建的超快速Python包和项目管理器  
 **[bun](https://github.com/oven-sh/bun#install)** - 高性能JavaScript/TypeScript工具包，集成运行时、打包器、测试运行器和包管理器
 
-## 安装
+### 安装
 
 1. **克隆仓库**
 
@@ -113,7 +120,7 @@ ValueCell 是一个基于Python的应用程序，且有完备的前端操作页�
    
    使用您的API密钥和偏好设置编辑`.env`文件。此配置文件在所有智能体之间共享。详见 [配置指南](docs/CONFIGURATION_GUIDE.md)
 
-## 配置
+### 配置
 
 更多系统配置详情说明可以参考[CONFIGURATION_GUIDE](./docs/CONFIGURATION_GUIDE.md)
 
@@ -125,7 +132,6 @@ ValueCell 是一个基于Python的应用程序，且有完备的前端操作页�
 - **其他配置**：对于调研类型的Agent来说，需要配置更多环境变量，可以仔细阅读`.env.example`中的说明
 
 - **官方推荐**：配置OpenRouter + 任意提供嵌入模型的供应商。原因：可以快速实现多厂商模型切换，以及RAG+Memory的AI能力
-  
 
 ## 运行应用程序
 
@@ -146,11 +152,11 @@ bash start.sh
 - **Web UI**：在浏览器中导航到 [http://localhost:1420](http://localhost:1420)
 - **日志**：在 `logs/{timestamp}/*.log` 监控应用程序日志，获取后端服务和各个智能体的详细运行时信息
 
-## 下一步
+### 下一步
 
 应用运行后，你可以通过网页界面探索并使用 ValueCell 的各项功能和能力。
 
-## 实盘交易
+## 实时交易
 
 - 配置 AI 模型: 通过网页UI界面添加你的 AI 模型 API Key。
 - 配置交易所: 设置 Binance/HyperLiquid/OKX/Coinbase... API 凭证
@@ -182,7 +188,19 @@ bash start.sh
 ---
 
 **注意**：运行应用程序前，请确保所有前提条件已安装且环境变量已正确配置
-如长时间没有更新可以删除项目中数据库文件`lancedb/`,`valuecell.db`, `.knowledgebase/`再进行启动
+如长时间没有更新，可以删除本地数据并重新启动：
+- LanceDB 目录（位于系统应用目录，与 `.env` 同路径）：
+  - macOS: `~/Library/Application Support/ValueCell/lancedb`
+  - Linux: `~/.config/valuecell/lancedb`
+  - Windows: `%APPDATA%\\ValueCell\\lancedb`
+- 知识目录（位于系统应用目录，与 `.env` 同路径）：
+  - macOS: `~/Library/Application Support/ValueCell/.knowledge`
+  - Linux: `~/.config/valuecell/.knowledge`
+  - Windows: `%APPDATA%\\ValueCell\\.knowledge`
+- SQLite 数据库文件（位于系统应用目录，与 `.env` 同路径）：
+  - macOS: `~/Library/Application Support/ValueCell/valuecell.db`
+  - Linux: `~/.config/valuecell/valuecell.db`
+  - Windows: `%APPDATA%\\ValueCell\\valuecell.db`
 
 
 # 开发者

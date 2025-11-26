@@ -17,7 +17,7 @@ from valuecell.agents.common.trading.models import (
 )
 from valuecell.core.agent.responses import streaming
 from valuecell.core.types import BaseAgent, StreamResponse
-from valuecell.server.db.repositories.strategy_repository import get_strategy_repository
+from valuecell.utils import generate_uuid
 
 if TYPE_CHECKING:
     from valuecell.agents.common.trading._internal.runtime import (
@@ -141,18 +141,45 @@ class BaseStrategyAgent(BaseAgent, ABC):
         # Parse and validate request
         try:
             request = UserRequest.model_validate_json(query)
-        except ValueError as exc:
+        except Exception as exc:
             logger.exception("StrategyAgent received invalid payload")
-            yield streaming.message_chunk(str(exc))
+            # Emit structured status with error reason then close the stream
+            status_payload = StrategyStatusContent(
+                strategy_id=generate_uuid("invalid-strategy"),
+                status=StrategyStatus.STOPPED,
+                stop_reason=StopReason.ERROR,
+                stop_reason_detail=str(exc),
+            )
+            yield streaming.component_generator(
+                content=status_payload.model_dump_json(),
+                component_type=ComponentType.STATUS.value,
+            )
             yield streaming.done()
             return
 
         # Create runtime (calls _build_decision, _build_features_pipeline internally)
         # Reuse externally supplied strategy_id if present for continuation semantics.
         strategy_id_override = request.trading_config.strategy_id
-        runtime = await self._create_runtime(
-            request, strategy_id_override=strategy_id_override
-        )
+        try:
+            runtime = await self._create_runtime(
+                request, strategy_id_override=strategy_id_override
+            )
+        except Exception as exc:
+            # Runtime creation failed — surface structured status and close the stream
+            logger.exception("Failed to create strategy runtime: {}", exc)
+            status_payload = StrategyStatusContent(
+                strategy_id=strategy_id_override or generate_uuid("invalid-strategy"),
+                status=StrategyStatus.STOPPED,
+                stop_reason=StopReason.ERROR,
+                stop_reason_detail=str(exc),
+            )
+            yield streaming.component_generator(
+                content=status_payload.model_dump_json(),
+                component_type=ComponentType.STATUS.value,
+            )
+            yield streaming.done()
+            return
+
         strategy_id = runtime.strategy_id
         logger.info(
             "Created runtime for strategy_id={} conversation={} task={}",
@@ -222,6 +249,7 @@ class BaseStrategyAgent(BaseAgent, ABC):
             logger.exception("Error in _on_start hook for strategy {}", strategy_id)
 
         stop_reason = StopReason.NORMAL_EXIT
+        stop_reason_detail: Optional[str] = None
         try:
             logger.info("Starting decision loop for strategy_id={}", strategy_id)
             # Always attempt to persist an initial state (idempotent write).
@@ -252,7 +280,14 @@ class BaseStrategyAgent(BaseAgent, ABC):
                     strategy_id,
                     request.trading_config.decide_interval,
                 )
-                await asyncio.sleep(request.trading_config.decide_interval)
+
+                # Sleep in 1s increments so we can react to controller stop
+                # and to cancellation promptly instead of blocking for the
+                # whole interval at once.
+                for _ in range(request.trading_config.decide_interval):
+                    if not controller.is_running():
+                        break
+                    await asyncio.sleep(1)
 
             logger.info(
                 "Strategy_id={} is no longer running, exiting decision loop",
@@ -267,23 +302,23 @@ class BaseStrategyAgent(BaseAgent, ABC):
         except Exception as err:  # noqa: BLE001
             stop_reason = StopReason.ERROR
             logger.exception("StrategyAgent background run failed: {}", err)
+            stop_reason_detail = str(err)
         finally:
             # Enforce position closure on normal stop (e.g., user clicked stop)
-            if stop_reason == StopReason.NORMAL_EXIT:
-                try:
-                    trades = await runtime.coordinator.close_all_positions()
-                    if trades:
-                        controller.persist_trades(trades)
-                except Exception:
-                    logger.exception(
-                        "Error closing positions on stop for strategy {}", strategy_id
-                    )
-                    # If closing positions fails, we should consider this an error state
-                    # to prevent the strategy from being marked as cleanly stopped if it still has positions.
-                    # However, the user intent was to stop.
-                    # Let's log it and proceed, but maybe mark status as ERROR instead of STOPPED?
-                    # For now, we stick to STOPPED but log the error clearly.
-                    stop_reason = StopReason.ERROR_CLOSING_POSITIONS
+            try:
+                trades = await runtime.coordinator.close_all_positions()
+                if trades:
+                    controller.persist_trades(trades)
+            except Exception:
+                logger.exception(
+                    "Error closing positions on stop for strategy {}", strategy_id
+                )
+                # If closing positions fails, we should consider this an error state
+                # to prevent the strategy from being marked as cleanly stopped if it still has positions.
+                # However, the user intent was to stop.
+                # Let's log it and proceed, but maybe mark status as ERROR instead of STOPPED?
+                # For now, we stick to STOPPED but log the error clearly.
+                stop_reason = StopReason.ERROR_CLOSING_POSITIONS
 
             # Call user hook before finalization
             try:
@@ -301,7 +336,9 @@ class BaseStrategyAgent(BaseAgent, ABC):
                 )
 
             # Finalize: close resources and mark stopped/paused/error
-            await controller.finalize(runtime, reason=stop_reason)
+            await controller.finalize(
+                runtime, reason=stop_reason, reason_detail=stop_reason_detail
+            )
 
     async def _create_runtime(
         self, request: UserRequest, strategy_id_override: str | None = None
@@ -317,29 +354,6 @@ class BaseStrategyAgent(BaseAgent, ABC):
         Returns:
             StrategyRuntime instance
         """
-        # If a strategy id override is provided (resume case), try to
-        # initialize the request's initial_capital from the persisted
-        # portfolio snapshot so the runtime's portfolio service will be
-        # constructed with the persisted equity.
-        initial_capital_override = None
-        if strategy_id_override:
-            try:
-                repo = get_strategy_repository()
-                snap = repo.get_latest_portfolio_snapshot(strategy_id_override)
-                if snap is not None:
-                    initial_capital_override = float(
-                        snap.total_value or snap.cash or 0.0
-                    )
-                    logger.info(
-                        "Initialized request.trading_config.initial_capital from persisted snapshot for strategy_id={}",
-                        strategy_id_override,
-                    )
-            except Exception:
-                logger.exception(
-                    "Failed to initialize initial_capital from persisted snapshot for strategy_id={}",
-                    strategy_id_override,
-                )
-
         # Let user build custom composer (or None for default)
         composer = await self._create_decision_composer(request)
 
@@ -355,5 +369,4 @@ class BaseStrategyAgent(BaseAgent, ABC):
             composer=composer,
             features_pipeline=features_pipeline,
             strategy_id_override=strategy_id_override,
-            initial_capital_override=initial_capital_override,
         )

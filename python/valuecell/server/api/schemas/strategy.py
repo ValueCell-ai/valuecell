@@ -28,6 +28,7 @@ class StrategySummaryData(BaseModel):
         description="Strategy type identifier: 'prompt based strategy' or 'grid strategy'",
     )
     status: Literal["running", "stopped"] = Field(..., description="Strategy status")
+    stop_reason: Optional[str] = Field(None, description="Reason for strategy stop")
     trading_mode: Optional[Literal["live", "virtual"]] = Field(
         None, description="Trading mode: live or virtual"
     )

@@ -58,8 +58,20 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
   const { mutateAsync: deleteStrategy } = useDeleteStrategy();
 
   useEffect(() => {
-    if (strategies.length === 0 || selectedStrategy) return;
-    setSelectedStrategy(strategies[0]);
+    if (strategies.length === 0) {
+      setSelectedStrategy(null);
+      return;
+    }
+
+    const hasSelectedStrategy =
+      selectedStrategy &&
+      strategies.some(
+        (strategy) => strategy.strategy_id === selectedStrategy.strategy_id,
+      );
+
+    if (!selectedStrategy || !hasSelectedStrategy) {
+      setSelectedStrategy(strategies[0]);
+    }
   }, [strategies, selectedStrategy]);
 
   if (isLoadingStrategies) return null;
@@ -80,9 +92,6 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
             }
             onStrategyDelete={async (strategyId) => {
               await deleteStrategy(strategyId);
-              if (strategyId === selectedStrategy?.strategy_id) {
-                setSelectedStrategy(strategies[0]);
-              }
             }}
           />
         ) : (

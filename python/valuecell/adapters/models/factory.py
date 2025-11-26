@@ -8,13 +8,12 @@ This factory:
 4. Supports fallback providers for reliability
 """
 
-import logging
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
-from valuecell.config.manager import ConfigManager, ProviderConfig, get_config_manager
+from loguru import logger
 
-logger = logging.getLogger(__name__)
+from valuecell.config.manager import ConfigManager, ProviderConfig, get_config_manager
 
 
 class ModelProvider(ABC):

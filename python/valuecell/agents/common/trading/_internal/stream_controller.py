@@ -244,6 +244,7 @@ class StreamController:
         self,
         runtime: StrategyRuntime,
         reason: agent_models.StopReason | str = agent_models.StopReason.NORMAL_EXIT,
+        reason_detail: str | None = None,
     ) -> None:
         """Finalize strategy: close resources and mark as stopped.
 
@@ -286,7 +287,7 @@ class StreamController:
                 self.strategy_id,
                 getattr(reason, "value", reason),
             )
-        self._record_stop_reason(reason)
+        self._record_stop_reason(reason, reason_detail)
 
     def is_running(self) -> bool:
         """Check if strategy is still running according to persistence layer."""
@@ -318,7 +319,9 @@ class StreamController:
                 "Error persisting ad-hoc trades for strategy {}", self.strategy_id
             )
 
-    def _record_stop_reason(self, reason: agent_models.StopReason | str) -> None:
+    def _record_stop_reason(
+        self, reason: agent_models.StopReason | str, reason_detail: str | None = None
+    ) -> None:
         """Persist last stop reason inside strategy metadata for resume decisions.
 
         Accept either a StopReason enum or a raw string; store the normalized
@@ -330,10 +333,11 @@ class StreamController:
             if strategy is None:
                 return
             metadata = dict(strategy.strategy_metadata or {})
-            normalized = getattr(reason, "value", reason)
-            if metadata.get("stop_reason") == normalized:
-                return
-            metadata["stop_reason"] = normalized
+            metadata["stop_reason"] = getattr(reason, "value", reason)
+            if reason_detail is not None:
+                metadata["stop_reason_detail"] = reason_detail
+            else:
+                metadata.pop("stop_reason_detail", None)
             repo.upsert_strategy(strategy_id=self.strategy_id, metadata=metadata)
         except Exception:
             logger.warning(
