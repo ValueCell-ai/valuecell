@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Optional
 
 from loguru import logger
 
@@ -174,8 +174,8 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         logger.info(
             f"  ExecutionGateway type: {type(self._execution_gateway).__name__}"
         )
-        tx_results = await self._execution_gateway.execute(
-            instructions, market_features
+        tx_results = await self.execute_instructions(
+            instructions, market_features=market_features
         )
         logger.info(f"✅ ExecutionGateway returned {len(tx_results)} results")
 
@@ -539,12 +539,17 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         ]
 
     async def execute_instructions(
-        self, instructions: List[TradeInstruction]
+        self,
+        instructions: List[TradeInstruction],
+        *,
+        market_features: Optional[List[FeatureVector]] = None,
     ) -> List[TxResult]:
         """Execute a list of instructions directly via the gateway."""
         if not instructions:
             return []
-        return await self._execution_gateway.execute(instructions)
+        return await self._execution_gateway.execute(
+            instructions, market_features=market_features
+        )
 
     async def close_all_positions(self) -> List[TradeHistoryEntry]:
         """Close all open positions for the strategy.
@@ -602,8 +607,23 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
 
             logger.info("Executing {} close instructions", len(instructions))
 
+            # Fetch market features for pricing if possible
+            market_features: List[FeatureVector] = []
+            if self._request.exchange_config.trading_mode == TradingMode.VIRTUAL:
+                try:
+                    pipeline_result = await self._features_pipeline.build()
+                    market_features = extract_market_snapshot_features(
+                        pipeline_result.features or []
+                    )
+                except Exception:
+                    logger.exception(
+                        "Failed to build market features for closing positions"
+                    )
+
             # Execute instructions
-            tx_results = await self.execute_instructions(instructions)
+            tx_results = await self.execute_instructions(
+                instructions, market_features=market_features
+            )
 
             # Create trades and apply to portfolio
             trades = self._create_trades(tx_results, compose_id, timestamp_ms)
