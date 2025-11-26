@@ -188,7 +188,19 @@ Once the application is running, you can explore the web interface to interact w
 - To ensure your account safety, you need to reset your API keys regularly. 
 
 ---
-**Note**: Before running the application, ensure all prerequisites are installed and environment variables are properly configured. If it has been a long time since the last update, you can delete the database files in the project directories: `lancedb/`, `valuecell.db`, `.knowledgebase/` and start fresh
+**Note**: Before running the application, ensure all prerequisites are installed and environment variables are properly configured. If it has been a long time since the last update, you can delete local data stores and start fresh:
+- LanceDB directory (stored in your system application directory):
+  - macOS: `~/Library/Application Support/ValueCell/lancedb`
+  - Linux: `~/.config/valuecell/lancedb`
+  - Windows: `%APPDATA%\ValueCell\lancedb`
+- Knowledge directory (stored in your system application directory):
+  - macOS: `~/Library/Application Support/ValueCell/.knowledge`
+  - Linux: `~/.config/valuecell/.knowledge`
+  - Windows: `%APPDATA%\ValueCell\.knowledge`
+- SQLite database file (stored in your system application directory):
+  - macOS: `~/Library/Application Support/ValueCell/valuecell.db`
+  - Linux: `~/.config/valuecell/valuecell.db`
+  - Windows: `%APPDATA%\ValueCell\valuecell.db`
 
 # Developers
 

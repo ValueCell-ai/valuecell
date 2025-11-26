@@ -184,7 +184,19 @@ bash start.sh
 
 ---
 **注意**: アプリケーションを実行する前に、すべての前提条件がインストールされ、環境変数が適切に設定されていることを確認してください。
-長期間更新がない場合は、プロジェクト内のデータベースファイル(`lancedb/`、`valuecell.db`、`.knowledgebase/`)を削除してから再起動できます。
+長期間更新がない場合は、ローカルデータを削除して再起動できます：
+- LanceDB ディレクトリ（システムアプリディレクトリに保存。`.env` と同じ場所）：
+  - macOS: `~/Library/Application Support/ValueCell/lancedb`
+  - Linux: `~/.config/valuecell/lancedb`
+  - Windows: `%APPDATA%\\ValueCell\\lancedb`
+- Knowledge ディレクトリ（システムアプリディレクトリに保存。`.env` と同じ場所）：
+  - macOS: `~/Library/Application Support/ValueCell/.knowledge`
+  - Linux: `~/.config/valuecell/.knowledge`
+  - Windows: `%APPDATA%\\ValueCell\\.knowledge`
+- SQLite データベースファイル（システムアプリディレクトリに保存。`.env` と同じ場所）：
+  - macOS: `~/Library/Application Support/ValueCell/valuecell.db`
+  - Linux: `~/.config/valuecell/valuecell.db`
+  - Windows: `%APPDATA%\\ValueCell\\valuecell.db`
 
 
 # 開発者

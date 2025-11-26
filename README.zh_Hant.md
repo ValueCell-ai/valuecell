@@ -185,7 +185,19 @@ bash start.sh
 ---
 
 **注意**：啟動應用程式前，請確認所有前置條件已安裝且環境變數正確設定。
-若長時間未有更新，可以刪除專案中的資料庫檔案 `lancedb/`、`valuecell.db`、`.knowledgebase/` 後重新啟動。
+若長時間未有更新，可以刪除本地資料並重新啟動：
+- LanceDB 目錄（位於系統應用程式目錄，與 `.env` 同路徑）：
+  - macOS: `~/Library/Application Support/ValueCell/lancedb`
+  - Linux: `~/.config/valuecell/lancedb`
+  - Windows: `%APPDATA%\\ValueCell\\lancedb`
+- 知識目錄（位於系統應用程式目錄，與 `.env` 同路徑）：
+  - macOS: `~/Library/Application Support/ValueCell/.knowledge`
+  - Linux: `~/.config/valuecell/.knowledge`
+  - Windows: `%APPDATA%\\ValueCell\\.knowledge`
+- SQLite 資料庫檔案（位於系統應用程式目錄，與 `.env` 同路徑）：
+  - macOS: `~/Library/Application Support/ValueCell/valuecell.db`
+  - Linux: `~/.config/valuecell/valuecell.db`
+  - Windows: `%APPDATA%\\ValueCell\\valuecell.db`
 
 
 # 開發者

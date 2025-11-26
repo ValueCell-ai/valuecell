@@ -1,5 +1,15 @@
+"""Utilities for resolving Python package and repository root paths.
+
+Note: Database default location logic moved to `valuecell.utils.db.resolve_db_path`,
+which defaults to storing `valuecell.db` in the system application directory
+(same path as `.env`).
+"""
+
 import os
+import shutil
 from pathlib import Path
+
+from .env import get_system_env_dir
 
 
 def get_python_root_path() -> str:
@@ -28,10 +38,11 @@ def get_python_root_path() -> str:
 
 
 def get_repo_root_path() -> str:
-    """Resolve repository root and return default DB path valuecell.db.
+    """
+    Resolve repository root directory path.
 
-    Layout assumption: this file is at repo_root/python/valuecell/utils/db.py
-    We walk up 3 levels to reach repo_root.
+    Assumes this file is at `repo_root/python/valuecell/utils/path.py`.
+    Walk up three levels to reach `repo_root`.
     """
     here = os.path.dirname(__file__)
     repo_root = os.path.abspath(os.path.join(here, "..", "..", ".."))
@@ -52,11 +63,28 @@ def get_agent_card_path() -> str:
 
 def get_knowledge_path() -> str:
     """
-    Returns the path to the knowledge directory located in the project root.
+    Resolve the Knowledge directory path under the system application directory.
 
-    Returns:
-        str: Absolute path of the knowledge directory
+    Behavior:
+    - Default location: `<system_env_dir>/.knowledge` (same base dir as `.env`)
+    - One-time migration: if old repo-root `.knowledge` exists and the system dir
+      is empty, copy the contents for continuity.
     """
-    root_path = get_repo_root_path()
-    knowledge_path = Path(root_path) / ".knowledge"
-    return str(knowledge_path)
+    new_path = Path(get_system_env_dir()) / ".knowledge"
+    new_path.mkdir(parents=True, exist_ok=True)
+
+    old_path = Path(get_repo_root_path()) / ".knowledge"
+    try:
+        if old_path.exists() and not any(new_path.iterdir()):
+            for item in old_path.iterdir():
+                src = item
+                dst = new_path / item.name
+                if item.is_dir():
+                    shutil.copytree(src, dst, dirs_exist_ok=True)
+                else:
+                    shutil.copy2(src, dst)
+    except Exception:
+        # Non-fatal: proceed with new_path even if migration fails
+        pass
+
+    return str(new_path)
