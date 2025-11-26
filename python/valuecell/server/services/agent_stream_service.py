@@ -8,7 +8,6 @@ from typing import AsyncGenerator, Optional
 from loguru import logger
 
 from valuecell.core.coordinate.orchestrator import AgentOrchestrator
-
 from valuecell.core.task.executor import TaskExecutor
 from valuecell.core.task.locator import get_task_service
 from valuecell.core.task.models import TaskPattern, TaskStatus
