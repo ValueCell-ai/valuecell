@@ -1,3 +1,4 @@
+import { DialogDescription } from "@radix-ui/react-dialog";
 import { useForm } from "@tanstack/react-form";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { Eye, EyeOff, Plus, Trash2 } from "lucide-react";
@@ -260,6 +261,7 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                   >
                     <DialogHeader>
                       <DialogTitle>Add Model</DialogTitle>
+                      <DialogDescription />
                     </DialogHeader>
                     <div className="flex flex-col gap-4 py-4">
                       <FieldGroup className="gap-4">

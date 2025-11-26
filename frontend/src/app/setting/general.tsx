@@ -1,6 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldTitle,
+} from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useTauriInfo } from "@/hooks/use-tauri-info";
 import { useUpdateToast } from "@/hooks/use-update-toast";
@@ -14,59 +21,77 @@ export default function GeneralPage() {
   const { isTauriApp, appVersion } = useTauriInfo();
 
   return (
-    <div className="flex flex-col gap-5 px-16 py-10">
+    <div className="flex flex-1 flex-col gap-4 p-10">
       <div className="flex flex-col gap-1.5">
         <h1 className="font-bold text-gray-950 text-xl">General</h1>
-        <p className="text-base text-gray-400 leading-[22px]">
+        <p className="font-normal text-gray-500 text-sm">
           Manage your preferences and application settings
         </p>
       </div>
 
-      <div className="space-y-6">
-        <div className="space-y-4">
-          <h3 className="font-medium text-foreground text-sm">Quotes Color</h3>
+      <FieldGroup className="gap-6">
+        <Field orientation="horizontal">
+          <FieldContent>
+            <FieldTitle className="font-medium text-base text-gray-950">
+              Sign In
+            </FieldTitle>
+            <FieldDescription>
+              Sign in to get started with Valuecell AI features.
+            </FieldDescription>
+          </FieldContent>
+          <Button size="sm">Sign In</Button>
+        </Field>
 
+        <Field orientation="horizontal">
+          <FieldContent>
+            <FieldTitle className="font-medium text-base text-gray-950">
+              Quotes Color
+            </FieldTitle>
+            <FieldDescription>
+              Choose how stock quote movements are visualized across the app.
+            </FieldDescription>
+          </FieldContent>
           <RadioGroup
+            className="flex gap-3"
             value={stockColorMode}
             onValueChange={(value) =>
               setStockColorMode(value as StockColorMode)
             }
           >
-            <Label
+            <FieldLabel
+              className="flex cursor-pointer items-center space-x-3 text-nowrap rounded-lg border border-gray-200 p-4"
               htmlFor="green-up"
-              className="flex cursor-pointer items-center space-x-3 rounded-lg border border-input p-4 hover:bg-accent/50"
             >
               <RadioGroupItem value="GREEN_UP_RED_DOWN" id="green-up" />
-              <span className="flex-1">Green Up / Red Down</span>
-            </Label>
-
-            <Label
+              Green Up / Red Down
+            </FieldLabel>
+            <FieldLabel
+              className="flex cursor-pointer items-center space-x-3 text-nowrap rounded-lg border border-gray-200 p-4"
               htmlFor="red-up"
-              className="flex cursor-pointer items-center space-x-3 rounded-lg border border-input p-4 hover:bg-accent/50"
             >
               <RadioGroupItem value="RED_UP_GREEN_DOWN" id="red-up" />
-              <span className="flex-1">Red Up / Green Down</span>
-            </Label>
+              Red Up / Green Down
+            </FieldLabel>
           </RadioGroup>
-        </div>
+        </Field>
 
         {isTauriApp && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium text-foreground text-sm">
-                App Updates
-              </h3>
+          <Field
+            orientation="responsive"
+            className="items-start rounded-2xl border border-input/40 bg-card p-6"
+          >
+            <FieldTitle className="font-medium text-base text-gray-950">
+              App Updates
               <Badge variant="secondary">
                 {appVersion ? `v${appVersion}` : "—"}
               </Badge>
-            </div>
-
-            <Button size="sm" onClick={checkAndUpdate}>
-              Check for Updates
+            </FieldTitle>
+            <Button size="sm" variant="outline" onClick={checkAndUpdate}>
+              Check for Update
             </Button>
-          </div>
+          </Field>
         )}
-      </div>
+      </FieldGroup>
     </div>
   );
 }
