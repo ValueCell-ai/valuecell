@@ -45,6 +45,7 @@ dev = [
     {include-group = "lint"},
     {include-group = "style"},
     {include-group = "test"},
+    {include-group = "dist"},
 ]
 dist = [
     "pex>=2.71.1",

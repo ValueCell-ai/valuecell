@@ -3628,7 +3628,7 @@ wheels = [
 
 [[package]]
 name = "valuecell"
-version = "0.1.0"
+version = "0.1.4"
 source = { editable = "." }
 dependencies = [
     { name = "a2a-sdk", extra = ["http-server"] },
@@ -3666,6 +3666,7 @@ dev = [
 dev = [
     { name = "diff-cover" },
     { name = "isort" },
+    { name = "pex" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
@@ -3722,6 +3723,7 @@ provides-extras = ["dev"]
 dev = [
     { name = "diff-cover", specifier = ">=9.0.0" },
     { name = "isort" },
+    { name = "pex", specifier = ">=2.71.1" },
     { name = "pytest", specifier = ">=7.4.0" },
     { name = "pytest-asyncio", specifier = ">=1.0.0" },
     { name = "pytest-cov", specifier = ">=4.1.0" },

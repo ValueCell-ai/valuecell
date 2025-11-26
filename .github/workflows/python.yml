@@ -109,7 +109,7 @@ jobs:
         uses: astral-sh/setup-uv@v6
 
       - name: Install the project
-        run: uv sync --frozen --only-group dist
+        run: uv sync --all-extras
 
       - name: Build Wheel
         run: uv build
@@ -127,9 +127,9 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         shell: pwsh
         run: |
-          uv pip compile pyproject.toml -o dist/requirements.txt
+          uv pip list
           uvx pex `
-            -r dist/requirements.txt `
+            --venv-repository .venv `
             -e valuecell.server.main:main `
             -o dist/valuecell-Windows-X64.exe `
             -j 1 `
