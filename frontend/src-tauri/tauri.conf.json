@@ -13,10 +13,10 @@
     "windows": [
       {
         "title": "ValueCell",
-        "width": 1200,
-        "height": 800,
-        "minWidth": 1024,
-        "minHeight": 768,
+        "width": 1400,
+        "height": 900,
+        "minWidth": 1400,
+        "minHeight": 900,
         "hiddenTitle": true
       }
     ],
