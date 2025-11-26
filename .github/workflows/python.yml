@@ -108,7 +108,7 @@ jobs:
         uses: astral-sh/setup-uv@v6
 
       - name: Install the project
-        run: uv sync --locked --only-group dist
+        run: uv sync --frozen --only-group dist
 
       - name: Build Wheel
         run: uv build
