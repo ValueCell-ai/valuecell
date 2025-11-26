@@ -173,7 +173,7 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
   return (
     <>
       {hasStrategies ? (
-        <ScrollContainer className="min-w-80 flex-1">
+        <ScrollContainer>
           <div className="flex flex-col gap-3">
             {strategies.map((strategy) => (
               <TradeStrategyCard
@@ -190,7 +190,7 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
           </div>
         </ScrollContainer>
       ) : (
-        <div className="flex min-w-80 flex-1 items-center justify-center rounded-xl border-2 border-gray-200 border-dashed bg-gray-50/50">
+        <div className="flex w-80 items-center justify-center rounded-xl border-2 border-gray-200 border-dashed bg-gray-50/50">
           <div className="flex flex-col items-center gap-4 px-6 py-12 text-center">
             <div className="flex size-14 items-center justify-center rounded-full bg-gray-100">
               <TrendingUp className="size-7 text-gray-400" />
