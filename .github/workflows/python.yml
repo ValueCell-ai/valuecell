@@ -126,7 +126,7 @@ jobs:
           uv pip list
           uv pip compile pyproject.toml -o dist/requirements.txt
           uvx pex `
-            -r dist/requirements.txt`
+            -r dist/requirements.txt `
             -e valuecell.server.main:main `
             -o dist/valuecell-Windows-X64.exe `
             -j 1 `
