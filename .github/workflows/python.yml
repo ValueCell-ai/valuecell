@@ -129,6 +129,7 @@ jobs:
             -r dist/requirements.txt `
             -e valuecell.server.main:main `
             -o dist/valuecell-Windows-X64.exe `
+            --python-shebang '#!/usr/bin/env python3' `
             -j 1 `
             -v
 
