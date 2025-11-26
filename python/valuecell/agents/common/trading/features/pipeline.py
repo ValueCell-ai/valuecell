@@ -9,9 +9,12 @@ computer—everything is orchestrated by the pipeline.
 from __future__ import annotations
 
 import asyncio
-from typing import List, Optional, Tuple
+from typing import List, Optional
+
+from loguru import logger
 
 from valuecell.agents.common.trading.models import (
+    CandleConfig,
     FeaturesPipelineResult,
     FeatureVector,
     UserRequest,
@@ -37,7 +40,7 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
         market_data_source: BaseMarketDataSource,
         candle_feature_computer: CandleBasedFeatureComputer,
         market_snapshot_computer: MarketSnapshotFeatureComputer,
-        candle_configurations: Optional[List[Tuple[str, int]]] = None,
+        candle_configurations: Optional[List[CandleConfig]] = None,
     ) -> None:
         self._request = request
         self._market_data_source = market_data_source
@@ -47,8 +50,8 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
         self._candle_configurations = candle_configurations
         if self._candle_configurations is None:
             self._candle_configurations = [
-                ("1s", 60 * 3),
-                ("1m", 60 * 4),
+                CandleConfig(interval="1s", lookback=60 * 3),
+                CandleConfig(interval="1m", lookback=60 * 4),
             ]
 
     async def build(self) -> FeaturesPipelineResult:
@@ -74,18 +77,18 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
                 market_snapshot, self._request.exchange_config.exchange_id
             )
 
-        print(
+        logger.info(
             f"Starting concurrent data fetching for {len(self._candle_configurations)} candle sets and markets snapshot..."
         )
         tasks = [
-            _fetch_candles(interval, lookback)
-            for interval, lookback in self._candle_configurations
+            _fetch_candles(config.interval, config.lookback)
+            for config in self._candle_configurations
         ]
         tasks.append(_fetch_market_features())
 
         # results = [ [candle_features_1], [candle_features_2], ..., [market_features] ]
         results = await asyncio.gather(*tasks)
-        print("Concurrent data fetching complete.")
+        logger.info("Concurrent data fetching complete.")
 
         market_features: List[FeatureVector] = results.pop()
 

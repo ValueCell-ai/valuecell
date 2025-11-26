@@ -1,4 +1,5 @@
 import asyncio
+import itertools
 from collections import defaultdict
 from typing import List, Optional
 
@@ -115,7 +116,7 @@ class SimpleMarketDataSource(BaseMarketDataSource):
         results = await asyncio.gather(*tasks)
 
         # Flatten the list of lists results into a single list of candles
-        candles: List[Candle] = [candle for sublist in results for candle in sublist]
+        candles: List[Candle] = list(itertools.chain.from_iterable(results))
 
         logger.debug(
             f"Fetch {len(candles)} candles symbols: {symbols}, interval: {interval}, lookback: {lookback}"
