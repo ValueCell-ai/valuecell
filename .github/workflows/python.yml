@@ -104,12 +104,6 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install the project
-        run: uv sync --all-extras
-
-      - name: Build Wheel
-        run: uv build
-
       - name: Build PEX for macOS / Linux
         if: ${{ matrix.os != 'windows-latest' }}
         run: |
@@ -123,13 +117,14 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         shell: pwsh
         run: |
-          uv pip list
+          Get-Command python
+          Get-Command uv
+          Get-Command uvx
           uv pip compile pyproject.toml -o dist/requirements.txt
           uvx pex `
             -r dist/requirements.txt `
             -e valuecell.server.main:main `
             -o dist/valuecell-Windows-X64.exe `
-            --python-shebang '#!/usr/bin/env python3' `
             -j 1 `
             -v
 
