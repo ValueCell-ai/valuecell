@@ -1,57 +1,56 @@
 #!/bin/bash
-# Docker 快速启动脚本
+# Docker Quick Start Script
 
 set -e
 
 echo "=========================================="
-echo "ValueCell Docker 启动脚本"
+echo "ValueCell Docker Startup Script"
 echo "=========================================="
 
-# 检查 Docker 是否安装
+# Check if Docker is installed
 if ! command -v docker &> /dev/null; then
-    echo "错误: 未找到 Docker。请先安装 Docker。"
+    echo "Error: Docker not found. Please install Docker first."
     exit 1
 fi
 
-# 检查 Docker Compose 是否安装
+# Check if Docker Compose is installed
 if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
-    echo "错误: 未找到 Docker Compose。请先安装 Docker Compose。"
+    echo "Error: Docker Compose not found. Please install Docker Compose first."
     exit 1
 fi
 
-# 检查 .env 文件
+# Check for .env file
 if [ ! -f .env ]; then
-    echo "警告: 未找到 .env 文件。将使用默认配置。"
-    echo "建议创建 .env 文件并配置必要的环境变量。"
+    echo "Warning: .env file not found. Using default configuration."
+    echo "It is recommended to create a .env file and configure necessary environment variables."
 fi
 
-# 构建并启动服务
+# Build and start services
 echo ""
-echo "构建 Docker 镜像..."
+echo "Building Docker images..."
 docker-compose build
 
 echo ""
-echo "启动服务..."
+echo "Starting services..."
 docker-compose up -d
 
 echo ""
-echo "等待服务启动..."
+echo "Waiting for services to start..."
 sleep 5
 
-# 检查服务状态
+# Check service status
 echo ""
-echo "服务状态:"
+echo "Service status:"
 docker-compose ps
 
 echo ""
 echo "=========================================="
-echo "服务已启动！"
-echo "前端: http://localhost:1420"
-echo "后端 API: http://localhost:8000"
-echo "API 文档: http://localhost:8000/docs"
+echo "Services started!"
+echo "Frontend: http://localhost:1420"
+echo "Backend API: http://localhost:8000"
+echo "API Documentation: http://localhost:8000/docs"
 echo "=========================================="
 echo ""
-echo "查看日志: docker-compose logs -f"
-echo "停止服务: docker-compose down"
+echo "View logs: docker-compose logs -f"
+echo "Stop services: docker-compose down"
 echo ""
-

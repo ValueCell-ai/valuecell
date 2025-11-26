@@ -1,220 +1,183 @@
-# Docker 部署指南
+# Docker Deployment Guide
 
-本项目支持使用 Docker 容器运行前端和后端服务。
+This project supports running frontend and backend services using Docker containers.
 
-## 快速开始
+## Quick Start
 
-### 1. 配置 Docker 镜像加速器（推荐）
-
-为了加快 Docker 镜像拉取速度，建议配置国内镜像源。
-
-#### Windows/Mac (Docker Desktop)
-
-1. 打开 Docker Desktop
-2. 进入 Settings → Docker Engine
-3. 添加以下配置：
-
-```json
-{
-  "registry-mirrors": [
-    "https://docker.mirrors.ustc.edu.cn",
-    "https://hub-mirror.c.163.com",
-    "https://mirror.baidubce.com"
-  ]
-}
-```
-
-4. 点击 "Apply & Restart"
-
-#### Linux
-
-创建或编辑 `/etc/docker/daemon.json`：
+### 1. Configure Environment Variables
 
 ```bash
-sudo mkdir -p /etc/docker
-sudo tee /etc/docker/daemon.json <<-'EOF'
-{
-  "registry-mirrors": [
-    "https://docker.mirrors.ustc.edu.cn",
-    "https://hub-mirror.c.163.com",
-    "https://mirror.baidubce.com"
-  ]
-}
-EOF
-sudo systemctl daemon-reload
-sudo systemctl restart docker
+cp .env.example .env
 ```
 
-### 2. 准备环境文件
+Edit the `.env` file with your API keys and preferences. This configuration file is shared across all agents. See [Configuration Guide](../docs/CONFIGURATION_GUIDE.md) for details.
 
-在项目根目录创建 `.env` 文件（如果不存在），包含必要的环境变量：
+> **Note**: Some runtime environment variables (like `API_HOST`, `API_PORT`, `CORS_ORIGINS`) are already configured in `docker-compose.yml`. 
 
-```bash
-# API 配置
-API_HOST=0.0.0.0
-API_PORT=8000
-
-# 数据库配置（可选）
-VALUECELL_SQLITE_DB=sqlite:///valuecell.db
-
-# CORS 配置
-CORS_ORIGINS=http://localhost:1420,http://localhost:3000
-```
-
-### 3. 构建并启动服务
+### 2. Build and Start Services
 
 ```bash
-# 构建并启动所有服务
+# Build and start all services
 docker-compose up -d
 
-# 查看日志
+# View logs
 docker-compose logs -f
 
-# 只启动后端
+# Start backend only
 docker-compose up -d backend
 
-# 只启动前端
+# Start frontend only
 docker-compose up -d frontend
 ```
 
-### 4. 访问服务
+### 3. Access Services
 
-- **前端**: http://localhost:1420
-- **后端 API**: http://localhost:8000
-- **API 文档**: http://localhost:8000/docs
+- **Frontend**: http://localhost:1420
+- **Backend API**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
 
-### 5. 停止服务
+### 4. Stop Services
 
 ```bash
-# 停止所有服务
+# Stop all services
 docker-compose down
 
-# 停止并删除卷
+# Stop and remove volumes
 docker-compose down -v
 ```
 
-## 服务说明
+## Service Description
 
-### Backend 服务
+### Backend Service
 
-- **端口**: 8000
-- **镜像**: 基于 `ghcr.io/astral-sh/uv:python3.12-bookworm-slim`
-- **工作目录**: `/app/python`
-- **启动命令**: `uv run -m valuecell.server.main`
-- **PyPI 镜像**: 已配置使用清华大学镜像源
+- **Port**: 8000
+- **Image**: Based on `ghcr.io/astral-sh/uv:python3.12-bookworm-slim`
+- **Working Directory**: `/app/python`
+- **Entrypoint**: `/app/entrypoint.sh` (automatically initializes database if needed)
+- **Start Command**: `uv run -m valuecell.server.main`
+- **PyPI Mirror**: Configured to use Tsinghua University mirror source
+- **Database**: Automatically initialized on first startup if not exists
 
-### Frontend 服务
+### Frontend Service
 
-- **端口**: 1420
-- **镜像**: 基于 `oven/bun:1.3.0-slim`
-- **工作目录**: `/app/frontend`
-- **启动命令**: `bun run dev`
-- **NPM 镜像**: 已配置使用淘宝镜像源
+- **Port**: 1420
+- **Image**: Based on `oven/bun:1.3.0-slim`
+- **Working Directory**: `/app/frontend`
+- **Start Command**: `bun run dev`
+- **NPM Mirror**: Configured to use Taobao mirror source
 
-## 国内镜像源配置
+## Mirror Source Configuration
 
-Dockerfile 已自动配置以下国内镜像源：
+Dockerfiles have automatically configured the following mirror sources for faster downloads:
 
-- **APT (Debian)**: 阿里云镜像
-- **PyPI (Python)**: 清华大学镜像
-- **NPM (Node.js)**: 淘宝镜像
+- **Docker Images**: Using `docker.1ms.run` mirror for base images (no additional Docker Desktop configuration needed)
+- **APT (Debian)**: Alibaba Cloud mirror
+- **PyPI (Python)**: Tsinghua University mirror
+- **NPM (Node.js)**: Taobao mirror
 
-## 数据持久化
+> **Note**: The Dockerfiles use `docker.1ms.run` mirror for pulling base images, so you don't need to configure Docker Desktop registry mirrors separately.
 
-以下目录/文件会被挂载到容器中，数据会持久化：
+## Data Persistence
 
-- `./python` → `/app/python` (后端代码)
-- `./logs` → `/app/logs` (日志文件)
-- `./valuecell.db` → `/app/valuecell.db` (数据库)
-- `./lancedb` → `/app/lancedb` (LanceDB 数据)
-- `./frontend` → `/app/frontend` (前端代码)
+The following directories/files are mounted to containers, and data will be persisted:
 
-## 开发模式
+- `./python` → `/app/python` (backend code)
+- `./logs` → `/app/logs` (log files)
+- `./data` → `/app/data` (database and data files)
+  - Database file: `./data/valuecell.db` (automatically created if not exists)
+- `./lancedb` → `/app/lancedb` (LanceDB data)
+- `./frontend` → `/app/frontend` (frontend code)
 
-在开发模式下，代码更改会自动反映到容器中（通过卷挂载）：
+> **Note**: The database is automatically initialized on first startup if it doesn't exist. The entrypoint script checks and initializes the database before starting the server.
+
+## Development Mode
+
+In development mode, code changes are automatically reflected in containers (via volume mounts):
 
 ```bash
-# 启动开发环境
+# Start development environment
 docker-compose up
 
-# 在另一个终端中查看日志
+# View logs in another terminal
 docker-compose logs -f frontend
 docker-compose logs -f backend
 ```
 
-## 生产部署
+## Production Deployment
 
-对于生产环境，建议：
+For production environments, it is recommended to:
 
-1. 修改 `docker-compose.yml` 中的端口映射
-2. 使用环境变量文件管理配置
-3. 配置反向代理（如 Nginx）
-4. 使用 Docker secrets 管理敏感信息
-5. 考虑使用多阶段构建优化镜像大小
+1. Modify port mappings in `docker-compose.yml`
+2. Use environment variable files to manage configuration
+3. Configure reverse proxy (such as Nginx)
+4. Use Docker secrets to manage sensitive information
+5. Consider using multi-stage builds to optimize image size
 
-## 故障排查
+## Troubleshooting
 
-### 查看容器状态
+### View Container Status
 
 ```bash
 docker-compose ps
 ```
 
-### 查看容器日志
+### View Container Logs
 
 ```bash
-# 所有服务
+# All services
 docker-compose logs
 
-# 特定服务
+# Specific service
 docker-compose logs backend
 docker-compose logs frontend
 
-# 实时日志
+# Real-time logs
 docker-compose logs -f
 ```
 
-### 进入容器调试
+### Enter Container for Debugging
 
 ```bash
-# 进入后端容器
+# Enter backend container
 docker-compose exec backend bash
 
-# 进入前端容器
+# Enter frontend container
 docker-compose exec frontend sh
 ```
 
-### 重建镜像
+### Rebuild Images
 
 ```bash
-# 强制重建
+# Force rebuild
 docker-compose build --no-cache
 
-# 重建并启动
+# Rebuild and start
 docker-compose up -d --build
 ```
 
-### 网络问题
+### Network Issues
 
-如果遇到网络连接问题：
+If encountering network connection issues:
 
-1. 检查 Docker 镜像加速器配置是否正确
-2. 尝试使用代理：
+1. The Dockerfiles already use `docker.1ms.run` mirror for base images, which should provide good download speeds
+2. If you still experience issues, try using a proxy:
    ```bash
    export HTTP_PROXY=http://your-proxy:port
    export HTTPS_PROXY=http://your-proxy:port
    docker-compose build
    ```
 
-## 环境变量
+## Environment Variables
 
-可以通过 `.env` 文件或 `docker-compose.yml` 中的 `environment` 部分配置环境变量。
+Environment variables can be configured via the `.env` file. See [Configuration Guide](../docs/CONFIGURATION_GUIDE.md) for details.
 
-常用环境变量：
+> **Note**: Some runtime variables (`API_HOST`, `API_PORT`, `CORS_ORIGINS`) are configured in `docker-compose.yml`.
 
-- `API_HOST`: 后端 API 主机地址（默认: 0.0.0.0）
-- `API_PORT`: 后端 API 端口（默认: 8000）
-- `CORS_ORIGINS`: CORS 允许的源（逗号分隔）
-- `VALUECELL_SQLITE_DB`: SQLite 数据库路径
-- `UV_INDEX_URL`: PyPI 镜像地址（已配置为清华源）
-- `BUN_CONFIG_REGISTRY`: NPM 镜像地址（已配置为淘宝源）
+### Build-time Environment Variables
+
+These variables are already configured in Dockerfiles and used during image build:
+
+- `UV_INDEX_URL`: PyPI mirror address (configured in `Dockerfile.backend` as Tsinghua source)
+- `BUN_CONFIG_REGISTRY`: NPM mirror address (configured in `Dockerfile.frontend` as Taobao source)
+
+> **Note**: `UV_INDEX_URL` and `BUN_CONFIG_REGISTRY` are build-time variables set in the Dockerfiles. You don't need to configure them in `docker-compose.yml` or `.env` files as they only affect the image build process, not the running containers.

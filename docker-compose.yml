@@ -9,12 +9,13 @@ services:
     volumes:
       - ./python:/app/python
       - ./logs:/app/logs
-      - ./valuecell.db:/app/valuecell.db
+      - ./data:/app/data
       - ./lancedb:/app/lancedb
     environment:
       - API_HOST=0.0.0.0
       - API_PORT=8000
       - CORS_ORIGINS=http://localhost:1420,http://localhost:3000
+      - VALUECELL_SQLITE_DB=sqlite:////app/data/valuecell.db
     env_file:
       - .env
     restart: unless-stopped

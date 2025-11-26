@@ -10,11 +10,10 @@ RUN apt-get update && apt-get install -y \
     openssl \
     ca-certificates \
     libssl3 \
+    sqlite3 \
     && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates
 
-# Install uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 WORKDIR /app
 
@@ -49,7 +48,12 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Create logs directory
 RUN mkdir -p /app/logs
 
-# Note: Database initialization will happen at runtime if needed
+# Copy entrypoint script
+COPY docker/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# Set entrypoint
+ENTRYPOINT ["/app/entrypoint.sh"]
 
 EXPOSE 8000
 
