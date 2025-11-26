@@ -132,9 +132,7 @@ jobs:
           echo "Building $whl inside dist directory..."
           uvx pex $whl `
             -e valuecell.server.main:main `
-            -o valuecell-Windows-X64.exe `
-            --scie eager `
-            --scie-pbs-stripped
+            -o valuecell-Windows-X64.exe
 
 
       - name: Upload Artifact
