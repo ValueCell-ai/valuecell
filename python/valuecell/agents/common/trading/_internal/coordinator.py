@@ -99,7 +99,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         self._symbols = list(dict.fromkeys(request.trading_config.symbols))
         self._realized_pnl: float = 0.0
         self._unrealized_pnl: float = 0.0
-        self._cycle_index: int = 0
+        self.cycle_index: int = 0
         self._strategy_name = request.trading_config.strategy_name or strategy_id
 
     async def run_once(self) -> DecisionCycleResult:
@@ -221,13 +221,13 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             self._history_recorder.record(record)
 
         digest = self._digest_builder.build(self._history_recorder.get_records())
-        self._cycle_index += 1
+        self.cycle_index += 1
 
         portfolio = self.portfolio_service.get_view()
         return DecisionCycleResult(
             compose_id=compose_id,
             timestamp_ms=timestamp_ms,
-            cycle_index=self._cycle_index,
+            cycle_index=self.cycle_index,
             rationale=rationale,
             strategy_summary=summary,
             instructions=instructions,
