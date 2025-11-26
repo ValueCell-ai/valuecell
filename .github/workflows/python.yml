@@ -127,9 +127,11 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         shell: pwsh
         run: |
-          uvx pex --venv-repository .venv `
+          uv pip compile pyproject.toml -o dist/requirements.txt
+          uvx pex `
+            -r dist/requirements.txt `
             -e valuecell.server.main:main `
-            -o valuecell-Windows-X64.exe `
+            -o dist/valuecell-Windows-X64.exe `
             -v
 
 
