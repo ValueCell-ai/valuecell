@@ -350,6 +350,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                     exit_ts=exit_ts,
                     trade_ts=timestamp_ms,
                     holding_ms=(exit_ts - entry_ts_prev) if entry_ts_prev else None,
+                    unrealized_pnl=0.0,
                     realized_pnl=realized_pnl,
                     realized_pnl_pct=realized_pnl_pct,
                     # For a full close, reflect the leverage of the closed position, not the closing instruction
