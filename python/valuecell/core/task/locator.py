@@ -16,8 +16,11 @@ from __future__ import annotations
 import threading
 from typing import Optional
 
+from valuecell.utils.db import resolve_db_path
+
 from .manager import TaskManager
 from .service import TaskService
+from .task_store import SQLiteTaskStore
 
 _task_service: Optional[TaskService] = None
 _lock = threading.Lock()
@@ -29,7 +32,11 @@ def get_task_service() -> TaskService:
     if _task_service is None:
         with _lock:
             if _task_service is None:
-                _task_service = TaskService(manager=TaskManager())
+                db_path = resolve_db_path()
+                task_store = SQLiteTaskStore(db_path)
+                manager = TaskManager(task_store)
+
+                _task_service = TaskService(manager=manager)
     return _task_service
 
 

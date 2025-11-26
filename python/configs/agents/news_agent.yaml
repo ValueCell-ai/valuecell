@@ -18,7 +18,7 @@ enabled: true
 models:
   # Primary model for news analysis, summarization, and query processing
   primary:
-    model_id: "google/gemini-2.5-pro"
+    model_id: "qwen/qwen3-max"
     provider: "openrouter"  # Must explicitly specify provider (not null)
 
     # Provider-specific model mappings for fallback

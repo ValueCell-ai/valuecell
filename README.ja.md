@@ -84,16 +84,23 @@ p align="center">
 
 # クイックスタート
 
+## ユーザー向け
+
+最新の ValueCell アプリケーション（MacOS または Windows 用）を GitHub の[リリースページ](https://github.com/ValueCell-ai/valuecell/releases)からダウンロードできます。また、公式ウェブサイト [https://valuecell.ai](https://valuecell.ai) からもダウンロードできます。
+
+インストール後、初回使用時に、お好みのモデルプロバイダーを設定してください。アプリケーション内の指示またはドキュメントを参照してください。
+
+## 開発者向け
 ValueCellは包括的なWebインターフェースを備えたPythonベースのアプリケーションです。このガイドに従って、アプリケーションを効率的にセットアップして実行してください。
 
-## 前提条件
+### 前提条件
 
 最適なパフォーマンスと効率的な開発のために、以下のツールのインストールを推奨します:
 
 **[uv](https://docs.astral.sh/uv/getting-started/installation/)** - Rustで構築された超高速Pythonパッケージおよびプロジェクトマネージャー  
 **[bun](https://github.com/oven-sh/bun#install)** - 高性能JavaScript/TypeScriptツールキット(ランタイム、バンドラー、テストランナー、パッケージマネージャーを含む)
 
-## インストール
+### インストール
 
 1. **リポジトリのクローン**
 
@@ -123,7 +130,6 @@ ValueCellは包括的なWebインターフェースを備えたPythonベース�
 
 - **公式推奨**: OpenRouter + 埋め込みモデルを提供する任意のサプライヤーを設定してください。理由：プロバイダー間のモデルの高速切り替えが可能であり、RAG+Memory AI機能を提供します。
 
-
 ## アプリケーションの実行
 
 完全なアプリケーション(フロントエンド、バックエンド、エージェント)を起動します:
@@ -143,11 +149,11 @@ bash start.sh
 - **Web UI**: ブラウザで[http://localhost:1420](http://localhost:1420)にアクセス
 - **ログ**: バックエンドサービスと個々のエージェントの詳細な実行時情報については、`logs/{timestamp}/*.log`でアプリケーションログを確認
 
-## 次のステップ
+### 次のステップ
 
 アプリケーションが起動したら、WebインターフェースでValueCellの機能を操作して探索できます。
 
-## リアルタイム取引
+## ライブ取引
 
 - AIモデルの設定: Webインターフェースから AI モデルの API キーを追加します。
 - 取引所の設定: Binance/HyperLiquid/OKX/Coinbase... の API 認証情報を設定します。
@@ -178,7 +184,19 @@ bash start.sh
 
 ---
 **注意**: アプリケーションを実行する前に、すべての前提条件がインストールされ、環境変数が適切に設定されていることを確認してください。
-長期間更新がない場合は、プロジェクト内のデータベースファイル(`lancedb/`、`valuecell.db`、`.knowledgebase/`)を削除してから再起動できます。
+長期間更新がない場合は、ローカルデータを削除して再起動できます：
+- LanceDB ディレクトリ（システムアプリディレクトリに保存。`.env` と同じ場所）：
+  - macOS: `~/Library/Application Support/ValueCell/lancedb`
+  - Linux: `~/.config/valuecell/lancedb`
+  - Windows: `%APPDATA%\\ValueCell\\lancedb`
+- Knowledge ディレクトリ（システムアプリディレクトリに保存。`.env` と同じ場所）：
+  - macOS: `~/Library/Application Support/ValueCell/.knowledge`
+  - Linux: `~/.config/valuecell/.knowledge`
+  - Windows: `%APPDATA%\\ValueCell\\.knowledge`
+- SQLite データベースファイル（システムアプリディレクトリに保存。`.env` と同じ場所）：
+  - macOS: `~/Library/Application Support/ValueCell/valuecell.db`
+  - Linux: `~/.config/valuecell/valuecell.db`
+  - Windows: `%APPDATA%\\ValueCell\\valuecell.db`
 
 
 # 開発者

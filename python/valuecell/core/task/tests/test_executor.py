@@ -205,6 +205,7 @@ async def test_sleep_with_cancellation(
     class DummyTask:
         def __init__(self):
             self.calls = 0
+            self.task_id = "task-1"
 
         def is_finished(self):
             self.calls += 1
@@ -218,7 +219,12 @@ async def test_sleep_with_cancellation(
 
     monkeypatch.setattr("valuecell.core.task.executor.asyncio.sleep", fake_sleep)
 
-    await executor._sleep_with_cancellation(DummyTask(), delay=0.2)
+    # Ensure the TaskService.get_task returns the dummy so the executor can
+    # refresh the task state during the cancellable sleep loop.
+    dummy = DummyTask()
+    task_service.get_task = AsyncMock(return_value=dummy)
+
+    await executor._sleep_with_cancellation(dummy, delay=0.2)
 
     assert sleeps
 
@@ -227,7 +233,7 @@ async def test_sleep_with_cancellation(
 async def test_execute_plan_emits_end_once_when_on_before_done_used(
     monkeypatch: pytest.MonkeyPatch, task_service: TaskService
 ):
-    """If _execute_task emits END via on_before_done, execute_plan should not duplicate it in finally."""
+    """If execute_task emits END via on_before_done, execute_plan should not duplicate it in finally."""
     event_service = StubEventService()
     executor = TaskExecutor(
         agent_connections=SimpleNamespace(),
@@ -236,7 +242,7 @@ async def test_execute_plan_emits_end_once_when_on_before_done_used(
         conversation_service=StubConversationService(),
     )
 
-    # Patch _execute_task to invoke on_before_done and yield its response
+    # Patch execute_task to invoke on_before_done and yield its response
     async def fake_execute_task(task, thread_id, metadata, on_before_done=None):
         if on_before_done is not None:
             maybe = await on_before_done()
@@ -244,7 +250,7 @@ async def test_execute_plan_emits_end_once_when_on_before_done_used(
                 yield maybe
         return
 
-    monkeypatch.setattr(executor, "_execute_task", fake_execute_task)
+    monkeypatch.setattr(executor, "execute_task", fake_execute_task)
 
     # Create a plan with a single subagent handoff task
     task = _make_task(handoff_from_super_agent=True)
@@ -312,7 +318,7 @@ async def test_execute_task_scheduled_emits_controller_and_done(
 
     emitted = [
         resp
-        async for resp in executor._execute_task(
+        async for resp in executor.execute_task(
             task, thread_id="thread", metadata=None, on_before_done=on_before_done_cb
         )
     ]

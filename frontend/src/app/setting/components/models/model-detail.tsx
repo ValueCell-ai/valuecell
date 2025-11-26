@@ -1,7 +1,7 @@
 import { useForm } from "@tanstack/react-form";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { Eye, EyeOff, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-
 import { z } from "zod";
 import {
   useAddProviderModel,
@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/input-group";
 import { Switch } from "@/components/ui/switch";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
+import { useTauriInfo } from "@/hooks/use-tauri-info";
 
 const configSchema = z.object({
   api_key: z.string(),
@@ -51,9 +52,10 @@ type ModelDetailProps = {
 };
 
 export function ModelDetail({ provider }: ModelDetailProps) {
+  const { isTauriApp } = useTauriInfo();
+
   const { data: providerDetail, isLoading: detailLoading } =
     useGetModelProviderDetail(provider);
-
   const { mutate: updateConfig, isPending: updatingConfig } =
     useUpdateProviderConfig();
   const { mutate: addModel, isPending: addingModel } = useAddProviderModel();
@@ -201,7 +203,9 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                   <button
                     type="button"
                     onClick={() =>
-                      window.open(providerDetail.api_key_url, "_blank")
+                      isTauriApp
+                        ? openUrl(providerDetail.api_key_url)
+                        : window.open(providerDetail.api_key_url, "_blank")
                     }
                     className="w-fit! cursor-pointer text-sm underline underline-offset-4 hover:text-gray-700"
                   >

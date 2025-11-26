@@ -139,3 +139,22 @@ class ConversationService:
             limit=limit,
             offset=offset,
         )
+
+    async def update_task_component_status(
+        self,
+        task_id: str,
+        status: str,
+        error_reason: Optional[str] = None,
+    ) -> None:
+        """Update persisted scheduled task component's status and error.
+
+        Args:
+            task_id: The task identifier.
+            status: New status (e.g., 'failed').
+            error_reason: Optional error reason for metadata.
+        """
+        return await self._manager.update_task_component_status(
+            task_id=task_id,
+            status=status,
+            error_reason=error_reason,
+        )

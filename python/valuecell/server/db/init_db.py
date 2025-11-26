@@ -1,10 +1,12 @@
 """Database initialization script for ValueCell Server."""
 
 import json
-import logging
+import shutil
 import sys
 from pathlib import Path
 from typing import Optional
+
+from loguru import logger
 
 # Smart path handling: try import first, add path only if needed
 # This allows running the script directly: uv run valuecell/server/db/init_db.py
@@ -29,12 +31,6 @@ from valuecell.server.db.models.strategy_prompt import StrategyPrompt
 from valuecell.server.db.repositories.asset_repository import get_asset_repository
 from valuecell.server.services.assets import get_asset_service
 from valuecell.utils.path import get_agent_card_path
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
 
 
 class DatabaseInitializer:
@@ -112,9 +108,25 @@ class DatabaseInitializer:
                 # Create parent directories if they don't exist
                 db_path.parent.mkdir(parents=True, exist_ok=True)
 
-                # Create empty database file
-                db_path.touch()
-                logger.info(f"Created database file: {db_path}")
+                # If old repo-root DB exists and new system-path DB is missing, migrate it
+                try:
+                    repo_root = (
+                        Path(__file__).resolve().parent.parent.parent.parent.parent
+                    )
+                    old_repo_db = repo_root / "valuecell.db"
+                except Exception:
+                    old_repo_db = None
+
+                if old_repo_db and old_repo_db.exists() and not db_path.exists():
+                    shutil.copy2(old_repo_db, db_path)
+                    logger.info(
+                        f"Migrated existing database file from repo root to system directory: {db_path}"
+                    )
+
+                # Ensure database file exists
+                if not db_path.exists():
+                    db_path.touch()
+                    logger.info(f"Created database file: {db_path}")
                 return True
 
             except Exception as e:
@@ -172,6 +184,50 @@ class DatabaseInitializer:
                     CREATE INDEX IF NOT EXISTS idx_item_conv_time 
                     ON conversation_items(conversation_id, created_at)
                 """)
+                )
+
+                # Create tasks table for task management
+                conn.execute(
+                    text("""
+                    CREATE TABLE IF NOT EXISTS tasks (
+                        task_id TEXT PRIMARY KEY,
+                        title TEXT,
+                        query TEXT NOT NULL,
+                        conversation_id TEXT NOT NULL,
+                        thread_id TEXT NOT NULL,
+                        user_id TEXT NOT NULL,
+                        agent_name TEXT NOT NULL,
+                        status TEXT NOT NULL DEFAULT 'pending',
+                        pattern TEXT NOT NULL DEFAULT 'once',
+                        schedule_config TEXT,
+                        handoff_from_super_agent INTEGER DEFAULT 0,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        started_at TIMESTAMP,
+                        completed_at TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        error_message TEXT
+                    )
+                    """)
+                )
+
+                # Indexes for common task queries
+                conn.execute(
+                    text("""
+                    CREATE INDEX IF NOT EXISTS idx_tasks_conversation 
+                    ON tasks(conversation_id)
+                    """)
+                )
+                conn.execute(
+                    text("""
+                    CREATE INDEX IF NOT EXISTS idx_tasks_user 
+                    ON tasks(user_id)
+                    """)
+                )
+                conn.execute(
+                    text("""
+                    CREATE INDEX IF NOT EXISTS idx_tasks_status 
+                    ON tasks(status)
+                    """)
                 )
 
                 conn.commit()
@@ -624,12 +680,8 @@ def main():
         action="store_true",
         help="Force re-initialization even if database exists",
     )
-    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 
     args = parser.parse_args()
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
 
     logger.info("ValueCell Database Initialization")
     logger.info("=" * 50)

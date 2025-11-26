@@ -11,7 +11,8 @@ import valuecell.utils.model as model_utils_mod
 @pytest.mark.asyncio
 async def test_orchestrator_buffer_store_e2e(tmp_path, monkeypatch):
     db_path = tmp_path / "e2e_valuecell.db"
-    monkeypatch.setenv("VALUECELL_SQLITE_DB", str(db_path))
+    # Use DATABASE_URL for tests; utils resolve_db_path will honor sqlite DSN
+    monkeypatch.setenv("VALUECELL_DATABASE_URL", f"sqlite:///{db_path}")
 
     monkeypatch.setattr(
         factory_mod, "create_model", lambda *args, **kwargs: "stub-model"

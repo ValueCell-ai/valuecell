@@ -85,16 +85,23 @@ Welcome to join our Discord community to share feedback and issues you encounter
 
 # Quick Start
 
+## For Users
+
+To get started quickly, download the latest ValueCell application for MacOS or Windows from the [Releases page](https://github.com/ValueCell-ai/valuecell/releases) on GitHub. You may also download the application from our official website: [https://valuecell.ai](https://valuecell.ai).
+
+After installation, please configure your preferred model provider before using ValueCell for the first time. Refer to the instructions in the application or documentation as needed.
+
+## For Developers
 ValueCell is a Python-based application featuring a comprehensive web interface. Follow this guide to set up and run the application efficiently.
 
-## Prerequisites
+### Prerequisites
 
 For optimal performance and streamlined development, we recommend installing the following tools:
 
 **[uv](https://docs.astral.sh/uv/getting-started/installation/)** - Ultra-fast Python package and project manager built in Rust  
 **[bun](https://github.com/oven-sh/bun#install)** - High-performance JavaScript/TypeScript toolkit with runtime, bundler, test runner, and package manager
 
-## Installation
+### Installation
 
 1. **Clone the repository**
 
@@ -181,7 +188,19 @@ Once the application is running, you can explore the web interface to interact w
 - To ensure your account safety, you need to reset your API keys regularly. 
 
 ---
-**Note**: Before running the application, ensure all prerequisites are installed and environment variables are properly configured. If it has been a long time since the last update, you can delete the database files in the project directories: `lancedb/`, `valuecell.db`, `.knowledgebase/` and start fresh
+**Note**: Before running the application, ensure all prerequisites are installed and environment variables are properly configured. If it has been a long time since the last update, you can delete local data stores and start fresh:
+- LanceDB directory (stored in your system application directory):
+  - macOS: `~/Library/Application Support/ValueCell/lancedb`
+  - Linux: `~/.config/valuecell/lancedb`
+  - Windows: `%APPDATA%\ValueCell\lancedb`
+- Knowledge directory (stored in your system application directory):
+  - macOS: `~/Library/Application Support/ValueCell/.knowledge`
+  - Linux: `~/.config/valuecell/.knowledge`
+  - Windows: `%APPDATA%\ValueCell\.knowledge`
+- SQLite database file (stored in your system application directory):
+  - macOS: `~/Library/Application Support/ValueCell/valuecell.db`
+  - Linux: `~/.config/valuecell/valuecell.db`
+  - Windows: `%APPDATA%\ValueCell\valuecell.db`
 
 # Developers
 
