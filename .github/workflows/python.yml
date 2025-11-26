@@ -127,10 +127,7 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         shell: pwsh
         run: |
-          cd dist
-          $whl = (Get-ChildItem *.whl | Select-Object -First 1).Name
-          echo "Building $whl inside dist directory..."
-          uvx pex $whl `
+          uvx pex --venv-repository .venv `
             -e valuecell.server.main:main `
             -o valuecell-Windows-X64.exe `
             -v
