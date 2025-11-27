@@ -7,8 +7,8 @@ import sys
 import threading
 from typing import Callable, Optional, TextIO
 
-from loguru import logger
 import uvicorn
+from loguru import logger
 
 from valuecell.server.api.app import create_app
 from valuecell.server.config.settings import get_settings
