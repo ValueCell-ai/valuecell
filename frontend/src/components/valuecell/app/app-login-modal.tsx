@@ -1,6 +1,6 @@
 import { onOpenUrl } from "@tauri-apps/plugin-deep-link";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Logo } from "@/assets/svg";
 import { Button } from "@/components/ui/button";
@@ -29,15 +29,43 @@ export default function AppLoginModal({ children }: AppLoginModalProps) {
     null,
   );
 
+  const timeoutRef = useRef<number | undefined>(undefined);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
+
   const setSystemInfo = useSystemStore((state) => state.setSystemInfo);
 
+  const clearLoginHandlers = useCallback(() => {
+    if (timeoutRef.current !== undefined) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = undefined;
+    }
+
+    if (unsubscribeRef.current) {
+      unsubscribeRef.current();
+      unsubscribeRef.current = null;
+    }
+
+    setPendingAction(null);
+  }, []);
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      clearLoginHandlers();
+    }
+
+    setOpen(nextOpen);
+  };
+
   const handleLogin = async (provider: PendingAction) => {
+    clearLoginHandlers();
     setPendingAction(provider);
 
     try {
       await openUrl(`http://localhost:5173/login?provider=${provider}`);
 
-      await onOpenUrl((urls) => {
+      const unsubscribe = await onOpenUrl((urls) => {
+        clearLoginHandlers();
+
         if (urls.length > 0) {
           const params = new URLSearchParams(urls[0].split("?")[1]);
           const accessToken = params.get("access_token");
@@ -47,20 +75,36 @@ export default function AppLoginModal({ children }: AppLoginModalProps) {
               accessToken,
               refreshToken,
             });
+
+            setOpen(false);
           }
         }
       });
+
+      unsubscribeRef.current = unsubscribe;
+
+      timeoutRef.current = window.setTimeout(
+        () => {
+          clearLoginHandlers();
+          toast.error("Login timed out, please try again.");
+        },
+        2 * 60 * 1000,
+      );
     } catch (error) {
       toast.error(
         `Failed to login with ${provider}, info: ${JSON.stringify(error)}`,
       );
-    } finally {
-      setPendingAction(null);
     }
   };
 
+  useEffect(() => {
+    return () => {
+      clearLoginHandlers();
+    };
+  }, [clearLoginHandlers]);
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent
         className="flex max-h-[90vh] min-h-96 flex-col"
