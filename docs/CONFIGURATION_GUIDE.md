@@ -27,6 +27,7 @@ ValueCell supports multiple LLM providers. Choose at least one:
 | **SiliconFlow** | [siliconflow.cn](https://www.siliconflow.cn/)       |
 | **Google**      | [ai.google.dev](https://ai.google.dev/)             |
 | **OpenAI**      | [platform.openai.com](https://platform.openai.com/) |
+| **DashScope**   | [bailian.console.aliyun.com](https://bailian.console.aliyun.com/#/home) |
 
 ### Step 2: Configure .env File
 
@@ -86,6 +87,7 @@ python/
 │   ├── providers/
 │   │   ├── openrouter.yaml           # OpenRouter provider config
 │   │   ├── siliconflow.yaml          # SiliconFlow provider config
+│   │   ├── dashscope.yaml            # DashScope (Alibaba Cloud) provider config
 │   │   └── other_provider.yaml
 │   ├── agents/
 │   │   ├── super_agent.yaml          # Super Agent configuration
@@ -195,6 +197,9 @@ models:
     google:
       config_file: "providers/google.yaml"
       api_key_env: "GOOGLE_API_KEY"
+    dashscope:
+      config_file: "providers/dashscope.yaml"
+      api_key_env: "DASHSCOPE_API_KEY"
 
 # Agent registry
 agents:
@@ -324,7 +329,10 @@ The selection logic is implemented in `python/valuecell/config/manager.py`:
 1. OpenRouter
 2. SiliconFlow
 3. Google
-4. Other configured providers
+4. OpenAI
+5. OpenAI-Compatible
+6. Azure
+7. Other configured providers (including DashScope, DeepSeek, etc.)
 
 Override this with an environment variable:
 
@@ -417,6 +425,9 @@ GOOGLE_API_KEY=AIzaSyDxxxxxxxxxxxxx
 AZURE_OPENAI_API_KEY=xxxxxxxxxxxxx
 AZURE_OPENAI_ENDPOINT=https://xxxxx.openai.azure.com/
 OPENAI_API_VERSION=2024-10-21
+
+# DashScope (Alibaba Cloud Qwen3 models)
+DASHSCOPE_API_KEY=sk-xxxxxxxxxxxxx
 ```
 
 ### Model Configuration
@@ -462,6 +473,7 @@ AGENT_DEBUG_MODE=true
 OPENROUTER_API_KEY=sk-or-v1-xxxxx        # Primary: access to many models
 SILICONFLOW_API_KEY=sk-xxxxx             # Fallback: cost-effective
 GOOGLE_API_KEY=AIzaSyD-xxxxx             # Second fallback: specialized
+DASHSCOPE_API_KEY=sk-xxxxx               # DashScope: Qwen3 models (Chinese optimized)
 
 # config.yaml
 models:
