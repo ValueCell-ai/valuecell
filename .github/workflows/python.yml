@@ -121,10 +121,11 @@ jobs:
           Get-Command uv
           Get-Command uvx
           uvx pip wheel https://files.pythonhosted.org/packages/04/89/76f6f1b744c8608e0d416b588b9d63c2a500ff800065ae610f7c80f532d6/peewee-3.18.2.tar.gz -w .\dist
+          ls .\dist
 
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: binary-${{ matrix.os }}
-          path: ./python/dist/valuecell-*
+          path: ./python/dist/*.whl
