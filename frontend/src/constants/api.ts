@@ -55,3 +55,5 @@ export const API_QUERY_KEYS = {
  * @description This is a temporary language setting for the API.
  */
 export const USER_LANGUAGE = "en-US";
+
+export const VALUECELL_BACKEND_URL = "http://localhost:8009/api/v1";

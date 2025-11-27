@@ -1,4 +1,7 @@
 import { toast } from "sonner";
+import { VALUECELL_BACKEND_URL } from "@/constants/api";
+import { useSystemStore } from "@/store/system-store";
+import type { SystemInfo } from "@/types/system";
 
 // API error type
 export class ApiError extends Error {
@@ -51,14 +54,44 @@ class ApiClient {
         `HTTP ${response.status}`;
 
       //TODO: Handle 401 unauthorized
-      // if (response.status === 401) {
-      //   localStorage.removeItem("authToken");
-      //   if (typeof window !== "undefined") {
-      //     window.location.href = "/login";
-      //   }
-      // }
+      if (response.status === 401) {
+        try {
+          const {
+            data: { access_token, refresh_token },
+          } = await apiClient.post<
+            ApiResponse<Pick<SystemInfo, "access_token" | "refresh_token">>
+          >(`${VALUECELL_BACKEND_URL}/refresh`, {
+            refreshToken: useSystemStore.getState().refresh_token,
+          });
 
-      toast.error(message);
+          if (access_token && refresh_token) {
+            const {
+              data: { user },
+            } = await apiClient.get<
+              ApiResponse<{
+                user: Omit<SystemInfo, "access_token" | "refresh_token">;
+              }>
+            >(`${VALUECELL_BACKEND_URL}/auth/me`, {
+              headers: {
+                Authorization: `Bearer ${access_token}`,
+              },
+            });
+
+            if (user) {
+              useSystemStore.getState().setSystemInfo({
+                access_token,
+                refresh_token,
+                ...user,
+              });
+            }
+          }
+        } catch (error) {
+          toast.error(JSON.stringify(error));
+          useSystemStore.getState().clearSystemInfo();
+        }
+      } else {
+        toast.error(message);
+      }
 
       throw new ApiError(message, response.status, errorData);
     }
@@ -82,7 +115,7 @@ class ApiClient {
 
     // add authentication header
     if (mergedConfig.requiresAuth) {
-      const token = localStorage.getItem("authToken");
+      const token = useSystemStore.getState().access_token;
       if (token) {
         mergedConfig.headers!.Authorization = `Bearer ${token}`;
       }

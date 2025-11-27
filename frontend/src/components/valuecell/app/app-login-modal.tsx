@@ -68,12 +68,12 @@ export default function AppLoginModal({ children }: AppLoginModalProps) {
 
         if (urls.length > 0) {
           const params = new URLSearchParams(urls[0].split("?")[1]);
-          const accessToken = params.get("access_token");
-          const refreshToken = params.get("refresh_token");
-          if (accessToken && refreshToken) {
+          const access_token = params.get("access_token");
+          const refresh_token = params.get("refresh_token");
+          if (access_token && refresh_token) {
             setSystemInfo({
-              accessToken,
-              refreshToken,
+              access_token,
+              refresh_token,
             });
 
             setOpen(false);
