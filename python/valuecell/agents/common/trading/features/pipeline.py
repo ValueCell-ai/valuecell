@@ -9,6 +9,7 @@ computer—everything is orchestrated by the pipeline.
 from __future__ import annotations
 
 import asyncio
+import itertools
 from typing import List, Optional
 
 from loguru import logger
@@ -48,11 +49,10 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
         self._symbols = list(dict.fromkeys(request.trading_config.symbols))
         self._market_snapshot_computer = market_snapshot_computer
         self._candle_configurations = candle_configurations
-        if self._candle_configurations is None:
-            self._candle_configurations = [
-                CandleConfig(interval="1s", lookback=60 * 3),
-                CandleConfig(interval="1m", lookback=60 * 4),
-            ]
+        self._candle_configurations = candle_configurations or [
+            CandleConfig(interval="1s", lookback=60 * 3),
+            CandleConfig(interval="1m", lookback=60 * 4),
+        ]
 
     async def build(self) -> FeaturesPipelineResult:
         """
@@ -93,9 +93,9 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
         market_features: List[FeatureVector] = results.pop()
 
         # Flatten the list of lists of candle features
-        candle_features: List[FeatureVector] = [
-            feature for sublist in results for feature in sublist
-        ]
+        candle_features: List[FeatureVector] = list(
+            itertools.chain.from_iterable(results)
+        )
 
         candle_features.extend(market_features)
 
