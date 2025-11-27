@@ -11,8 +11,8 @@ interface SystemStoreState extends SystemInfo {
 }
 
 const INITIAL_SYSTEM_INFO: SystemInfo = {
-  client_id: "",
-  user_token: "",
+  accessToken: "",
+  refreshToken: "",
 };
 
 const store = new TauriStoreState(STORAGE_KEY);

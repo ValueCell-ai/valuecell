@@ -10,14 +10,16 @@
         "frontendDist": "../build/client"
     },
     "app": {
-        "windows": [{
-            "title": "ValueCell",
-            "width": 1400,
-            "height": 900,
-            "minWidth": 1400,
-            "minHeight": 900,
-            "hiddenTitle": true
-        }],
+        "windows": [
+            {
+                "title": "ValueCell",
+                "width": 1400,
+                "height": 900,
+                "minWidth": 1400,
+                "minHeight": 900,
+                "hiddenTitle": true
+            }
+        ],
         "security": {
             "csp": null
         }
@@ -52,6 +54,13 @@
             "endpoints": [
                 "https://github.com/ValueCell-ai/valuecell/releases/latest/download/latest.json"
             ]
+        },
+        "deep-link": {
+            "desktop": {
+                "schemes": [
+                    "valuecell"
+                ]
+            }
         }
     }
 }

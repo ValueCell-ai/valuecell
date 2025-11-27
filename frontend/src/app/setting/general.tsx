@@ -9,6 +9,7 @@ import {
   FieldTitle,
 } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import AppLoginModal from "@/components/valuecell/app/app-login-modal";
 import { useTauriInfo } from "@/hooks/use-tauri-info";
 import { useUpdateToast } from "@/hooks/use-update-toast";
 import type { StockColorMode } from "@/store/settings-store";
@@ -39,7 +40,9 @@ export default function GeneralPage() {
               Sign in to get started with Valuecell AI features.
             </FieldDescription>
           </FieldContent>
-          <Button size="sm">Sign In</Button>
+          <AppLoginModal>
+            <Button>Sign In</Button>
+          </AppLoginModal>
         </Field>
 
         <Field orientation="horizontal">
@@ -59,14 +62,14 @@ export default function GeneralPage() {
             }
           >
             <FieldLabel
-              className="flex cursor-pointer items-center space-x-3 text-nowrap rounded-lg border border-gray-200 p-4"
+              className="flex cursor-pointer items-center space-x-3 text-nowrap rounded-lg border border-gray-200 p-3"
               htmlFor="green-up"
             >
               <RadioGroupItem value="GREEN_UP_RED_DOWN" id="green-up" />
               Green Up / Red Down
             </FieldLabel>
             <FieldLabel
-              className="flex cursor-pointer items-center space-x-3 text-nowrap rounded-lg border border-gray-200 p-4"
+              className="flex cursor-pointer items-center space-x-3 text-nowrap rounded-lg border border-gray-200 p-3"
               htmlFor="red-up"
             >
               <RadioGroupItem value="RED_UP_GREEN_DOWN" id="red-up" />
@@ -76,17 +79,12 @@ export default function GeneralPage() {
         </Field>
 
         {isTauriApp && (
-          <Field
-            orientation="responsive"
-            className="items-start rounded-2xl border border-input/40 bg-card p-6"
-          >
-            <FieldTitle className="font-medium text-base text-gray-950">
+          <Field orientation="responsive">
+            <FieldTitle className="flex items-center gap-2 font-medium text-base text-gray-950">
               App Updates
-              <Badge variant="secondary">
-                {appVersion ? `v${appVersion}` : "—"}
-              </Badge>
+              {appVersion && <Badge variant="secondary">v{appVersion}</Badge>}
             </FieldTitle>
-            <Button size="sm" variant="outline" onClick={checkAndUpdate}>
+            <Button variant="outline" onClick={checkAndUpdate}>
               Check for Update
             </Button>
           </Field>
