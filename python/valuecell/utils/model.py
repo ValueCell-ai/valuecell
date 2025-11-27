@@ -13,6 +13,7 @@ import os
 from typing import Optional
 
 from agno.models.base import Model as AgnoModel
+from agno.models.dashscope import DashScope as AgnoDashScopeModel
 from agno.models.google import Gemini as AgnoGeminiModel
 from agno.models.openai import OpenAIChat as AgnoOpenAIChatModel
 from agno.models.openai import OpenAILike as AgnoOpenAILikeModel
@@ -51,6 +52,7 @@ def model_should_use_json_mode(model: AgnoModel) -> bool:
     - DeepSeek models (OpenAI-compatible but no structured outputs support)
     - OpenRouter models (third-party proxy, safer to use JSON mode)
     - SiliconFlow models (OpenAI-compatible but limited structured outputs support)
+    - DashScope models (requires 'json' in messages when using json_object format)
     - Other OpenAI-compatible APIs (safer default)
     """
     try:
@@ -89,6 +91,16 @@ def model_should_use_json_mode(model: AgnoModel) -> bool:
             and name == AgnoSiliconflowModel.name
         ):
             logger.debug("Detected SiliconFlow model - using JSON mode")
+            return True
+
+        # DashScope models - requires JSON mode
+        # DashScope's API requires 'json' word in messages when using response_format
+        if (
+            AgnoDashScopeModel
+            and provider == AgnoDashScopeModel.provider
+            and name == AgnoDashScopeModel.name
+        ):
+            logger.debug("Detected DashScope model - using JSON mode")
             return True
 
         # OpenAI-compatible models (OpenAILike) - check base_url
