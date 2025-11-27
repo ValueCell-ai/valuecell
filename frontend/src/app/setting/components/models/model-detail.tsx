@@ -135,6 +135,8 @@ export function ModelDetail({ provider }: ModelDetailProps) {
     settingDefaultModel ||
     settingDefaultProvider;
 
+  const isDashScope = (provider ?? "").toLowerCase() === "dashscope";
+
   if (detailLoading) {
     return (
       <div className="text-gray-400 text-sm">Loading provider details...</div>
@@ -216,23 +218,24 @@ export function ModelDetail({ provider }: ModelDetailProps) {
               )}
             </configForm.Field>
 
-            {/* API Host section */}
-            <configForm.Field name="base_url">
-              {(field) => (
-                <Field className="text-gray-950">
-                  <FieldLabel className="font-medium text-base">
-                    API Host
-                  </FieldLabel>
-                  <Input
-                    placeholder={providerDetail.base_url}
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={() => configForm.handleSubmit()}
-                  />
-                  <FieldError errors={field.state.meta.errors} />
-                </Field>
-              )}
-            </configForm.Field>
+            {!isDashScope && (
+              <configForm.Field name="base_url">
+                {(field) => (
+                  <Field className="text-gray-950">
+                    <FieldLabel className="font-medium text-base">
+                      API Host
+                    </FieldLabel>
+                    <Input
+                      placeholder={providerDetail.base_url}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={() => configForm.handleSubmit()}
+                    />
+                    <FieldError errors={field.state.meta.errors} />
+                  </Field>
+                )}
+              </configForm.Field>
+            )}
           </FieldGroup>
 
           {/* Models section */}
