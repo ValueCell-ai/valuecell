@@ -1,63 +1,90 @@
-name: DashScope
-provider_type: dashscope
-enabled: true
+# ============================================
+# DashScope Provider Configuration
+# ============================================
+name: "DashScope"
+provider_type: "dashscope"
+
+enabled: true  # Default is true if not specified
+
+# Connection Configuration
 connection:
-  api_key_env: DASHSCOPE_API_KEY
-  base_url: ''
-default_model: qwen3-max
+  # DashScope (Alibaba Cloud Bailian) native HTTP uses fixed official host.
+  # base_url is not required; leave empty unless using a proxy.
+  api_key_env: "DASHSCOPE_API_KEY"
+  base_url: ""
+
+# Default chat model if none specified
+default_model: "qwen3-max"
+
+# Model Parameters Defaults
 defaults:
   temperature: 0.7
   max_tokens: 16384
+
+# Available Models
 models:
-- id: qwen3-max
-  name: Qwen3 Max
-  context_length: 256000
-  max_output_tokens: 16384
-  description: Qwen3 Max model with strongest performance
-  supported_inputs:
-  - text
-  supported_outputs:
-  - text
-- id: qwen3-max-preview
-  name: Qwen3 Max Preview
-  context_length: 256000
-  max_output_tokens: 16384
-  description: Qwen3 Max preview model
-  supported_inputs:
-  - text
-  supported_outputs:
-  - text
-- id: qwen-plus
-  name: Qwen Plus
-  context_length: 256000
-  max_output_tokens: 16384
-  description: Qwen Plus model with balanced performance
-  supported_inputs:
-  - text
-  supported_outputs:
-  - text
-- id: qwen-flash
-  name: Qwen Flash
-  context_length: 256000
-  max_output_tokens: 16384
-  description: Qwen Flash model optimized for fast response
-  supported_inputs:
-  - text
-  supported_outputs:
-  - text
+  - id: "qwen3-max"
+    name: "Qwen3 Max"
+    context_length: 256000
+    max_output_tokens: 16384
+    description: "Qwen3 Max model with strongest performance"
+    supported_inputs:
+      - text
+    supported_outputs:
+      - text
+
+  - id: "qwen3-max-preview"
+    name: "Qwen3 Max Preview"
+    context_length: 256000
+    max_output_tokens: 16384
+    description: "Qwen3 Max preview model"
+    supported_inputs:
+      - text
+    supported_outputs:
+      - text
+
+  - id: "qwen-plus"
+    name: "Qwen Plus"
+    context_length: 256000
+    max_output_tokens: 16384
+    description: "Qwen Plus model with balanced performance"
+    supported_inputs:
+      - text
+    supported_outputs:
+      - text
+
+  - id: "qwen-flash"
+    name: "Qwen Flash"
+    context_length: 256000
+    max_output_tokens: 16384
+    description: "Qwen Flash model optimized for fast response"
+    supported_inputs:
+      - text
+    supported_outputs:
+      - text
+
+# ============================================
+# Embedding Models Configuration
+# ============================================
 embedding:
-  default_model: text-embedding-v4
+  # Default embedding model
+  default_model: "text-embedding-v4"
+
+  # Default parameters
   defaults:
     dimensions: 2048
-    encoding_format: float
+    encoding_format: "float"
+
+  # Available embedding models
   models:
-  - id: text-embedding-v4
-    name: Text Embedding V4
-    dimensions: 2048
-    max_input: 8192
-    description: DashScope text embedding v4 model (latest)
-  - id: text-embedding-v3
-    name: Text Embedding V3
-    dimensions: 1024
-    max_input: 8192
-    description: DashScope text embedding v3 model
+    - id: "text-embedding-v4"
+      name: "Text Embedding V4"
+      dimensions: 2048
+      max_input: 8192
+      description: "DashScope text embedding v4 model (latest)"
+
+    - id: "text-embedding-v3"
+      name: "Text Embedding V3"
+      dimensions: 1024
+      max_input: 8192
+      description: "DashScope text embedding v3 model"
