@@ -8,9 +8,8 @@ name: DashScope
 provider_type: dashscope
 enabled: true
 
-# Connection parameters for DashScope compatible-mode endpoint.
+# Connection parameters (no base_url needed for native SDK)
 connection:
-  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
   api_key_env: DASHSCOPE_API_KEY
 
 # Default chat model used when no model_id is specified.

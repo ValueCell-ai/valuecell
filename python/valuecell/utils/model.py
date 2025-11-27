@@ -57,6 +57,11 @@ def model_should_use_json_mode(model: AgnoModel) -> bool:
         provider = getattr(model, "provider", None)
         name = getattr(model, "name", None)
 
+        # DashScope native models: prefer JSON mode for compatibility
+        if provider and "dashscope" in str(provider).lower():
+            logger.debug("Detected DashScope model - using JSON mode")
+            return True
+
         # Google Gemini requires JSON mode
         if provider == AgnoGeminiModel.provider and name == AgnoGeminiModel.name:
             logger.debug("Detected Gemini model - using JSON mode")

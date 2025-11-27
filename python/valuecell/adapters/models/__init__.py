@@ -32,6 +32,8 @@ from valuecell.adapters.models.factory import (
     SiliconFlowProvider,
     create_model,
     create_model_for_agent,
+    create_embedder,
+    create_embedder_for_agent,
     get_model_factory,
 )
 
@@ -52,4 +54,6 @@ __all__ = [
     # Convenience functions
     "create_model",
     "create_model_for_agent",
+    "create_embedder",
+    "create_embedder_for_agent",
 ]

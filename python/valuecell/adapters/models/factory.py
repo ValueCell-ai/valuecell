@@ -9,7 +9,15 @@ This factory:
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List, AsyncIterator, Iterator
+import asyncio
+import requests
+import json
+from agno.models.base import Model
+from agno.models.response import ModelResponse
+from agno.models.message import Message
+from agno.models.metrics import Metrics
+from agno.exceptions import ModelProviderError
 
 from loguru import logger
 
@@ -507,40 +515,22 @@ class DashScopeProvider(ModelProvider):
     """DashScope model provider (native)"""
 
     def create_model(self, model_id: Optional[str] = None, **kwargs):
-        """Create DashScope model via agno (native)"""
-        try:
-            from agno.models.dashscope import DashScope
-        except ImportError:
-            raise ImportError(
-                "agno package not installed. Install with: pip install agno"
-            )
-
+        """Create DashScope model via native HTTP"""
         model_id = model_id or self.config.default_model
         params = {**self.config.parameters, **kwargs}
 
-        # Prefer native endpoint; ignore compatible-mode base_url if present
-        base_url = self.config.base_url
-        if base_url and "compatible-mode" in base_url:
-            base_url = None
+        logger.info(f"Creating DashScope (native HTTP) model: {model_id}")
 
-        logger.info(f"Creating DashScope (native) model: {model_id}")
-
-        return DashScope(
+        return DashScopeNativeChatModel(
             id=model_id,
             api_key=self.config.api_key,
-            base_url=base_url,
             temperature=params.get("temperature"),
             max_tokens=params.get("max_tokens"),
             top_p=params.get("top_p"),
         )
 
     def create_embedder(self, model_id: Optional[str] = None, **kwargs):
-        """Create embedder via DashScope (OpenAI-compatible)"""
-        try:
-            from agno.knowledge.embedder.openai import OpenAIEmbedder
-        except ImportError:
-            raise ImportError("agno package not installed")
-
+        """Create embedder via DashScope (native)"""
         # Use provided model_id or default embedding model
         model_id = model_id or self.config.default_embedding_model
 
@@ -552,17 +542,321 @@ class DashScopeProvider(ModelProvider):
         # Merge parameters: provider embedding defaults < kwargs
         params = {**self.config.embedding_parameters, **kwargs}
 
-        logger.info(f"Creating DashScope embedder: {model_id}")
+        logger.info(f"Creating DashScope embedder (native): {model_id}")
 
-        return OpenAIEmbedder(
+        return DashScopeNativeEmbedder(
             id=model_id,
             api_key=self.config.api_key,
-            base_url=self.config.base_url,
             dimensions=int(params.get("dimensions", 2048))
             if params.get("dimensions")
             else None,
             encoding_format=params.get("encoding_format", "float"),
         )
+
+class DashScopeNativeEmbedder:
+    def __init__(
+        self,
+        *,
+        id: str,
+        api_key: str,
+        dimensions: Optional[int] = None,
+        encoding_format: str = "float",
+    ) -> None:
+        self.id = id
+        self.api_key = api_key
+        self.dimensions = dimensions
+        self.encoding_format = encoding_format
+        self.enable_batch = False
+        self.batch_size = 100
+
+    def _headers(self) -> Dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+
+    def _payload(self, texts: list[str]) -> Dict[str, Any]:
+        payload: Dict[str, Any] = {
+            "model": self.id,
+            "input": {"texts": texts},
+        }
+        if self.dimensions:
+            payload["dimensions"] = int(self.dimensions)
+        if self.encoding_format:
+            payload["encoding_format"] = self.encoding_format
+        return payload
+
+    def _post(self, texts: list[str]) -> Dict[str, Any]:
+        url = (
+            "https://dashscope.aliyuncs.com/api/v1/services/embeddings/"
+            "text-embedding/text-embedding"
+        )
+        resp = requests.post(url, headers=self._headers(), json=self._payload(texts), timeout=30)
+        resp.raise_for_status()
+        return resp.json()
+
+    def _parse_embedding(self, data: Dict[str, Any]) -> list[float]:
+        try:
+            out = data.get("output")
+            if isinstance(out, dict):
+                if "embeddings" in out and isinstance(out["embeddings"], list) and out["embeddings"]:
+                    emb = out["embeddings"][0]
+                    if isinstance(emb, dict) and "embedding" in emb:
+                        return [float(x) for x in emb["embedding"]]
+                    elif isinstance(emb, list):
+                        return [float(x) for x in emb]
+                if "vectors" in out and out["vectors"]:
+                    vec = out["vectors"][0]
+                    return [float(x) for x in vec]
+            # OpenAI-compatible fallback shape
+            if "data" in data and isinstance(data["data"], list) and data["data"]:
+                item = data["data"][0]
+                if isinstance(item, dict) and "embedding" in item:
+                    return [float(x) for x in item["embedding"]]
+        except Exception:
+            pass
+        raise ValueError("Failed to parse DashScope embedding response")
+
+    def get_embedding(self, text: str) -> list[float]:
+        data = self._post([text])
+        return self._parse_embedding(data)
+
+    def get_embedding_and_usage(self, text: str):
+        emb = self.get_embedding(text)
+        usage = None
+        return emb, usage
+
+    async def async_get_embedding(self, text: str) -> list[float]:
+        return await asyncio.to_thread(self.get_embedding, text)
+
+    async def async_get_embedding_and_usage(self, text: str):
+        emb = await self.async_get_embedding(text)
+        usage = None
+        return emb, usage
+
+
+class DashScopeNativeChatModel(Model):
+    def __init__(
+        self,
+        *,
+        id: str,
+        api_key: str,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        top_p: Optional[float] = None,
+    ) -> None:
+        self.id = id
+        self.api_key = api_key
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+        self.top_p = top_p
+        self.name = "Qwen"
+        self.provider = "DashScope (native)"
+        self.supports_native_structured_outputs = False
+        self.supports_json_schema_outputs = False
+
+    def _headers(self) -> Dict[str, str]:
+        return {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+
+    def _payload(self, messages: List[Message]) -> Dict[str, Any]:
+        payload: Dict[str, Any] = {
+            "model": self.id,
+            "input": {
+                "messages": [
+                    {"role": m.role, "content": m.get_content_string()} for m in messages
+                ]
+            },
+        }
+        parameters: Dict[str, Any] = {}
+        if self.temperature is not None:
+            parameters["temperature"] = self.temperature
+        if self.max_tokens is not None:
+            parameters["max_tokens"] = self.max_tokens
+        if self.top_p is not None:
+            parameters["top_p"] = self.top_p
+        parameters["result_format"] = "message"
+        if parameters:
+            payload["parameters"] = parameters
+        return payload
+
+    def _post(self, messages: List[Message]) -> Dict[str, Any]:
+        url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
+        resp = requests.post(url, headers=self._headers(), json=self._payload(messages), timeout=60)
+        if resp.status_code >= 400:
+            try:
+                err = resp.json()
+            except Exception:
+                err = {"message": resp.text}
+            raise ModelProviderError(
+                message=err.get("message") or err.get("error", {}).get("message") or resp.text,
+                status_code=resp.status_code,
+                model_name=self.name,
+                model_id=self.id,
+            )
+        return resp.json()
+
+    def _parse_provider_response(self, response: Dict[str, Any], **kwargs) -> ModelResponse:
+        mr = ModelResponse()
+        try:
+            out = response.get("output", {})
+            choices = out.get("choices", [])
+            if choices:
+                msg = choices[0].get("message", {})
+                mr.role = msg.get("role") or "assistant"
+                mr.content = msg.get("content")
+            usage = response.get("usage", {})
+            if usage:
+                mr.response_usage = Metrics(
+                    input_tokens=int(usage.get("input_tokens", 0) or 0),
+                    output_tokens=int(usage.get("output_tokens", 0) or 0),
+                    total_tokens=int(usage.get("total_tokens", 0) or 0),
+                    provider_metrics={"request_id": response.get("request_id")},
+                )
+        except Exception as e:
+            raise ModelProviderError(message=str(e), model_name=self.name, model_id=self.id)
+        return mr
+
+    def _parse_provider_response_delta(self, response: Any) -> ModelResponse:
+        return self._parse_provider_response(response)
+
+    def invoke(
+        self,
+        messages: List[Message],
+        assistant_message: Message,
+        response_format: Optional[Dict] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[Dict[str, Any]] = None,
+        run_response: Optional[Any] = None,
+    ) -> ModelResponse:
+        if run_response and run_response.metrics:
+            run_response.metrics.set_time_to_first_token()
+        assistant_message.metrics.start_timer()
+        data = self._post(messages)
+        assistant_message.metrics.stop_timer()
+        return self._parse_provider_response(data, response_format=response_format)
+
+    async def ainvoke(
+        self,
+        messages: List[Message],
+        assistant_message: Message,
+        response_format: Optional[Dict] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[Dict[str, Any]] = None,
+        run_response: Optional[Any] = None,
+    ) -> ModelResponse:
+        if run_response and run_response.metrics:
+            run_response.metrics.set_time_to_first_token()
+        assistant_message.metrics.start_timer()
+        data = await asyncio.to_thread(self._post, messages)
+        assistant_message.metrics.stop_timer()
+        return self._parse_provider_response(data, response_format=response_format)
+
+    def invoke_stream(
+        self,
+        messages: List[Message],
+        assistant_message: Message,
+        response_format: Optional[Dict] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[Dict[str, Any]] = None,
+        run_response: Optional[Any] = None,
+    ) -> Iterator[ModelResponse]:
+        url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
+        headers = {**self._headers(), "Accept": "text/event-stream"}
+        payload = self._payload(messages)
+        payload.setdefault("parameters", {})
+        payload["parameters"]["stream"] = True
+        payload["parameters"]["incremental_output"] = True
+        if run_response and run_response.metrics:
+            run_response.metrics.set_time_to_first_token()
+        assistant_message.metrics.start_timer()
+        last_content = ""
+        with requests.post(url, headers=headers, json=payload, stream=True, timeout=60) as resp:
+            if resp.status_code >= 400:
+                try:
+                    err = resp.json()
+                except Exception:
+                    err = {"message": resp.text}
+                raise ModelProviderError(
+                    message=err.get("message") or err.get("error", {}).get("message") or resp.text,
+                    status_code=resp.status_code,
+                    model_name=self.name,
+                    model_id=self.id,
+                )
+            for line in resp.iter_lines(decode_unicode=True):
+                if not line:
+                    continue
+                if isinstance(line, bytes):
+                    try:
+                        line = line.decode("utf-8")
+                    except Exception:
+                        continue
+                if line.startswith("data:"):
+                    data_str = line[5:].strip()
+                    if not data_str:
+                        continue
+                    try:
+                        evt = json.loads(data_str)
+                    except Exception:
+                        continue
+                    mr = ModelResponse()
+                    out = evt.get("output", {})
+                    choices = out.get("choices") or []
+                    if choices:
+                        msg = choices[0].get("message", {})
+                        cur = msg.get("content") or ""
+                        delta = cur[len(last_content) :] if cur.startswith(last_content) else cur
+                        last_content = cur
+                        mr.content = delta
+                        mr.role = msg.get("role") or "assistant"
+                        yield mr
+                    usage = evt.get("usage")
+                    if usage:
+                        m = Metrics(
+                            input_tokens=int(usage.get("input_tokens", 0) or 0),
+                            output_tokens=int(usage.get("output_tokens", 0) or 0),
+                            total_tokens=int(usage.get("total_tokens", 0) or 0),
+                            provider_metrics={"request_id": evt.get("request_id")},
+                        )
+                        mr = ModelResponse()
+                        mr.response_usage = m
+                        yield mr
+        assistant_message.metrics.stop_timer()
+
+    async def ainvoke_stream(
+        self,
+        messages: List[Message],
+        assistant_message: Message,
+        response_format: Optional[Dict] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
+        tool_choice: Optional[Dict[str, Any]] = None,
+        run_response: Optional[Any] = None,
+    ) -> AsyncIterator[ModelResponse]:
+        loop = asyncio.get_running_loop()
+        queue: asyncio.Queue = asyncio.Queue()
+
+        def run_sync():
+            try:
+                for chunk in self.invoke_stream(
+                    messages=messages,
+                    assistant_message=assistant_message,
+                    response_format=response_format,
+                    tools=tools,
+                    tool_choice=tool_choice,
+                    run_response=run_response,
+                ):
+                    loop.call_soon_threadsafe(queue.put_nowait, chunk)
+            finally:
+                loop.call_soon_threadsafe(queue.put_nowait, None)
+
+        await asyncio.to_thread(run_sync)
+        while True:
+            item = await queue.get()
+            if item is None:
+                break
+            yield item
 
 
 class ModelFactory:
