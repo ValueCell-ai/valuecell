@@ -507,7 +507,7 @@ class DashScopeProvider(ModelProvider):
     """DashScope model provider (native)"""
 
     def create_model(self, model_id: Optional[str] = None, **kwargs):
-        """Create DashScope model via agno (native)"""
+        """Create DashScope model via agno"""
         try:
             from agno.models.dashscope import DashScope
         except ImportError:
@@ -518,12 +518,11 @@ class DashScopeProvider(ModelProvider):
         model_id = model_id or self.config.default_model
         params = {**self.config.parameters, **kwargs}
 
-        # Prefer native endpoint; ignore compatible-mode base_url if present
+        # Use configured base_url if present, otherwise let DashScope use its default
+        # agno's DashScope class has a default base_url for the compatible-mode endpoint
         base_url = self.config.base_url
-        if base_url and "compatible-mode" in base_url:
-            base_url = None
 
-        logger.info(f"Creating DashScope (native) model: {model_id}")
+        logger.info(f"Creating DashScope model: {model_id}")
 
         return DashScope(
             id=model_id,

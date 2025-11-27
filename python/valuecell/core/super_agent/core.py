@@ -54,6 +54,13 @@ class SuperAgent:
         """
 
         def _build_agent(with_model) -> Agent:
+            # Disable session summaries for DashScope models
+            # DashScope requires 'json' word in messages when using response_format: json_object
+            # but agno's internal summary feature doesn't include this, causing 400 errors
+            enable_summaries = not model_utils_mod.model_should_use_json_mode(
+                with_model
+            )
+
             return Agent(
                 model=with_model,
                 markdown=False,
@@ -67,7 +74,7 @@ class SuperAgent:
                 add_history_to_context=True,
                 num_history_runs=5,
                 read_chat_history=True,
-                enable_session_summaries=True,
+                enable_session_summaries=enable_summaries,
             )
 
         try:
