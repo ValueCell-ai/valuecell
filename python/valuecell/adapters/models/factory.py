@@ -553,6 +553,7 @@ class DashScopeProvider(ModelProvider):
             encoding_format=params.get("encoding_format", "float"),
         )
 
+
 class DashScopeNativeEmbedder:
     def __init__(
         self,
@@ -591,7 +592,12 @@ class DashScopeNativeEmbedder:
             "https://dashscope.aliyuncs.com/api/v1/services/embeddings/"
             "text-embedding/text-embedding"
         )
-        resp = requests.post(url, headers=self._headers(), json=self._payload(texts), timeout=30)
+        resp = requests.post(
+            url,
+            headers=self._headers(),
+            json=self._payload(texts),
+            timeout=30,
+        )
         resp.raise_for_status()
         return resp.json()
 
@@ -599,7 +605,11 @@ class DashScopeNativeEmbedder:
         try:
             out = data.get("output")
             if isinstance(out, dict):
-                if "embeddings" in out and isinstance(out["embeddings"], list) and out["embeddings"]:
+                if (
+                    "embeddings" in out
+                    and isinstance(out["embeddings"], list)
+                    and out["embeddings"]
+                ):
                     emb = out["embeddings"][0]
                     if isinstance(emb, dict) and "embedding" in emb:
                         return [float(x) for x in emb["embedding"]]
@@ -666,7 +676,8 @@ class DashScopeNativeChatModel(Model):
             "model": self.id,
             "input": {
                 "messages": [
-                    {"role": m.role, "content": m.get_content_string()} for m in messages
+                    {"role": m.role, "content": m.get_content_string()}
+                    for m in messages
                 ]
             },
         }
@@ -684,21 +695,30 @@ class DashScopeNativeChatModel(Model):
 
     def _post(self, messages: List[Message]) -> Dict[str, Any]:
         url = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
-        resp = requests.post(url, headers=self._headers(), json=self._payload(messages), timeout=60)
+        resp = requests.post(
+            url,
+            headers=self._headers(),
+            json=self._payload(messages),
+            timeout=60,
+        )
         if resp.status_code >= 400:
             try:
                 err = resp.json()
             except Exception:
                 err = {"message": resp.text}
             raise ModelProviderError(
-                message=err.get("message") or err.get("error", {}).get("message") or resp.text,
+                message=err.get("message")
+                or err.get("error", {}).get("message")
+                or resp.text,
                 status_code=resp.status_code,
                 model_name=self.name,
                 model_id=self.id,
             )
         return resp.json()
 
-    def _parse_provider_response(self, response: Dict[str, Any], **kwargs) -> ModelResponse:
+    def _parse_provider_response(
+        self, response: Dict[str, Any], **kwargs
+    ) -> ModelResponse:
         mr = ModelResponse()
         try:
             out = response.get("output", {})
@@ -716,7 +736,9 @@ class DashScopeNativeChatModel(Model):
                     provider_metrics={"request_id": response.get("request_id")},
                 )
         except Exception as e:
-            raise ModelProviderError(message=str(e), model_name=self.name, model_id=self.id)
+            raise ModelProviderError(
+                message=str(e), model_name=self.name, model_id=self.id
+            )
         return mr
 
     def _parse_provider_response_delta(self, response: Any) -> ModelResponse:
@@ -773,14 +795,22 @@ class DashScopeNativeChatModel(Model):
             run_response.metrics.set_time_to_first_token()
         assistant_message.metrics.start_timer()
         last_content = ""
-        with requests.post(url, headers=headers, json=payload, stream=True, timeout=60) as resp:
+        with requests.post(
+            url,
+            headers=headers,
+            json=payload,
+            stream=True,
+            timeout=60,
+        ) as resp:
             if resp.status_code >= 400:
                 try:
                     err = resp.json()
                 except Exception:
                     err = {"message": resp.text}
                 raise ModelProviderError(
-                    message=err.get("message") or err.get("error", {}).get("message") or resp.text,
+                    message=err.get("message")
+                    or err.get("error", {}).get("message")
+                    or resp.text,
                     status_code=resp.status_code,
                     model_name=self.name,
                     model_id=self.id,
@@ -807,7 +837,11 @@ class DashScopeNativeChatModel(Model):
                     if choices:
                         msg = choices[0].get("message", {})
                         cur = msg.get("content") or ""
-                        delta = cur[len(last_content) :] if cur.startswith(last_content) else cur
+                        delta = (
+                            cur[len(last_content) :]
+                            if cur.startswith(last_content)
+                            else cur
+                        )
                         last_content = cur
                         mr.content = delta
                         mr.role = msg.get("role") or "assistant"
