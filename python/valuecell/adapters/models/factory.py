@@ -504,16 +504,12 @@ class DeepSeekProvider(ModelProvider):
 
 
 class DashScopeProvider(ModelProvider):
-    """DashScope model provider
-
-    DashScope (Alibaba Cloud) provides OpenAI-compatible API endpoints for Qwen3 models.
-    This provider uses the OpenAI-compatible interface to interact with DashScope's API.
-    """
+    """DashScope model provider (native)"""
 
     def create_model(self, model_id: Optional[str] = None, **kwargs):
-        """Create DashScope model via agno (OpenAI-compatible)"""
+        """Create DashScope model via agno (native)"""
         try:
-            from agno.models.openai import OpenAILike
+            from agno.models.dashscope import DashScope
         except ImportError:
             raise ImportError(
                 "agno package not installed. Install with: pip install agno"
@@ -522,17 +518,20 @@ class DashScopeProvider(ModelProvider):
         model_id = model_id or self.config.default_model
         params = {**self.config.parameters, **kwargs}
 
-        logger.info(f"Creating DashScope model: {model_id}")
+        # Prefer native endpoint; ignore compatible-mode base_url if present
+        base_url = self.config.base_url
+        if base_url and "compatible-mode" in base_url:
+            base_url = None
 
-        return OpenAILike(
+        logger.info(f"Creating DashScope (native) model: {model_id}")
+
+        return DashScope(
             id=model_id,
             api_key=self.config.api_key,
-            base_url=self.config.base_url,
+            base_url=base_url,
             temperature=params.get("temperature"),
             max_tokens=params.get("max_tokens"),
             top_p=params.get("top_p"),
-            frequency_penalty=params.get("frequency_penalty"),
-            presence_penalty=params.get("presence_penalty"),
         )
 
     def create_embedder(self, model_id: Optional[str] = None, **kwargs):
@@ -559,7 +558,7 @@ class DashScopeProvider(ModelProvider):
             id=model_id,
             api_key=self.config.api_key,
             base_url=self.config.base_url,
-            dimensions=int(params.get("dimensions", 1536))
+            dimensions=int(params.get("dimensions", 2048))
             if params.get("dimensions")
             else None,
             encoding_format=params.get("encoding_format", "float"),

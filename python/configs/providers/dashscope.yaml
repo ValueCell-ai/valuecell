@@ -14,60 +14,50 @@ connection:
   api_key_env: DASHSCOPE_API_KEY
 
 # Default chat model used when no model_id is specified.
-default_model: qwen-max
+default_model: qwen3-max
 
 # Global default inference parameters.
 defaults:
   temperature: 0.7
-  max_tokens: 4096
+  max_tokens: 16384
 
 # Commonly used Qwen3 models available via DashScope.
 models:
-  - id: qwen-max
+  - id: qwen3-max
     name: Qwen3 Max
-    context_length: 128000
-    max_output_tokens: 8192
+    context_length: 256000
+    max_output_tokens: 16384
     description: Qwen3 Max model with strongest performance
     supported_inputs:
       - text
     supported_outputs:
       - text
 
+  - id: qwen3-max-preview
+    name: Qwen3 Max Preview
+    context_length: 256000
+    max_output_tokens: 16384
+    description: Qwen3 Max preview model
+    supported_inputs:
+      - text
+    supported_outputs:
+      - text
+
   - id: qwen-plus
-    name: Qwen3 Plus
-    context_length: 128000
-    max_output_tokens: 8192
-    description: Qwen3 Plus model with balanced performance
+    name: Qwen Plus
+    context_length: 256000
+    max_output_tokens: 16384
+    description: Qwen Plus model with balanced performance
     supported_inputs:
       - text
     supported_outputs:
       - text
 
-  - id: qwen-turbo
-    name: Qwen3 Turbo
-    context_length: 128000
-    max_output_tokens: 8192
-    description: Qwen3 Turbo model optimized for fast response
-    supported_inputs:
-      - text
-    supported_outputs:
-      - text
-
-  - id: qwen-7b-chat
-    name: Qwen3 7B Chat
-    context_length: 32000
-    max_output_tokens: 4096
-    description: Qwen3 7B chat model
-    supported_inputs:
-      - text
-    supported_outputs:
-      - text
-
-  - id: qwen-14b-chat
-    name: Qwen3 14B Chat
-    context_length: 32000
-    max_output_tokens: 4096
-    description: Qwen3 14B chat model
+  - id: qwen-flash
+    name: Qwen Flash
+    context_length: 256000
+    max_output_tokens: 16384
+    description: Qwen Flash model optimized for fast response
     supported_inputs:
       - text
     supported_outputs:
@@ -75,21 +65,21 @@ models:
 
 # Embedding configuration for DashScope text embedding models.
 embedding:
-  default_model: text-embedding-v2
+  default_model: text-embedding-v4
 
   defaults:
-    dimensions: 1536
-    encoding_format: float
+    dimensions: 2048
+    encoding_format: "float"
 
   models:
-    - id: text-embedding-v2
-      name: Text Embedding V2
-      dimensions: 1536
-      max_input: 2048
-      description: DashScope text embedding v2 model
+    - id: text-embedding-v4
+      name: Text Embedding V4
+      dimensions: 2048
+      max_input: 8192
+      description: DashScope text embedding v4 model (latest)
 
-    - id: text-embedding-v1
-      name: Text Embedding V1
-      dimensions: 1536
-      max_input: 2048
-      description: DashScope text embedding v1 model
+    - id: text-embedding-v3
+      name: Text Embedding V3
+      dimensions: 1024
+      max_input: 8192
+      description: DashScope text embedding v3 model
