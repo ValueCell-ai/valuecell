@@ -36,27 +36,29 @@ export default function GeneralPage() {
       </div>
 
       <FieldGroup className="gap-6">
-        <Field orientation="horizontal">
-          <FieldContent>
-            <FieldTitle className="font-medium text-base text-gray-950">
-              Account
-            </FieldTitle>
-            <FieldDescription>
-              {isLoggedIn
-                ? email
-                : "Sign in to get started with Valuecell AI features."}
-            </FieldDescription>
-          </FieldContent>
-          {isLoggedIn ? (
-            <Button variant="outline" onClick={() => signOut()}>
-              Sign Out
-            </Button>
-          ) : (
-            <AppLoginModal>
-              <Button>Sign In</Button>
-            </AppLoginModal>
-          )}
-        </Field>
+        {isTauriApp && (
+          <Field orientation="horizontal">
+            <FieldContent>
+              <FieldTitle className="font-medium text-base text-gray-950">
+                Account
+              </FieldTitle>
+              <FieldDescription>
+                {isLoggedIn
+                  ? email
+                  : "Sign in to get started with Valuecell AI features."}
+              </FieldDescription>
+            </FieldContent>
+            {isLoggedIn ? (
+              <Button variant="outline" onClick={() => signOut()}>
+                Sign Out
+              </Button>
+            ) : (
+              <AppLoginModal>
+                <Button>Sign In</Button>
+              </AppLoginModal>
+            )}
+          </Field>
+        )}
 
         <Field orientation="horizontal">
           <FieldContent>

@@ -62,17 +62,15 @@ export default function AppLoginModal({ children }: AppLoginModalProps) {
     setPendingAction(provider);
 
     try {
-      await openUrl(`http://localhost:5173/login?provider=${provider}`);
+      await openUrl(`https://valuecell.ai/login?provider=${provider}`);
 
       const unsubscribe = await onOpenUrl(async (urls) => {
         clearLoginHandlers();
 
         if (urls.length > 0) {
-          console.log("🚀 ~ handleLogin ~ urls:", urls);
           const params = new URLSearchParams(urls[0].split("?")[1]);
           const access_token = params.get("access_token");
           const refresh_token = params.get("refresh_token");
-          console.log("🚀 ~ handleLogin ~ access_token:", access_token);
           if (access_token && refresh_token) {
             const userInfo = await getUserInfo(access_token);
 
