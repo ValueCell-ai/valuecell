@@ -56,3 +56,6 @@ export const useSystemInfo = () =>
 
 export const useSystemAccessToken = () =>
   useSystemStore((state) => state.access_token);
+
+export const useIsLoggedIn = () =>
+  useSystemStore(useShallow((state) => !!state.id && !!state.access_token));

@@ -1,3 +1,4 @@
+import { useSignOut } from "@/api/system";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,13 +15,17 @@ import { useTauriInfo } from "@/hooks/use-tauri-info";
 import { useUpdateToast } from "@/hooks/use-update-toast";
 import type { StockColorMode } from "@/store/settings-store";
 import { useSettingsActions, useStockColorMode } from "@/store/settings-store";
+import { useIsLoggedIn, useSystemInfo } from "@/store/system-store";
 
 export default function GeneralPage() {
   const stockColorMode = useStockColorMode();
   const { setStockColorMode } = useSettingsActions();
   const { checkAndUpdate } = useUpdateToast();
   const { isTauriApp, appVersion } = useTauriInfo();
+  const { email } = useSystemInfo();
+  const isLoggedIn = useIsLoggedIn();
 
+  const { mutate: signOut } = useSignOut();
   return (
     <div className="flex flex-1 flex-col gap-4 p-10">
       <div className="flex flex-col gap-1.5">
@@ -34,15 +39,23 @@ export default function GeneralPage() {
         <Field orientation="horizontal">
           <FieldContent>
             <FieldTitle className="font-medium text-base text-gray-950">
-              Sign In
+              Account
             </FieldTitle>
             <FieldDescription>
-              Sign in to get started with Valuecell AI features.
+              {isLoggedIn
+                ? email
+                : "Sign in to get started with Valuecell AI features."}
             </FieldDescription>
           </FieldContent>
-          <AppLoginModal>
-            <Button>Sign In</Button>
-          </AppLoginModal>
+          {isLoggedIn ? (
+            <Button variant="outline" onClick={() => signOut()}>
+              Sign Out
+            </Button>
+          ) : (
+            <AppLoginModal>
+              <Button>Sign In</Button>
+            </AppLoginModal>
+          )}
         </Field>
 
         <Field orientation="horizontal">
