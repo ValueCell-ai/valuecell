@@ -22,6 +22,8 @@ pub struct BackendManager {
 }
 
 const MAIN_MODULE: &str = "valuecell.server.main";
+const EXIT_COMMAND: &[u8] = b"__EXIT__\n";
+const GRACEFUL_TIMEOUT_SECS: u64 = 3;
 
 impl BackendManager {
     fn wait_until_terminated(mut rx: Receiver<CommandEvent>) {
@@ -108,6 +110,31 @@ impl BackendManager {
             .context("Failed to spawn backend process")
     }
 
+    fn request_graceful_then_kill(&self, mut process: CommandChild) {
+        let pid = process.pid();
+        log::info!("Requesting graceful shutdown for process {}", pid);
+
+        if let Err(err) = process.write(EXIT_COMMAND) {
+            log::warn!(
+                "Failed to send shutdown command to process {}: {}",
+                pid, err
+            );
+        } else {
+            log::info!("Exit command written to process {}", pid);
+        }
+
+        std::thread::sleep(Duration::from_secs(GRACEFUL_TIMEOUT_SECS));
+
+        log::info!("Sending forceful shutdown to process {}", pid);
+        self.kill_descendants_best_effort(pid);
+
+        if let Err(err) = process.kill() {
+            log::error!("Failed to kill process {}: {}", pid, err);
+        } else {
+            log::info!("Force kill signal sent to process {}", pid);
+        }
+    }
+
     pub fn new(app: AppHandle) -> Result<Self> {
         let resource_root = app
             .path()
@@ -175,18 +202,7 @@ impl BackendManager {
     pub fn stop_all(&self) {
         let mut processes = self.processes.lock().unwrap();
         for process in processes.drain(..) {
-            let pid = process.pid();
-            log::info!("Terminating process {}", pid);
-
-            // Attempt to terminate any descendants spawned under this process BEFORE killing the parent
-            self.kill_descendants_best_effort(pid);
-
-            // Use CommandChild's kill method
-            if let Err(e) = process.kill() {
-                log::error!("Failed to kill process {}: {}", pid, e);
-            } else {
-                log::info!("Process {} terminated", pid);
-            }
+            self.request_graceful_then_kill(process);
         }
     }
 
@@ -217,7 +233,14 @@ impl BackendManager {
                     log::error!("Backend process error: {}", err);
                     break;
                 }
-                CommandEvent::Terminated(_) => break,
+                CommandEvent::Terminated(payload) => {
+                    log::info!(
+                        "Backend process terminated (code: {:?}, signal: {:?})",
+                        payload.code,
+                        payload.signal
+                    );
+                    break;
+                }
                 _ => {}
             }
         }
