@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { getUserInfo } from "@/api/system";
 import { VALUECELL_BACKEND_URL } from "@/constants/api";
 import { useSystemStore } from "@/store/system-store";
 import type { SystemInfo } from "@/types/system";
@@ -65,23 +66,13 @@ class ApiClient {
           });
 
           if (access_token && refresh_token) {
-            const {
-              data: { user },
-            } = await apiClient.get<
-              ApiResponse<{
-                user: Omit<SystemInfo, "access_token" | "refresh_token">;
-              }>
-            >(`${VALUECELL_BACKEND_URL}/auth/me`, {
-              headers: {
-                Authorization: `Bearer ${access_token}`,
-              },
-            });
+            const userInfo = await getUserInfo(access_token);
 
-            if (user) {
+            if (userInfo) {
               useSystemStore.getState().setSystemInfo({
                 access_token,
                 refresh_token,
-                ...user,
+                ...userInfo,
               });
             }
           }

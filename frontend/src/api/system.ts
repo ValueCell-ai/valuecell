@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { VALUECELL_BACKEND_URL } from "@/constants/api";
 import { type ApiResponse, apiClient } from "@/lib/api-client";
-import { useSystemAccessToken, useSystemStore } from "@/store/system-store";
+import { useSystemStore } from "@/store/system-store";
 import type { SystemInfo } from "@/types/system";
 
 export const useBackendHealth = () => {
@@ -20,20 +20,15 @@ export const useBackendHealth = () => {
   });
 };
 
-export const useGetUserInfo = () => {
-  return useQuery({
-    queryKey: ["user-info"],
-    queryFn: () =>
-      apiClient.get<
-        ApiResponse<{
-          user: Omit<SystemInfo, "accessToken" | "refreshToken">;
-        }>
-      >(`${VALUECELL_BACKEND_URL}/auth/me`, {
-        requiresAuth: true,
-      }),
-    select: (data) => data.data.user,
-    enabled: !!useSystemAccessToken(),
+export const getUserInfo = async (token: string) => {
+  const { data } = await apiClient.get<
+    ApiResponse<Omit<SystemInfo, "access_token" | "refresh_token">>
+  >(`${VALUECELL_BACKEND_URL}/auth/me`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
+  return data;
 };
 
 export const useSignOut = () => {

@@ -2,6 +2,7 @@ import { onOpenUrl } from "@tauri-apps/plugin-deep-link";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { getUserInfo } from "@/api/system";
 import { Logo } from "@/assets/svg";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,18 +64,25 @@ export default function AppLoginModal({ children }: AppLoginModalProps) {
     try {
       await openUrl(`http://localhost:5173/login?provider=${provider}`);
 
-      const unsubscribe = await onOpenUrl((urls) => {
+      const unsubscribe = await onOpenUrl(async (urls) => {
         clearLoginHandlers();
 
         if (urls.length > 0) {
+          console.log("🚀 ~ handleLogin ~ urls:", urls);
           const params = new URLSearchParams(urls[0].split("?")[1]);
           const access_token = params.get("access_token");
           const refresh_token = params.get("refresh_token");
+          console.log("🚀 ~ handleLogin ~ access_token:", access_token);
           if (access_token && refresh_token) {
-            setSystemInfo({
-              access_token,
-              refresh_token,
-            });
+            const userInfo = await getUserInfo(access_token);
+
+            if (userInfo) {
+              setSystemInfo({
+                access_token,
+                refresh_token,
+                ...userInfo,
+              });
+            }
 
             setOpen(false);
           }
