@@ -120,11 +120,12 @@ jobs:
           Get-Command python
           Get-Command uv
           Get-Command uvx
-          uv pip compile pyproject.toml -o dist/requirements.txt
-          uvx pex `
-            -r dist/requirements.txt `
+          uv build
+          uvx pex valuecell-0.1.4-py3-none-any.whl `
             -e valuecell.server.main:main `
             -o dist/valuecell-Windows-X64.exe `
+            --scie eager `
+            --scie-pbs-stripped `
             -j 1 `
             -v
 
