@@ -1,0 +1,85 @@
+# ============================================
+# DashScope Provider Configuration
+# ============================================
+# DashScope (Alibaba Cloud Bailian) exposes an OpenAI-compatible API for Qwen3 models.
+# Configure the API key via DASHSCOPE_API_KEY or override using env vars at runtime.
+
+name: DashScope
+provider_type: dashscope
+enabled: true
+
+# Connection parameters for DashScope compatible-mode endpoint.
+connection:
+  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  api_key_env: DASHSCOPE_API_KEY
+
+# Default chat model used when no model_id is specified.
+default_model: qwen3-max
+
+# Global default inference parameters.
+defaults:
+  temperature: 0.7
+  max_tokens: 16384
+
+# Commonly used Qwen3 models available via DashScope.
+models:
+  - id: qwen3-max
+    name: Qwen3 Max
+    context_length: 256000
+    max_output_tokens: 16384
+    description: Qwen3 Max model with strongest performance
+    supported_inputs:
+      - text
+    supported_outputs:
+      - text
+
+  - id: qwen3-max-preview
+    name: Qwen3 Max Preview
+    context_length: 256000
+    max_output_tokens: 16384
+    description: Qwen3 Max preview model
+    supported_inputs:
+      - text
+    supported_outputs:
+      - text
+
+  - id: qwen-plus
+    name: Qwen Plus
+    context_length: 256000
+    max_output_tokens: 16384
+    description: Qwen Plus model with balanced performance
+    supported_inputs:
+      - text
+    supported_outputs:
+      - text
+
+  - id: qwen-flash
+    name: Qwen Flash
+    context_length: 256000
+    max_output_tokens: 16384
+    description: Qwen Flash model optimized for fast response
+    supported_inputs:
+      - text
+    supported_outputs:
+      - text
+
+# Embedding configuration for DashScope text embedding models.
+embedding:
+  default_model: text-embedding-v4
+
+  defaults:
+    dimensions: 2048
+    encoding_format: "float"
+
+  models:
+    - id: text-embedding-v4
+      name: Text Embedding V4
+      dimensions: 2048
+      max_input: 8192
+      description: DashScope text embedding v4 model (latest)
+
+    - id: text-embedding-v3
+      name: Text Embedding V3
+      dimensions: 1024
+      max_input: 8192
+      description: DashScope text embedding v3 model

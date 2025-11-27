@@ -32,6 +32,7 @@ export { default as OkxPng } from "./exchanges/okx.png";
 export { default as IconGroupPng } from "./icon-group.png";
 export { default as MessageGroupPng } from "./message-group.png";
 export { default as AzurePng } from "./model-providers/azure.png";
+export { default as DashScopePng } from "./model-providers/dashscope.png";
 export { default as DeepSeekPng } from "./model-providers/deepseek.png";
 export { default as GooglePng } from "./model-providers/google.png";
 export { default as OpenAiPng } from "./model-providers/openai.png";

@@ -3,6 +3,7 @@ import {
   BinancePng,
   BlockchainPng,
   CoinbasePng,
+  DashScopePng,
   DeepSeekPng,
   GatePng,
   GooglePng,
@@ -23,6 +24,7 @@ export const MODEL_PROVIDER_ICONS = {
   deepseek: DeepSeekPng,
   google: GooglePng,
   azure: AzurePng,
+  dashscope: DashScopePng,
 };
 
 export const EXCHANGE_ICONS = {
