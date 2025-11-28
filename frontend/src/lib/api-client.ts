@@ -39,7 +39,7 @@ export const getServerUrl = (endpoint: string) => {
 class ApiClient {
   // default config
   private config: RequestConfig = {
-    requiresAuth: true,
+    requiresAuth: false,
     headers: {
       "Content-Type": "application/json",
     },

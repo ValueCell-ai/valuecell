@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export interface PngIconProps {
@@ -26,4 +26,4 @@ export function PngIcon({ src, alt = "", className, callback }: PngIconProps) {
   );
 }
 
-export default PngIcon;
+export default memo(PngIcon);

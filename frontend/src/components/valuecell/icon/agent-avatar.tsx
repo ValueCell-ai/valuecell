@@ -1,4 +1,4 @@
-import type { FC } from "react";
+import { type FC, memo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AGENT_AVATAR_MAP } from "@/constants/agent";
 import { cn } from "@/lib/utils";
@@ -17,4 +17,4 @@ export const AgentAvatar: FC<AgentAvatarProps> = ({ agentName, className }) => {
   );
 };
 
-export default AgentAvatar;
+export default memo(AgentAvatar);
