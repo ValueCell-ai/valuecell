@@ -10,37 +10,30 @@ const EXCHANGE_OPTIONS = [
   {
     value: "okx",
     label: "OKX",
-    icon: EXCHANGE_ICONS.okx,
   },
   {
     value: "binance",
     label: "Binance",
-    icon: EXCHANGE_ICONS.binance,
   },
   {
     value: "hyperliquid",
     label: "Hyperliquid",
-    icon: EXCHANGE_ICONS.hyperliquid,
   },
   {
     value: "blockchaincom",
     label: "Blockchain.com",
-    icon: EXCHANGE_ICONS.blockchaincom,
   },
   {
     value: "coinbaseexchange",
     label: "Coinbase Exchange",
-    icon: EXCHANGE_ICONS.coinbaseexchange,
   },
   {
     value: "gate",
     label: "Gate.io",
-    icon: EXCHANGE_ICONS.gate,
   },
   {
     value: "mexc",
     label: "MEXC",
-    icon: EXCHANGE_ICONS.mexc,
   },
 ];
 
@@ -102,7 +95,13 @@ export const ExchangeForm = withForm({
                         {EXCHANGE_OPTIONS.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             <div className="flex items-center gap-2">
-                              <PngIcon src={option.icon} />
+                              <PngIcon
+                                src={
+                                  EXCHANGE_ICONS[
+                                    option.value as keyof typeof EXCHANGE_ICONS
+                                  ]
+                                }
+                              />
                               {option.label}
                             </div>
                           </SelectItem>

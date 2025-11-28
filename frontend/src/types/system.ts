@@ -31,6 +31,8 @@ export interface StrategyDetail {
   strategy_type: string;
   exchange: string;
   symbols: string[];
+  llm_provider: string;
+  llm_model_id: string;
   max_leverage: number;
   initial_capital: number;
   prompt: string;

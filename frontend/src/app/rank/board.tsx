@@ -1,8 +1,8 @@
 import { Eye, Medal, Trophy } from "lucide-react";
 import { useState } from "react";
 import { useGetStrategyDetail, useGetStrategyList } from "@/api/system";
+import { ValueCellAgentPng } from "@/assets/png";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -20,12 +20,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tag } from "@/components/valuecell/button/tag-groups";
+import { PngIcon } from "@/components/valuecell/icon/png-icon";
+import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
+import { EXCHANGE_ICONS } from "@/constants/icons";
+import { getChangeType, numberFixed } from "@/lib/utils";
+import { useStockColors } from "@/store/settings-store";
 
 export default function RankBoard() {
   const [days, setDays] = useState(7);
   const [selectedStrategyId, setSelectedStrategyId] = useState<number | null>(
     null,
   );
+
+  const stockColors = useStockColors();
 
   const { data: strategies, isLoading } = useGetStrategyList({
     limit: 10,
@@ -68,7 +76,7 @@ export default function RankBoard() {
                 <TableHead>Strategy</TableHead>
                 <TableHead>Exchange</TableHead>
                 <TableHead>Trading Portfolio</TableHead>
-                <TableHead className="text-right">Details</TableHead>
+                <TableHead>Details</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -99,28 +107,37 @@ export default function RankBoard() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="font-bold text-green-500">
-                        +{strategy.return_rate_pct.toFixed(2)}%
+                      <span
+                        className="font-bold"
+                        style={{
+                          color:
+                            stockColors[
+                              getChangeType(strategy.return_rate_pct)
+                            ],
+                        }}
+                      >
+                        {numberFixed(strategy.return_rate_pct, 2)}%
                       </span>
                     </TableCell>
                     <TableCell>{strategy.strategy_type}</TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        {/* Placeholder for Exchange Icon */}
-                        <div className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 text-[10px]">
-                          {strategy.exchange_id[0]}
-                        </div>
+                      <Tag>
+                        <PngIcon
+                          src={
+                            EXCHANGE_ICONS[
+                              strategy.exchange_id as keyof typeof EXCHANGE_ICONS
+                            ]
+                          }
+                          className="size-4"
+                          callback={ValueCellAgentPng}
+                        />
                         {strategy.exchange_id}
-                      </div>
+                      </Tag>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="font-normal">
-                          {strategy.llm_provider}/{strategy.llm_model_id}
-                        </Badge>
-                      </div>
+                      <Tag>{strategy.llm_model_id}</Tag>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell>
                       <Button
                         variant="outline"
                         size="sm"
@@ -143,83 +160,79 @@ export default function RankBoard() {
         open={!!selectedStrategyId}
         onOpenChange={(open) => !open && setSelectedStrategyId(null)}
       >
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent
+          className="flex max-h-[90vh] min-h-96 flex-col"
+          aria-describedby={undefined}
+        >
           <DialogHeader>
             <DialogTitle>Strategy Details</DialogTitle>
           </DialogHeader>
-          {strategyDetail ? (
-            <div className="grid gap-4 py-4">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage
-                    src={strategyDetail.avatar}
-                    alt={strategyDetail.name}
-                  />
-                  <AvatarFallback>{strategyDetail.name[0]}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="font-bold text-lg">{strategyDetail.name}</h3>
-                  <p className="text-gray-500 text-sm">
-                    User ID: {strategyDetail.user_id}
-                  </p>
-                </div>
-                <div className="ml-auto text-right">
-                  <div className="font-bold text-2xl text-green-500">
-                    +{strategyDetail.return_rate_pct.toFixed(2)}%
+          <ScrollContainer>
+            {strategyDetail ? (
+              <div className="grid gap-4 py-4">
+                <div className="flex items-center gap-4">
+                  <Avatar className="size-16">
+                    <AvatarImage
+                      src={strategyDetail.avatar}
+                      alt={strategyDetail.name}
+                    />
+                    <AvatarFallback>{strategyDetail.name[0]}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-bold text-lg">{strategyDetail.name}</h3>
+                    <p className="text-gray-500 text-sm">
+                      User ID: {strategyDetail.user_id}
+                    </p>
                   </div>
-                  <div className="text-gray-500 text-sm">Return Rate</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <span className="font-medium text-gray-500 text-sm">
-                    Strategy Type
-                  </span>
-                  <p>{strategyDetail.strategy_type}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="font-medium text-gray-500 text-sm">
-                    Exchange
-                  </span>
-                  <p>{strategyDetail.exchange}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="font-medium text-gray-500 text-sm">
-                    Initial Capital
-                  </span>
-                  <p>${strategyDetail.initial_capital}</p>
-                </div>
-                <div className="space-y-1">
-                  <span className="font-medium text-gray-500 text-sm">
-                    Max Leverage
-                  </span>
-                  <p>{strategyDetail.max_leverage}x</p>
-                </div>
-                <div className="col-span-2 space-y-1">
-                  <span className="font-medium text-gray-500 text-sm">
-                    Symbols
-                  </span>
-                  <div className="flex gap-2">
-                    {strategyDetail.symbols.map((symbol) => (
-                      <Badge key={symbol} variant="outline">
-                        {symbol}
-                      </Badge>
-                    ))}
+                  <div className="ml-auto text-right">
+                    <div
+                      className="font-bold text-2xl"
+                      style={{
+                        color:
+                          stockColors[
+                            getChangeType(strategyDetail.return_rate_pct)
+                          ],
+                      }}
+                    >
+                      {numberFixed(strategyDetail.return_rate_pct, 2)}%
+                    </div>
+                    <div className="text-gray-500 text-sm">Return Rate</div>
                   </div>
                 </div>
-                <div className="col-span-2 space-y-1">
-                  <span className="font-medium text-gray-500 text-sm">
-                    Prompt
+
+                <div className="grid grid-cols-[auto_1fr] gap-y-2 text-nowrap text-sm [&>p]:text-gray-500 [&>span]:text-right">
+                  <p>Strategy Type</p>
+                  <span>{strategyDetail.strategy_type}</span>
+
+                  <p>Model Provider</p>
+                  <span>{strategyDetail.llm_provider}</span>
+
+                  <p>Model ID</p>
+                  <span>{strategyDetail.llm_model_id}</span>
+
+                  <p>Initial Capital</p>
+                  <span>{strategyDetail.initial_capital}</span>
+
+                  <p>Max Leverage</p>
+                  <span>{strategyDetail.max_leverage}x</span>
+
+                  <p>Trading Symbols</p>
+                  <span className="whitespace-normal">
+                    {strategyDetail.symbols.join(", ")}
                   </span>
+                </div>
+
+                <div className="gap-2">
+                  <span className="text-gray-500 text-sm">Prompt</span>
                   <p className="rounded-md bg-gray-50 p-3 text-gray-700 text-sm">
                     {strategyDetail.prompt}
                   </p>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="py-8 text-center">Loading details...</div>
-          )}
+            ) : (
+              <div className="py-8 text-center">Loading details...</div>
+            )}
+          </ScrollContainer>
         </DialogContent>
       </Dialog>
     </div>

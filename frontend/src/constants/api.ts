@@ -64,4 +64,4 @@ export const API_QUERY_KEYS = {
  */
 export const USER_LANGUAGE = "en-US";
 
-export const VALUECELL_BACKEND_URL = "https://backend.valuecell.ai//api/v1";
+export const VALUECELL_BACKEND_URL = "https://backend.valuecell.ai/api/v1";

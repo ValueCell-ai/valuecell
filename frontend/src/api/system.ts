@@ -74,7 +74,7 @@ export const useGetStrategyList = (
 
 export const useGetStrategyDetail = (id: number | null) => {
   return useQuery({
-    queryKey: ["strategy-detail", id],
+    queryKey: API_QUERY_KEYS.SYSTEM.strategyDetail([id ?? ""]),
     queryFn: () =>
       apiClient.get<ApiResponse<StrategyDetail>>(
         `${VALUECELL_BACKEND_URL}/strategy/detail/${id}`,

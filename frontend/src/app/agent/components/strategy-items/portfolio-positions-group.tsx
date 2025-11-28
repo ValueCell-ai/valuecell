@@ -39,7 +39,7 @@ interface PortfolioPositionsGroupProps {
   priceCurve: Array<Array<number | string>>;
   positions: Position[];
   summary?: PortfolioSummary;
-  strategyId?: string;
+  strategyId: string;
 }
 
 interface PositionRowProps {
@@ -114,7 +114,7 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
     const { data } = await refetchPerformance();
     if (!data) return;
 
-    publishStrategy({ ...data, name, avatar });
+    publishStrategy({ ...data, name, avatar, exchange_id: "binance" });
   };
 
   return (
@@ -134,7 +134,7 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem>
-                <SvgIcon name={Share} className="size-5" /> Share to social
+                <SvgIcon name={Share} className="size-5" /> Share to Social
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={handlePublishToRankBoard}
@@ -145,7 +145,7 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
                 ) : (
                   <SvgIcon name={Send} className="size-5" />
                 )}{" "}
-                share to ranking
+                Share to Ranking
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
