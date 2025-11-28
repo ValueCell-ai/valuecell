@@ -27,10 +27,11 @@ export default function RankBoard() {
     null,
   );
 
-  const { data: strategies, isLoading } = useGetStrategyList(10, days);
+  const { data: strategies, isLoading } = useGetStrategyList({
+    limit: 10,
+    days,
+  });
   const { data: strategyDetail } = useGetStrategyDetail(selectedStrategyId);
-
-  
 
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <Trophy className="h-6 w-6 text-yellow-500" />;

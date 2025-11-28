@@ -1,9 +1,10 @@
 // API Query keys constants
 
-export const queryKeyFn = (defaultKey: string[]) => (queryKey: string[]) => [
-  ...defaultKey,
-  ...queryKey,
-];
+export const queryKeyFn =
+  (defaultKey: string[]) => (queryKey: (string | number)[]) => [
+    ...defaultKey,
+    ...queryKey,
+  ];
 
 const STOCK_QUERY_KEYS = {
   watchlist: ["watch"],
@@ -43,12 +44,18 @@ const STRATEGY_QUERY_KEYS = {
   strategyPerformance: queryKeyFn(["strategy", "performance"]),
 } as const;
 
+const SYSTEM_QUERY_KEYS = {
+  strategyList: queryKeyFn(["system", "strategy", "list"]),
+  strategyDetail: queryKeyFn(["system", "strategy", "detail"]),
+} as const;
+
 export const API_QUERY_KEYS = {
   STOCK: STOCK_QUERY_KEYS,
   AGENT: AGENT_QUERY_KEYS,
   CONVERSATION: CONVERSATION_QUERY_KEYS,
   SETTING: SETTING_QUERY_KEYS,
   STRATEGY: STRATEGY_QUERY_KEYS,
+  SYSTEM: SYSTEM_QUERY_KEYS,
 } as const;
 
 /**

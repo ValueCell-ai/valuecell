@@ -1,11 +1,12 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { VALUECELL_BACKEND_URL } from "@/constants/api";
+import { API_QUERY_KEYS, VALUECELL_BACKEND_URL } from "@/constants/api";
 import { type ApiResponse, apiClient } from "@/lib/api-client";
 import { useSystemStore } from "@/store/system-store";
 import type {
   StrategyDetail,
   StrategyRankItem,
+  StrategyReport,
   SystemInfo,
 } from "@/types/system";
 
@@ -55,28 +56,57 @@ export const useSignOut = () => {
   });
 };
 
-export const useGetStrategyList = (limit: number = 10, days: number = 7) => {
+export const useGetStrategyList = (
+  params: { limit: number; days: number } = { limit: 10, days: 7 },
+) => {
   return useQuery({
-    queryKey: ["strategy-list", limit, days],
-    queryFn: async () => {
-      const data = await apiClient.get<StrategyRankItem[]>(
-        `/strategy/list?limit=${limit}&days=${days}`,
-      );
-      return data;
-    },
+    queryKey: API_QUERY_KEYS.SYSTEM.strategyList(Object.values(params)),
+    queryFn: () =>
+      apiClient.get<ApiResponse<StrategyRankItem[]>>(
+        `${VALUECELL_BACKEND_URL}/strategy/list?limit=${params.limit}&days=${params.days}`,
+        {
+          requiresAuth: true,
+        },
+      ),
+    select: (data) => data.data,
   });
 };
 
 export const useGetStrategyDetail = (id: number | null) => {
   return useQuery({
     queryKey: ["strategy-detail", id],
-    queryFn: async () => {
-      if (!id) return null;
-      const data = await apiClient.get<StrategyDetail>(
-        `/strategy/detail/${id}`,
-      );
-      return data;
-    },
+    queryFn: () =>
+      apiClient.get<ApiResponse<StrategyDetail>>(
+        `${VALUECELL_BACKEND_URL}/strategy/detail/${id}`,
+        {
+          requiresAuth: true,
+        },
+      ),
+    select: (data) => data.data,
     enabled: !!id,
+  });
+};
+
+export const usePublishStrategy = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: StrategyReport) => {
+      return apiClient.post<ApiResponse<void>>(
+        `${VALUECELL_BACKEND_URL}/strategy/report`,
+        data,
+        {
+          requiresAuth: true,
+        },
+      );
+    },
+    onSuccess: () => {
+      toast.success("Strategy published successfully");
+      queryClient.invalidateQueries({
+        queryKey: API_QUERY_KEYS.SYSTEM.strategyList([]),
+      });
+    },
+    onError: (error) => {
+      toast.error(JSON.stringify(error));
+    },
   });
 };

@@ -160,10 +160,10 @@ export const useStrategyPerformance = (strategyId?: string) => {
   return useQuery({
     queryKey: API_QUERY_KEYS.STRATEGY.strategyPerformance([strategyId ?? ""]),
     queryFn: () =>
-      apiClient.get<ApiResponse<StrategyPerformance[]>>(
+      apiClient.get<ApiResponse<StrategyPerformance>>(
         `/strategies/performance?id=${strategyId}`,
       ),
     select: (data) => data.data,
-    enabled: !!strategyId,
+    enabled: false,
   });
 };
