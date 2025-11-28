@@ -92,7 +92,10 @@ async def validation_exception_handler(
         status_code=200,
         content=ErrorResponse.create(
             code=StatusCode.BAD_REQUEST,
-            msg=f"Request parameter validation failed: {'; '.join([f'{e["field"]}: {e["message"]}' for e in error_details])}",
+            msg=(
+                "Request parameter validation failed: "
+                + "; ".join([f"{e['field']}: {e['message']}" for e in error_details])
+            ),
         ).dict(),
     )
 
