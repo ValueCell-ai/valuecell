@@ -1,5 +1,5 @@
 import BackButton from "@valuecell/button/back-button";
-import Sparkline from "@valuecell/charts/sparkline";
+import KLineChart from "@valuecell/charts/kline";
 import { memo, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import { formatChange, getChangeType } from "@/lib/utils";
 import { useStockBadgeColors } from "@/store/settings-store";
-import type { SparklineData } from "@/types/chart";
+import type { KLineData } from "@/types/chart";
 import type { Route } from "./+types/stock";
 
 function Stock() {
@@ -77,19 +77,16 @@ function Stock() {
     end_date: dateRange.endDate,
   });
 
-  // Transform historical data to chart format
-  const chartData = useMemo(() => {
-    if (!stockHistoryData?.prices) return [];
-
-    // Convert UTC timestamp strings to UTC millisecond timestamps for chart
-    const sparklineData: SparklineData = stockHistoryData.prices.map(
-      (price) => [
-        TimeUtils.createUTC(price.timestamp).valueOf(),
-        price.close_price,
-      ],
-    );
-
-    return sparklineData;
+  const klineData = useMemo(() => {
+    if (!stockHistoryData?.prices) return { categories: [], values: [] } as KLineData;
+    const categories = stockHistoryData.prices.map((p) => p.timestamp);
+    const values = stockHistoryData.prices.map((p) => [
+      p.open_price,
+      p.close_price,
+      p.low_price,
+      p.high_price,
+    ] as [number, number, number, number]);
+    return { categories, values } as KLineData;
   }, [stockHistoryData]);
 
   // Create stock info from API data
@@ -192,7 +189,7 @@ function Stock() {
           </p>
         </div>
 
-        <Sparkline data={chartData} changeType={changeType} />
+        <KLineChart data={klineData} />
       </div>
 
       {/* <div className="flex flex-col gap-4">

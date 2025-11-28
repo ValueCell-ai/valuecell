@@ -5,3 +5,7 @@
 export type SparklineData = Array<[number | string | Date, number]>;
 
 export type MultiLineChartData = Array<Array<string | number>>;
+export type KLineData = {
+  categories: string[];
+  values: Array<[number, number, number, number]>;
+};
