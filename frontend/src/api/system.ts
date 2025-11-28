@@ -3,7 +3,11 @@ import { toast } from "sonner";
 import { VALUECELL_BACKEND_URL } from "@/constants/api";
 import { type ApiResponse, apiClient } from "@/lib/api-client";
 import { useSystemStore } from "@/store/system-store";
-import type { SystemInfo } from "@/types/system";
+import type {
+  StrategyDetail,
+  StrategyRankItem,
+  SystemInfo,
+} from "@/types/system";
 
 export const useBackendHealth = () => {
   return useQuery({
@@ -48,5 +52,31 @@ export const useSignOut = () => {
       toast.error(JSON.stringify(error));
       useSystemStore.getState().clearSystemInfo();
     },
+  });
+};
+
+export const useGetStrategyList = (limit: number = 10, days: number = 7) => {
+  return useQuery({
+    queryKey: ["strategy-list", limit, days],
+    queryFn: async () => {
+      const data = await apiClient.get<StrategyRankItem[]>(
+        `/strategy/list?limit=${limit}&days=${days}`,
+      );
+      return data;
+    },
+  });
+};
+
+export const useGetStrategyDetail = (id: number | null) => {
+  return useQuery({
+    queryKey: ["strategy-detail", id],
+    queryFn: async () => {
+      if (!id) return null;
+      const data = await apiClient.get<StrategyDetail>(
+        `/strategy/detail/${id}`,
+      );
+      return data;
+    },
+    enabled: !!id,
   });
 };
