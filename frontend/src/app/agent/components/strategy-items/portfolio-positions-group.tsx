@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import AppLoginModal from "@/components/valuecell/app/app-login-modal";
 import MultiLineChart from "@/components/valuecell/charts/model-multi-line";
 import { PngIcon } from "@/components/valuecell/icon/png-icon";
 import SvgIcon from "@/components/valuecell/icon/svg-icon";
@@ -32,7 +33,7 @@ import {
   numberFixed,
 } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
-import { useSystemInfo } from "@/store/system-store";
+import { useIsLoggedIn, useSystemInfo } from "@/store/system-store";
 import type { PortfolioSummary, Position } from "@/types/strategy";
 
 interface PortfolioPositionsGroupProps {
@@ -101,6 +102,7 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
   const stockColors = useStockColors();
   const changeType = getChangeType(summary?.total_pnl);
   const { name, avatar } = useSystemInfo();
+  const isLogin = useIsLoggedIn();
 
   const hasPositions = positions.length > 0;
   const hasPriceCurve = priceCurve.length > 0;
@@ -125,30 +127,37 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
           <h3 className="font-semibold text-base text-gray-950">
             Portfolio Value History
           </h3>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          {isLogin ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button>
+                  <SvgIcon name={Send} className="size-5" /> Publish
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem disabled>
+                  <SvgIcon name={Share} className="size-5" /> Share to Social
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handlePublishToRankBoard}
+                  disabled={isPublishing}
+                >
+                  {isPublishing ? (
+                    <Spinner className="size-5" />
+                  ) : (
+                    <SvgIcon name={Send} className="size-5" />
+                  )}{" "}
+                  Share to Ranking
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <AppLoginModal>
               <Button>
                 <SvgIcon name={Send} className="size-5" /> Publish
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem>
-                <SvgIcon name={Share} className="size-5" /> Share to Social
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={handlePublishToRankBoard}
-                disabled={isPublishing}
-              >
-                {isPublishing ? (
-                  <Spinner className="size-5" />
-                ) : (
-                  <SvgIcon name={Send} className="size-5" />
-                )}{" "}
-                Share to Ranking
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </AppLoginModal>
+          )}
         </div>
 
         <div className="grid grid-cols-3 gap-4 text-nowrap">

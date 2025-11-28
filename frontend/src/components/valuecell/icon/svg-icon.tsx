@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { cn } from "@/lib/utils";
 
 export interface SvgIconProps {
@@ -16,4 +17,4 @@ export function SvgIcon({ name, className }: SvgIconProps) {
   );
 }
 
-export default SvgIcon;
+export default memo(SvgIcon);

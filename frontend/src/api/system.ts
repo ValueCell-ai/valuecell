@@ -13,10 +13,7 @@ import type {
 export const useBackendHealth = () => {
   return useQuery({
     queryKey: ["backend-health"],
-    queryFn: () =>
-      apiClient.get<boolean>("/healthz", {
-        requiresAuth: false,
-      }),
+    queryFn: () => apiClient.get<boolean>("/healthz"),
     retry: false,
     refetchInterval: (query) => {
       return query.state.status === "error" ? 2000 : 10000;
@@ -64,9 +61,6 @@ export const useGetStrategyList = (
     queryFn: () =>
       apiClient.get<ApiResponse<StrategyRankItem[]>>(
         `${VALUECELL_BACKEND_URL}/strategy/list?limit=${params.limit}&days=${params.days}`,
-        {
-          requiresAuth: true,
-        },
       ),
     select: (data) => data.data,
   });
@@ -78,9 +72,6 @@ export const useGetStrategyDetail = (id: number | null) => {
     queryFn: () =>
       apiClient.get<ApiResponse<StrategyDetail>>(
         `${VALUECELL_BACKEND_URL}/strategy/detail/${id}`,
-        {
-          requiresAuth: true,
-        },
       ),
     select: (data) => data.data,
     enabled: !!id,
