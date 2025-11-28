@@ -78,14 +78,18 @@ function Stock() {
   });
 
   const klineData = useMemo(() => {
-    if (!stockHistoryData?.prices) return { categories: [], values: [] } as KLineData;
+    if (!stockHistoryData?.prices)
+      return { categories: [], values: [] } as KLineData;
     const categories = stockHistoryData.prices.map((p) => p.timestamp);
-    const values = stockHistoryData.prices.map((p) => [
-      p.open_price,
-      p.close_price,
-      p.low_price,
-      p.high_price,
-    ] as [number, number, number, number]);
+    const values = stockHistoryData.prices.map(
+      (p) =>
+        [p.open_price, p.close_price, p.low_price, p.high_price] as [
+          number,
+          number,
+          number,
+          number,
+        ],
+    );
     return { categories, values } as KLineData;
   }, [stockHistoryData]);
 

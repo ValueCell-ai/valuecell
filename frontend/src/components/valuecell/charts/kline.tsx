@@ -30,7 +30,12 @@ interface KLineChartProps {
   className?: string;
 }
 
-function KLineChart({ data, width = "100%", height = 400, className }: KLineChartProps) {
+function KLineChart({
+  data,
+  width = "100%",
+  height = 400,
+  className,
+}: KLineChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<ECharts | null>(null);
   const stockColors = useStockColors();
@@ -63,8 +68,14 @@ function KLineChart({ data, width = "100%", height = 400, className }: KLineChar
         axisPointer: { type: "cross" },
         formatter: (params: unknown) => {
           if (!Array.isArray(params) || params.length === 0) return "";
-          const p = params[0] as { axisValue: string; value: [number, number, number, number] };
-          const date = TimeUtils.formatUTC(p.axisValue, TIME_FORMATS.MODAL_TRADE_TIME);
+          const p = params[0] as {
+            axisValue: string;
+            value: [number, number, number, number];
+          };
+          const date = TimeUtils.formatUTC(
+            p.axisValue,
+            TIME_FORMATS.MODAL_TRADE_TIME,
+          );
           const [open, close, low, high] = p.value;
           return `<div style="font-weight:600;margin-bottom:6px">${date}</div>
           <div>Open: <strong>${open.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></div>
@@ -112,7 +123,13 @@ function KLineChart({ data, width = "100%", height = 400, className }: KLineChar
     });
   }, [data]);
 
-  return <div ref={chartRef} className={cn("w-fit", className)} style={{ width, height }} />;
+  return (
+    <div
+      ref={chartRef}
+      className={cn("w-fit", className)}
+      style={{ width, height }}
+    />
+  );
 }
 
 export default KLineChart;
