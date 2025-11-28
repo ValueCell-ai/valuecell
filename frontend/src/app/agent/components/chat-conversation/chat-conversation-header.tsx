@@ -7,8 +7,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import AgentAvatar from "@/components/valuecell/agent-avatar";
 import TagGroups from "@/components/valuecell/button/tag-groups";
+import AgentAvatar from "@/components/valuecell/icon/agent-avatar";
 import type { AgentInfo } from "@/types/agent";
 
 interface ChatConversationHeaderProps {

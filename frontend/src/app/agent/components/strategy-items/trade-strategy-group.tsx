@@ -13,8 +13,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import SvgIcon from "@/components/valuecell/icon/svg-icon";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
-import SvgIcon from "@/components/valuecell/svg-icon";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import { formatChange, getChangeType } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";

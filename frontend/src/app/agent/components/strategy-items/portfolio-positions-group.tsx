@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import MultiLineChart from "@/components/valuecell/charts/model-multi-line";
-import { PngIcon } from "@/components/valuecell/png-icon";
+import { PngIcon } from "@/components/valuecell/icon/png-icon";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import {
   formatChange,

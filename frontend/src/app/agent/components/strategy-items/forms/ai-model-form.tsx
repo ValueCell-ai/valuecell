@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useGetModelProviderDetail, useGetModelProviders } from "@/api/setting";
 import { FieldGroup } from "@/components/ui/field";
 import { SelectItem } from "@/components/ui/select";
-import PngIcon from "@/components/valuecell/png-icon";
+import PngIcon from "@/components/valuecell/icon/png-icon";
 import { MODEL_PROVIDER_ICONS } from "@/constants/icons";
 import { withForm } from "@/hooks/use-form";
 
