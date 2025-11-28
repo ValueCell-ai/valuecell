@@ -1,3 +1,5 @@
+import asyncio
+import itertools
 from collections import defaultdict
 from typing import List, Optional
 
@@ -56,33 +58,32 @@ class SimpleMarketDataSource(BaseMarketDataSource):
     async def get_recent_candles(
         self, symbols: List[str], interval: str, lookback: int
     ) -> List[Candle]:
-        async def _fetch(symbol: str, normalized_symbol: str) -> List[List]:
+        async def _fetch_and_process(symbol: str) -> List[Candle]:
             # instantiate exchange class by name (e.g., ccxtpro.kraken)
             exchange_cls = get_exchange_cls(self._exchange_id)
             exchange = exchange_cls({"newUpdates": False})
-            try:
-                # ccxt.pro uses async fetch_ohlcv with normalized symbol
-                data = await exchange.fetch_ohlcv(
-                    normalized_symbol, timeframe=interval, since=None, limit=lookback
-                )
-                return data
-            finally:
-                try:
-                    await exchange.close()
-                except Exception:
-                    pass
 
-        candles: List[Candle] = []
-        # Run fetch for each symbol sequentially
-        for symbol in symbols:
+            symbol_candles: List[Candle] = []
+            normalized_symbol = self._normalize_symbol(symbol)
             try:
-                # Normalize symbol format for the exchange (e.g., BTC-USDC -> BTC/USDC:USDC)
-                normalized_symbol = self._normalize_symbol(symbol)
-                raw = await _fetch(symbol, normalized_symbol)
+                try:
+                    # ccxt.pro uses async fetch_ohlcv with normalized symbol
+                    raw = await exchange.fetch_ohlcv(
+                        normalized_symbol,
+                        timeframe=interval,
+                        since=None,
+                        limit=lookback,
+                    )
+                finally:
+                    try:
+                        await exchange.close()
+                    except Exception:
+                        pass
+
                 # raw is list of [ts, open, high, low, close, volume]
                 for row in raw:
                     ts, open_v, high_v, low_v, close_v, vol = row
-                    candles.append(
+                    symbol_candles.append(
                         Candle(
                             ts=int(ts),
                             instrument=InstrumentRef(
@@ -98,6 +99,7 @@ class SimpleMarketDataSource(BaseMarketDataSource):
                             interval=interval,
                         )
                     )
+                return symbol_candles
             except Exception as exc:
                 logger.warning(
                     "Failed to fetch candles for {} (normalized: {}) from {}, data interval is {}, return empty candles. Error: {}",
@@ -107,6 +109,15 @@ class SimpleMarketDataSource(BaseMarketDataSource):
                     interval,
                     exc,
                 )
+                return []
+
+        # Run fetch for each symbol concurrently
+        tasks = [_fetch_and_process(symbol) for symbol in symbols]
+        results = await asyncio.gather(*tasks)
+
+        # Flatten the list of lists results into a single list of candles
+        candles: List[Candle] = list(itertools.chain.from_iterable(results))
+
         logger.debug(
             f"Fetch {len(candles)} candles symbols: {symbols}, interval: {interval}, lookback: {lookback}"
         )

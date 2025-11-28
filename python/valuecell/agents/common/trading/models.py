@@ -327,6 +327,16 @@ class InstrumentRef(BaseModel):
     # )
 
 
+@dataclass(frozen=True)
+class CandleConfig:
+    """Configuration for a specific candle size and lookback number."""
+
+    interval: str = Field(
+        ..., description="the interval of each candle, e.g., '1s', '1m'"
+    )
+    lookback: int = Field(..., gt=0, description="the number of candles to look back")
+
+
 class Candle(BaseModel):
     """Aggregated OHLCV candle for a fixed interval."""
 
