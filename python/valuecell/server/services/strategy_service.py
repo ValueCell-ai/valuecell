@@ -170,12 +170,6 @@ class StrategyService:
         return None
 
     @staticmethod
-    def _sanitize_config(strategy):
-        # Deprecated in favor of flattened fields in StrategyPerformanceData
-        # Kept for backward reference; not used by current code path.
-        raise NotImplementedError("StrategyConfigView removed; use flattened fields")
-
-    @staticmethod
     async def get_strategy_performance(
         strategy_id: str,
     ) -> Optional[StrategyPerformanceData]:
