@@ -10,7 +10,9 @@ const ScheduledTaskControllerRenderer: FC<
   ScheduledTaskControllerRendererProps
 > = ({ content }) => {
   const { task_title, task_id, task_status } = parse(content);
-  const [isRunning, setIsRunning] = useState(task_status === "running" || task_status === "pending");
+  const [isRunning, setIsRunning] = useState(
+    task_status === "running" || task_status === "pending",
+  );
   const { mutateAsync: cancelTask } = useCancelTask();
 
   useEffect(() => {
