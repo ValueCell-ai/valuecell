@@ -13,6 +13,20 @@ export interface Strategy {
   model_id: string;
 }
 
+// Strategy Performance types
+export type StrategyPerformance = {
+  strategy_id: string;
+  initial_capital: number;
+  return_rate_pct: number;
+  llm_provider: string;
+  llm_model_id: string;
+  exchange_id: string;
+  strategy_type: Strategy["strategy_type"];
+  max_leverage: number;
+  symbols: string[];
+  prompt: string;
+};
+
 // Position types
 export interface Position {
   symbol: string;

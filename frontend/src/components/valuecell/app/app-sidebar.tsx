@@ -11,6 +11,7 @@ import {
   ChartBarVertical,
   Conversation,
   Logo,
+  Ranking,
   Setting,
   StrategyAgent,
 } from "@/assets/svg";
@@ -157,6 +158,12 @@ const AppSidebar: FC = () => {
           icon: StrategyAgent,
           label: "Strategy",
           to: "/agent/StrategyAgent",
+        },
+        {
+          id: "ranking",
+          icon: Ranking,
+          label: "Ranking",
+          to: "/ranking",
         },
         {
           id: "market",

@@ -7,6 +7,7 @@ import type {
   Position,
   Strategy,
   StrategyCompose,
+  StrategyPerformance,
   StrategyPrompt,
 } from "@/types/strategy";
 
@@ -152,5 +153,17 @@ export const useCreateStrategyPrompt = () => {
         queryKey: API_QUERY_KEYS.STRATEGY.strategyPrompts,
       });
     },
+  });
+};
+
+export const useStrategyPerformance = (strategyId?: string) => {
+  return useQuery({
+    queryKey: API_QUERY_KEYS.STRATEGY.strategyPerformance([strategyId ?? ""]),
+    queryFn: () =>
+      apiClient.get<ApiResponse<StrategyPerformance[]>>(
+        `/strategies/performance?id=${strategyId}`,
+      ),
+    select: (data) => data.data,
+    enabled: !!strategyId,
   });
 };
