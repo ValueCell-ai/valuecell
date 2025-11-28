@@ -41,6 +41,7 @@ interface PortfolioPositionsGroupProps {
   positions: Position[];
   summary?: PortfolioSummary;
   strategyId: string;
+  isLive: boolean;
 }
 
 interface PositionRowProps {
@@ -98,6 +99,7 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
   priceCurve,
   positions,
   strategyId,
+  isLive,
 }) => {
   const stockColors = useStockColors();
   const changeType = getChangeType(summary?.total_pnl);
@@ -116,7 +118,7 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
     const { data } = await refetchPerformance();
     if (!data) return;
 
-    publishStrategy({ ...data, name, avatar, exchange_id: "binance" });
+    publishStrategy({ ...data, name, avatar });
   };
 
   return (
@@ -127,37 +129,38 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
           <h3 className="font-semibold text-base text-gray-950">
             Portfolio Value History
           </h3>
-          {isLogin ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+          {isLive &&
+            (isLogin ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button>
+                    <SvgIcon name={Send} className="size-5" /> Publish
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem disabled>
+                    <SvgIcon name={Share} className="size-5" /> Share to Social
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handlePublishToRankBoard}
+                    disabled={isPublishing}
+                  >
+                    {isPublishing ? (
+                      <Spinner className="size-5" />
+                    ) : (
+                      <SvgIcon name={Send} className="size-5" />
+                    )}{" "}
+                    Share to Ranking
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <AppLoginModal>
                 <Button>
                   <SvgIcon name={Send} className="size-5" /> Publish
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem disabled>
-                  <SvgIcon name={Share} className="size-5" /> Share to Social
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handlePublishToRankBoard}
-                  disabled={isPublishing}
-                >
-                  {isPublishing ? (
-                    <Spinner className="size-5" />
-                  ) : (
-                    <SvgIcon name={Send} className="size-5" />
-                  )}{" "}
-                  Share to Ranking
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <AppLoginModal>
-              <Button>
-                <SvgIcon name={Send} className="size-5" /> Publish
-              </Button>
-            </AppLoginModal>
-          )}
+              </AppLoginModal>
+            ))}
         </div>
 
         <div className="grid grid-cols-3 gap-4 text-nowrap">
