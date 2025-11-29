@@ -38,6 +38,7 @@ export const useSignOut = () => {
     mutationFn: () =>
       apiClient.post<ApiResponse<void>>(
         `${VALUECELL_BACKEND_URL}/auth/logout`,
+        null,
         {
           requiresAuth: true,
         },
