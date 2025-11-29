@@ -22,13 +22,16 @@
     <a href="https://www.facebook.com/people/ValueCell/61581410516790/" target="_blank">
         <img src="https://custom-icon-badges.demolab.com/badge/Facebook-1877F2?logo=facebook-white&logoColor=fff"
             alt="follow on Facebook"></a>
+    <a href="https://www.youtube.com/watch?v=C3tfHyGY9YE" target="_blank">
+        <img src="https://img.shields.io/badge/Watch%20on-YouTube-red?logo=youtube"
+            alt="Watch on YouTube"></a>
 </div>
 
 <div align="center">
-  <a href="README.md" style="color: gray;">English</a>
-  <a href="README.zh.md" style="color: auto;">中文（简体）</a>
-  <a href="README.zh_Hant.md" style="color: gray;">中文（繁體）</a>
-  <a href="README.ja.md" style="color: gray;">日本語</a>
+  <a href="README.md" style="color: auto;">English</a>
+  <a href="README.zh.md" style="color: gray;">中文（简体）</a>
+  <a href="README.zh_Hant.md" style="color: auto;">中文（繁體）</a>
+  <a href="README.ja.md" style="color: auto;">日本語</a>
 </div>
 
 
@@ -44,6 +47,8 @@ ValueCell 是一个社区驱动的多智能体金融应用产品，我们的计�
 >注意：ValueCell团队人员不会主动私信社区参与者，项目仅为技术交流使用，投资有风险。⚠️
 
 # 产品截图
+
+[![观看视频](https://img.youtube.com/vi/C3tfHyGY9YE/maxresdefault.jpg)](https://www.youtube.com/watch?v=C3tfHyGY9YE)
 
 <p align="center">
   <img src="assets/product/homepage.png" style="width: 100%; height: auto;">

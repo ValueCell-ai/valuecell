@@ -22,13 +22,16 @@
     <a href="https://www.facebook.com/people/ValueCell/61581410516790/" target="_blank">
         <img src="https://custom-icon-badges.demolab.com/badge/Facebook-1877F2?logo=facebook-white&logoColor=fff"
             alt="follow on Facebook"></a>
+    <a href="https://www.youtube.com/watch?v=C3tfHyGY9YE" target="_blank">
+        <img src="https://img.shields.io/badge/Watch%20on-YouTube-red?logo=youtube"
+            alt="Watch on YouTube"></a>
 </div>
 
 <div align="center">
-  <a href="README.md" style="color: gray;">English</a>
-  <a href="README.zh.md" style="color: gray;">中文（简体）</a>
-  <a href="README.zh_Hant.md" style="color: gray;">中文（繁體）</a>
-  <a href="README.ja.md" style="color: auto;">日本語</a>
+  <a href="README.md" style="color: auto;">English</a>
+  <a href="README.zh.md" style="color: auto;">中文（简体）</a>
+  <a href="README.zh_Hant.md" style="color: auto;">中文（繁體）</a>
+  <a href="README.ja.md" style="color: gray;">日本語</a>
 </div>
 
 
@@ -45,7 +48,9 @@ Discord コミュニティへのご参加をお待ちしています。使用中
 
 # スクリーンショット
 
-p align="center">
+[![動画を観る](https://img.youtube.com/vi/C3tfHyGY9YE/maxresdefault.jpg)](https://www.youtube.com/watch?v=C3tfHyGY9YE)
+
+<p align="center">
   <img src="assets/product/homepage.png" style="width: 100%; height: auto;">
 </p>
 
