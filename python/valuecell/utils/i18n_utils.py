@@ -65,28 +65,71 @@ def detect_browser_language(accept_language_header: str) -> str:
     return DEFAULT_LANGUAGE
 
 
-def detect_user_region() -> str:
+def detect_user_region(client_ip: Optional[str] = None) -> str:
     """Detect user region based on IP geolocation.
 
+    Args:
+        client_ip: Optional client IP address. If None, uses server's IP for detection.
+
     Returns:
-        Region code: 'us' for United States, 'default' for others
+        Region code: 'cn' for China mainland, 'default' for others
     """
+
     try:
         import httpx
 
         with httpx.Client(timeout=3.0) as client:
-            resp = client.get("https://ipapi.co/json/")
+            # Use client IP if provided, otherwise detect server's IP
+            url = (
+                f"https://ipapi.co/{client_ip}/json/"
+                if client_ip
+                else "https://ipapi.co/json/"
+            )
+            resp = client.get(url)
             if resp.status_code == 200:
                 data = resp.json()
                 country_code = data.get("country_code", "").upper()
 
-                if country_code == "US":
-                    return "us"
+                # China mainland
+                if country_code == "CN":
+                    return "cn"
 
                 return "default"
             return "default"
     except Exception:
         # If detection fails, return default
+        return "default"
+
+
+async def detect_user_region_async(client_ip: Optional[str] = None) -> str:
+    """Async version of detect_user_region for use in FastAPI routes.
+
+    Args:
+        client_ip: Optional client IP address. If None, uses server's IP for detection.
+
+    Returns:
+        Region code: 'cn' for China mainland, 'default' for others
+    """
+    try:
+        import httpx
+
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            url = (
+                f"https://ipapi.co/{client_ip}/json/"
+                if client_ip
+                else "https://ipapi.co/json/"
+            )
+            resp = await client.get(url)
+            if resp.status_code == 200:
+                data = resp.json()
+                country_code = data.get("country_code", "").upper()
+
+                if country_code == "CN":
+                    return "cn"
+
+                return "default"
+            return "default"
+    except Exception:
         return "default"
 
 

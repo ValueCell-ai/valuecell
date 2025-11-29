@@ -256,6 +256,9 @@ class DatabaseInitializer:
                 "NASDAQ:IXIC",  # NASDAQ Composite Index
                 "HKEX:HSI",  # Hang Seng Index
                 "SSE:000001",  # Shanghai Composite Index
+                "SZSE:399001",  # Shenzhen Composite Index
+                "SZSE:399006",  # ChiNext Index
+                "SSE:000300",  # Science and Technology Innovation Board Index
             ]
 
             try:
@@ -396,6 +399,21 @@ class DatabaseInitializer:
         fallback_configs = {
             "SSE:000001": {
                 "name": "Shanghai Composite Index",
+                "asset_type": "index",
+                "exchange": "SSE",
+            },
+            "SZSE:399001": {
+                "name": "Shenzhen Composite Index",
+                "asset_type": "index",
+                "exchange": "SZSE",
+            },
+            "SZSE:399006": {
+                "name": "ChiNext Index",
+                "asset_type": "index",
+                "exchange": "SZSE",
+            },
+            "SSE:000300": {
+                "name": "CSI 300 Index",
                 "asset_type": "index",
                 "exchange": "SSE",
             },

@@ -10,6 +10,17 @@ import type {
   SystemInfo,
 } from "@/types/system";
 
+export interface DefaultTicker {
+  ticker: string;
+  symbol: string;
+  name: string;
+}
+
+export interface DefaultTickersResponse {
+  region: string;
+  tickers: DefaultTicker[];
+}
+
 export const useBackendHealth = () => {
   return useQuery({
     queryKey: ["backend-health"],
@@ -102,3 +113,24 @@ export const usePublishStrategy = () => {
     },
   });
 };
+
+/**
+ * Get region-aware default tickers for homepage display.
+ * Returns A-share indices for China mainland users,
+ * global indices for other regions.
+ *
+ * @param region - Optional region override for testing (e.g., "cn" or "default").
+ *                 In development, you can set this to test different regions.
+ */
+export const useGetDefaultTickers = (region?: string) =>
+  useQuery({
+    queryKey: ["system", "default-tickers", region],
+    queryFn: () => {
+      const params = region ? `?region=${region}` : "";
+      return apiClient.get<ApiResponse<DefaultTickersResponse>>(
+        `system/default-tickers${params}`,
+      );
+    },
+    select: (data) => data.data,
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour, region doesn't change frequently
+  });

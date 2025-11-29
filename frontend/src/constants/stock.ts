@@ -21,7 +21,9 @@ export const RED_BADGE = { bg: "#FFEAEA", text: "#E25C5C" };
 export const NEUTRAL_BADGE = { bg: "#F5F5F5", text: "#707070" };
 
 /**
- * Stock configurations for home page display
+ * Stock configurations for home page display.
+ * Used as fallback when /api/v1/system/default-tickers API fails.
+ * The API returns region-appropriate stocks based on user's IP location.
  */
 export const HOME_STOCK_SHOW = [
   {
