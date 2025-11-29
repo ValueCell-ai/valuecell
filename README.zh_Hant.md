@@ -37,6 +37,8 @@ ValueCell 是一個社群驅動的多智能體金融應用產品，我們的計�
 
 它會為您提供頂尖的投資智能體團隊，協助您完成選股、調研、追蹤和交易。
 
+系統會將您的敏感資訊完全託管在本地，保證核心資料安全。
+
 歡迎大家加入Discord社群反饋使用中遇到的問題，以及更多開發者參與共建🔥🔥🔥
 
 >注意：ValueCell團隊人員不會主動私信社群參與者，項目僅為技術交流使用，投資有風險。⚠️
@@ -84,89 +86,27 @@ ValueCell 是一個社群驅動的多智能體金融應用產品，我們的計�
 
 # 快速開始
 
-## 給使用者
+## 新使用者
 
 若要快速開始使用，請從 GitHub 的[發布頁面](https://github.com/ValueCell-ai/valuecell/releases)下載適用於 MacOS 或 Windows 的最新 ValueCell 應用程式。您也可以從我們的官方網站 [https://valuecell.ai](https://valuecell.ai) 下載應用程式。
 
 安裝後，使用 ValueCell 前請先設定您偏好的模型供應商。請參閱應用程式內的指示或文件。
 
-## 給開發者
-ValueCell 是以 Python 為基礎的應用，並具備完整的前端操作介面。參考下列設定即可快速啟動。
-
-### 前置條件
-
-為了獲得最佳效能與簡化開發流程，建議安裝下列工具：
-
-**[uv](https://docs.astral.sh/uv/getting-started/installation/)** - 以 Rust 構建的超速 Python 套件與專案管理工具  
-**[bun](https://github.com/oven-sh/bun#install)** - 高效能的 JavaScript/TypeScript 工具包，整合執行時、打包器、測試與套件管理
-
-### 安裝
-
-1. **克隆倉庫**
-
-   ```bash
-   git clone https://github.com/ValueCell-ai/valuecell.git
-   cd valuecell
-   ```
-
-2. **設定環境變數**
-
-   ```bash
-   cp .env.example .env
-   ```
-
-   使用您的 API 密鑰與偏好設定編輯 `.env` 檔案。此設定檔會在所有智能體間共用。詳見 [配置指南](docs/CONFIGURATION_GUIDE.md)。
-
-### 設定
-
-更多系統設定詳情說明可以參考[CONFIGURATION_GUIDE](./docs/CONFIGURATION_GUIDE.md)
-
-### 模型供應商
-透過編輯 `.env` 檔案來設定您偏好的模型供應商：
-
-- **簡易配置**：僅需配置模型廠商 API Key 即可
-
-- **其他配置**：對於調研類型的 Agent 來說，需要配置更多環境變數，可以仔細閱讀 `.env.example` 中的說明
-
-- **官方推薦**：配置 OpenRouter + 任意提供嵌入模型的供應商。原因：可以快速實現多廠商模型切換，以及 RAG+Memory 的 AI 能力
-
-## 啟動應用程式
-
-啟動完整應用程式（前端、後端與智能體）：
-
-### Linux / Macos
-```bash
-bash start.sh
-```
-
-### Windows (PowerShell)
-```powershell
-.\start.ps1
-```
-
-## 存取介面
-
-- **Web UI**：於瀏覽器開啟 [http://localhost:1420](http://localhost:1420)
-- **日誌**：在 `logs/{timestamp}/*.log` 檢視應用程式日誌，追蹤後端服務與各智能體的詳細執行資訊
-
-### 下一步
-
-應用程式啟動後，你可以透過網頁介面探索並使用 ValueCell 的各項功能與能力
-
-## 即時交易
+### 即時交易
 
 - 配置 AI 模型: 透過網頁介面新增你的 AI 模型 API Key。
 - 配置交易所: 設定 Binance/HyperLiquid/OKX/Coinbase... API 憑證
 - 建立策略: 將 AI 模型與交易所組合，建立自訂交易策略
 - 監控與控制: 透過即時監控啟動/停止策略，並監控交易表現
+- 注意：當前僅支援合約交易（現貨以1X合約實現），所以請確保合約帳戶存在餘額
 
-### 支援的交易所
+#### 支援的交易所
 
 | 交易所 | 說明 | 狀態 |
 | --- | --- | --- |
-| **Binance** | 僅支援國際站 [binance.com](binance.com)，不支援美國站。使用 USDT-M 合約（USDT 本位合約）。請確保您的合約帳戶有足夠的 USDT 餘額。交易對格式：`BTC/USDT` | ✅ 已測試 |
-| **Hyperliquid** | 僅支援 USDC 作為保證金貨幣。使用您的主錢包地址 + API 錢包私鑰認證（使用 [API 頁面](https://app.hyperliquid.xyz/API) 申請）。市價單會自動轉換為 IoC 限價單。交易對格式必須手動調整為 `SYMBOL/USDC`（例如 `WIF/USDC`） | ✅ 已測試 |
-| **OKX** | 需要 API Key、Secret 和 Passphrase 進行認證。支援 USDT 本位合約。交易對格式：`BTC/USDT` | ✅ 已測試 |
+| **Binance** | 僅支援國際站 [binance.com](binance.com)，不支援美國站。使用 USDT-M 合約（USDT 本位合約）。請確保您的合約帳戶有足夠的 USDT 餘額。交易對格式：`BTC/USDT`。 Note：確保永續合約帳戶不為0。 申請API添加IP白名單通過搜索引擎搜索`My IP`查看 | ✅ 已測試 |
+| **Hyperliquid** | 僅支援 USDC 作為保證金貨幣。使用您的主錢包地址 + API 錢包私鑰認證（使用 [API 頁面](https://app.hyperliquid.xyz/API) 申請）。市價單會自動轉換為 IoC 限價單。交易對格式必須手動調整為 `SYMBOL/USDC`（例如 `WIF/USDC`）配置地址為主錢包地址+API錢包私鑰 每次交易至少10U | ✅ 已測試 |
+| **OKX** | 需要 API Key、Secret 和 Passphrase（OKX帳號密碼） 進行認證。支援 USDT 本位合約。交易對格式：`BTC/USDT`。 | ✅ 已測試 |
 | Coinbase | 支援 USDT 本位合約。Coinbase International 尚未支援 | 🟡 部分測試 |
 | Gate.io | 支援 USDT 本位合約。需要 API Key 和 Secret | 🟡 部分測試 |
 | MEXC | 支援 USDT 本位合約。需要 API Key 和 Secret | 🟡 部分測試 |
@@ -200,11 +140,47 @@ bash start.sh
   - Windows: `%APPDATA%\\ValueCell\\valuecell.db`
 
 
-# 開發者
+## 開發者
 
 誠摯邀請每位開發者加入 Discord 討論組，我們會定期交流社群 RoadMap 以及未來社群貢獻者權益規劃
 
 開發流程及標準詳見:[CONTRIBUTING.md](.github/CONTRIBUTING.md)
+
+ValueCell 是一個基於Python的應用程式，且有完備的前端操作頁面，支援多端應用。可以參考下面配置快速運行。
+
+## 克隆倉庫
+
+   ```bash
+   git clone https://github.com/ValueCell-ai/valuecell.git
+   cd valuecell
+   ```
+
+## 啟動應用程式
+
+啟動完整應用程式（前端、後端與智能體）：
+
+### Linux / Macos
+```bash
+bash start.sh
+```
+
+### Windows (PowerShell)
+```powershell
+.\start.ps1
+```
+
+### 存取介面
+
+- **Web UI**：於瀏覽器開啟 [http://localhost:1420](http://localhost:1420)
+- **日誌**：在終端即可查看應用程式日誌，追蹤後端服務與各智能體的詳細執行資訊
+
+### 下一步
+
+應用程式啟動後，你可以透過網頁介面探索並使用 ValueCell 的各項功能與能力
+
+### 設定
+
+更多系統設定詳情說明可以參考[CONFIGURATION_GUIDE](./docs/CONFIGURATION_GUIDE.md)
 
 # 路線圖
 

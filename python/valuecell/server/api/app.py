@@ -131,6 +131,14 @@ def create_app() -> FastAPI:
             except Exception as e:
                 logger.info(f"✗ AKShare adapter failed: {e}")
 
+            # Configure BaoStock (free, no API key required)
+            try:
+                manager.configure_baostock()
+                print("✓ BaoStock adapter configured")
+            except Exception as e:
+                print(f"✗ BaoStock adapter failed: {e}")
+
+            print("Data adapters configuration completed")
             logger.info("Data adapters configuration completed")
 
         except Exception as e:

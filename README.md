@@ -37,6 +37,8 @@ ValueCell is a community-driven, multi-agent platform for financial applications
 
 It provides a team of TOP investment Agents to help you with stock selection, research, tracking, and even trading.
 
+The system keeps all your sensitive information stored locally on your device, ensuring core data security.
+
 Welcome to join our Discord community to share feedback and issues you encounter, and invite more developers to contribute 🔥🔥🔥
 
 >Note: ValueCell team members will never proactively contact community participants. This project is for technical exchange only. Investing involves risk. ⚠️
@@ -85,93 +87,27 @@ Welcome to join our Discord community to share feedback and issues you encounter
 
 # Quick Start
 
-## For Users
+## New Users
 
 To get started quickly, download the latest ValueCell application for MacOS or Windows from the [Releases page](https://github.com/ValueCell-ai/valuecell/releases) on GitHub. You may also download the application from our official website: [https://valuecell.ai](https://valuecell.ai).
 
 After installation, please configure your preferred model provider before using ValueCell for the first time. Refer to the instructions in the application or documentation as needed.
 
-## For Developers
-ValueCell is a Python-based application featuring a comprehensive web interface. Follow this guide to set up and run the application efficiently.
-
-### Prerequisites
-
-For optimal performance and streamlined development, we recommend installing the following tools:
-
-**[uv](https://docs.astral.sh/uv/getting-started/installation/)** - Ultra-fast Python package and project manager built in Rust  
-**[bun](https://github.com/oven-sh/bun#install)** - High-performance JavaScript/TypeScript toolkit with runtime, bundler, test runner, and package manager
-
-### Installation
-
-1. **Clone the repository**
-
-   ```bash
-   git clone https://github.com/ValueCell-ai/valuecell.git
-   cd valuecell
-   ```
-
-2. **Configure environment variables**
-
-   ```bash
-   cp .env.example .env
-   ```
-   
-   Edit the `.env` file with your API keys and preferences. This configuration file is shared across all agents. See [Configuration Guide](docs/CONFIGURATION_GUIDE.md) for details.
-
-## Configuration
-
-More detailed configuration information can be found at [CONFIGURATION_GUIDE](./docs/CONFIGURATION_GUIDE.md)
-
-### Model Providers
-Configure your preferred model providers by editing the `.env` file:
-
-- **Simple Setup**: Just configure the model provider's API Key
-
-- **Advanced Configuration**: For research-type agents, you need to configure more environment variables. Please refer to the `.env.example` file for details.
-
-- **Official Recommendation**: Configure OpenRouter + any supplier that provides embedding models. Reason: This enables quick model switching across providers and provides RAG+Memory AI capabilities
-  
-
-Choose your preferred models and providers based on your requirements and preferences.
-
-## Running the Application
-
-Launch the complete application (frontend, backend, and agents):
-
-### Linux / Macos
-```bash
-bash start.sh
-```
-
-### Windows (PowerShell)
-```powershell
-.\start.ps1
-```
-
-## Accessing the Interface
-
-- **Web UI**: Navigate to [http://localhost:1420](http://localhost:1420) in your browser
-- **Logs**: Monitor application logs at `logs/{timestamp}/*.log` for detailed runtime information of backend services and individual agents
-
-
-## Next Steps
-
-Once the application is running, you can explore the web interface to interact with ValueCell's features and capabilities.
-
-## Live Trading
+### Live Trading
 
 - Configure AI Models: Add your AI Model API Key through the web interface.
 - Configure Exchanges: Set up Binance/HyperLiquid/OKX/Coinbase... API credentials
 - Create Strategies: Combine AI model with exchange to create custom strategies
 - Monitor & Control: Start/stop traders and monitor performance in real-time
+- Note: Currently only supports contract trading (spot is implemented as 1X contracts), so please ensure your contract account has sufficient balance
 
-### Supported Exchanges
+#### Supported Exchanges
 
 | Exchange | Notes | Status |
 | --- | --- | --- |
-| **Binance** | Only supports international site [binance.com](binance.com), not US site. Uses USDT-M futures (USDT-margined contracts). Ensure your futures account has sufficient USDT balance. Trading pair format: `BTC/USDT` | ✅ Tested |
-| **Hyperliquid** | Only supports USDC as margin currency. Uses your main wallet address + API wallet private key authentication (use [API tab](https://app.hyperliquid.xyz/API) to apply). Market orders are automatically converted to IoC limit orders. Trading pair format must be manually adjusted to `SYMBOL/USDC` (e.g., `WIF/USDC`) | ✅ Tested |
-| **OKX** | Requires API Key, Secret, and Passphrase for authentication. Supports USDT-margined contracts. Trading pair format: `BTC/USDT` | ✅ Tested |
+| **Binance** | Only supports international site [binance.com](binance.com), not US site. Uses USDT-M futures (USDT-margined contracts). Ensure your futures account has sufficient USDT balance. Trading pair format: `BTC/USDT`. Note: Ensure perpetual contract account balance is not 0. When applying for API, add IP whitelist by searching `My IP` in search engine | ✅ Tested |
+| **Hyperliquid** | Only supports USDC as margin currency. Uses your main wallet address + API wallet private key authentication (use [API tab](https://app.hyperliquid.xyz/API) to apply). Market orders are automatically converted to IoC limit orders. Trading pair format must be manually adjusted to `SYMBOL/USDC` (e.g., `WIF/USDC`). Configure with main wallet address + API wallet private key. Minimum 10U per trade | ✅ Tested |
+| **OKX** | Requires API Key, Secret, and Passphrase (OKX account password) for authentication. Supports USDT-margined contracts. Trading pair format: `BTC/USDT` | ✅ Tested |
 | Coinbase | Supports USDT-margined contracts. Coinbase International is not yet supported | 🟡 Partially Tested |
 | Gate.io | Supports USDT-margined contracts. Requires API Key and Secret | 🟡 Partially Tested |
 | MEXC | Supports USDT-margined contracts. Requires API Key and Secret | 🟡 Partially Tested |
@@ -188,25 +124,63 @@ Once the application is running, you can explore the web interface to interact w
 - To ensure your account safety, you need to reset your API keys regularly. 
 
 ---
+
 **Note**: Before running the application, ensure all prerequisites are installed and environment variables are properly configured. If it has been a long time since the last update, you can delete local data stores and start fresh:
-- LanceDB directory (stored in your system application directory):
+- LanceDB directory (stored in your system application directory, same path as `.env`):
   - macOS: `~/Library/Application Support/ValueCell/lancedb`
   - Linux: `~/.config/valuecell/lancedb`
-  - Windows: `%APPDATA%\ValueCell\lancedb`
-- Knowledge directory (stored in your system application directory):
+  - Windows: `%APPDATA%\\ValueCell\\lancedb`
+- Knowledge directory (stored in your system application directory, same path as `.env`):
   - macOS: `~/Library/Application Support/ValueCell/.knowledge`
   - Linux: `~/.config/valuecell/.knowledge`
-  - Windows: `%APPDATA%\ValueCell\.knowledge`
-- SQLite database file (stored in your system application directory):
+  - Windows: `%APPDATA%\\ValueCell\\.knowledge`
+- SQLite database file (stored in your system application directory, same path as `.env`):
   - macOS: `~/Library/Application Support/ValueCell/valuecell.db`
   - Linux: `~/.config/valuecell/valuecell.db`
-  - Windows: `%APPDATA%\ValueCell\valuecell.db`
+  - Windows: `%APPDATA%\\ValueCell\\valuecell.db`
 
-# Developers
+
+## Developers
 
 We sincerely invite all developers to join our Discord discussion group, where we regularly share the community roadmap and upcoming contributor benefit plans.
 
 Details on development processes and standards are provided below:[CONTRIBUTING.md](.github/CONTRIBUTING.md)
+
+ValueCell is a Python-based application with a comprehensive web interface, supporting multi-platform deployment. Follow the configuration below to get started quickly.
+
+## Clone Repository
+
+   ```bash
+   git clone https://github.com/ValueCell-ai/valuecell.git
+   cd valuecell
+   ```
+
+## Running the Application
+
+Launch the complete application (frontend, backend, and agents):
+
+### Linux / Macos
+```bash
+bash start.sh
+```
+
+### Windows (PowerShell)
+```powershell
+.\start.ps1
+```
+
+### Accessing the Interface
+
+- **Web UI**: Navigate to [http://localhost:1420](http://localhost:1420) in your browser
+- **Logs**: View application logs directly in the terminal for detailed runtime information of backend services and individual agents
+
+### Next Steps
+
+Once the application is running, you can explore the web interface to interact with ValueCell's features and capabilities.
+
+### Configuration
+
+More detailed configuration information can be found at [CONFIGURATION_GUIDE](./docs/CONFIGURATION_GUIDE.md)
 
 # Roadmap
 

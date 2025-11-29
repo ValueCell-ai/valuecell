@@ -183,7 +183,7 @@ wheels = [
 
 [[package]]
 name = "akshare"
-version = "1.17.44"
+version = "1.17.87"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -204,9 +204,9 @@ dependencies = [
     { name = "urllib3" },
     { name = "xlrd" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fd/57/345a38110c588082ba378fb919fa6a46dcf88acb577de670d72e0f42a6bf/akshare-1.17.44.tar.gz", hash = "sha256:c1a29765f92359f62edccaa2e81d4d54f2fb1dbffd8cb3e154a21e05848a8127", size = 841522, upload-time = "2025-08-30T07:44:58.622Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/18/e4/251ddd83c745864dcdf0d37c3430125f9fbc4ae958359b7bf38ca44101e9/akshare-1.17.87.tar.gz", hash = "sha256:123340f91bc205ac503c469dfac3a126907a18508faec5b25f4818371ea5729d", size = 849954, upload-time = "2025-11-20T16:14:37.15Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f3/b7/2648d022d7055cf9342f0beb4cd7a7abeb66e8534df1fcc832a6fca505ad/akshare-1.17.44-py3-none-any.whl", hash = "sha256:1344838e1f644eee2cd54f5c54a906aa5ee805510e5a7edb7d3fd8af381efccd", size = 1056185, upload-time = "2025-08-30T07:44:57.262Z" },
+    { url = "https://files.pythonhosted.org/packages/13/4b/f7654a2c1abf94a329e9cbe5a96db9f5656d1dbaa6feff8f0e6898dfbd1e/akshare-1.17.87-py3-none-any.whl", hash = "sha256:e78d74256ddc0e3fad515915d2b891db9ee9c126965c759fb1a3de49e3b406e8", size = 1068470, upload-time = "2025-11-20T16:14:35.479Z" },
 ]
 
 [[package]]
@@ -276,6 +276,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/47/d7/5bbeb12c44d7c4f2fb5b56abce497eb5ed9f34d85701de869acedd602619/backoff-2.2.1.tar.gz", hash = "sha256:03f829f5bb1923180821643f8753b0502c3b682293992485b0eef2807afa5cba", size = 17001, upload-time = "2022-10-05T19:19:32.061Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/df/73/b6e24bd22e6720ca8ee9a85a0c4a2971af8497d8f3193fa05390cbd46e09/backoff-2.2.1-py3-none-any.whl", hash = "sha256:63579f9a0628e06278f7e47b7d7d5b6ce20dc65c5e96a6f3ca99a6adca0396e8", size = 15148, upload-time = "2022-10-05T19:19:30.546Z" },
+]
+
+[[package]]
+name = "baostock"
+version = "0.8.9"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pandas" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ee/d5/0fb2c61f392f89b1655490acb17a02861f1f1c38e973c9fc6aa049e54401/baostock-0.8.9.tar.gz", hash = "sha256:8169cdbed14fa442ace63c59549bef3f92b0c3dd1df9e5d9069f7bd04a76b0da", size = 21876, upload-time = "2024-05-31T02:56:54.546Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b2/37/bbabac2d33723d71bd8dbd5e819d9cbe5dc1e031b7dd12ed7de8fa040816/baostock-0.8.9-py3-none-any.whl", hash = "sha256:7a51fb30cd6b4325f5517198e350dc2fffaaab2923cd132b9f747b8b73ae7303", size = 45923, upload-time = "2024-05-31T02:56:53.161Z" },
 ]
 
 [[package]]
@@ -973,6 +985,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/de/e0/bab50af11c2d75c9c
 wheels = [
     { url = "https://files.pythonhosted.org/packages/47/71/70db47e4f6ce3e5c37a607355f80da8860a33226be640226ac52cb05ef2e/fsspec-2025.9.0-py3-none-any.whl", hash = "sha256:530dc2a2af60a414a832059574df4a6e10cce927f6f4a78209390fe38955cfb7", size = 199289, upload-time = "2025-09-02T19:10:47.708Z" },
 ]
+
+[[package]]
+name = "func-timeout"
+version = "4.3.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b3/0d/bf0567477f7281d9a3926c582bfef21bff7498fc0ffd3e9de21811896a0b/func_timeout-4.3.5.tar.gz", hash = "sha256:74cd3c428ec94f4edfba81f9b2f14904846d5ffccc27c92433b8b5939b5575dd", size = 44264, upload-time = "2019-08-19T21:32:07.43Z" }
 
 [[package]]
 name = "gitdb"
@@ -3627,10 +3645,12 @@ dependencies = [
     { name = "aiofiles" },
     { name = "aiosqlite" },
     { name = "akshare" },
+    { name = "baostock" },
     { name = "ccxt" },
     { name = "crawl4ai" },
     { name = "edgartools" },
     { name = "fastapi" },
+    { name = "func-timeout" },
     { name = "loguru" },
     { name = "markdown" },
     { name = "pydantic" },
@@ -3682,12 +3702,14 @@ requires-dist = [
     { name = "agno", extras = ["openai", "google", "lancedb"], specifier = ">=2.0,<3.0" },
     { name = "aiofiles", specifier = ">=24.1.0" },
     { name = "aiosqlite", specifier = ">=0.19.0" },
-    { name = "akshare", specifier = ">=1.17.44" },
+    { name = "akshare", specifier = ">=1.17.87" },
+    { name = "baostock", specifier = ">=0.8.9" },
     { name = "ccxt", specifier = ">=4.5.15" },
     { name = "crawl4ai", specifier = ">=0.7.4" },
     { name = "diff-cover", marker = "extra == 'dev'", specifier = ">=9.0.0" },
     { name = "edgartools", specifier = ">=4.12.2" },
     { name = "fastapi", specifier = ">=0.104.0" },
+    { name = "func-timeout", specifier = ">=4.3.5" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "markdown", specifier = ">=3.9" },
     { name = "pydantic", specifier = ">=2.0.0" },
