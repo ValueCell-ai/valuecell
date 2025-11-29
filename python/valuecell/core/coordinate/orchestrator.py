@@ -296,9 +296,37 @@ class AgentOrchestrator:
 
         # 1) Super Agent triage phase (pre-planning) - skip if target agent is specified
         if user_input.target_agent_name == self.super_agent_service.name:
+            # Emit tool-call STARTED for super agent triage
+            sa_task_id = generate_task_id()
+            sa_tool_call_id = generate_uuid("toolcall")
+            sa_tool_name = "super_agent_triage"
+            yield await self.event_service.emit(
+                self.event_service.factory.tool_call(
+                    conversation_id,
+                    thread_id,
+                    task_id=sa_task_id,
+                    event=StreamResponseEvent.TOOL_CALL_STARTED,
+                    tool_call_id=sa_tool_call_id,
+                    tool_name=sa_tool_name,
+                )
+            )
+
             super_outcome: SuperAgentOutcome = await self.super_agent_service.run(
                 user_input
             )
+
+            yield await self.event_service.emit(
+                self.event_service.factory.tool_call(
+                    conversation_id,
+                    thread_id,
+                    task_id=sa_task_id,
+                    event=StreamResponseEvent.TOOL_CALL_COMPLETED,
+                    tool_call_id=sa_tool_call_id,
+                    tool_name=sa_tool_name,
+                    tool_result=f"Decision: {super_outcome.decision.value}",
+                )
+            )
+
             if super_outcome.answer_content:
                 ans = self.event_service.factory.message_response_general(
                     StreamResponseEvent.MESSAGE_CHUNK,
