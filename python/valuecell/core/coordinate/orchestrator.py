@@ -442,7 +442,11 @@ class AgentOrchestrator:
                 event=StreamResponseEvent.TOOL_CALL_COMPLETED,
                 tool_call_id=plan_tool_call_id,
                 tool_name=plan_tool_name,
-                tool_result="success",
+                tool_result=(
+                    f"Reason: {plan.guidance_message}"
+                    if plan.guidance_message
+                    else "Completed"
+                ),
             )
         )
 
