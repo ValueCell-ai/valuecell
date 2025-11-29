@@ -204,7 +204,7 @@ def create_strategy_router() -> APIRouter:
         response_model=StrategyPerformanceResponse,
         summary="Get strategy performance and configuration overview",
         description=(
-            "Return ROI, model/provider, and final prompt strictly from templates (no fallback)."
+            "Return ROI strictly from portfolio view equity (total_value) relative to initial_capital; model/provider; and final prompt strictly from templates (no fallback)."
         ),
     )
     async def get_strategy_performance(
