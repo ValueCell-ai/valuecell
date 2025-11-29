@@ -1,7 +1,11 @@
 import json
 
 import pytest
-from valuecell.core.event.factory import ResponseFactory
+
+from valuecell.core.event.factory import (
+    ResponseFactory,
+    _format_tool_result_for_frontend,
+)
 from valuecell.core.task.models import Task
 from valuecell.core.types import (
     BaseResponseDataPayload,
@@ -161,3 +165,118 @@ def test_schedule_task_result_component(factory: ResponseFactory):
     assert resp.data.agent_name == "agent"
     assert resp.data.metadata == {"task_title": "Daily summary"}
     assert resp.data.payload.content == '{"result":1}'  # type: ignore[attr-defined]
+
+
+# ============================================================
+# Tests for _format_tool_result_for_frontend
+# ============================================================
+
+
+class TestFormatToolResultForFrontend:
+    """Tests for the _format_tool_result_for_frontend helper function."""
+
+    def test_none_returns_none(self):
+        assert _format_tool_result_for_frontend(None) is None
+
+    def test_empty_string_returns_empty(self):
+        assert _format_tool_result_for_frontend("") == ""
+
+    def test_plain_string_wrapped_in_json_array(self):
+        result = _format_tool_result_for_frontend("SUCCESS")
+        parsed = json.loads(result)
+        assert parsed == [{"content": "SUCCESS"}]
+
+    def test_already_formatted_unchanged(self):
+        already_formatted = '[{"content": "some result"}]'
+        result = _format_tool_result_for_frontend(already_formatted)
+        assert result == already_formatted
+
+    def test_already_formatted_multiple_items_unchanged(self):
+        already_formatted = '[{"content": "item1"}, {"content": "item2"}]'
+        result = _format_tool_result_for_frontend(already_formatted)
+        assert result == already_formatted
+
+    def test_json_object_without_content_wrapped(self):
+        # JSON object without 'content' key should be wrapped
+        input_str = '{"key": "value"}'
+        result = _format_tool_result_for_frontend(input_str)
+        parsed = json.loads(result)
+        assert parsed == [{"content": '{"key": "value"}'}]
+
+    def test_json_array_without_content_wrapped(self):
+        # JSON array without 'content' in first element should be wrapped
+        input_str = '[{"other": "field"}]'
+        result = _format_tool_result_for_frontend(input_str)
+        parsed = json.loads(result)
+        assert parsed == [{"content": '[{"other": "field"}]'}]
+
+    def test_error_message_wrapped(self):
+        result = _format_tool_result_for_frontend("ERROR: connection failed")
+        parsed = json.loads(result)
+        assert parsed == [{"content": "ERROR: connection failed"}]
+
+
+# ============================================================
+# Tests for tool_call method with formatting
+# ============================================================
+
+
+class TestToolCallMethodFormatting:
+    """Tests for ResponseFactory.tool_call with tool_result formatting."""
+
+    def test_tool_call_started_no_formatting(self, factory: ResponseFactory):
+        resp = factory.tool_call(
+            conversation_id="conv-1",
+            thread_id="th-1",
+            task_id="tk-1",
+            event=StreamResponseEvent.TOOL_CALL_STARTED,
+            tool_call_id="tc-1",
+            tool_name="search",
+            tool_result=None,
+        )
+        assert resp.event == StreamResponseEvent.TOOL_CALL_STARTED
+        assert resp.data.payload.tool_result is None  # type: ignore[attr-defined]
+
+    def test_tool_call_completed_formats_plain_string(self, factory: ResponseFactory):
+        resp = factory.tool_call(
+            conversation_id="conv-1",
+            thread_id="th-1",
+            task_id="tk-1",
+            event=StreamResponseEvent.TOOL_CALL_COMPLETED,
+            tool_call_id="tc-1",
+            tool_name="search",
+            tool_result="Success",
+        )
+        assert resp.event == StreamResponseEvent.TOOL_CALL_COMPLETED
+        result = resp.data.payload.tool_result  # type: ignore[attr-defined]
+        parsed = json.loads(result)
+        assert parsed == [{"content": "Success"}]
+
+    def test_tool_call_completed_preserves_already_formatted(
+        self, factory: ResponseFactory
+    ):
+        already_formatted = '[{"content": "formatted result"}]'
+        resp = factory.tool_call(
+            conversation_id="conv-1",
+            thread_id="th-1",
+            task_id="tk-1",
+            event=StreamResponseEvent.TOOL_CALL_COMPLETED,
+            tool_call_id="tc-1",
+            tool_name="search",
+            tool_result=already_formatted,
+        )
+        assert resp.event == StreamResponseEvent.TOOL_CALL_COMPLETED
+        assert resp.data.payload.tool_result == already_formatted  # type: ignore[attr-defined]
+
+    def test_tool_call_completed_with_none_result(self, factory: ResponseFactory):
+        resp = factory.tool_call(
+            conversation_id="conv-1",
+            thread_id="th-1",
+            task_id="tk-1",
+            event=StreamResponseEvent.TOOL_CALL_COMPLETED,
+            tool_call_id="tc-1",
+            tool_name="search",
+            tool_result=None,
+        )
+        assert resp.event == StreamResponseEvent.TOOL_CALL_COMPLETED
+        assert resp.data.payload.tool_result is None  # type: ignore[attr-defined]
