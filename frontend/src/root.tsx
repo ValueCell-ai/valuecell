@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
-import AppSidebar from "@/components/valuecell/app-sidebar";
+import AppSidebar from "@/components/valuecell/app/app-sidebar";
 import { Toaster } from "./components/ui/sonner";
 
 import "overlayscrollbars/overlayscrollbars.css";
@@ -41,8 +41,8 @@ const queryClient = new QueryClient({
   },
 });
 
-import { AutoUpdateCheck } from "@/components/valuecell/auto-update-check";
-import { BackendHealthCheck } from "@/components/valuecell/backend-health-check";
+import { AutoUpdateCheck } from "@/components/valuecell/app/auto-update-check";
+import { BackendHealthCheck } from "@/components/valuecell/app/backend-health-check";
 
 export default function Root() {
   return (

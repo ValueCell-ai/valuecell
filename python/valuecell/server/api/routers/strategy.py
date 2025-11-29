@@ -17,6 +17,7 @@ from valuecell.server.api.schemas.strategy import (
     StrategyHoldingFlatResponse,
     StrategyListData,
     StrategyListResponse,
+    StrategyPerformanceResponse,
     StrategyPortfolioSummaryResponse,
     StrategyStatusSuccessResponse,
     StrategyStatusUpdateResponse,
@@ -196,6 +197,37 @@ def create_strategy_router() -> APIRouter:
         except Exception as e:
             raise HTTPException(
                 status_code=500, detail=f"Failed to retrieve strategy list: {str(e)}"
+            )
+
+    @router.get(
+        "/performance",
+        response_model=StrategyPerformanceResponse,
+        summary="Get strategy performance and configuration overview",
+        description=(
+            "Return ROI strictly from portfolio view equity (total_value) relative to initial_capital; model/provider; and final prompt strictly from templates (no fallback)."
+        ),
+    )
+    async def get_strategy_performance(
+        id: str = Query(..., description="Strategy ID"),
+    ) -> StrategyPerformanceResponse:
+        try:
+            data = await StrategyService.get_strategy_performance(id)
+            if not data:
+                return SuccessResponse.create(
+                    data=None,
+                    msg="Strategy not found or no performance data",
+                )
+
+            return SuccessResponse.create(
+                data=data,
+                msg="Successfully retrieved strategy performance and configuration",
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to retrieve strategy performance: {str(e)}",
             )
 
     @router.get(

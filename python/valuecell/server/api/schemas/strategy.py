@@ -235,3 +235,34 @@ class PromptCreateRequest(BaseModel):
 
 PromptListResponse = SuccessResponse[list[PromptItem]]
 PromptCreateResponse = SuccessResponse[PromptItem]
+
+
+class StrategyPerformanceData(BaseModel):
+    """Performance overview for a strategy including ROI and config."""
+
+    strategy_id: str = Field(..., description="Strategy identifier")
+    initial_capital: Optional[float] = Field(
+        None, description="Initial capital used by the strategy"
+    )
+    return_rate_pct: Optional[float] = Field(
+        None, description="Return rate percentage relative to initial capital"
+    )
+    # Flattened config fields (only the requested subset)
+    llm_provider: Optional[str] = Field(
+        None, description="Model provider (e.g., openrouter, google, openai)"
+    )
+    llm_model_id: Optional[str] = Field(
+        None, description="Model identifier (e.g., deepseek-ai/deepseek-v3.1)"
+    )
+    exchange_id: Optional[str] = Field(None, description="Exchange identifier")
+    strategy_type: Optional[StrategyType] = Field(
+        None, description="Strategy type (PromptBasedStrategy/GridStrategy)"
+    )
+    max_leverage: Optional[float] = Field(None, description="Maximum leverage")
+    symbols: Optional[List[str]] = Field(None, description="Symbols universe")
+    prompt: Optional[str] = Field(
+        None, description="Final resolved prompt text used by the strategy"
+    )
+
+
+StrategyPerformanceResponse = SuccessResponse[StrategyPerformanceData]

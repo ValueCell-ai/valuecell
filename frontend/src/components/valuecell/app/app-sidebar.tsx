@@ -11,16 +11,21 @@ import {
   ChartBarVertical,
   Conversation,
   Logo,
+  Ranking,
   Setting,
   StrategyAgent,
 } from "@/assets/svg";
 import { Separator } from "@/components/ui/separator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import AppConversationSheet from "@/components/valuecell/app/app-conversation-sheet";
+import AgentAvatar from "@/components/valuecell/icon/agent-avatar";
+import SvgIcon from "@/components/valuecell/icon/svg-icon";
+import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import AgentAvatar from "./agent-avatar";
-import AppConversationSheet from "./app-conversation-sheet";
-import ScrollContainer from "./scroll/scroll-container";
-import SvgIcon from "./svg-icon";
 
 interface SidebarItemProps extends HTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
@@ -153,6 +158,12 @@ const AppSidebar: FC = () => {
           icon: StrategyAgent,
           label: "Strategy",
           to: "/agent/StrategyAgent",
+        },
+        {
+          id: "ranking",
+          icon: Ranking,
+          label: "Ranking",
+          to: "/ranking",
         },
         {
           id: "market",

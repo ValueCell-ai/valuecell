@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Optional
 
 from loguru import logger
 
@@ -99,7 +99,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         self._symbols = list(dict.fromkeys(request.trading_config.symbols))
         self._realized_pnl: float = 0.0
         self._unrealized_pnl: float = 0.0
-        self._cycle_index: int = 0
+        self.cycle_index: int = 0
         self._strategy_name = request.trading_config.strategy_name or strategy_id
 
     async def run_once(self) -> DecisionCycleResult:
@@ -174,8 +174,8 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         logger.info(
             f"  ExecutionGateway type: {type(self._execution_gateway).__name__}"
         )
-        tx_results = await self._execution_gateway.execute(
-            instructions, market_features
+        tx_results = await self.execute_instructions(
+            instructions, market_features=market_features
         )
         logger.info(f"✅ ExecutionGateway returned {len(tx_results)} results")
 
@@ -221,13 +221,13 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             self._history_recorder.record(record)
 
         digest = self._digest_builder.build(self._history_recorder.get_records())
-        self._cycle_index += 1
+        self.cycle_index += 1
 
         portfolio = self.portfolio_service.get_view()
         return DecisionCycleResult(
             compose_id=compose_id,
             timestamp_ms=timestamp_ms,
-            cycle_index=self._cycle_index,
+            cycle_index=self.cycle_index,
             rationale=rationale,
             strategy_summary=summary,
             instructions=instructions,
@@ -350,6 +350,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                     exit_ts=exit_ts,
                     trade_ts=timestamp_ms,
                     holding_ms=(exit_ts - entry_ts_prev) if entry_ts_prev else None,
+                    unrealized_pnl=0.0,
                     realized_pnl=realized_pnl,
                     realized_pnl_pct=realized_pnl_pct,
                     # For a full close, reflect the leverage of the closed position, not the closing instruction
@@ -539,12 +540,17 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         ]
 
     async def execute_instructions(
-        self, instructions: List[TradeInstruction]
+        self,
+        instructions: List[TradeInstruction],
+        *,
+        market_features: Optional[List[FeatureVector]] = None,
     ) -> List[TxResult]:
         """Execute a list of instructions directly via the gateway."""
         if not instructions:
             return []
-        return await self._execution_gateway.execute(instructions)
+        return await self._execution_gateway.execute(
+            instructions, market_features=market_features
+        )
 
     async def close_all_positions(self) -> List[TradeHistoryEntry]:
         """Close all open positions for the strategy.
@@ -602,8 +608,23 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
 
             logger.info("Executing {} close instructions", len(instructions))
 
+            # Fetch market features for pricing if possible
+            market_features: List[FeatureVector] = []
+            if self._request.exchange_config.trading_mode == TradingMode.VIRTUAL:
+                try:
+                    pipeline_result = await self._features_pipeline.build()
+                    market_features = extract_market_snapshot_features(
+                        pipeline_result.features or []
+                    )
+                except Exception:
+                    logger.exception(
+                        "Failed to build market features for closing positions"
+                    )
+
             # Execute instructions
-            tx_results = await self.execute_instructions(instructions)
+            tx_results = await self.execute_instructions(
+                instructions, market_features=market_features
+            )
 
             # Create trades and apply to portfolio
             trades = self._create_trades(tx_results, compose_id, timestamp_ms)

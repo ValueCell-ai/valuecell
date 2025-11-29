@@ -6,7 +6,9 @@ from valuecell.server.api.schemas.strategy import (
     StrategyActionCard,
     StrategyCycleDetail,
     StrategyHoldingData,
+    StrategyPerformanceData,
     StrategyPortfolioSummaryData,
+    StrategyType,
 )
 from valuecell.server.db.repositories import get_strategy_repository
 
@@ -129,6 +131,116 @@ class StrategyService:
         if realized is None and unrealized is None:
             return None
         return (realized or 0.0) + (unrealized or 0.0)
+
+    @staticmethod
+    def _normalize_strategy_type(meta: dict, cfg: dict) -> Optional[StrategyType]:
+        try:
+            from valuecell.server.api.schemas.strategy import StrategyType as ST
+        except Exception:
+            return None
+
+        val = meta.get("strategy_type")
+        if not val:
+            val = (cfg.get("trading_config", {}) or {}).get("strategy_type")
+        if val is None:
+            agent_name = str(meta.get("agent_name") or "").lower()
+            if "prompt" in agent_name:
+                return ST.PROMPT
+            if "grid" in agent_name:
+                return ST.GRID
+            return None
+
+        raw = str(val).strip().lower()
+        if raw.startswith("strategytype."):
+            raw = raw.split(".", 1)[1]
+        raw_compact = "".join(ch for ch in raw if ch.isalnum())
+
+        if raw in ("prompt based strategy", "grid strategy"):
+            return ST.PROMPT if raw.startswith("prompt") else ST.GRID
+        if raw_compact in ("promptbasedstrategy", "gridstrategy"):
+            return ST.PROMPT if raw_compact.startswith("prompt") else ST.GRID
+        if raw in ("prompt", "grid"):
+            return ST.PROMPT if raw == "prompt" else ST.GRID
+
+        agent_name = str(meta.get("agent_name") or "").lower()
+        if "prompt" in agent_name:
+            return ST.PROMPT
+        if "grid" in agent_name:
+            return ST.GRID
+        return None
+
+    @staticmethod
+    async def get_strategy_performance(
+        strategy_id: str,
+    ) -> Optional[StrategyPerformanceData]:
+        repo = get_strategy_repository()
+        strategy = repo.get_strategy_by_strategy_id(strategy_id)
+        if not strategy:
+            return None
+
+        snapshot = repo.get_latest_portfolio_snapshot(strategy_id)
+        # Reference timestamp no longer included in performance response
+
+        # Extract flattened config fields from original config/meta
+        cfg = strategy.config or {}
+        meta = strategy.strategy_metadata or {}
+
+        llm = cfg.get("llm_model_config") or {}
+        ex = cfg.get("exchange_config") or {}
+        tr = cfg.get("trading_config") or {}
+
+        llm_provider = (
+            llm.get("provider") or meta.get("provider") or meta.get("llm_provider")
+        )
+        llm_model_id = (
+            llm.get("model_id") or meta.get("model_id") or meta.get("llm_model_id")
+        )
+        exchange_id = ex.get("exchange_id") or meta.get("exchange_id")
+        strategy_type = StrategyService._normalize_strategy_type(meta, cfg)
+        initial_capital = _to_optional_float(tr.get("initial_capital"))
+        max_leverage = _to_optional_float(tr.get("max_leverage"))
+        symbols = tr.get("symbols") if tr.get("symbols") is not None else None
+        # Resolve final prompt strictly via template_id from strategy_prompts (no fallback)
+        template_id = (
+            tr.get("template_id") if tr.get("template_id") is not None else None
+        )
+        final_prompt: Optional[str] = None
+        if template_id:
+            try:
+                prompt_item = repo.get_prompt_by_id(template_id)
+                if prompt_item and getattr(prompt_item, "content", None):
+                    final_prompt = prompt_item.content
+            except Exception:
+                # Strict mode: do not fallback; leave final_prompt as None
+                final_prompt = None
+
+        total_value = (
+            _to_optional_float(getattr(snapshot, "total_value", None))
+            if snapshot
+            else None
+        )
+
+        return_rate_pct: Optional[float] = None
+        try:
+            if initial_capital and initial_capital > 0 and total_value is not None:
+                return_rate_pct = (
+                    (total_value - initial_capital) / initial_capital
+                ) * 100.0
+        except Exception:
+            return_rate_pct = None
+
+        return StrategyPerformanceData(
+            strategy_id=strategy_id,
+            initial_capital=initial_capital,
+            return_rate_pct=return_rate_pct,
+            llm_provider=llm_provider,
+            llm_model_id=llm_model_id,
+            exchange_id=exchange_id,
+            strategy_type=strategy_type,
+            max_leverage=max_leverage,
+            symbols=symbols,
+            prompt=final_prompt,
+        )
 
     @staticmethod
     async def get_strategy_detail(

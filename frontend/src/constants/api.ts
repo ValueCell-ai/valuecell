@@ -1,9 +1,10 @@
 // API Query keys constants
 
-export const queryKeyFn = (defaultKey: string[]) => (queryKey: string[]) => [
-  ...defaultKey,
-  ...queryKey,
-];
+export const queryKeyFn =
+  (defaultKey: string[]) => (queryKey: (string | number)[]) => [
+    ...defaultKey,
+    ...queryKey,
+  ];
 
 const STOCK_QUERY_KEYS = {
   watchlist: ["watch"],
@@ -40,6 +41,12 @@ const STRATEGY_QUERY_KEYS = {
   strategyPriceCurve: queryKeyFn(["strategy", "price-curve"]),
   strategyPrompts: ["strategy", "prompts"],
   strategyPortfolioSummary: queryKeyFn(["strategy", "portfolio-summary"]),
+  strategyPerformance: queryKeyFn(["strategy", "performance"]),
+} as const;
+
+const SYSTEM_QUERY_KEYS = {
+  strategyList: queryKeyFn(["system", "strategy", "list"]),
+  strategyDetail: queryKeyFn(["system", "strategy", "detail"]),
 } as const;
 
 export const API_QUERY_KEYS = {
@@ -48,6 +55,7 @@ export const API_QUERY_KEYS = {
   CONVERSATION: CONVERSATION_QUERY_KEYS,
   SETTING: SETTING_QUERY_KEYS,
   STRATEGY: STRATEGY_QUERY_KEYS,
+  SYSTEM: SYSTEM_QUERY_KEYS,
 } as const;
 
 /**
@@ -55,3 +63,5 @@ export const API_QUERY_KEYS = {
  * @description This is a temporary language setting for the API.
  */
 export const USER_LANGUAGE = "en-US";
+
+export const VALUECELL_BACKEND_URL = "https://backend.valuecell.ai/api/v1";

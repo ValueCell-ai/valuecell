@@ -1,7 +1,18 @@
 import { LineChart, Wallet } from "lucide-react";
 import { type FC, memo } from "react";
+import { useStrategyPerformance } from "@/api/strategy";
+import { usePublishStrategy } from "@/api/system";
 import { ValueCellAgentPng } from "@/assets/png";
+import { Send, Share } from "@/assets/svg";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -10,8 +21,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import AppLoginModal from "@/components/valuecell/app/app-login-modal";
 import MultiLineChart from "@/components/valuecell/charts/model-multi-line";
-import { PngIcon } from "@/components/valuecell/png-icon";
+import { PngIcon } from "@/components/valuecell/icon/png-icon";
+import SvgIcon from "@/components/valuecell/icon/svg-icon";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import {
   formatChange,
@@ -20,12 +33,15 @@ import {
   numberFixed,
 } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
+import { useIsLoggedIn, useSystemInfo } from "@/store/system-store";
 import type { PortfolioSummary, Position } from "@/types/strategy";
 
 interface PortfolioPositionsGroupProps {
   priceCurve: Array<Array<number | string>>;
   positions: Position[];
   summary?: PortfolioSummary;
+  strategyId: string;
+  isLive: boolean;
 }
 
 interface PositionRowProps {
@@ -82,20 +98,70 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
   summary,
   priceCurve,
   positions,
+  strategyId,
+  isLive,
 }) => {
   const stockColors = useStockColors();
   const changeType = getChangeType(summary?.total_pnl);
+  const { name, avatar } = useSystemInfo();
+  const isLogin = useIsLoggedIn();
 
   const hasPositions = positions.length > 0;
   const hasPriceCurve = priceCurve.length > 0;
+
+  const { mutate: publishStrategy, isPending: isPublishing } =
+    usePublishStrategy();
+
+  const { refetch: refetchPerformance } = useStrategyPerformance(strategyId);
+
+  const handlePublishToRankBoard = async () => {
+    const { data } = await refetchPerformance();
+    if (!data) return;
+
+    publishStrategy({ ...data, name, avatar });
+  };
 
   return (
     <div className="flex flex-1 flex-col gap-8 overflow-y-scroll p-6">
       {/* Portfolio Value History Section */}
       <div className="flex flex-1 flex-col gap-4">
-        <h3 className="font-semibold text-base text-gray-950">
-          Portfolio Value History
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-base text-gray-950">
+            Portfolio Value History
+          </h3>
+          {isLive &&
+            (isLogin ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button>
+                    <SvgIcon name={Send} className="size-5" /> Publish
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem disabled>
+                    <SvgIcon name={Share} className="size-5" /> Share to Social
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handlePublishToRankBoard}
+                    disabled={isPublishing}
+                  >
+                    {isPublishing ? (
+                      <Spinner className="size-5" />
+                    ) : (
+                      <SvgIcon name={Send} className="size-5" />
+                    )}{" "}
+                    Share to Ranking
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <AppLoginModal>
+                <Button>
+                  <SvgIcon name={Send} className="size-5" /> Publish
+                </Button>
+              </AppLoginModal>
+            ))}
+        </div>
 
         <div className="grid grid-cols-3 gap-4 text-nowrap">
           <div className="rounded-lg bg-gray-50 p-4">

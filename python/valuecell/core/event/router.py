@@ -1,10 +1,10 @@
-import logging
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional
 
 from a2a.types import TaskState, TaskStatusUpdateEvent
 from a2a.utils import get_message_text
+from loguru import logger
 
 from valuecell.core.agent.responses import EventPredicates
 from valuecell.core.event.factory import ResponseFactory
@@ -13,8 +13,6 @@ from valuecell.core.types import (
     BaseResponse,
     CommonResponseEvent,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class SideEffectKind(Enum):

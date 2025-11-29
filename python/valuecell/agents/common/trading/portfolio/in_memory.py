@@ -206,7 +206,7 @@ class InMemoryPortfolioService(BasePortfolioService):
             else:
                 # Derivatives: Cash (Wallet Balance) only changes by Realized PnL and Fees
                 # Notional is not deducted from cash.
-                self._view.account_balance -= fee
+                # self._view.account_balance -= fee
                 self._view.account_balance += realized_delta
 
             total_realized += realized_delta

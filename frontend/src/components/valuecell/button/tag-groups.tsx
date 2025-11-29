@@ -14,6 +14,25 @@ interface TagGroupsProps {
   tagClassName?: string;
 }
 
+export const Tag = ({
+  className,
+  children,
+}: {
+  className?: string;
+  children?: React.ReactNode;
+}) => {
+  return (
+    <span
+      className={cn(
+        "flex w-fit items-center gap-2 text-nowrap rounded-md bg-gray-100 px-3 py-1 font-normal text-gray-700 text-xs",
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
+};
+
 const TagGroups: FC<TagGroupsProps> = ({
   tags,
   maxVisible = 3,
@@ -27,15 +46,9 @@ const TagGroups: FC<TagGroupsProps> = ({
   return (
     <div className={cn("flex items-center gap-1", className)}>
       {visibleTags.map((tag) => (
-        <span
-          key={tag}
-          className={cn(
-            "text-nowrap rounded-md bg-gray-100 px-3 py-1 font-normal text-gray-700 text-xs",
-            tagClassName,
-          )}
-        >
+        <Tag key={tag} className={tagClassName}>
           {tag}
-        </span>
+        </Tag>
       ))}
 
       {hasMoreTags && (
@@ -52,12 +65,9 @@ const TagGroups: FC<TagGroupsProps> = ({
           <TooltipContent side="bottom" className="max-w-xs">
             <div className="flex flex-wrap gap-1.5">
               {remainingTags.map((tag) => (
-                <span
-                  key={tag}
-                  className="text-nowrap rounded-md bg-gray-700 px-2 py-0.5 text-white text-xs"
-                >
+                <Tag key={tag} className="bg-gray-700 text-white">
                   {tag}
-                </span>
+                </Tag>
               ))}
             </div>
           </TooltipContent>
