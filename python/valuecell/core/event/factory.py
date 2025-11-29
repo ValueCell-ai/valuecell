@@ -34,6 +34,41 @@ from valuecell.core.types import (
 from valuecell.utils.uuid import generate_item_id, generate_uuid
 
 
+def _format_tool_result_for_frontend(result: str | None) -> str | None:
+    """Format tool result as JSON array for frontend rendering.
+
+    The frontend tool-call-renderer expects tool_result to be a JSON array
+    of objects with 'content' field, e.g., '[{"content": "result text"}]'.
+
+    If the result is already in this format, return it unchanged.
+
+    Args:
+        result: Raw tool result string.
+
+    Returns:
+        JSON-formatted string compatible with frontend renderer, or None if empty.
+    """
+    import json
+
+    if not result:
+        return result
+
+    # Check if already in expected format: [{"content": ...}]
+    try:
+        parsed = json.loads(result)
+        if (
+            isinstance(parsed, list)
+            and len(parsed) > 0
+            and isinstance(parsed[0], dict)
+            and "content" in parsed[0]
+        ):
+            return result
+    except (json.JSONDecodeError, TypeError):
+        pass
+
+    return json.dumps([{"content": result}])
+
+
 class ResponseFactory:
     def from_conversation_item(self, item: ConversationItem):
         """Reconstruct a BaseResponse from a persisted ConversationItem.
@@ -398,6 +433,12 @@ class ResponseFactory:
         Returns:
             ToolCallResponse containing a ToolCallPayload.
         """
+        # Format tool_result for frontend when event is TOOL_CALL_COMPLETED
+        formatted_result = (
+            _format_tool_result_for_frontend(tool_result)
+            if event == StreamResponseEvent.TOOL_CALL_COMPLETED
+            else tool_result
+        )
         return ToolCallResponse(
             event=event,
             data=UnifiedResponseData(
@@ -407,7 +448,7 @@ class ResponseFactory:
                 payload=ToolCallPayload(
                     tool_call_id=tool_call_id,
                     tool_name=tool_name,
-                    tool_result=tool_result,
+                    tool_result=formatted_result,
                 ),
                 role=Role.AGENT,
                 agent_name=agent_name,

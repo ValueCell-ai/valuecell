@@ -7,6 +7,7 @@ from valuecell.core.constants import ORIGINAL_USER_INPUT, PLANNING_TASK
 from valuecell.core.conversation import ConversationService, ConversationStatus
 from valuecell.core.event import EventResponseService
 from valuecell.core.plan import PlanService
+from valuecell.core.plan.models import ExecutionPlan
 from valuecell.core.super_agent import (
     SuperAgentDecision,
     SuperAgentOutcome,
@@ -18,7 +19,7 @@ from valuecell.core.types import (
     StreamResponseEvent,
     UserInput,
 )
-from valuecell.utils.uuid import generate_task_id, generate_thread_id
+from valuecell.utils.uuid import generate_task_id, generate_thread_id, generate_uuid
 
 from .services import AgentServiceBundle
 
@@ -361,6 +362,20 @@ class AgentOrchestrator:
         conversation_id = user_input.meta.conversation_id
         user_id = user_input.meta.user_id
 
+        plan_task_id = generate_task_id()
+        plan_tool_call_id = generate_uuid("tool_call")
+        plan_tool_name = "generate_execution_plan"
+        yield await self.event_service.emit(
+            self.event_service.factory.tool_call(
+                conversation_id,
+                thread_id,
+                task_id=plan_task_id,
+                event=StreamResponseEvent.TOOL_CALL_STARTED,
+                tool_call_id=plan_tool_call_id,
+                tool_name=plan_tool_name,
+            )
+        )
+
         # Wait for planning completion or user input request
         while not planning_task.done():
             if self.plan_service.has_pending_request(conversation_id):
@@ -389,7 +404,19 @@ class AgentOrchestrator:
             await asyncio.sleep(ASYNC_SLEEP_INTERVAL)
 
         # Planning completed, execute plan
-        plan = await planning_task
+        plan: "ExecutionPlan" = await planning_task
+
+        yield await self.event_service.emit(
+            self.event_service.factory.tool_call(
+                conversation_id,
+                thread_id,
+                task_id=plan_task_id,
+                event=StreamResponseEvent.TOOL_CALL_COMPLETED,
+                tool_call_id=plan_tool_call_id,
+                tool_name=plan_tool_name,
+                tool_result="success",
+            )
+        )
 
         # Set conversation title once if not set yet and a task title is available
         if getattr(plan, "tasks", None):
