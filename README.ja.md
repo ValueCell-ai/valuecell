@@ -25,10 +25,10 @@
 </div>
 
 <div align="center">
-  <a href="README.md" style="color: gray;">English</a>
-  <a href="README.zh.md" style="color: gray;">中文（简体）</a>
-  <a href="README.zh_Hant.md" style="color: gray;">中文（繁體）</a>
-  <a href="README.ja.md" style="color: auto;">日本語</a>
+  <a href="README.md" style="color: auto;">English</a>
+  <a href="README.zh.md" style="color: auto;">中文（简体）</a>
+  <a href="README.zh_Hant.md" style="color: auto;">中文（繁體）</a>
+  <a href="README.ja.md" style="color: gray;">日本語</a>
 </div>
 
 
@@ -44,6 +44,8 @@ Discord コミュニティへのご参加をお待ちしています。使用中
 >注意: ValueCellチームメンバーがコミュニティ参加者に主動的に連絡することはありません。このプロジェクトは技術交流のみを目的としています。投資にはリスクが伴います。⚠️
 
 # スクリーンショット
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/C3tfHyGY9YE?si=5NBSLgpW3ZK28xEm" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 p align="center">
   <img src="assets/product/homepage.png" style="width: 100%; height: auto;">

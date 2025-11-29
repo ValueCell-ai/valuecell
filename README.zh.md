@@ -25,10 +25,10 @@
 </div>
 
 <div align="center">
-  <a href="README.md" style="color: gray;">English</a>
-  <a href="README.zh.md" style="color: auto;">中文（简体）</a>
-  <a href="README.zh_Hant.md" style="color: gray;">中文（繁體）</a>
-  <a href="README.ja.md" style="color: gray;">日本語</a>
+  <a href="README.md" style="color: auto;">English</a>
+  <a href="README.zh.md" style="color: gray;">中文（简体）</a>
+  <a href="README.zh_Hant.md" style="color: auto;">中文（繁體）</a>
+  <a href="README.ja.md" style="color: auto;">日本語</a>
 </div>
 
 
@@ -44,6 +44,8 @@ ValueCell 是一个社区驱动的多智能体金融应用产品，我们的计�
 >注意：ValueCell团队人员不会主动私信社区参与者，项目仅为技术交流使用，投资有风险。⚠️
 
 # 产品截图
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/C3tfHyGY9YE?si=5NBSLgpW3ZK28xEm" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 <p align="center">
   <img src="assets/product/homepage.png" style="width: 100%; height: auto;">
