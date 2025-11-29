@@ -1,20 +1,12 @@
 import threading
 from datetime import datetime, timedelta
-from time import time
 from decimal import Decimal, InvalidOperation
-from typing import List, Optional, Tuple, Callable, Any
-from func_timeout import func_timeout, FunctionTimedOut
+from time import time
+from typing import Any, Callable, List, Optional, Tuple
 
 import pandas as pd
+from func_timeout import FunctionTimedOut, func_timeout
 from loguru import logger
-
-try:
-    import baostock as bs
-except ImportError:
-    bs = None
-
-# Global lock for BaoStock API calls (baostock uses global session state)
-_baostock_lock = threading.Lock()
 
 from .base import AdapterCapability, BaseDataAdapter
 from .types import (
@@ -30,6 +22,15 @@ from .types import (
     MarketInfo,
     MarketStatus,
 )
+
+try:
+    import baostock as bs
+except ImportError:
+    bs = None
+
+# Global lock for BaoStock API calls (baostock uses global session state)
+_baostock_lock = threading.Lock()
+
 
 # BaoStock type mapping: 1=Stock, 2=Index, 3=Other, 4=Convertible, 5=ETF
 BAOSTOCK_TYPE_STOCK = "1"
@@ -54,7 +55,7 @@ class BaoStockAdapter(BaseDataAdapter):
         super().__init__(DataSource.BAOSTOCK, **kwargs)
 
         if bs is None:
-            raise ImportError("baostock library is not installed.")        
+            raise ImportError("baostock library is not installed.")
 
     def _initialize(self) -> None:
         """Initialize BaoStock adapter configuration."""
@@ -75,7 +76,6 @@ class BaoStockAdapter(BaseDataAdapter):
             f"1{Interval.WEEK.value}": "w",
             f"1{Interval.MONTH.value}": "m",
         }
-
 
     def validate_ticker(self, ticker: str) -> bool:
         """Validate if ticker is supported by BaoStock.
@@ -216,7 +216,9 @@ class BaoStockAdapter(BaseDataAdapter):
         """
         query_interval = self.interval_mapping.get(interval)
         if query_interval is None:
-            logger.warning("Unsupported interval: {interval} for BaoStock", interval=interval)
+            logger.warning(
+                "Unsupported interval: {interval} for BaoStock", interval=interval
+            )
             return []
 
         if query_interval in ["5", "15", "30", "60"]:
@@ -227,7 +229,6 @@ class BaoStockAdapter(BaseDataAdapter):
             return self._get_historical_k_data(
                 ticker, start_date, end_date, interval=query_interval
             )
-
 
     def search_assets(self, query: AssetSearchQuery) -> List[AssetSearchResult]:
         """Search for assets matching the query criteria from BaoStock.
@@ -262,9 +263,7 @@ class BaoStockAdapter(BaseDataAdapter):
                 )
 
             if rs.error_code != "0":
-                logger.warning(
-                    "BaoStock asset search failed: {msg}", msg=rs.error_msg
-                )
+                logger.warning("BaoStock asset search failed: {msg}", msg=rs.error_msg)
                 return results
 
             data_frame = self._get_data_safe(rs)
@@ -522,7 +521,9 @@ class BaoStockAdapter(BaseDataAdapter):
             List of AssetPrice objects
         """
         if period not in ["5", "15", "30", "60"]:
-            logger.warning("Unsupported intraday period: {period} for BaoStock", period=period)
+            logger.warning(
+                "Unsupported intraday period: {period} for BaoStock", period=period
+            )
             return []
 
         prices: List[AssetPrice] = []
@@ -530,7 +531,9 @@ class BaoStockAdapter(BaseDataAdapter):
         # Convert internal ticker to BaoStock format
         result = self._get_exchange_and_ticker_code(ticker)
         if result is None:
-            logger.warning("Failed to convert ticker {ticker} to BaoStock format", ticker=ticker)
+            logger.warning(
+                "Failed to convert ticker {ticker} to BaoStock format", ticker=ticker
+            )
             return prices
 
         _, baostock_code = result
@@ -569,7 +572,9 @@ class BaoStockAdapter(BaseDataAdapter):
                     prices.append(price)
 
         except Exception as e:
-            logger.error("Error querying intraday data for {ticker}: {err}", ticker=ticker, err=e)
+            logger.error(
+                "Error querying intraday data for {ticker}: {err}", ticker=ticker, err=e
+            )
 
         return prices
 
@@ -602,7 +607,9 @@ class BaoStockAdapter(BaseDataAdapter):
                 low_price=self._safe_decimal(row["low"]),
                 close_price=close_price,
                 volume=self._safe_decimal(row["volume"]),
-                market_cap=self._safe_decimal(row["amount"]),  # amount is turnover, not market cap
+                market_cap=self._safe_decimal(
+                    row["amount"]
+                ),  # amount is turnover, not market cap
                 source=self.source,
             )
         except (ValueError, KeyError) as e:
@@ -721,7 +728,9 @@ class BaoStockAdapter(BaseDataAdapter):
                     start_date=start_date.strftime("%Y-%m-%d"),
                     end_date=end_date.strftime("%Y-%m-%d"),
                     frequency=interval,
-                    adjustflag="2" if not is_index else "3",  # indices don't need adjustment
+                    adjustflag="2"
+                    if not is_index
+                    else "3",  # indices don't need adjustment
                 )
             )
             if rs is None or rs.error_code != "0":
@@ -739,7 +748,11 @@ class BaoStockAdapter(BaseDataAdapter):
                     prices.append(price)
 
         except Exception as e:
-            logger.error("Error querying historical data for {ticker}: {err}", ticker=ticker, err=e)
+            logger.error(
+                "Error querying historical data for {ticker}: {err}",
+                ticker=ticker,
+                err=e,
+            )
 
         return prices
 
@@ -970,10 +983,8 @@ class BaoStockAdapter(BaseDataAdapter):
         except Exception:
             # fallback: don't block if time cannot be recorded
             self._last_login_time = None
-        
-    def _baostock_api_call_wrapper(
-            self, api_call: Callable[..., Any]
-        ) -> Any:
+
+    def _baostock_api_call_wrapper(self, api_call: Callable[..., Any]) -> Any:
         """Wrapper for BaoStock API calls to handle login, session TTL and retries.
 
         - Uses a global lock to prevent concurrent BaoStock API calls (baostock
@@ -1001,7 +1012,10 @@ class BaoStockAdapter(BaseDataAdapter):
                 not hasattr(self, "_logging_status")
                 or getattr(self._logging_status, "error_code", "1") != "0"
                 or not hasattr(self, "_last_login_time")
-                or (self._last_login_time is not None and now - self._last_login_time > session_ttl)
+                or (
+                    self._last_login_time is not None
+                    and now - self._last_login_time > session_ttl
+                )
             ):
                 self._baostock_login()
 
@@ -1015,7 +1029,10 @@ class BaoStockAdapter(BaseDataAdapter):
                     result = func_timeout(timeout, api_call)
 
                     # If the result is a BaoStock response object, check its error_code
-                    if hasattr(result, "error_code") and getattr(result, "error_code") != "0":
+                    if (
+                        hasattr(result, "error_code")
+                        and getattr(result, "error_code") != "0"
+                    ):
                         logger.warning(
                             "BaoStock API returned error_code={code}, msg={msg} - re-login and retry",
                             code=getattr(result, "error_code"),
@@ -1037,7 +1054,9 @@ class BaoStockAdapter(BaseDataAdapter):
                     try:
                         self._baostock_login()
                     except Exception as login_exc:
-                        logger.error("Re-login failed after timeout: {err}", err=login_exc)
+                        logger.error(
+                            "Re-login failed after timeout: {err}", err=login_exc
+                        )
                         raise
                     attempts += 1
                     continue
@@ -1047,8 +1066,9 @@ class BaoStockAdapter(BaseDataAdapter):
                     raise
 
             # Exhausted retries
-            logger.error("BaoStock API call failed after {attempts} attempts", attempts=attempts)
+            logger.error(
+                "BaoStock API call failed after {attempts} attempts", attempts=attempts
+            )
             if last_exc:
                 raise last_exc
             raise RuntimeError("BaoStock API call failed after retries")
-    
