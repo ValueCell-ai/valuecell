@@ -80,7 +80,11 @@ def detect_user_region(client_ip: Optional[str] = None) -> str:
 
         with httpx.Client(timeout=3.0) as client:
             # Use client IP if provided, otherwise detect server's IP
-            url = f"https://ipapi.co/{client_ip}/json/" if client_ip else "https://ipapi.co/json/"
+            url = (
+                f"https://ipapi.co/{client_ip}/json/"
+                if client_ip
+                else "https://ipapi.co/json/"
+            )
             resp = client.get(url)
             if resp.status_code == 200:
                 data = resp.json()
@@ -110,7 +114,11 @@ async def detect_user_region_async(client_ip: Optional[str] = None) -> str:
         import httpx
 
         async with httpx.AsyncClient(timeout=3.0) as client:
-            url = f"https://ipapi.co/{client_ip}/json/" if client_ip else "https://ipapi.co/json/"
+            url = (
+                f"https://ipapi.co/{client_ip}/json/"
+                if client_ip
+                else "https://ipapi.co/json/"
+            )
             resp = await client.get(url)
             if resp.status_code == 200:
                 data = resp.json()
