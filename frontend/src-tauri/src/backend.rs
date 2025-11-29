@@ -165,13 +165,61 @@ impl BackendManager {
         })
     }
 
+    fn decide_index_url() -> bool {
+        const IPAPI_URL: &str = "https://ipapi.co/json/";
+        const TIMEOUT_SECS: u64 = 3;
+
+        let client = match reqwest::blocking::Client::builder()
+            .timeout(Duration::from_secs(TIMEOUT_SECS))
+            .build()
+        {
+            Ok(c) => c,
+            Err(e) => {
+                log::warn!("Failed to create HTTP client: {}, using default index", e);
+                return false;
+            }
+        };
+
+        match client.get(IPAPI_URL).send() {
+            Ok(response) => {
+                if let Ok(json) = response.json::<serde_json::Value>() {
+                    let country_code = json
+                        .get("country_code")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_uppercase();
+                    if country_code == "CN" {
+                        return true;
+                    }
+                }
+                false
+            }
+            Err(e) => {
+                log::warn!("Failed to detect region: {}, using default index", e);
+                false
+            }
+        }
+    }
+
     fn install_dependencies(&self) -> Result<()> {
+        let should_specify_index_url = Self::decide_index_url();
+
+        let mut args = vec!["sync", "--frozen"];
+        let index_url: String;
+        if should_specify_index_url {
+            index_url = "https://mirrors.aliyun.com/pypi/simple/".to_string();
+            args.push("--index-url");
+            args.push(&index_url);
+        }
+
+        log::info!("Running: uv {}", args.join(" "));
+
         let sidecar_command = self
             .app
             .shell()
             .sidecar("uv")
             .context("Failed to create uv sidecar command")?
-            .args(["sync", "--frozen"])
+            .args(&args)
             .current_dir(&self.backend_path);
 
         let (rx, _child) = sidecar_command.spawn().context("Failed to spawn uv sync")?;
