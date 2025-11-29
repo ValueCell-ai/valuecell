@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useAllPollTaskList } from "@/api/conversation";
+import { useGetDefaultTickers } from "@/api/system";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { HOME_STOCK_SHOW } from "@/constants/stock";
 import { agentSuggestions } from "@/mock/agent-data";
@@ -17,7 +18,23 @@ function Home() {
   const [inputValue, setInputValue] = useState<string>("");
 
   const { data: allPollTaskList } = useAllPollTaskList();
-  const { sparklineStocks } = useSparklineStocks(HOME_STOCK_SHOW);
+
+  // Get region-aware default tickers from API
+  const { data: defaultTickersData } = useGetDefaultTickers();
+
+  // Use API-returned tickers, fallback to hardcoded values if API fails
+  const stockConfig = useMemo(() => {
+    if (defaultTickersData?.tickers) {
+      return defaultTickersData.tickers.map((t) => ({
+        ticker: t.ticker,
+        symbol: t.symbol,
+      }));
+    }
+    // Fallback to hardcoded values
+    return [...HOME_STOCK_SHOW];
+  }, [defaultTickersData]);
+
+  const { sparklineStocks } = useSparklineStocks(stockConfig);
 
   const handleAgentClick = (agentId: string) => {
     navigate(`/agent/${agentId}`);

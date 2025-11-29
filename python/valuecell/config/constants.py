@@ -74,3 +74,21 @@ NUMBER_FORMATS: Dict[str, Dict[str, str]] = {
     "zh-Hans": {"decimal": ".", "thousands": ","},
     "zh-Hant": {"decimal": ".", "thousands": ","},
 }
+
+# Region-based default tickers for homepage display
+# 'cn' for China mainland users (A-share indices via akshare/baostock)
+# 'default' for other regions (global indices via yfinance)
+REGION_DEFAULT_TICKERS: Dict[str, List[Dict[str, str]]] = {
+    # China mainland users - A-share indices only
+    "cn": [
+        {"ticker": "SSE:000001", "symbol": "上证指数", "name": "上证指数"},
+        {"ticker": "SZSE:399001", "symbol": "深证成指", "name": "深证成指"},
+        {"ticker": "SSE:000300", "symbol": "沪深300", "name": "沪深300指数"},
+    ],
+    # Default for other regions - global mixed indices
+    "default": [
+        {"ticker": "NASDAQ:IXIC", "symbol": "NASDAQ", "name": "NASDAQ Composite"},
+        {"ticker": "HKEX:HSI", "symbol": "HSI", "name": "Hang Seng Index"},
+        {"ticker": "SSE:000001", "symbol": "SSE", "name": "Shanghai Composite"},
+    ],
+}
