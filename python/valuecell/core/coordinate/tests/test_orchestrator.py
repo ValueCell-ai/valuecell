@@ -494,7 +494,11 @@ async def test_agent_connection_error(
     async for chunk in orchestrator.process_user_input(sample_user_input):
         out.append(chunk)
 
-    assert any("(Error)" in c.data.payload.content for c in out if c.data.payload)
+    assert any(
+        hasattr(c.data.payload, "content") and "(Error)" in c.data.payload.content
+        for c in out
+        if c.data.payload
+    )
 
 
 @pytest.mark.asyncio

@@ -263,9 +263,9 @@ class ExecutionPlanner:
         logger.info(f"Planner produced plan: {plan_raw}")
 
         # Check if plan is inadequate or has no tasks
+        guidance_message = plan_raw.guidance_message or plan_raw.reason
         if not plan_raw.adequate or not plan_raw.tasks:
             # Use guidance_message from planner, or fall back to reason
-            guidance_message = plan_raw.guidance_message or plan_raw.reason
             logger.info(f"Planner needs user guidance: {guidance_message}")
             return [], guidance_message  # Return empty task list with guidance
 
@@ -308,7 +308,7 @@ class ExecutionPlanner:
                 )
             )
 
-        return tasks, None  # Return tasks with no guidance message
+        return tasks, guidance_message  # Return tasks with no guidance message
 
     def _create_task(
         self,
