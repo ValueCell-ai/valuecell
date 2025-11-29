@@ -219,19 +219,13 @@ class StrategyService:
             if snapshot
             else None
         )
-        pnl_value = (
-            StrategyService._combine_realized_unrealized(snapshot) if snapshot else None
-        )
 
         return_rate_pct: Optional[float] = None
         try:
-            if initial_capital and initial_capital > 0:
-                if total_value is not None:
-                    return_rate_pct = (
-                        (total_value - initial_capital) / initial_capital
-                    ) * 100.0
-                elif pnl_value is not None:
-                    return_rate_pct = (pnl_value / initial_capital) * 100.0
+            if initial_capital and initial_capital > 0 and total_value is not None:
+                return_rate_pct = (
+                    (total_value - initial_capital) / initial_capital
+                ) * 100.0
         except Exception:
             return_rate_pct = None
 
