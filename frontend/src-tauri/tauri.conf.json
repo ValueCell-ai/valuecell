@@ -1,7 +1,7 @@
 {
     "$schema": "https://schema.tauri.app/config/2",
     "productName": "ValueCell",
-    "version": "0.1.6",
+    "version": "0.1.7",
     "identifier": "com.valuecell.valuecellapp",
     "build": {
         "beforeDevCommand": "bun run dev:tauri",
@@ -10,16 +10,14 @@
         "frontendDist": "../build/client"
     },
     "app": {
-        "windows": [
-            {
-                "title": "ValueCell",
-                "width": 1400,
-                "height": 900,
-                "minWidth": 1400,
-                "minHeight": 900,
-                "hiddenTitle": true
-            }
-        ],
+        "windows": [{
+            "title": "ValueCell",
+            "width": 1400,
+            "height": 900,
+            "minWidth": 1400,
+            "minHeight": 900,
+            "hiddenTitle": true
+        }],
         "security": {
             "csp": null
         }
