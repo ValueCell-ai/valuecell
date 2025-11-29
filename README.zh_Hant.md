@@ -45,7 +45,7 @@ ValueCell 是一個社群驅動的多智能體金融應用產品，我們的計�
 
 # 產品截圖
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/C3tfHyGY9YE?si=5NBSLgpW3ZK28xEm" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+[![觀看影片](https://img.youtube.com/vi/C3tfHyGY9YE/maxresdefault.jpg)](https://www.youtube.com/watch?v=C3tfHyGY9YE)
 
 <p align="center">
   <img src="assets/product/homepage.png" style="width: 100%; height: auto;">

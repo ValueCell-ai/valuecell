@@ -45,9 +45,9 @@ Discord コミュニティへのご参加をお待ちしています。使用中
 
 # スクリーンショット
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/C3tfHyGY9YE?si=5NBSLgpW3ZK28xEm" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+[![動画を見る](https://img.youtube.com/vi/C3tfHyGY9YE/maxresdefault.jpg)](https://www.youtube.com/watch?v=C3tfHyGY9YE)
 
-p align="center">
+<p align="center">
   <img src="assets/product/homepage.png" style="width: 100%; height: auto;">
 </p>
 

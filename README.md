@@ -45,7 +45,7 @@ Welcome to join our Discord community to share feedback and issues you encounter
 
 # Screenshot
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/C3tfHyGY9YE?si=5NBSLgpW3ZK28xEm" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+[![Watch the video](https://img.youtube.com/vi/C3tfHyGY9YE/maxresdefault.jpg)](https://www.youtube.com/watch?v=C3tfHyGY9YE)
 
 <p align="center">
   <img src="assets/product/homepage.png" style="width: 100%; height: auto;">
