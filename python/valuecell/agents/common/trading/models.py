@@ -210,8 +210,17 @@ class TradingConfig(BaseModel):
     )
     initial_capital: Optional[float] = Field(
         default=DEFAULT_INITIAL_CAPITAL,
-        description="Initial capital for trading in USD",
+        description="Initial total cash for trading in USD",
         gt=0,
+    )
+    initial_free_cash: Optional[float] = Field(
+        default=DEFAULT_INITIAL_CAPITAL,
+        description="Initial free cash for trading in USD",
+        gt=0,
+    )
+    initial_positions: Dict[str, "PositionSnapshot"] = Field(
+        default={},
+        description="Initial positions in portfolio",
     )
     max_leverage: float = Field(
         default=DEFAULT_MAX_LEVERAGE,

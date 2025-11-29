@@ -38,6 +38,7 @@ from ..portfolio.interfaces import BasePortfolioService
 from ..utils import (
     extract_market_snapshot_features,
     fetch_free_cash_from_gateway,
+    fetch_positions_from_gateway,
 )
 
 # Core interfaces for orchestration and portfolio service.
@@ -132,7 +133,11 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                     portfolio.buying_power = float(free_cash)
                     # Also update free_cash field in view if it exists
                     portfolio.free_cash = float(free_cash)
-
+                positions = await fetch_positions_from_gateway(self._execution_gateway)
+                if len(positions) == 0:
+                    logger.warning("No position available, skipping sync")
+                else:
+                    portfolio.positions = positions
         except Exception:
             # If syncing fails, continue with existing portfolio view
             logger.warning(
@@ -466,16 +471,17 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             # Fallback to internal tracking if portfolio service is unavailable
             unrealized = float(self._unrealized_pnl or 0.0)
             # Fallback equity uses initial capital when view is unavailable
-            equity = float(self._request.trading_config.initial_capital or 0.0)
+            equity = float(
+                (self._request.trading_config.initial_capital + unrealized)
+                if self._request.trading_config.initial_capital is not None
+                else 0.0
+            )
 
         # Keep internal state in sync (allow negative unrealized PnL)
         self._unrealized_pnl = float(unrealized)
 
-        initial_capital = self._request.trading_config.initial_capital or 0.0
         pnl_pct = (
-            (self._realized_pnl + self._unrealized_pnl) / initial_capital
-            if initial_capital
-            else None
+            (self._realized_pnl + self._unrealized_pnl) / equity if equity else None
         )
 
         # Strategy-level unrealized percent: percent of equity (if equity is available)
