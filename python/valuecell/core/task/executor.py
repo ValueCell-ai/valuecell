@@ -367,7 +367,7 @@ class TaskExecutor:
                 task_id=tool_task_id,
                 event=StreamResponseEvent.TOOL_CALL_COMPLETED,
                 tool_call_id=tool_call_id,
-                tool_name="invoke_agent",
+                tool_name=tool_name,
                 tool_result="connected",
             )
         )
