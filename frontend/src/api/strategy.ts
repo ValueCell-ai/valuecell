@@ -97,6 +97,13 @@ export const useCreateStrategy = () => {
   });
 };
 
+export const useTestConnection = () => {
+  return useMutation({
+    mutationFn: (data: CreateStrategyRequest["exchange_config"]) =>
+      apiClient.post<ApiResponse<null>>("/strategies/test-connection", data),
+  });
+};
+
 export const useStopStrategy = () => {
   const queryClient = useQueryClient();
 

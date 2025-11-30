@@ -10,6 +10,7 @@ from loguru import logger
 from sqlalchemy.orm import Session
 
 from valuecell.agents.common.trading.models import (
+    ExchangeConfig,
     StrategyStatus,
     StrategyStatusContent,
     StrategyType,
@@ -313,6 +314,53 @@ def create_strategy_agent_router() -> APIRouter:
 
             return StrategyStatusContent(
                 strategy_id=fallback_strategy_id, status=StrategyStatus.ERROR
+            )
+
+    @router.post("/test-connection")
+    async def test_exchange_connection(request: ExchangeConfig):
+        """Test connection to the exchange with provided credentials."""
+        try:
+            # If virtual trading, just return success immediately
+            if getattr(request, "trading_mode", None) == "virtual":
+                return SuccessResponse.create(msg="Success!")
+
+            from valuecell.agents.common.trading.execution.ccxt_trading import (
+                create_ccxt_gateway,
+            )
+
+            # Map ExchangeConfig fields to gateway args
+            # Note: ExchangeConfig might differ slightly from create_ccxt_gateway args
+            gateway = await create_ccxt_gateway(
+                exchange_id=request.exchange_id,
+                api_key=request.api_key or "",
+                secret_key=request.secret_key or "",
+                passphrase=request.passphrase,
+                wallet_address=request.wallet_address,
+                private_key=request.private_key,
+                # Ensure we pass a safe default for required args if missing in config
+                market_type="swap",  # Default to swap/perpetual for testing
+            )
+
+            try:
+                is_connected = await gateway.test_connection()
+                if is_connected:
+                    return SuccessResponse.create(msg="Success!")
+                else:
+                    # Return 200 with error message or 400? User asked for "Failed..." return
+                    # We'll throw 400 for UI to catch, or return success=False in body
+                    # But SuccessResponse implies 200.
+                    # If I raise HTTPException it shows as error.
+                    raise HTTPException(
+                        status_code=400, detail="Failed, please check your API key"
+                    )
+            finally:
+                await gateway.close()
+
+        except Exception as e:
+            # If create_ccxt_gateway fails or other error
+            logger.warning(f"Connection test failed: {e}")
+            raise HTTPException(
+                status_code=400, detail=f"Failed, please check your API key: {str(e)}"
             )
 
     @router.delete("/delete")

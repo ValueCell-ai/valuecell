@@ -1,7 +1,12 @@
+import { Wallet } from "lucide-react";
+import { useState } from "react";
+import { useTestConnection } from "@/api/strategy";
+import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import { RadioGroupItem } from "@/components/ui/radio-group";
 import { SelectItem } from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
 import PngIcon from "@/components/valuecell/icon/png-icon";
 import { EXCHANGE_ICONS } from "@/constants/icons";
 import { withForm } from "@/hooks/use-form";
@@ -48,8 +53,27 @@ export const ExchangeForm = withForm({
     private_key: "",
   },
   render({ form }) {
+    const { mutateAsync: testConnection, isPending } = useTestConnection();
+    const [testStatus, setTestStatus] = useState<{
+      success: boolean;
+      message: string;
+    } | null>(null);
+
+    const handleTestConnection = async () => {
+      setTestStatus(null);
+      try {
+        await testConnection(form.state.values);
+        setTestStatus({ success: true, message: "Success!" });
+      } catch (_error) {
+        setTestStatus({
+          success: false,
+          message: "Failed, please check your API key",
+        });
+      }
+    };
+
     return (
-      <FieldGroup className="gap-6">
+      <FieldGroup className="gap-4">
         <form.AppField
           listeners={{
             onChange: ({ value }) => {
@@ -167,6 +191,32 @@ export const ExchangeForm = withForm({
                       );
                     }}
                   </form.Subscribe>
+
+                  <div className="-mt-2 flex flex-col gap-2">
+                    {testStatus && (
+                      <p
+                        className={`font-medium text-sm ${
+                          testStatus.success ? "text-green-600" : "text-red-600"
+                        }`}
+                      >
+                        {testStatus.message}
+                      </p>
+                    )}
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2 py-4 font-medium text-base"
+                      onClick={handleTestConnection}
+                      disabled={isPending}
+                      type="button"
+                    >
+                      {isPending ? (
+                        <Spinner className="size-5 text-gray-500" />
+                      ) : (
+                        <Wallet className="size-5" />
+                      )}
+                      Test Connection
+                    </Button>
+                  </div>
                 </>
               )
             );
