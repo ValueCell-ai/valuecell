@@ -8,7 +8,7 @@ and strategy details.
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import desc, func
+from sqlalchemy import asc, desc, func
 from sqlalchemy.orm import Session
 
 from ..connection import get_database_manager
@@ -247,6 +247,26 @@ class StrategyRepository:
             for item in items:
                 session.expunge(item)
             return items
+        finally:
+            if not self.db_session:
+                session.close()
+
+    def get_first_portfolio_snapshot(
+        self, strategy_id: str
+    ) -> Optional[StrategyPortfolioView]:
+        """Convenience: return the earliest portfolio snapshot or None."""
+        session = self._get_session()
+        try:
+            item = (
+                session.query(StrategyPortfolioView)
+                .filter(StrategyPortfolioView.strategy_id == strategy_id)
+                .order_by(asc(StrategyPortfolioView.snapshot_ts))
+                .limit(1)
+                .first()
+            )
+            if item:
+                session.expunge(item)
+            return item
         finally:
             if not self.db_session:
                 session.close()

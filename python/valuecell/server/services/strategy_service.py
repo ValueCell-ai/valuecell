@@ -197,7 +197,29 @@ class StrategyService:
         )
         exchange_id = ex.get("exchange_id") or meta.get("exchange_id")
         strategy_type = StrategyService._normalize_strategy_type(meta, cfg)
-        initial_capital = _to_optional_float(tr.get("initial_capital"))
+        # Determine initial capital source: in LIVE mode, prefer metadata (initial_capital_live),
+        # falling back to first snapshot cash only when metadata is missing; non-LIVE uses config.
+        trading_mode_raw = str(ex.get("trading_mode") or "").strip().lower()
+        if trading_mode_raw.startswith("tradingmode."):
+            trading_mode_raw = trading_mode_raw.split(".", 1)[1]
+        is_live_mode = trading_mode_raw == "live"
+
+        if is_live_mode:
+            # Fast path: read from metadata set on first LIVE snapshot
+            initial_capital = _to_optional_float(meta.get("initial_capital_live"))
+            if initial_capital is None:
+                # Rare path: metadata missing (older strategies); query first snapshot once
+                try:
+                    first_snapshot = repo.get_first_portfolio_snapshot(strategy_id)
+                    initial_capital = (
+                        _to_optional_float(getattr(first_snapshot, "cash", None))
+                        if first_snapshot
+                        else None
+                    )
+                except Exception:
+                    initial_capital = None
+        else:
+            initial_capital = _to_optional_float(tr.get("initial_capital"))
         max_leverage = _to_optional_float(tr.get("max_leverage"))
         symbols = tr.get("symbols") if tr.get("symbols") is not None else None
         # Resolve final prompt strictly via template_id from strategy_prompts (no fallback)
