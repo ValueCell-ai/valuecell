@@ -1,3 +1,6 @@
+import { Wallet } from "lucide-react";
+import { useState } from "react";
+import { useTestConnection } from "@/api/strategy";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
@@ -7,9 +10,6 @@ import { Spinner } from "@/components/ui/spinner";
 import PngIcon from "@/components/valuecell/icon/png-icon";
 import { EXCHANGE_ICONS } from "@/constants/icons";
 import { withForm } from "@/hooks/use-form";
-import { Wallet } from "lucide-react";
-import { useState } from "react";
-import { useTestConnection } from "@/api/strategy";
 
 const EXCHANGE_OPTIONS = [
   {
