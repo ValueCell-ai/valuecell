@@ -64,7 +64,7 @@ export const ExchangeForm = withForm({
       try {
         await testConnection(form.state.values);
         setTestStatus({ success: true, message: "Success!" });
-      } catch (error) {
+      } catch (_error) {
         setTestStatus({
           success: false,
           message: "Failed, please check your API key",
