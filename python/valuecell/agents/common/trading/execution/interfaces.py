@@ -33,6 +33,15 @@ class BaseExecutionGateway(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    async def test_connection(self) -> bool:
+        """Test the connection to the exchange/broker.
+
+        Returns:
+            True if connection is successful and credentials are valid, False otherwise.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     async def close(self) -> None:
         """Close the gateway and release any held resources.
 

@@ -1280,6 +1280,16 @@ class CCXTExecutionGateway(BaseExecutionGateway):
             meta=inst.meta,
         )
 
+    async def test_connection(self) -> bool:
+        """Test connectivity and authentication with the exchange."""
+        try:
+            # Attempt to fetch balance which requires authentication
+            await self.fetch_balance()
+            return True
+        except Exception as e:
+            logger.warning(f"⚠️ Connection test failed for {self.exchange_id}: {e}")
+            return False
+
     async def close(self) -> None:
         """Close the exchange connection and cleanup resources."""
         if self._exchange is not None:

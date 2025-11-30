@@ -1,10 +1,15 @@
+import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/field";
 import { Label } from "@/components/ui/label";
 import { RadioGroupItem } from "@/components/ui/radio-group";
 import { SelectItem } from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
 import PngIcon from "@/components/valuecell/icon/png-icon";
 import { EXCHANGE_ICONS } from "@/constants/icons";
 import { withForm } from "@/hooks/use-form";
+import { Wallet } from "lucide-react";
+import { useState } from "react";
+import { useTestConnection } from "@/api/strategy";
 
 const EXCHANGE_OPTIONS = [
   {
@@ -48,6 +53,25 @@ export const ExchangeForm = withForm({
     private_key: "",
   },
   render({ form }) {
+    const { mutateAsync: testConnection, isPending } = useTestConnection();
+    const [testStatus, setTestStatus] = useState<{
+      success: boolean;
+      message: string;
+    } | null>(null);
+
+    const handleTestConnection = async () => {
+      setTestStatus(null);
+      try {
+        await testConnection(form.state.values);
+        setTestStatus({ success: true, message: "Success!" });
+      } catch (error) {
+        setTestStatus({
+          success: false,
+          message: "Failed, please check your API key",
+        });
+      }
+    };
+
     return (
       <FieldGroup className="gap-6">
         <form.AppField
@@ -167,6 +191,32 @@ export const ExchangeForm = withForm({
                       );
                     }}
                   </form.Subscribe>
+
+                  <div className="flex flex-col gap-2 pt-2">
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2 py-6 text-base font-medium"
+                      onClick={handleTestConnection}
+                      disabled={isPending}
+                      type="button"
+                    >
+                      {isPending ? (
+                        <Spinner className="size-5 text-gray-500" />
+                      ) : (
+                        <Wallet className="size-5" />
+                      )}
+                      Test Connection
+                    </Button>
+                    {testStatus && (
+                      <p
+                        className={`text-sm font-medium ${
+                          testStatus.success ? "text-green-600" : "text-red-600"
+                        }`}
+                      >
+                        {testStatus.message}
+                      </p>
+                    )}
+                  </div>
                 </>
               )
             );
