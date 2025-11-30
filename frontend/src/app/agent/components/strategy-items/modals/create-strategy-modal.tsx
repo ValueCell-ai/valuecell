@@ -1,6 +1,6 @@
+import { useStore } from "@tanstack/react-form";
 import { Check } from "lucide-react";
 import type { FC } from "react";
-import { useStore } from "@tanstack/react-form";
 import { memo, useState } from "react";
 import { z } from "zod";
 import { useGetModelProviderDetail } from "@/api/setting";
@@ -23,7 +23,7 @@ import { TRADING_SYMBOLS } from "@/constants/agent";
 import { useAppForm } from "@/hooks/use-form";
 import type { Strategy } from "@/types/strategy";
 import { AIModelForm } from "../forms/ai-model-form";
-import { ExchangeForm, EXCHANGE_OPTIONS } from "../forms/exchange-form";
+import { EXCHANGE_OPTIONS, ExchangeForm } from "../forms/exchange-form";
 import { TradingStrategyForm } from "../forms/trading-strategy-form";
 
 interface CreateStrategyModalProps {
