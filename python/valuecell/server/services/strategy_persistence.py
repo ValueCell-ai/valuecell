@@ -369,3 +369,110 @@ def persist_instructions(
             )
             continue
     return inserted
+
+
+def update_initial_capital(strategy_id: str, new_initial_capital: float) -> bool:
+    """Update `strategies.config.trading_config.initial_capital` for a strategy.
+
+    This writes the provided value into the persisted strategy config so that
+    downstream performance APIs that read from `strategies.config` reflect the
+    actual initial capital used at runtime (e.g., LIVE mode free balance).
+
+    Returns True on success, False on failure or if the strategy is missing.
+    """
+    repo = get_strategy_repository()
+    try:
+        strategy = repo.get_strategy_by_strategy_id(strategy_id)
+        if strategy is None:
+            logger.info(
+                "Skip updating initial_capital: strategy={} not found (possibly deleted)",
+                strategy_id,
+            )
+            return False
+
+        # Ensure config and nested trading_config dict exist
+        cfg = dict(strategy.config or {})
+        tr = dict((cfg.get("trading_config") or {}) or {})
+
+        try:
+            tr["initial_capital"] = float(new_initial_capital)
+        except Exception:
+            # If conversion fails, keep raw value
+            tr["initial_capital"] = new_initial_capital
+
+        cfg["trading_config"] = tr
+
+        updated = repo.upsert_strategy(strategy_id=strategy_id, config=cfg)
+        if updated is None:
+            logger.warning(
+                "Failed to update initial_capital in config for strategy={}",
+                strategy_id,
+            )
+            return False
+
+        logger.info(
+            "Updated strategies.config.trading_config.initial_capital to {} for strategy={}",
+            tr.get("initial_capital"),
+            strategy_id,
+        )
+        return True
+    except Exception:
+        logger.exception("update_initial_capital failed for {}", strategy_id)
+        return False
+
+
+def set_initial_capital_metadata(
+    strategy_id: str,
+    initial_capital: float,
+    *,
+    source: str | None = None,
+    ts_ms: int | None = None,
+) -> bool:
+    """Record initial capital info into strategy.strategy_metadata.
+
+    Fields stored:
+    - initial_capital_live: float value used at start in LIVE mode
+    - initial_capital_source: optional descriptor (e.g., 'live_snapshot_cash')
+    - initial_capital_ts_ms: optional timestamp in milliseconds
+    """
+    repo = get_strategy_repository()
+    try:
+        strategy = repo.get_strategy_by_strategy_id(strategy_id)
+        if strategy is None:
+            logger.info(
+                "Skip setting initial_capital metadata: strategy={} not found",
+                strategy_id,
+            )
+            return False
+
+        meta = dict(strategy.strategy_metadata or {})
+        try:
+            meta["initial_capital_live"] = float(initial_capital)
+        except Exception:
+            meta["initial_capital_live"] = initial_capital
+        if source is not None:
+            meta["initial_capital_source"] = source
+        if ts_ms is not None:
+            try:
+                meta["initial_capital_ts_ms"] = int(ts_ms)
+            except Exception:
+                meta["initial_capital_ts_ms"] = ts_ms
+
+        updated = repo.upsert_strategy(strategy_id=strategy_id, metadata=meta)
+        if updated is None:
+            logger.warning(
+                "Failed to set initial_capital metadata for strategy={}",
+                strategy_id,
+            )
+            return False
+
+        logger.info(
+            "Set initial_capital_live={} (source={}) in metadata for strategy={}",
+            meta.get("initial_capital_live"),
+            meta.get("initial_capital_source"),
+            strategy_id,
+        )
+        return True
+    except Exception:
+        logger.exception("set_initial_capital_metadata failed for {}", strategy_id)
+        return False
