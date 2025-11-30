@@ -73,7 +73,7 @@ export const ExchangeForm = withForm({
     };
 
     return (
-      <FieldGroup className="gap-6">
+      <FieldGroup className="gap-4">
         <form.AppField
           listeners={{
             onChange: ({ value }) => {
@@ -192,10 +192,19 @@ export const ExchangeForm = withForm({
                     }}
                   </form.Subscribe>
 
-                  <div className="flex flex-col gap-2 pt-2">
+                  <div className="flex flex-col gap-2 -mt-2">
+                    {testStatus && (
+                      <p
+                        className={`text-sm font-medium ${
+                          testStatus.success ? "text-green-600" : "text-red-600"
+                        }`}
+                      >
+                        {testStatus.message}
+                      </p>
+                    )}
                     <Button
                       variant="outline"
-                      className="w-full gap-2 py-6 text-base font-medium"
+                      className="w-full gap-2 py-4 text-base font-medium"
                       onClick={handleTestConnection}
                       disabled={isPending}
                       type="button"
@@ -207,15 +216,6 @@ export const ExchangeForm = withForm({
                       )}
                       Test Connection
                     </Button>
-                    {testStatus && (
-                      <p
-                        className={`text-sm font-medium ${
-                          testStatus.success ? "text-green-600" : "text-red-600"
-                        }`}
-                      >
-                        {testStatus.message}
-                      </p>
-                    )}
                   </div>
                 </>
               )
