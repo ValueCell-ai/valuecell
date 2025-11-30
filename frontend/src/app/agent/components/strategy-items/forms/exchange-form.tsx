@@ -6,7 +6,7 @@ import PngIcon from "@/components/valuecell/icon/png-icon";
 import { EXCHANGE_ICONS } from "@/constants/icons";
 import { withForm } from "@/hooks/use-form";
 
-const EXCHANGE_OPTIONS = [
+export const EXCHANGE_OPTIONS = [
   {
     value: "okx",
     label: "OKX",
@@ -21,15 +21,15 @@ const EXCHANGE_OPTIONS = [
   },
   {
     value: "blockchaincom",
-    label: "Blockchain.com",
+    label: "Blockchain",
   },
   {
     value: "coinbaseexchange",
-    label: "Coinbase Exchange",
+    label: "Coinbase",
   },
   {
     value: "gate",
-    label: "Gate.io",
+    label: "Gate",
   },
   {
     value: "mexc",
