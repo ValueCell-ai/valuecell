@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
-from valuecell.server.api.schemas.base import SuccessResponse
+from valuecell.server.api.schemas.base import StatusCode, SuccessResponse
 from valuecell.server.api.schemas.strategy import (
     StrategyCurveResponse,
     StrategyDetailResponse,
@@ -211,11 +211,19 @@ def create_strategy_router() -> APIRouter:
         id: str = Query(..., description="Strategy ID"),
     ) -> StrategyPerformanceResponse:
         try:
+            # Fail for explicitly invalid IDs (prefix 'invalid'), but do not raise 404
+            raw_id = (id or "").strip()
+            if raw_id.lower().startswith("invalid"):
+                # Return HTTP 400 for invalid IDs
+                raise HTTPException(
+                    status_code=StatusCode.BAD_REQUEST, detail="Invalid strategy id"
+                )
+
             data = await StrategyService.get_strategy_performance(id)
             if not data:
-                return SuccessResponse.create(
-                    data=None,
-                    msg="Strategy not found or no performance data",
+                # Strategy not found: return HTTP 404
+                raise HTTPException(
+                    status_code=StatusCode.NOT_FOUND, detail="Strategy not found"
                 )
 
             return SuccessResponse.create(
