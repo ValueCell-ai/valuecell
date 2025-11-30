@@ -1,8 +1,14 @@
+import { useStore } from "@tanstack/react-form";
 import { Check } from "lucide-react";
 import type { FC } from "react";
 import { memo, useState } from "react";
 import { z } from "zod";
-import { useCreateStrategy, useGetStrategyPrompts } from "@/api/strategy";
+import { useGetModelProviderDetail } from "@/api/setting";
+import {
+  useCreateStrategy,
+  useGetStrategyList,
+  useGetStrategyPrompts,
+} from "@/api/strategy";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,7 +23,7 @@ import { TRADING_SYMBOLS } from "@/constants/agent";
 import { useAppForm } from "@/hooks/use-form";
 import type { Strategy } from "@/types/strategy";
 import { AIModelForm } from "../forms/ai-model-form";
-import { ExchangeForm } from "../forms/exchange-form";
+import { EXCHANGE_OPTIONS, ExchangeForm } from "../forms/exchange-form";
 import { TradingStrategyForm } from "../forms/trading-strategy-form";
 
 interface CreateStrategyModalProps {
@@ -186,6 +192,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
   const [currentStep, setCurrentStep] = useState<StepNumber>(1);
 
   const { data: prompts = [] } = useGetStrategyPrompts();
+  const { data: strategies = [] } = useGetStrategyList();
   const { mutateAsync: createStrategy, isPending: isCreatingStrategy } =
     useCreateStrategy();
 
@@ -204,6 +211,9 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
     },
   });
 
+  const provider = useStore(form1.store, (state) => state.values.provider);
+  const { data: modelProviderDetail } = useGetModelProviderDetail(provider);
+
   // Step 2 Form: Exchanges
   const form2 = useAppForm({
     defaultValues: {
@@ -219,6 +229,28 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
       onSubmit: step2Schema,
     },
     onSubmit: () => {
+      const modelId = form1.state.values.model_id;
+      const modelName =
+        modelProviderDetail?.models.find((m) => m.model_id === modelId)
+          ?.model_name || modelId;
+
+      const { trading_mode, exchange_id } = form2.state.values;
+      const exchangeName =
+        trading_mode === "virtual"
+          ? "Virtual"
+          : EXCHANGE_OPTIONS.find((ex) => ex.value === exchange_id)?.label ||
+            exchange_id;
+
+      const baseName = `${modelName}-${exchangeName}`;
+      let newName = baseName;
+      let counter = 1;
+
+      while (strategies.some((s) => s.strategy_name === newName)) {
+        newName = `${baseName}-${counter}`;
+        counter++;
+      }
+
+      form3.setFieldValue("strategy_name", newName);
       setCurrentStep(3);
     },
   });
