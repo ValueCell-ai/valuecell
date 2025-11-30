@@ -192,10 +192,10 @@ export const ExchangeForm = withForm({
                     }}
                   </form.Subscribe>
 
-                  <div className="flex flex-col gap-2 -mt-2">
+                  <div className="-mt-2 flex flex-col gap-2">
                     {testStatus && (
                       <p
-                        className={`text-sm font-medium ${
+                        className={`font-medium text-sm ${
                           testStatus.success ? "text-green-600" : "text-red-600"
                         }`}
                       >
@@ -204,7 +204,7 @@ export const ExchangeForm = withForm({
                     )}
                     <Button
                       variant="outline"
-                      className="w-full gap-2 py-4 text-base font-medium"
+                      className="w-full gap-2 py-4 font-medium text-base"
                       onClick={handleTestConnection}
                       disabled={isPending}
                       type="button"
