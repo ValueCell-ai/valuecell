@@ -10,11 +10,11 @@ from loguru import logger
 from sqlalchemy.orm import Session
 
 from valuecell.agents.common.trading.models import (
+    ExchangeConfig,
     StrategyStatus,
     StrategyStatusContent,
     StrategyType,
     UserRequest,
-    ExchangeConfig,
 )
 from valuecell.config.loader import get_config_loader
 from valuecell.core.coordinate.orchestrator import AgentOrchestrator
