@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
-from valuecell.server.api.schemas.base import SuccessResponse, ErrorResponse, StatusCode
+from valuecell.server.api.schemas.base import ErrorResponse, StatusCode, SuccessResponse
 from valuecell.server.api.schemas.strategy import (
     StrategyCurveResponse,
     StrategyDetailResponse,
