@@ -1,5 +1,5 @@
 import { LineChart, Wallet } from "lucide-react";
-import { type FC, memo } from "react";
+import { type FC, memo, useRef } from "react";
 import { useStrategyPerformance } from "@/api/strategy";
 import { usePublishStrategy } from "@/api/system";
 import { ValueCellAgentPng } from "@/assets/png";
@@ -35,6 +35,8 @@ import {
 import { useStockColors } from "@/store/settings-store";
 import { useIsLoggedIn, useSystemInfo } from "@/store/system-store";
 import type { PortfolioSummary, Position } from "@/types/strategy";
+import type { SharePortfolioCardRef } from "./modals/share-portfolio-modal";
+import SharePortfolioModal from "./modals/share-portfolio-modal";
 
 interface PortfolioPositionsGroupProps {
   priceCurve: Array<Array<number | string>>;
@@ -101,6 +103,8 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
   strategyId,
   isLive,
 }) => {
+  const sharePortfolioModalRef = useRef<SharePortfolioCardRef>(null);
+
   const stockColors = useStockColors();
   const changeType = getChangeType(summary?.total_pnl);
   const { name, avatar } = useSystemInfo();
@@ -121,6 +125,16 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
     publishStrategy({ ...data, name, avatar });
   };
 
+  const handleSharePortfolio = async () => {
+    const { data } = await refetchPerformance();
+    if (!data) return;
+
+    sharePortfolioModalRef.current?.open({
+      ...data,
+      total_pnl: summary?.total_pnl ?? 0,
+    });
+  };
+
   return (
     <div className="flex flex-1 flex-col gap-8 overflow-y-scroll p-6">
       {/* Portfolio Value History Section */}
@@ -138,7 +152,7 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem disabled>
+                  <DropdownMenuItem onClick={handleSharePortfolio}>
                     <SvgIcon name={Share} className="size-5" /> Share to Social
                   </DropdownMenuItem>
                   <DropdownMenuItem
@@ -267,6 +281,8 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
           </div>
         )}
       </div>
+
+      <SharePortfolioModal ref={sharePortfolioModalRef} />
     </div>
   );
 };
