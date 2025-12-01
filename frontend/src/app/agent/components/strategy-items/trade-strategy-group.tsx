@@ -13,6 +13,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import SvgIcon from "@/components/valuecell/icon/svg-icon";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
@@ -94,39 +99,50 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
 
         {/* Status Badge */}
         <div className="flex items-center gap-2">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="ghost"
-                disabled={strategy.status === "stopped"}
-                size="sm"
-                className="flex items-center gap-2.5 rounded-md px-2.5 py-1"
-              >
-                {strategy.status === "running" && (
-                  <SvgIcon name={StrategyStatus} className="size-4" />
-                )}
-                <p className="font-medium text-gray-700 text-sm">
-                  {strategy.status === "running" ? "Running" : "Stopped"}
-                </p>
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Stop Trading Strategy?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Stopping the strategy "{strategy.strategy_name}" will stop it
-                  immediately and trigger a forced liquidation. Do you want to
-                  proceed?
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={onStop}>
-                  Confirm Stop
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {strategy.status === "stopped" && strategy.stop_reason ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <p className="font-medium text-gray-400 text-sm">Stopped</p>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs break-words">
+                {strategy.stop_reason}
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  disabled={strategy.status === "stopped"}
+                  size="sm"
+                  className="flex items-center gap-2.5 rounded-md px-2.5 py-1"
+                >
+                  {strategy.status === "running" && (
+                    <SvgIcon name={StrategyStatus} className="size-4" />
+                  )}
+                  <p className="font-medium text-gray-700 text-sm">
+                    {strategy.status === "running" ? "Running" : "Stopped"}
+                  </p>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Stop Trading Strategy?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Stopping the strategy "{strategy.strategy_name}" will stop
+                    it immediately and trigger a forced liquidation. Do you want
+                    to proceed?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={onStop}>
+                    Confirm Stop
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
