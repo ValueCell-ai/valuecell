@@ -17,6 +17,64 @@ success(){ echo "[ OK ]  $*"; }
 warn()  { echo "[WARN]  $*"; }
 error() { echo "[ERR ]  $*" 1>&2; }
 
+# Get system config directory (must match Python's get_system_env_dir)
+get_system_config_dir() {
+  case "$(uname -s)" in
+    Darwin)
+      echo "$HOME/Library/Application Support/ValueCell"
+      ;;
+    Linux)
+      echo "$HOME/.config/valuecell"
+      ;;
+    *)
+      echo "$HOME/.config/valuecell"
+      ;;
+  esac
+}
+
+# Get port file path
+get_port_file_path() {
+  echo "$(get_system_config_dir)/backend.port"
+}
+
+# Read backend port from port file
+read_backend_port() {
+  local port_file
+  port_file="$(get_port_file_path)"
+  if [[ -f "$port_file" ]]; then
+    cat "$port_file" 2>/dev/null || echo ""
+  else
+    echo ""
+  fi
+}
+
+# Wait for port file and return the port
+wait_for_port_file() {
+  local timeout=${1:-30}
+  local port_file
+  port_file="$(get_port_file_path)"
+  local elapsed=0
+  
+  info "Waiting for backend port file..."
+  while [[ ! -f "$port_file" ]] && (( elapsed < timeout )); do
+    sleep 0.5
+    elapsed=$((elapsed + 1))
+  done
+  
+  if [[ -f "$port_file" ]]; then
+    local port
+    port=$(cat "$port_file" 2>/dev/null)
+    if [[ -n "$port" ]]; then
+      success "Backend started on port: $port"
+      echo "$port"
+      return 0
+    fi
+  fi
+  
+  error "Timeout waiting for backend port file"
+  return 1
+}
+
 command_exists() { command -v "$1" >/dev/null 2>&1; }
 
 ensure_brew_on_macos() {
@@ -101,16 +159,32 @@ start_backend() {
     warn "Backend directory not found; skipping backend start"
     return 0
   fi
-  info "Starting backend in debug mode (AGENT_DEBUG_MODE=true)..."
-  cd "$PY_DIR" && AGENT_DEBUG_MODE=true uv run python -m valuecell.server.main
+  
+  # Remove stale port file
+  local port_file
+  port_file="$(get_port_file_path)"
+  rm -f "$port_file" 2>/dev/null || true
+  
+  info "Starting backend in debug mode (AGENT_DEBUG_MODE=true, API_PORT=auto)..."
+  cd "$PY_DIR" && AGENT_DEBUG_MODE=true API_PORT=auto uv run python -m valuecell.server.main
 }
 
 start_frontend() {
+  local backend_port="${1:-}"
+  
   if [[ ! -d "$FRONTEND_DIR" ]]; then
     warn "Frontend directory not found; skipping frontend start"
     return 0
   fi
+  
   info "Starting frontend dev server (bun run dev)..."
+  
+  # If backend port is provided, set VITE_API_BASE_URL for the frontend
+  if [[ -n "$backend_port" ]]; then
+    info "Setting VITE_API_BASE_URL to http://localhost:$backend_port"
+    export VITE_API_BASE_URL="http://localhost:$backend_port"
+  fi
+  
   (
     cd "$FRONTEND_DIR" && bun run dev
   ) & FRONTEND_PID=$!
@@ -171,13 +245,28 @@ main() {
 
   compile
 
-  if (( start_frontend_flag )); then
-    start_frontend
-  fi
-  sleep 5  # Give frontend a moment to start
+  local backend_port=""
 
+  # Start backend first (in background if frontend is also starting)
   if (( start_backend_flag )); then
-    start_backend
+    if (( start_frontend_flag )); then
+      # Start backend in background and wait for port file
+      (start_backend) &
+      BACKEND_PID=$!
+      
+      # Wait for port file to appear
+      backend_port=$(wait_for_port_file 30) || {
+        error "Failed to start backend"
+        exit 1
+      }
+    else
+      # Only backend, run in foreground
+      start_backend
+    fi
+  fi
+
+  if (( start_frontend_flag )); then
+    start_frontend "$backend_port"
   fi
 
   # Wait for background jobs

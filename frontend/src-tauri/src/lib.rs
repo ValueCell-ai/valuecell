@@ -1,7 +1,19 @@
 mod backend;
 
 use backend::BackendManager;
-use tauri::Manager;
+use tauri::{Manager, State};
+
+/// Get the backend URL that the frontend should connect to
+#[tauri::command]
+fn get_backend_url(manager: State<BackendManager>) -> Option<String> {
+    manager.get_backend_url()
+}
+
+/// Get the backend port
+#[tauri::command]
+fn get_backend_port(manager: State<BackendManager>) -> Option<u16> {
+    manager.get_port()
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -42,6 +54,7 @@ pub fn run() {
 
             Ok(())
         })
+        .invoke_handler(tauri::generate_handler![get_backend_url, get_backend_port])
         .on_window_event(|window, event| {
             // Handle window close events to ensure proper cleanup
             if let tauri::WindowEvent::Destroyed = event {

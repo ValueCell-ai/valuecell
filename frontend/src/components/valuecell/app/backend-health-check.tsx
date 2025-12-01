@@ -4,14 +4,23 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import { useBackendHealth } from "@/api/system";
 import { Button } from "@/components/ui/button";
+import { initBackendUrl } from "@/lib/api-client";
 
 export function BackendHealthCheck({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const [backendUrlInitialized, setBackendUrlInitialized] = useState(false);
   const { isError, refetch, isFetching, isSuccess } = useBackendHealth();
   const [showError, setShowError] = useState(false);
+
+  // Initialize backend URL from Tauri on mount
+  useEffect(() => {
+    initBackendUrl().finally(() => {
+      setBackendUrlInitialized(true);
+    });
+  }, []);
 
   // Debounce showing the error screen to avoid flickering on initial load or brief network blips
   useEffect(() => {
@@ -24,7 +33,8 @@ export function BackendHealthCheck({
     return () => clearTimeout(timer);
   }, [isError]);
 
-  if (isSuccess && !showError) {
+  // Don't render children until backend URL is initialized and health check succeeds
+  if (backendUrlInitialized && isSuccess && !showError) {
     return <>{children}</>;
   }
 

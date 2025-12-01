@@ -18,6 +18,64 @@ $PY_DIR = Join-Path $SCRIPT_DIR "python"
 $BACKEND_PROCESS = $null
 $FRONTEND_PROCESS = $null
 
+# Port file name (must match Python's PORT_FILE_NAME)
+$PORT_FILE_NAME = "backend.port"
+
+# Get system config directory (must match Python's get_system_env_dir)
+function Get-SystemConfigDir {
+    $appData = $env:APPDATA
+    if ($appData) {
+        return Join-Path $appData "ValueCell"
+    }
+    return Join-Path $env:USERPROFILE "AppData\Roaming\ValueCell"
+}
+
+# Get port file path
+function Get-PortFilePath {
+    return Join-Path (Get-SystemConfigDir) $PORT_FILE_NAME
+}
+
+# Read backend port from port file
+function Read-BackendPort {
+    $portFile = Get-PortFilePath
+    if (Test-Path $portFile) {
+        $content = Get-Content $portFile -Raw -ErrorAction SilentlyContinue
+        if ($content) {
+            return $content.Trim()
+        }
+    }
+    return $null
+}
+
+# Wait for port file and return the port
+function Wait-ForPortFile {
+    param(
+        [int]$TimeoutSeconds = 30
+    )
+    
+    $portFile = Get-PortFilePath
+    $elapsed = 0
+    
+    Write-Info "Waiting for backend port file..."
+    
+    while ((-not (Test-Path $portFile)) -and ($elapsed -lt $TimeoutSeconds)) {
+        Start-Sleep -Milliseconds 500
+        $elapsed++
+    }
+    
+    if (Test-Path $portFile) {
+        $port = Get-Content $portFile -Raw -ErrorAction SilentlyContinue
+        if ($port) {
+            $port = $port.Trim()
+            Write-Success "Backend started on port: $port"
+            return $port
+        }
+    }
+    
+    Write-Err "Timeout waiting for backend port file"
+    return $null
+}
+
 # Color output functions
 function Write-Info($message) {
     Write-Host "[INFO]  $message" -ForegroundColor Cyan
@@ -156,31 +214,67 @@ function Compile {
 }
 
 function Start-Backend {
+    param(
+        [switch]$AsJob
+    )
+    
     if (-not (Test-Path $PY_DIR)) {
         Write-Warn "Backend directory not found; skipping backend start"
         return
     }
     
-    Write-Info "Starting backend in debug mode (AGENT_DEBUG_MODE=true)..."
-    Push-Location $PY_DIR
-    try {
-        # Set debug mode for local development
-        $env:AGENT_DEBUG_MODE = "true"
-        & uv run python -m valuecell.server.main
-    } catch {
-        Write-Err "Failed to start backend: $_"
-    } finally {
-        Pop-Location
+    # Remove stale port file
+    $portFile = Get-PortFilePath
+    if (Test-Path $portFile) {
+        Remove-Item $portFile -Force -ErrorAction SilentlyContinue
+    }
+    
+    Write-Info "Starting backend in debug mode (AGENT_DEBUG_MODE=true, API_PORT=auto)..."
+    
+    if ($AsJob) {
+        # Start as background job
+        $script:BACKEND_PROCESS = Start-Process -FilePath "uv" `
+            -ArgumentList "run", "python", "-m", "valuecell.server.main" `
+            -WorkingDirectory $PY_DIR `
+            -NoNewWindow -PassThru `
+            -Environment @{
+                "AGENT_DEBUG_MODE" = "true"
+                "API_PORT" = "auto"
+            }
+        Write-Info "Backend PID: $($script:BACKEND_PROCESS.Id)"
+    } else {
+        Push-Location $PY_DIR
+        try {
+            # Set debug mode and auto port for local development
+            $env:AGENT_DEBUG_MODE = "true"
+            $env:API_PORT = "auto"
+            & uv run python -m valuecell.server.main
+        } catch {
+            Write-Err "Failed to start backend: $_"
+        } finally {
+            Pop-Location
+        }
     }
 }
 
 function Start-Frontend {
+    param(
+        [string]$BackendPort
+    )
+    
     if (-not (Test-Path $FRONTEND_DIR)) {
         Write-Warn "Frontend directory not found; skipping frontend start"
         return
     }
     
     Write-Info "Starting frontend dev server (bun run dev)..."
+    
+    # If backend port is provided, set VITE_API_BASE_URL for the frontend
+    if ($BackendPort) {
+        Write-Info "Setting VITE_API_BASE_URL to http://localhost:$BackendPort"
+        $env:VITE_API_BASE_URL = "http://localhost:$BackendPort"
+    }
+    
     Push-Location $FRONTEND_DIR
     try {
         # Try to find the actual bun.exe first
@@ -279,14 +373,31 @@ try {
     # Compile/install dependencies
     Compile
 
-    # Start services based on flags
-    if (-not $NoFrontend) {
-        Start-Frontend
-        Start-Sleep -Seconds 5  # Give frontend a moment to start
+    $backendPort = $null
+
+    # Start backend first (in background if frontend is also starting)
+    if (-not $NoBackend) {
+        if (-not $NoFrontend) {
+            # Start backend in background and wait for port file
+            Start-Backend -AsJob
+            Start-Sleep -Seconds 2  # Give backend a moment to start writing port file
+            
+            # Wait for port file to appear
+            $backendPort = Wait-ForPortFile -TimeoutSeconds 30
+            if (-not $backendPort) {
+                Write-Err "Failed to start backend"
+                exit 1
+            }
+        } else {
+            # Only backend, run in foreground
+            Start-Backend
+        }
     }
 
-    if (-not $NoBackend) {
-        Start-Backend
+    # Start frontend with discovered backend port
+    if (-not $NoFrontend) {
+        Start-Frontend -BackendPort $backendPort
+        Start-Sleep -Seconds 5  # Give frontend a moment to start
     }
 
     # If frontend is running, wait for it
