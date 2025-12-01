@@ -110,14 +110,27 @@ class StrategyService:
         if not snapshot:
             return None
 
-        ts = snapshot.snapshot_ts or datetime.utcnow()
+        first_snapshot = repo.get_first_portfolio_snapshot(strategy_id)
+        if not first_snapshot:
+            return None
+
+        ts = snapshot.snapshot_ts or datetime.now(datetime.timezone.utc)
+        total_value = _to_optional_float(snapshot.total_value)
+        total_pnl = StrategyService._combine_realized_unrealized(snapshot)
+        total_pnl_pct = (
+            total_pnl / (total_value - total_pnl) if total_pnl is not None else 0.0
+        )
+        if baseline := _to_optional_float(first_snapshot.total_value):
+            total_pnl = total_value - baseline
+            total_pnl_pct = total_pnl / baseline
 
         return StrategyPortfolioSummaryData(
             strategy_id=strategy_id,
             ts=int(ts.timestamp() * 1000),
             cash=_to_optional_float(snapshot.cash),
-            total_value=_to_optional_float(snapshot.total_value),
-            total_pnl=StrategyService._combine_realized_unrealized(snapshot),
+            total_value=total_value,
+            total_pnl=total_pnl,
+            total_pnl_pct=total_pnl_pct,
             gross_exposure=_to_optional_float(
                 getattr(snapshot, "gross_exposure", None)
             ),

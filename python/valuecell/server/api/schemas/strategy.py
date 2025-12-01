@@ -32,10 +32,8 @@ class StrategySummaryData(BaseModel):
     trading_mode: Optional[Literal["live", "virtual"]] = Field(
         None, description="Trading mode: live or virtual"
     )
-    unrealized_pnl: Optional[float] = Field(None, description="Unrealized PnL value")
-    unrealized_pnl_pct: Optional[float] = Field(
-        None, description="Unrealized PnL percentage"
-    )
+    total_pnl: Optional[float] = Field(None, description="Total PnL value")
+    total_pnl_pct: Optional[float] = Field(None, description="Total PnL percentage")
     created_at: Optional[datetime] = Field(None, description="Creation timestamp")
     exchange_id: Optional[str] = Field(
         None, description="Associated exchange identifier"
@@ -116,6 +114,9 @@ class StrategyPortfolioSummaryData(BaseModel):
     total_pnl: Optional[float] = Field(
         None,
         description="Combined realized and unrealized PnL for the snapshot",
+    )
+    total_pnl_pct: Optional[float] = Field(
+        None, description="Total PnL percentage for the snapshot"
     )
     gross_exposure: Optional[float] = Field(
         None, description="Aggregate gross exposure at snapshot"

@@ -231,7 +231,7 @@ class StrategyRepository:
                 session.close()
 
     def get_portfolio_snapshots(
-        self, strategy_id: str, limit: Optional[int] = None
+        self, strategy_id: str, limit: Optional[int] = None, descending: bool = True
     ) -> List[StrategyPortfolioView]:
         """Get aggregated portfolio snapshots for a strategy ordered by snapshot_ts desc."""
         session = self._get_session()
@@ -239,7 +239,11 @@ class StrategyRepository:
             query = (
                 session.query(StrategyPortfolioView)
                 .filter(StrategyPortfolioView.strategy_id == strategy_id)
-                .order_by(desc(StrategyPortfolioView.snapshot_ts))
+                .order_by(
+                    desc(StrategyPortfolioView.snapshot_ts)
+                    if descending
+                    else asc(StrategyPortfolioView.snapshot_ts)
+                )
             )
             if limit:
                 query = query.limit(limit)
@@ -276,6 +280,13 @@ class StrategyRepository:
     ) -> Optional[StrategyPortfolioView]:
         """Convenience: return the most recent portfolio snapshot or None."""
         items = self.get_portfolio_snapshots(strategy_id, limit=1)
+        return items[0] if items else None
+
+    def get_earliest_portfolio_snapshot(
+        self, strategy_id: str
+    ) -> Optional[StrategyPortfolioView]:
+        """Convenience: return the earliest portfolio snapshot or None."""
+        items = self.get_portfolio_snapshots(strategy_id, limit=1, descending=False)
         return items[0] if items else None
 
     def get_holdings_by_snapshot(

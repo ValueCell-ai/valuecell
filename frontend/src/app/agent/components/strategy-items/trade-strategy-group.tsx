@@ -50,7 +50,7 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
   onDelete,
 }) => {
   const stockColors = useStockColors();
-  const changeType = getChangeType(strategy.unrealized_pnl_pct);
+  const changeType = getChangeType(strategy.total_pnl_pct);
   return (
     <div
       onClick={onClick}
@@ -93,8 +93,8 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
           className="font-medium text-sm"
           style={{ color: stockColors[changeType] }}
         >
-          {formatChange(strategy.unrealized_pnl, "", 2)} (
-          {formatChange(strategy.unrealized_pnl_pct, "%", 2)})
+          {formatChange(strategy.total_pnl, "", 2)} (
+          {formatChange(strategy.total_pnl_pct, "%", 2)})
         </p>
 
         {/* Status Badge */}
