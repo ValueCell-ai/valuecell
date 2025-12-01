@@ -14,7 +14,15 @@ pub fn run() {
             }
 
             let _ = window.show();
+            let _ = window.set_always_on_top(true);
             let _ = window.set_focus();
+
+            let w = window.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_millis(100));
+                let _ = w.set_always_on_top(false);
+                let _ = w.set_focus();
+            });
         }))
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_store::Builder::new().build())
