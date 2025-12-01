@@ -56,10 +56,11 @@ const SharePortfolioModal: FC<{
       });
 
       await capture.download({
-        filename: `valuecell-portfolio-${Date.now()}`,
+        filename: `valuecell-${Date.now()}`,
         type: "png",
       });
 
+      setOpen(false);
       toast.success("Image downloaded in your Downloads folder");
     } catch (err) {
       toast.error(`Failed to download image: ${JSON.stringify(err)}`);
