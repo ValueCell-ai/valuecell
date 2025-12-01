@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { API_QUERY_KEYS } from "@/constants/api";
 import type { ApiResponse } from "@/lib/api-client";
 import { apiClient } from "@/lib/api-client";
@@ -163,4 +168,62 @@ export const useSetDefaultProviderModel = () => {
       });
     },
   });
+};
+
+/**
+ * Hook to get model providers sorted by API key availability.
+ * Providers with API keys configured appear first.
+ */
+export const useGetSortedModelProviders = () => {
+  const { data: modelProviders = [], isLoading: isLoadingProviders } =
+    useGetModelProviders();
+
+  const providerDetailsQueries = useQueries({
+    queries: modelProviders.map((p) => ({
+      queryKey: API_QUERY_KEYS.SETTING.modelProviderDetail([p.provider]),
+      queryFn: () =>
+        apiClient.get<ApiResponse<ProviderDetail>>(
+          `/models/providers/${p.provider}`,
+        ),
+      select: (data: ApiResponse<ProviderDetail>) => ({
+        provider: p.provider,
+        hasApiKey: !!data.data?.api_key,
+      }),
+      staleTime: 5 * 60 * 1000,
+    })),
+  });
+
+  const isLoadingDetails =
+    providerDetailsQueries.length > 0 &&
+    providerDetailsQueries.some((q) => q.isLoading);
+
+  const isLoading = isLoadingProviders || isLoadingDetails;
+
+  const sortedProviders = (() => {
+    if (isLoading) return [];
+
+    const apiKeyMap = new Map<string, boolean>();
+    for (const query of providerDetailsQueries) {
+      if (query.data) {
+        apiKeyMap.set(query.data.provider, query.data.hasApiKey);
+      }
+    }
+
+    return [...modelProviders].sort((a, b) => {
+      const aHasKey = apiKeyMap.get(a.provider) ?? false;
+      const bHasKey = apiKeyMap.get(b.provider) ?? false;
+      if (aHasKey && !bHasKey) return -1;
+      if (!aHasKey && bHasKey) return 1;
+      return 0;
+    });
+  })();
+
+  const defaultProvider =
+    sortedProviders.length > 0 ? sortedProviders[0].provider : "";
+
+  return {
+    providers: sortedProviders,
+    defaultProvider,
+    isLoading,
+  };
 };
