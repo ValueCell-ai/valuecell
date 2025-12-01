@@ -67,6 +67,10 @@ class PaperExecutionGateway(BaseExecutionGateway):
 
         return results
 
+    async def test_connection(self) -> bool:
+        """Test connection for paper trading (always successful)."""
+        return True
+
     async def close(self) -> None:
         """No-op close for paper gateway (nothing to cleanup)."""
         return None
