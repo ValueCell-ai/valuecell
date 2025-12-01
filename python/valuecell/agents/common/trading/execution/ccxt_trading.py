@@ -1372,6 +1372,8 @@ async def create_ccxt_gateway(
     api_key: str,
     secret_key: str,
     passphrase: Optional[str] = None,
+    wallet_address: Optional[str] = None,
+    private_key: Optional[str] = None,
     testnet: bool = False,
     market_type: str = "swap",
     margin_mode: str = "cross",
@@ -1381,10 +1383,12 @@ async def create_ccxt_gateway(
     """Factory function to create and initialize a CCXT execution gateway.
 
     Args:
-        exchange_id: Exchange identifier (e.g., 'binance', 'okx', 'bybit')
-        api_key: API key for authentication
-        secret_key: Secret key for authentication
+        exchange_id: Exchange identifier (e.g., 'binance', 'okx', 'bybit', 'hyperliquid')
+        api_key: API key for authentication (not required for Hyperliquid)
+        secret_key: Secret key for authentication (not required for Hyperliquid)
         passphrase: Optional passphrase (required for OKX)
+        wallet_address: Wallet address (required for Hyperliquid)
+        private_key: Private key (required for Hyperliquid)
         testnet: Whether to use testnet/sandbox mode
         market_type: Market type ('spot', 'future', 'swap')
         margin_mode: Margin mode ('isolated' or 'cross')
@@ -1410,6 +1414,8 @@ async def create_ccxt_gateway(
         api_key=api_key,
         secret_key=secret_key,
         passphrase=passphrase,
+        wallet_address=wallet_address,
+        private_key=private_key,
         testnet=testnet,
         default_type=market_type,
         margin_mode=margin_mode,
