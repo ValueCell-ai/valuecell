@@ -1,6 +1,9 @@
 import { useStore } from "@tanstack/react-form";
 import { useEffect } from "react";
-import { useGetModelProviderDetail, useGetModelProviders } from "@/api/setting";
+import {
+  useGetModelProviderDetail,
+  useGetSortedModelProviders,
+} from "@/api/setting";
 import { FieldGroup } from "@/components/ui/field";
 import { SelectItem } from "@/components/ui/select";
 import PngIcon from "@/components/valuecell/icon/png-icon";
@@ -15,10 +18,24 @@ export const AIModelForm = withForm({
   },
 
   render({ form }) {
-    const { data: modelProviders = [], isLoading: isLoadingModelProviders } =
-      useGetModelProviders();
+    const {
+      providers: sortedProviders,
+      defaultProvider,
+      isLoading: isLoadingProviders,
+    } = useGetSortedModelProviders();
+
     const provider = useStore(form.store, (state) => state.values.provider);
     const { data: modelProviderDetail } = useGetModelProviderDetail(provider);
+
+    // Set the default provider once loaded and provider is not yet selected
+    useEffect(() => {
+      if (isLoadingProviders) return;
+      if (!defaultProvider) return;
+      // Only set if provider field is empty (not yet selected by user)
+      if (!provider) {
+        form.setFieldValue("provider", defaultProvider);
+      }
+    }, [isLoadingProviders, defaultProvider, provider]);
 
     useEffect(() => {
       if (!modelProviderDetail) return;
@@ -30,19 +47,16 @@ export const AIModelForm = withForm({
       form.setFieldValue("api_key", modelProviderDetail.api_key ?? "");
     }, [modelProviderDetail]);
 
-    if (isLoadingModelProviders) return <div>Loading...</div>;
+    if (isLoadingProviders) {
+      return <div>Loading...</div>;
+    }
 
     return (
       <FieldGroup className="gap-6">
-        <form.AppField
-          name="provider"
-          defaultValue={
-            modelProviders.length > 0 ? modelProviders[0].provider : ""
-          }
-        >
+        <form.AppField name="provider" defaultValue={defaultProvider}>
           {(field) => (
             <field.SelectField label="Model Platform">
-              {modelProviders.map(({ provider }) => (
+              {sortedProviders.map(({ provider }) => (
                 <SelectItem key={provider} value={provider}>
                   <div className="flex items-center gap-2">
                     <PngIcon
