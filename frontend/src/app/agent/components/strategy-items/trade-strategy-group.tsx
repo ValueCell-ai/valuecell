@@ -102,16 +102,7 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
           {strategy.status === "stopped" && strategy.stop_reason ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="inline-flex cursor-default">
-                  <Button
-                    variant="ghost"
-                    disabled
-                    size="sm"
-                    className="pointer-events-none flex items-center gap-2.5 rounded-md px-2.5 py-1"
-                  >
-                    <p className="font-medium text-gray-700 text-sm">Stopped</p>
-                  </Button>
-                </span>
+                <p className="font-medium text-gray-400 text-sm">Stopped</p>
               </TooltipTrigger>
               <TooltipContent side="top" className="max-w-xs break-words">
                 {strategy.stop_reason}
