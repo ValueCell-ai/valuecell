@@ -117,9 +117,12 @@ class StrategyService:
         ts = snapshot.snapshot_ts or datetime.now(datetime.timezone.utc)
         total_value = _to_optional_float(snapshot.total_value)
         total_pnl = StrategyService._combine_realized_unrealized(snapshot)
-        total_pnl_pct = None
+        total_pnl_pct = (
+            total_pnl / (total_value - total_pnl) if total_pnl is not None else 0.0
+        )
         if baseline := _to_optional_float(first_snapshot.total_value):
-            total_pnl_pct = (total_pnl / baseline) if baseline else None
+            total_pnl = total_value - baseline
+            total_pnl_pct = total_pnl / baseline
 
         return StrategyPortfolioSummaryData(
             strategy_id=strategy_id,
