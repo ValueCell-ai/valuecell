@@ -29,7 +29,7 @@ import { getChangeType, numberFixed } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
 
 export default function RankBoard() {
-  const [days, setDays] = useState(1);
+  const [days, setDays] = useState(7);
   const [selectedStrategyId, setSelectedStrategyId] = useState<number | null>(
     null,
   );
@@ -61,9 +61,8 @@ export default function RankBoard() {
             onValueChange={(val) => setDays(Number(val))}
           >
             <TabsList>
-              <TabsTrigger value="1">1D</TabsTrigger>
-              <TabsTrigger value="3">3D</TabsTrigger>
-              <TabsTrigger value="7">1W</TabsTrigger>
+              <TabsTrigger value="7">7D</TabsTrigger>
+              <TabsTrigger value="30">1M</TabsTrigger>
             </TabsList>
           </Tabs>
         </CardHeader>
