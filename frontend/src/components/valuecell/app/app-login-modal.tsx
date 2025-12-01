@@ -1,3 +1,4 @@
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { onOpenUrl } from "@tauri-apps/plugin-deep-link";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -68,6 +69,11 @@ export default function AppLoginModal({ children }: AppLoginModalProps) {
         clearLoginHandlers();
 
         if (urls.length > 0) {
+          const app_window = getCurrentWindow();
+          if (await app_window.isMinimized()) {
+            await app_window.unminimize();
+          }
+          await app_window.setFocus();
           const params = new URLSearchParams(urls[0].split("?")[1]);
           const access_token = params.get("access_token");
           const refresh_token = params.get("refresh_token");
