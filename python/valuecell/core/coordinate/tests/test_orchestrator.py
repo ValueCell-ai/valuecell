@@ -511,9 +511,13 @@ async def test_super_agent_answer_short_circuits_planner(
         enriched_query=None,
         reason="Handled directly",
     )
+
+    async def _run(user_input):
+        yield outcome
+
     orchestrator.super_agent_service = SimpleNamespace(
         name="ValueCellAgent",
-        run=AsyncMock(return_value=outcome),
+        run=_run,
     )
 
     user_input = UserInput(

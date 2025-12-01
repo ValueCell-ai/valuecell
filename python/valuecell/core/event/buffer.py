@@ -111,10 +111,19 @@ class ResponseBuffer:
         stable paragraph `item_id` to resp.data.item_id so the frontend and
         storage layer can correlate incremental chunks with the final saved
         conversation item.
+
+        For REASONING events, if the caller has already set an item_id, it is
+        preserved to allow correlation of reasoning_started/reasoning/reasoning_completed.
+        MESSAGE_CHUNK events always use the buffer to get a stable paragraph item_id.
         """
         data: UnifiedResponseData = resp.data
         ev = resp.event
         if ev in self._buffered_events:
+            # For REASONING events, trust the caller's item_id (set by orchestrator)
+            # and skip buffer-based id assignment. MESSAGE_CHUNK always uses buffer.
+            # TODO: consider when no item_id is set for REASONING, especially in remote agent calls
+            if ev == StreamResponseEvent.REASONING and data.item_id:
+                return resp
             key: BufferKey = (
                 data.conversation_id,
                 data.thread_id,

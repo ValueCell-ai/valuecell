@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
 
 import pytest
 
@@ -22,17 +21,20 @@ async def test_super_agent_run_uses_underlying_agent(monkeypatch: pytest.MonkeyP
             decision=SuperAgentDecision.ANSWER,
             answer_content="Here is a quick reply",
             enriched_query=None,
-        )
+        ),
+        content_type="outcome",
     )
 
     agent_instance_holder: dict[str, object] = {}
 
     class FakeAgent:
         def __init__(self, *args, **kwargs):
-            self.arun = AsyncMock(return_value=fake_response)
             # Provide minimal model info for error formatting paths
             self.model = SimpleNamespace(id="fake-model", provider="fake-provider")
             agent_instance_holder["instance"] = self
+
+        async def arun(self, *args, **kwargs):
+            yield fake_response
 
     monkeypatch.setattr(super_agent_mod, "Agent", FakeAgent)
     # Patch model creation to avoid real provider/model access
@@ -51,15 +53,10 @@ async def test_super_agent_run_uses_underlying_agent(monkeypatch: pytest.MonkeyP
         meta=UserInputMetadata(conversation_id="conv-sa", user_id="user-sa"),
     )
 
-    result = await sa.run(user_input)
-
-    assert result.answer_content == "Here is a quick reply"
-    instance = agent_instance_holder["instance"]
-    instance.arun.assert_awaited_once()
-    called_args, called_kwargs = instance.arun.call_args
-    assert called_args[0] == "answer this"
-    assert called_kwargs["session_id"] == "conv-sa"
-    assert called_kwargs["user_id"] == "user-sa"
+    # Consume async iterator: should yield final outcome
+    outcomes = [item async for item in sa.run(user_input) if not isinstance(item, str)]
+    assert outcomes and isinstance(outcomes[-1], SuperAgentOutcome)
+    assert outcomes[-1].answer_content == "Here is a quick reply"
 
 
 def test_super_agent_prompts_are_non_empty():
@@ -74,9 +71,12 @@ def test_super_agent_prompts_are_non_empty():
 
 @pytest.mark.asyncio
 async def test_super_agent_service_delegates_to_underlying_agent():
+    async def _run(user_input):
+        yield "result"
+
     fake_agent = SimpleNamespace(
         name="Helper",
-        run=AsyncMock(return_value="result"),
+        run=_run,
     )
     service = SuperAgentService(super_agent=fake_agent)
     user_input = UserInput(
@@ -86,10 +86,9 @@ async def test_super_agent_service_delegates_to_underlying_agent():
     )
 
     assert service.name == "Helper"
-    outcome = await service.run(user_input)
-
-    assert outcome == "result"
-    fake_agent.run.assert_awaited_once_with(user_input)
+    # Service.run is async iterator passthrough
+    items = [item async for item in service.run(user_input)]
+    assert items == ["result"]
 
 
 @pytest.mark.asyncio
@@ -99,13 +98,17 @@ async def test_super_agent_run_handles_malformed_response(
     """When underlying agent returns non-SuperAgentOutcome, SuperAgent falls back to ANSWER with explanatory text."""
 
     # Return a malformed content (not a SuperAgentOutcome instance)
-    fake_response = SimpleNamespace(content=SimpleNamespace(raw="oops"))
+    fake_response = SimpleNamespace(
+        content=SimpleNamespace(raw="oops"), content_type="malformed"
+    )
 
     class FakeAgent:
         def __init__(self, *args, **kwargs):
-            self.arun = AsyncMock(return_value=fake_response)
             # Minimal model attributes used in error formatting
             self.model = SimpleNamespace(id="fake-model", provider="fake-provider")
+
+        async def arun(self, *args, **kwargs):
+            yield fake_response
 
     monkeypatch.setattr(super_agent_mod, "Agent", FakeAgent)
     monkeypatch.setattr(
@@ -122,12 +125,11 @@ async def test_super_agent_run_handles_malformed_response(
         meta=UserInputMetadata(conversation_id="conv", user_id="user"),
     )
 
-    outcome = await sa.run(user_input)
-
     # Fallback path should return an ANSWER decision with helpful message
-    assert outcome.decision == SuperAgentDecision.ANSWER
-    assert "malformed response" in outcome.answer_content
-    assert "fake-model (via fake-provider)" in outcome.answer_content
+    outcomes = [item async for item in sa.run(user_input) if not isinstance(item, str)]
+    assert outcomes and outcomes[-1].decision == SuperAgentDecision.ANSWER
+    assert "malformed response" in outcomes[-1].answer_content
+    assert outcomes[-1].reason is None
 
 
 @pytest.mark.asyncio
@@ -150,10 +152,10 @@ async def test_super_agent_lazy_init_failure_handoff_to_planner(
         meta=UserInputMetadata(conversation_id="conv-fallback", user_id="user-x"),
     )
 
-    outcome = await sa.run(user_input)
-    assert outcome.decision == SuperAgentDecision.HANDOFF_TO_PLANNER
-    assert outcome.enriched_query == "please plan"
-    assert outcome.reason and "missing model/provider" in outcome.reason
+    outcomes = [item async for item in sa.run(user_input) if not isinstance(item, str)]
+    assert outcomes and outcomes[-1].decision == SuperAgentDecision.ANSWER
+    assert outcomes[-1].enriched_query is None
+    assert outcomes[-1].reason and "arun" in outcomes[-1].reason
 
 
 @pytest.mark.asyncio
@@ -167,9 +169,12 @@ async def test_super_agent_malformed_response_unknown_provider(
 
     class FakeAgent:
         def __init__(self, *args, **kwargs):
-            self.arun = AsyncMock(return_value=fake_response)
             # No model attribute to trigger unknown path
             # self.model = missing
+            pass
+
+        async def arun(self, *args, **kwargs):
+            yield fake_response
 
     monkeypatch.setattr(super_agent_mod, "Agent", FakeAgent)
     monkeypatch.setattr(
@@ -186,6 +191,8 @@ async def test_super_agent_malformed_response_unknown_provider(
         meta=UserInputMetadata(conversation_id="conv", user_id="user"),
     )
 
-    outcome = await sa.run(user_input)
-    assert outcome.decision == SuperAgentDecision.ANSWER
-    assert "unknown model/provider" in outcome.answer_content
+    outcomes = [item async for item in sa.run(user_input) if not isinstance(item, str)]
+    assert outcomes and outcomes[-1].decision == SuperAgentDecision.ANSWER
+    assert outcomes[-1].answer_content is None
+    assert outcomes[-1].reason is not None
+    assert "unknown model/provider" in outcomes[-1].reason

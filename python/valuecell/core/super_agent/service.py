@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import AsyncIterator
+
 from valuecell.core.types import UserInput
 
 from .core import SuperAgent, SuperAgentOutcome
@@ -17,5 +19,8 @@ class SuperAgentService:
     def name(self) -> str:
         return self._super_agent.name
 
-    async def run(self, user_input: UserInput) -> SuperAgentOutcome:
-        return await self._super_agent.run(user_input)
+    async def run(
+        self, user_input: UserInput
+    ) -> AsyncIterator[str | SuperAgentOutcome]:
+        async for item in self._super_agent.run(user_input):
+            yield item

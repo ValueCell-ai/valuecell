@@ -1,6 +1,6 @@
 import asyncio
 from enum import Enum
-from typing import Optional
+from typing import AsyncIterator, Optional
 
 from agno.agent import Agent
 from agno.db.in_memory import InMemoryDb
@@ -9,7 +9,6 @@ from pydantic import BaseModel, Field
 
 import valuecell.utils.model as model_utils_mod
 from valuecell.core.super_agent.prompts import (
-    SUPER_AGENT_EXPECTED_OUTPUT,
     SUPER_AGENT_INSTRUCTION,
 )
 from valuecell.core.types import UserInput
@@ -63,10 +62,11 @@ class SuperAgent:
 
             return Agent(
                 model=with_model,
+                parser_model=with_model,
                 markdown=False,
                 debug_mode=agent_debug_mode_enabled(),
                 instructions=[SUPER_AGENT_INSTRUCTION],
-                expected_output=SUPER_AGENT_EXPECTED_OUTPUT,
+                # expected_output=SUPER_AGENT_EXPECTED_OUTPUT,
                 output_schema=SuperAgentOutcome,
                 use_json_mode=model_utils_mod.model_should_use_json_mode(with_model),
                 db=InMemoryDb(),
@@ -129,13 +129,15 @@ class SuperAgent:
 
         return self.agent
 
-    async def run(self, user_input: UserInput) -> SuperAgentOutcome:
+    async def run(
+        self, user_input: UserInput
+    ) -> AsyncIterator[str | SuperAgentOutcome]:
         """Run super agent triage."""
         await asyncio.sleep(0)
         agent = self._get_or_init_agent()
         if agent is None:
             # Fallback: handoff directly to planner without super agent model
-            return SuperAgentOutcome(
+            yield SuperAgentOutcome(
                 decision=SuperAgentDecision.HANDOFF_TO_PLANNER,
                 enriched_query=user_input.query,
                 reason="SuperAgent unavailable: missing model/provider configuration",
@@ -147,29 +149,36 @@ class SuperAgent:
         except Exception:
             model_description = "unknown model/provider"
         try:
-            response = await agent.arun(
+            async for response in agent.arun(
                 user_input.query,
                 session_id=user_input.meta.conversation_id,
                 user_id=user_input.meta.user_id,
                 add_history_to_context=True,
-            )
+                stream=True,
+            ):
+                if response.content_type == "str":
+                    yield response.content
+                    continue
+
+                # Only process non-string content as final outcome
+                final_outcome = response.content
+                if not isinstance(final_outcome, SuperAgentOutcome):
+                    answer_content = (
+                        f"SuperAgent produced a malformed response: `{final_outcome}`. "
+                        f"Please check the capabilities of your model `{model_description}` and try again later."
+                    )
+                    final_outcome = SuperAgentOutcome(
+                        decision=SuperAgentDecision.ANSWER,
+                        answer_content=answer_content,
+                    )
+
+                yield final_outcome
+
         except Exception as e:
-            return SuperAgentOutcome(
+            yield SuperAgentOutcome(
                 decision=SuperAgentDecision.ANSWER,
                 reason=(
                     f"SuperAgent encountered an error: {e}."
                     f"Please check the capabilities of your model `{model_description}` and try again later."
                 ),
             )
-
-        outcome = response.content
-        if not isinstance(outcome, SuperAgentOutcome):
-            answer_content = (
-                f"SuperAgent produced a malformed response: `{outcome}`. "
-                f"Please check the capabilities of your model `{model_description}` and try again later."
-            )
-            outcome = SuperAgentOutcome(
-                decision=SuperAgentDecision.ANSWER,
-                answer_content=answer_content,
-            )
-        return outcome
