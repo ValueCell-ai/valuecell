@@ -142,9 +142,7 @@ class TestResponseBuffer:
         # MESSAGE_CHUNK without item_id triggers buffer creation
         response = BaseResponse(
             event=StreamResponseEvent.MESSAGE_CHUNK,
-            data=UnifiedResponseData(
-                conversation_id="conv-123", role=Role.USER
-            ),
+            data=UnifiedResponseData(conversation_id="conv-123", role=Role.USER),
         )
 
         result = buffer.annotate(response)
@@ -179,15 +177,11 @@ class TestResponseBuffer:
         buffer = ResponseBuffer()
         response1 = BaseResponse(
             event=StreamResponseEvent.MESSAGE_CHUNK,
-            data=UnifiedResponseData(
-                conversation_id="conv-123", role=Role.USER
-            ),
+            data=UnifiedResponseData(conversation_id="conv-123", role=Role.USER),
         )
         response2 = BaseResponse(
             event=StreamResponseEvent.MESSAGE_CHUNK,
-            data=UnifiedResponseData(
-                conversation_id="conv-123", role=Role.USER
-            ),
+            data=UnifiedResponseData(conversation_id="conv-123", role=Role.USER),
         )
 
         result1 = buffer.annotate(response1)
