@@ -27,6 +27,14 @@ export type TimeInput = string | number | Date | Dayjs;
 // biome-ignore lint/complexity/noStaticOnlyClass: need to be static
 export class TimeUtils {
   /**
+   * Get current local time
+   * @returns Current local time as Dayjs instance
+   */
+  static now(): Dayjs {
+    return dayjs();
+  }
+
+  /**
    * Get current UTC time
    * @returns Current UTC time as Dayjs instance
    */
