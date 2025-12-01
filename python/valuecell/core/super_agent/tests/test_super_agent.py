@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
 
 import pytest
 
@@ -74,6 +73,7 @@ def test_super_agent_prompts_are_non_empty():
 async def test_super_agent_service_delegates_to_underlying_agent():
     async def _run(user_input):
         yield "result"
+
     fake_agent = SimpleNamespace(
         name="Helper",
         run=_run,
@@ -98,7 +98,9 @@ async def test_super_agent_run_handles_malformed_response(
     """When underlying agent returns non-SuperAgentOutcome, SuperAgent falls back to ANSWER with explanatory text."""
 
     # Return a malformed content (not a SuperAgentOutcome instance)
-    fake_response = SimpleNamespace(content=SimpleNamespace(raw="oops"), content_type="malformed")
+    fake_response = SimpleNamespace(
+        content=SimpleNamespace(raw="oops"), content_type="malformed"
+    )
 
     class FakeAgent:
         def __init__(self, *args, **kwargs):
