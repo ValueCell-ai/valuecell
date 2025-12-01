@@ -121,6 +121,7 @@ class ResponseBuffer:
         if ev in self._buffered_events:
             # For REASONING events, trust the caller's item_id (set by orchestrator)
             # and skip buffer-based id assignment. MESSAGE_CHUNK always uses buffer.
+            # TODO: consider when no item_id is set for REASONING, especially in remote agent calls
             if ev == StreamResponseEvent.REASONING and data.item_id:
                 return resp
             key: BufferKey = (
