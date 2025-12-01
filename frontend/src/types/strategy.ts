@@ -7,8 +7,8 @@ export interface Strategy {
   status: "running" | "stopped";
   stop_reason?: string;
   trading_mode: "live" | "virtual";
-  unrealized_pnl: number;
-  unrealized_pnl_pct: number;
+  total_pnl: number;
+  total_pnl_pct: number;
   created_at: string;
   exchange_id: string;
   model_id: string;

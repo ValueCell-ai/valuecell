@@ -160,6 +160,18 @@ def create_strategy_router() -> APIRouter:
                         f"{stop_reason_detail if stop_reason_detail else ''}".strip()
                     ) or "..."
 
+                total_pnl, total_pnl_pct = 0.0, 0.0
+                if (
+                    portfolio_summary
+                    := await StrategyService.get_strategy_portfolio_summary(
+                        s.strategy_id
+                    )
+                ):
+                    total_pnl = to_optional_float(portfolio_summary.total_pnl) or 0.0
+                    total_pnl_pct = (
+                        to_optional_float(portfolio_summary.total_pnl_pct) or 0.0
+                    )
+
                 item = StrategySummaryData(
                     strategy_id=s.strategy_id,
                     strategy_name=s.name,
@@ -167,10 +179,8 @@ def create_strategy_router() -> APIRouter:
                     status=status,
                     stop_reason=stop_reason_display,
                     trading_mode=normalize_trading_mode(meta, cfg),
-                    unrealized_pnl=to_optional_float(meta.get("unrealized_pnl", 0.0)),
-                    unrealized_pnl_pct=to_optional_float(
-                        meta.get("unrealized_pnl_pct", 0.0)
-                    ),
+                    total_pnl=total_pnl,
+                    total_pnl_pct=total_pnl_pct,
                     created_at=s.created_at,
                     exchange_id=(meta.get("exchange_id") or cfg.get("exchange_id")),
                     model_id=(
