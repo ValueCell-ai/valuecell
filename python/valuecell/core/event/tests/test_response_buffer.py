@@ -139,17 +139,40 @@ class TestResponseBuffer:
     def test_annotate_buffered_event_new_buffer(self):
         """Test annotate with buffered event creating new buffer."""
         buffer = ResponseBuffer()
+        # MESSAGE_CHUNK without item_id triggers buffer creation
         response = BaseResponse(
-            event=StreamResponseEvent.REASONING,
+            event=StreamResponseEvent.MESSAGE_CHUNK,
             data=UnifiedResponseData(
-                conversation_id="conv-123", role=Role.USER, item_id="original-item-123"
+                conversation_id="conv-123", role=Role.USER
             ),
         )
 
         result = buffer.annotate(response)
 
-        # New behavior: preserve caller-provided item_id for buffered events
-        assert result.data.item_id == "original-item-123"
+        # Buffer should assign a stable item_id
+        assert result.data.item_id is not None
+
+        # Check buffer was created
+        key = ("conv-123", None, None, StreamResponseEvent.MESSAGE_CHUNK)
+        assert key in buffer._buffers
+        assert buffer._buffers[key].role == Role.USER
+
+    def test_annotate_reasoning_preserves_item_id(self):
+        """Test that REASONING events preserve caller-provided item_id."""
+        buffer = ResponseBuffer()
+        response = BaseResponse(
+            event=StreamResponseEvent.REASONING,
+            data=UnifiedResponseData(
+                conversation_id="conv-123", role=Role.AGENT, item_id="caller-item-id"
+            ),
+        )
+
+        result = buffer.annotate(response)
+
+        # Caller's item_id should be preserved
+        assert result.data.item_id == "caller-item-id"
+        # No buffer should be created for REASONING with item_id
+        assert len(buffer._buffers) == 0
 
     def test_annotate_buffered_event_existing_buffer(self):
         """Test annotate with buffered event using existing buffer."""
@@ -157,22 +180,23 @@ class TestResponseBuffer:
         response1 = BaseResponse(
             event=StreamResponseEvent.MESSAGE_CHUNK,
             data=UnifiedResponseData(
-                conversation_id="conv-123", role=Role.USER, item_id="original-item-123"
+                conversation_id="conv-123", role=Role.USER
             ),
         )
         response2 = BaseResponse(
             event=StreamResponseEvent.MESSAGE_CHUNK,
             data=UnifiedResponseData(
-                conversation_id="conv-123", role=Role.USER, item_id="original-item-456"
+                conversation_id="conv-123", role=Role.USER
             ),
         )
 
         result1 = buffer.annotate(response1)
         result2 = buffer.annotate(response2)
 
-        # New behavior: if caller sets item_id, do not override
-        assert result1.data.item_id == "original-item-123"
-        assert result2.data.item_id == "original-item-456"
+        # Both should get the same stable item_id from the buffer
+        assert result1.data.item_id == result2.data.item_id
+        # Only one buffer entry should exist
+        assert len(buffer._buffers) == 1
 
     @pytest.mark.asyncio
     async def test_ingest_immediate_event_message(self):
