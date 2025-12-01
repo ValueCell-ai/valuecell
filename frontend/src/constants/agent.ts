@@ -25,6 +25,7 @@ import {
 import {
   ChatConversationRenderer,
   MarkdownRenderer,
+  ReasoningRenderer,
   ReportRenderer,
   ScheduledTaskControllerRenderer,
   ScheduledTaskRenderer,
@@ -43,6 +44,7 @@ export const AGENT_MULTI_SECTION_COMPONENT_TYPE = ["report"] as const;
 // agent component type
 export const AGENT_COMPONENT_TYPE = [
   "markdown",
+  "reasoning",
   "tool_call",
   "subagent_conversation",
   "scheduled_task_controller",
@@ -59,6 +61,7 @@ export const COMPONENT_RENDERER_MAP: {
   scheduled_task_result: ScheduledTaskRenderer,
   scheduled_task_controller: ScheduledTaskControllerRenderer,
   report: ReportRenderer,
+  reasoning: ReasoningRenderer,
   markdown: MarkdownRenderer,
   tool_call: ToolCallRenderer,
   subagent_conversation: ChatConversationRenderer,

@@ -111,10 +111,16 @@ class ResponseBuffer:
         stable paragraph `item_id` to resp.data.item_id so the frontend and
         storage layer can correlate incremental chunks with the final saved
         conversation item.
+
+        If the response already has an item_id set, it is preserved to allow
+        callers to correlate related events (e.g., reasoning stream).
         """
         data: UnifiedResponseData = resp.data
         ev = resp.event
         if ev in self._buffered_events:
+            # Preserve existing item_id if already set by caller
+            if data.item_id:
+                return resp
             key: BufferKey = (
                 data.conversation_id,
                 data.thread_id,

@@ -60,11 +60,50 @@ function hasContent(
   return "payload" in item && "content" in item.payload;
 }
 
+// Mark a specific reasoning item as complete
+function markReasoningComplete(task: TaskView, itemId: string): void {
+  const existingIndex = task.items.findIndex((item) => item.item_id === itemId);
+  if (existingIndex >= 0 && hasContent(task.items[existingIndex])) {
+    try {
+      const parsed = JSON.parse(task.items[existingIndex].payload.content);
+      task.items[existingIndex].payload.content = JSON.stringify({
+        ...parsed,
+        isComplete: true,
+      });
+    } catch {
+      // If parsing fails, just mark as complete
+      task.items[existingIndex].payload.content = JSON.stringify({
+        content: task.items[existingIndex].payload.content,
+        isComplete: true,
+      });
+    }
+  }
+}
+
+// Mark all reasoning items in a task as complete
+function markAllReasoningComplete(task: TaskView): void {
+  for (const item of task.items) {
+    if (item.component_type === "reasoning" && hasContent(item)) {
+      try {
+        const parsed = JSON.parse(item.payload.content);
+        if (!parsed.isComplete) {
+          item.payload.content = JSON.stringify({
+            ...parsed,
+            isComplete: true,
+          });
+        }
+      } catch {
+        // Skip items that can't be parsed
+      }
+    }
+  }
+}
+
 // Helper function: add or update item in task
 function addOrUpdateItem(
   task: TaskView,
   newItem: ChatItem,
-  event: "append" | "replace",
+  event: "append" | "replace" | "append-reasoning",
 ): void {
   const existingIndex = task.items.findIndex(
     (item) => item.item_id === newItem.item_id,
@@ -79,6 +118,23 @@ function addOrUpdateItem(
   // Merge content for streaming events, replace for others
   if (event === "append" && hasContent(existingItem) && hasContent(newItem)) {
     existingItem.payload.content += newItem.payload.content;
+  } else if (
+    event === "append-reasoning" &&
+    hasContent(existingItem) &&
+    hasContent(newItem)
+  ) {
+    // Special handling for reasoning: parse JSON, append content, re-serialize
+    try {
+      const existingParsed = JSON.parse(existingItem.payload.content);
+      const newParsed = JSON.parse(newItem.payload.content);
+      existingItem.payload.content = JSON.stringify({
+        content: (existingParsed.content ?? "") + (newParsed.content ?? ""),
+        isComplete: newParsed.isComplete ?? false,
+      });
+    } catch {
+      // Fallback to replace if parsing fails
+      task.items[existingIndex] = newItem;
+    }
   } else {
     task.items[existingIndex] = newItem;
   }
@@ -88,7 +144,7 @@ function addOrUpdateItem(
 function handleChatItemEvent(
   draft: AgentConversationsStore,
   data: ChatItem,
-  event: "append" | "replace" = "append",
+  event: "append" | "replace" | "append-reasoning" = "append",
 ) {
   const { conversation, task } = ensurePath(draft, data);
 
@@ -144,13 +200,55 @@ function processSSEEvent(draft: AgentConversationsStore, sseData: SSEData) {
     case "thread_started":
     case "message_chunk":
     case "message":
-    case "reasoning":
     case "task_failed":
     case "plan_failed":
     case "plan_require_user_input":
       // Other events are set as markdown type
       handleChatItemEvent(draft, { component_type: "markdown", ...data });
       break;
+
+    case "reasoning":
+      // Reasoning is streaming content that needs to be appended (like message_chunk)
+      handleChatItemEvent(
+        draft,
+        {
+          component_type: "reasoning",
+          ...data,
+          payload: {
+            content: JSON.stringify({
+              content: data.payload.content,
+              isComplete: false,
+            }),
+          },
+        },
+        "append-reasoning",
+      );
+      break;
+
+    case "reasoning_started":
+      // Create initial reasoning item with empty content
+      handleChatItemEvent(
+        draft,
+        {
+          component_type: "reasoning",
+          ...data,
+          payload: {
+            content: JSON.stringify({
+              content: "",
+              isComplete: false,
+            }),
+          },
+        },
+        "replace",
+      );
+      break;
+
+    case "reasoning_completed": {
+      // Mark reasoning as complete
+      const { task } = ensurePath(draft, data);
+      markReasoningComplete(task, data.item_id);
+      break;
+    }
 
     case "tool_call_started":
     case "tool_call_completed": {
@@ -167,11 +265,6 @@ function processSSEEvent(draft: AgentConversationsStore, sseData: SSEData) {
       );
       break;
     }
-
-    case "reasoning_started":
-    case "reasoning_completed":
-      ensurePath(draft, data);
-      break;
 
     default:
       break;
@@ -211,6 +304,17 @@ export function batchUpdateAgentConversationsStore(
     // Process all new events
     for (const sseData of sseDataList) {
       processSSEEvent(draft, sseData);
+    }
+
+    // Mark all reasoning items as complete after loading history
+    // since the stream has already finished
+    const conversation = draft[conversationId];
+    if (conversation) {
+      for (const thread of Object.values(conversation.threads)) {
+        for (const task of Object.values(thread.tasks)) {
+          markAllReasoningComplete(task);
+        }
+      }
     }
   });
 }

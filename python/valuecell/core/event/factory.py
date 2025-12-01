@@ -507,6 +507,7 @@ class ResponseFactory:
         ],
         content: Optional[str] = None,
         agent_name: Optional[str] = None,
+        item_id: Optional[str] = None,
     ) -> ReasoningResponse:
         """Build a reasoning response used to convey model chain-of-thought.
 
@@ -516,6 +517,8 @@ class ResponseFactory:
             task_id: Task id.
             event: One of the reasoning-related stream events.
             content: Optional textual reasoning content.
+            agent_name: Name of the agent generating the reasoning.
+            item_id: Optional stable item id for correlating reasoning chunks.
 
         Returns:
             ReasoningResponse with optional payload.
@@ -529,6 +532,7 @@ class ResponseFactory:
                 payload=(BaseResponseDataPayload(content=content) if content else None),
                 role=Role.AGENT,
                 agent_name=agent_name,
+                item_id=item_id or generate_item_id(),
             ),
         )
 

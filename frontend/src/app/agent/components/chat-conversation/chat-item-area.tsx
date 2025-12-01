@@ -1,3 +1,4 @@
+import { parse } from "best-effort-json-parser";
 import { type FC, memo } from "react";
 import { UnknownRenderer } from "@/components/valuecell/renderer";
 import { COMPONENT_RENDERER_MAP } from "@/constants/agent";
@@ -43,6 +44,16 @@ const ChatItemArea: FC<ChatItemAreaProps> = ({ items }) => {
                 case "subagent_conversation":
                 case "scheduled_task_controller":
                   return <RendererComponent content={item.payload.content} />;
+
+                case "reasoning": {
+                  const parsed = parse(item.payload.content);
+                  return (
+                    <RendererComponent
+                      content={parsed?.content ?? ""}
+                      isComplete={parsed?.isComplete ?? false}
+                    />
+                  );
+                }
 
                 case "report":
                   return (

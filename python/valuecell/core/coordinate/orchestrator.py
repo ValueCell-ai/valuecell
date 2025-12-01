@@ -296,36 +296,59 @@ class AgentOrchestrator:
 
         # 1) Super Agent triage phase (pre-planning) - skip if target agent is specified
         if user_input.target_agent_name == self.super_agent_service.name:
-            # Emit tool-call STARTED for super agent triage
+            # Emit reasoning_started before streaming reasoning content
             sa_task_id = generate_task_id()
-            sa_tool_call_id = generate_uuid("toolcall")
-            sa_tool_name = "super_agent_triage"
+            sa_reasoning_item_id = generate_uuid("reasoning")
             yield await self.event_service.emit(
-                self.event_service.factory.tool_call(
+                self.event_service.factory.reasoning(
                     conversation_id,
                     thread_id,
                     task_id=sa_task_id,
-                    event=StreamResponseEvent.TOOL_CALL_STARTED,
-                    tool_call_id=sa_tool_call_id,
-                    tool_name=sa_tool_name,
-                )
+                    event=StreamResponseEvent.REASONING_STARTED,
+                    agent_name=self.super_agent_service.name,
+                    item_id=sa_reasoning_item_id,
+                ),
             )
 
-            super_outcome: SuperAgentOutcome = await self.super_agent_service.run(
-                user_input
-            )
+            # Stream reasoning content and collect final outcome
+            super_outcome: SuperAgentOutcome | None = None
+            async for item in self.super_agent_service.run(user_input):
+                if isinstance(item, str):
+                    # Yield reasoning chunk
+                    yield await self.event_service.emit(
+                        self.event_service.factory.reasoning(
+                            conversation_id,
+                            thread_id,
+                            task_id=sa_task_id,
+                            event=StreamResponseEvent.REASONING,
+                            content=item,
+                            agent_name=self.super_agent_service.name,
+                            item_id=sa_reasoning_item_id,
+                        ),
+                    )
+                else:
+                    # SuperAgentOutcome received
+                    super_outcome = item
 
+            # Emit reasoning_completed
             yield await self.event_service.emit(
-                self.event_service.factory.tool_call(
+                self.event_service.factory.reasoning(
                     conversation_id,
                     thread_id,
                     task_id=sa_task_id,
-                    event=StreamResponseEvent.TOOL_CALL_COMPLETED,
-                    tool_call_id=sa_tool_call_id,
-                    tool_name=sa_tool_name,
-                    tool_result=f"Decision: {super_outcome.decision.value}",
-                )
+                    event=StreamResponseEvent.REASONING_COMPLETED,
+                    agent_name=self.super_agent_service.name,
+                    item_id=sa_reasoning_item_id,
+                ),
             )
+
+            # Fallback if no outcome was received
+            if super_outcome is None:
+                super_outcome = SuperAgentOutcome(
+                    decision=SuperAgentDecision.HANDOFF_TO_PLANNER,
+                    enriched_query=user_input.query,
+                    reason="No outcome received from SuperAgent",
+                )
 
             if super_outcome.answer_content:
                 ans = self.event_service.factory.message_response_general(

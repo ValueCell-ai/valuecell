@@ -10,6 +10,9 @@ export type BaseRendererProps = {
 export type ReportRendererProps = BaseRendererProps & {
   isActive?: boolean;
 };
+export type ReasoningRendererProps = BaseRendererProps & {
+  isComplete?: boolean;
+};
 export type ScheduledTaskRendererProps = BaseRendererProps;
 export type ScheduledTaskControllerRendererProps = BaseRendererProps;
 export type MarkdownRendererProps = BaseRendererProps;
@@ -24,6 +27,7 @@ export type RendererPropsMap = {
   scheduled_task_result: ScheduledTaskRendererProps;
   scheduled_task_controller: ScheduledTaskControllerRendererProps;
   report: ReportRendererProps;
+  reasoning: ReasoningRendererProps;
   markdown: MarkdownRendererProps;
   tool_call: ToolCallRendererProps;
   subagent_conversation: ChatConversationRendererProps;
