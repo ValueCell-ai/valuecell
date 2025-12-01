@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Context, Result};
-use std::fs::{create_dir_all, OpenOptions};
+use std::fs::{self, create_dir_all, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -13,12 +13,23 @@ use tauri_plugin_shell::ShellExt;
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
 
+/// Port file name (must match Python's PORT_FILE_NAME)
+const PORT_FILE_NAME: &str = "backend.port";
+
+/// Maximum time to wait for port file (in milliseconds)
+const PORT_FILE_TIMEOUT_MS: u64 = 30000;
+
+/// Polling interval for port file (in milliseconds)
+const PORT_FILE_POLL_MS: u64 = 100;
+
 /// Backend process manager
 pub struct BackendManager {
     processes: Mutex<Vec<CommandChild>>,
     backend_path: PathBuf,
     log_dir: PathBuf,
     app: AppHandle,
+    /// The port the backend is listening on (discovered from port file)
+    port: Mutex<Option<u16>>,
 }
 
 const MAIN_MODULE: &str = "valuecell.server.main";
@@ -162,7 +173,82 @@ impl BackendManager {
             backend_path,
             log_dir,
             app,
+            port: Mutex::new(None),
         })
+    }
+
+    /// Get the system config directory path (must match Python's get_system_env_dir)
+    fn get_system_config_dir() -> PathBuf {
+        #[cfg(target_os = "macos")]
+        {
+            dirs::home_dir()
+                .map(|h| h.join("Library/Application Support/ValueCell"))
+                .unwrap_or_else(|| PathBuf::from("/tmp/ValueCell"))
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            std::env::var("APPDATA")
+                .map(PathBuf::from)
+                .map(|p| p.join("ValueCell"))
+                .unwrap_or_else(|_| {
+                    dirs::home_dir()
+                        .map(|h| h.join("AppData/Roaming/ValueCell"))
+                        .unwrap_or_else(|| PathBuf::from("C:\\ValueCell"))
+                })
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            dirs::home_dir()
+                .map(|h| h.join(".config/valuecell"))
+                .unwrap_or_else(|| PathBuf::from("/tmp/valuecell"))
+        }
+    }
+
+    /// Get the port file path
+    fn get_port_file_path() -> PathBuf {
+        Self::get_system_config_dir().join(PORT_FILE_NAME)
+    }
+
+    /// Read the backend port from the port file
+    fn read_port_file() -> Option<u16> {
+        let port_file = Self::get_port_file_path();
+        fs::read_to_string(&port_file)
+            .ok()
+            .and_then(|s| s.trim().parse::<u16>().ok())
+    }
+
+    /// Wait for the port file to appear and read the port
+    fn wait_for_port_file(&self) -> Result<u16> {
+        let start = std::time::Instant::now();
+        let timeout = Duration::from_millis(PORT_FILE_TIMEOUT_MS);
+
+        log::info!("Waiting for backend port file...");
+
+        while start.elapsed() < timeout {
+            if let Some(port) = Self::read_port_file() {
+                log::info!("Backend port discovered: {}", port);
+                return Ok(port);
+            }
+            std::thread::sleep(Duration::from_millis(PORT_FILE_POLL_MS));
+        }
+
+        Err(anyhow!(
+            "Timeout waiting for backend port file after {}ms",
+            PORT_FILE_TIMEOUT_MS
+        ))
+    }
+
+    /// Get the backend port (if discovered)
+    pub fn get_port(&self) -> Option<u16> {
+        *self.port.lock().unwrap()
+    }
+
+    /// Get the backend URL
+    pub fn get_backend_url(&self) -> Option<String> {
+        self.get_port()
+            .map(|port| format!("http://127.0.0.1:{}", port))
     }
 
     fn decide_index_url() -> bool {
@@ -232,6 +318,9 @@ impl BackendManager {
     pub fn start_all(&self) -> Result<()> {
         self.install_dependencies()?;
 
+        // Remove stale port file before starting
+        let _ = fs::remove_file(Self::get_port_file_path());
+
         let mut processes = self.processes.lock().unwrap();
 
         match self.spawn_backend_process() {
@@ -240,7 +329,25 @@ impl BackendManager {
                 log::info!("Process {} added to process list", child.pid());
                 processes.push(child);
             }
-            Err(e) => log::error!("Failed to start backend server: {}", e),
+            Err(e) => {
+                log::error!("Failed to start backend server: {}", e);
+                return Err(e);
+            }
+        }
+
+        // Release lock before waiting for port file
+        drop(processes);
+
+        // Wait for port file and store the discovered port
+        match self.wait_for_port_file() {
+            Ok(port) => {
+                *self.port.lock().unwrap() = Some(port);
+                log::info!("Backend started on port {}", port);
+            }
+            Err(e) => {
+                log::error!("Failed to discover backend port: {}", e);
+                return Err(e);
+            }
         }
 
         Ok(())

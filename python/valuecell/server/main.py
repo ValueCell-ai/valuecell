@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import socket
 import sys
 import threading
 from typing import Callable, Optional, TextIO
@@ -12,6 +13,11 @@ from loguru import logger
 
 from valuecell.server.api.app import create_app
 from valuecell.server.config.settings import get_settings
+from valuecell.utils.env import (
+    auto_port_enabled,
+    remove_port_file,
+    write_port_file,
+)
 
 EXIT_COMMAND: str = "__EXIT__"
 
@@ -20,6 +26,21 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 # Create app instance for uvicorn
 app = create_app()
+
+
+def find_available_port(host: str = "127.0.0.1") -> int:
+    """Find an available port by binding to port 0.
+
+    Args:
+        host: The host to bind to.
+
+    Returns:
+        An available port number.
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind((host, 0))
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return sock.getsockname()[1]
 
 
 def control_loop(
@@ -47,10 +68,22 @@ def main() -> None:
 
     settings = get_settings()
 
+    # Determine the port to use
+    if auto_port_enabled():
+        # Auto-allocate an available port
+        actual_port = find_available_port(settings.API_HOST)
+        logger.info("Auto-allocated port: {port}", port=actual_port)
+    else:
+        actual_port = settings.API_PORT
+
+    # Write port file for client discovery
+    port_file = write_port_file(actual_port)
+    logger.info("Port file written to: {path}", path=str(port_file))
+
     config = uvicorn.Config(
         app,
         host=settings.API_HOST,
-        port=settings.API_PORT,
+        port=actual_port,
         log_level="debug" if settings.API_DEBUG else "info",
     )
     server = uvicorn.Server(config)
@@ -81,6 +114,9 @@ def main() -> None:
         request_stop()
     finally:
         request_stop()
+        # Clean up port file on shutdown
+        remove_port_file()
+        logger.info("Port file removed")
 
 
 if __name__ == "__main__":

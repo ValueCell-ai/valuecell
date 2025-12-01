@@ -4,6 +4,46 @@ import { VALUECELL_BACKEND_URL } from "@/constants/api";
 import { useSystemStore } from "@/store/system-store";
 import type { SystemInfo } from "@/types/system";
 
+// Backend URL cache for Tauri app
+let cachedBackendUrl: string | null = null;
+
+/**
+ * Initialize backend URL from Tauri (call this on app startup)
+ */
+export async function initBackendUrl(): Promise<void> {
+  // Only in Tauri environment
+  if (typeof window !== "undefined" && "__TAURI__" in window) {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const url = await invoke<string | null>("get_backend_url");
+      if (url) {
+        cachedBackendUrl = url;
+        console.log("[API] Backend URL from Tauri:", cachedBackendUrl);
+      }
+    } catch (e) {
+      console.warn("[API] Failed to get backend URL from Tauri:", e);
+    }
+  }
+}
+
+/**
+ * Get the backend base URL
+ */
+export function getBackendBaseUrl(): string {
+  // 1. Check cached URL from Tauri
+  if (cachedBackendUrl) {
+    return cachedBackendUrl;
+  }
+
+  // 2. Check environment variable
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+
+  // 3. Default fallback for development
+  return "http://localhost:8000";
+}
+
 // API error type
 export class ApiError extends Error {
   public status: number;
@@ -33,7 +73,9 @@ export interface RequestConfig {
 export const getServerUrl = (endpoint: string) => {
   if (endpoint.startsWith("http")) return endpoint;
 
-  return `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1"}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+  const baseUrl = getBackendBaseUrl();
+  const apiBase = `${baseUrl}/api/v1`;
+  return `${apiBase}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
 };
 
 class ApiClient {
