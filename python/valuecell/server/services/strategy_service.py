@@ -130,7 +130,7 @@ class StrategyService:
             cash=_to_optional_float(snapshot.cash),
             total_value=total_value,
             total_pnl=total_pnl,
-            total_pnl_pct=total_pnl_pct,
+            total_pnl_pct=_to_optional_float(total_pnl_pct) * 100.0,
             gross_exposure=_to_optional_float(
                 getattr(snapshot, "gross_exposure", None)
             ),
