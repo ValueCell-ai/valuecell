@@ -9,6 +9,7 @@
     "core:default",
     "opener:default",
     "store:default",
-    "deep-link:default"
+    "deep-link:default",
+    "core:window:allow-set-focus"
   ]
 }
