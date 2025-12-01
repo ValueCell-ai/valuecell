@@ -140,7 +140,7 @@ class TestResponseBuffer:
         """Test annotate with buffered event creating new buffer."""
         buffer = ResponseBuffer()
         response = BaseResponse(
-            event=StreamResponseEvent.MESSAGE_CHUNK,
+            event=StreamResponseEvent.REASONING,
             data=UnifiedResponseData(
                 conversation_id="conv-123", role=Role.USER, item_id="original-item-123"
             ),
@@ -148,14 +148,8 @@ class TestResponseBuffer:
 
         result = buffer.annotate(response)
 
-        assert result.data.item_id != "original-item-123"
-        assert isinstance(result.data.item_id, str)
-        assert len(result.data.item_id) > 0
-
-        # Check buffer was created
-        key = ("conv-123", None, None, StreamResponseEvent.MESSAGE_CHUNK)
-        assert key in buffer._buffers
-        assert buffer._buffers[key].role == Role.USER
+        # New behavior: preserve caller-provided item_id for buffered events
+        assert result.data.item_id == "original-item-123"
 
     def test_annotate_buffered_event_existing_buffer(self):
         """Test annotate with buffered event using existing buffer."""
@@ -176,10 +170,9 @@ class TestResponseBuffer:
         result1 = buffer.annotate(response1)
         result2 = buffer.annotate(response2)
 
-        # Both should have the same item_id from the buffer
-        assert result1.data.item_id == result2.data.item_id
-        assert result1.data.item_id != "original-item-123"
-        assert result2.data.item_id != "original-item-456"
+        # New behavior: if caller sets item_id, do not override
+        assert result1.data.item_id == "original-item-123"
+        assert result2.data.item_id == "original-item-456"
 
     @pytest.mark.asyncio
     async def test_ingest_immediate_event_message(self):

@@ -19,6 +19,8 @@ class SuperAgentService:
     def name(self) -> str:
         return self._super_agent.name
 
-    async def run(self, user_input: UserInput) -> AsyncIterator[str | SuperAgentOutcome]:
+    async def run(
+        self, user_input: UserInput
+    ) -> AsyncIterator[str | SuperAgentOutcome]:
         async for item in self._super_agent.run(user_input):
             yield item

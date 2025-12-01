@@ -9,7 +9,6 @@ from pydantic import BaseModel, Field
 
 import valuecell.utils.model as model_utils_mod
 from valuecell.core.super_agent.prompts import (
-    SUPER_AGENT_EXPECTED_OUTPUT,
     SUPER_AGENT_INSTRUCTION,
 )
 from valuecell.core.types import UserInput
@@ -130,7 +129,9 @@ class SuperAgent:
 
         return self.agent
 
-    async def run(self, user_input: UserInput) -> AsyncIterator[str | SuperAgentOutcome]:
+    async def run(
+        self, user_input: UserInput
+    ) -> AsyncIterator[str | SuperAgentOutcome]:
         """Run super agent triage."""
         await asyncio.sleep(0)
         agent = self._get_or_init_agent()
