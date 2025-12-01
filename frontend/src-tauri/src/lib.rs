@@ -7,10 +7,14 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            let _ = app
-                .get_webview_window("main")
-                .expect("no main window")
-                .set_focus();
+            let window = app.get_webview_window("main").expect("no main window");
+
+            if window.is_minimized().unwrap_or(false) {
+                window.unminimize().expect("failed to unminimize window");
+            }
+
+            let _ = window.show();
+            let _ = window.set_focus();
         }))
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_store::Builder::new().build())
