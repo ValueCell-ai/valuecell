@@ -101,4 +101,14 @@ const tracker = new Tracker({
   endpoint: `${VALUECELL_BACKEND_URL}/analytics/event`,
 });
 
+export const withTrack = <T extends keyof TrackingEvents>(
+  event: T,
+  params: TrackingEvents[T],
+) => {
+  return {
+    "data-track": event,
+    "data-track-params": JSON.stringify(params),
+  };
+};
+
 export { tracker, type TrackerConfig, type TrackingParams };
