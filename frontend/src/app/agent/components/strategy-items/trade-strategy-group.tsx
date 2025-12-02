@@ -104,7 +104,7 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
               <TooltipTrigger asChild>
                 <p className="font-medium text-gray-400 text-sm">Stopped</p>
               </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs break-words">
+              <TooltipContent side="top" className="wrap-break-word max-w-xs">
                 {strategy.stop_reason}
               </TooltipContent>
             </Tooltip>

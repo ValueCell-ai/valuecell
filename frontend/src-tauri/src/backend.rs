@@ -60,7 +60,7 @@ impl BackendManager {
             // This is best-effort and ignores errors on platforms without `pkill`.
             // First, send SIGINT (Ctrl+C equivalent) and wait up to 5 seconds.
             // If processes are still running, escalate to SIGKILL.
-            
+
             // Send SIGINT (Ctrl+C equivalent)
             if let Ok((_rx, _child)) = self
                 .app
@@ -117,7 +117,8 @@ impl BackendManager {
         if let Err(err) = process.write(EXIT_COMMAND) {
             log::warn!(
                 "Failed to send shutdown command to process {}: {}",
-                pid, err
+                pid,
+                err
             );
         } else {
             log::info!("Exit command written to process {}", pid);

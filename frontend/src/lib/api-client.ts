@@ -28,6 +28,7 @@ export interface RequestConfig {
   requiresAuth?: boolean;
   headers?: Record<string, string>;
   signal?: AbortSignal;
+  keepalive?: boolean;
 }
 
 export const getServerUrl = (endpoint: string) => {
@@ -117,6 +118,7 @@ class ApiClient {
       method,
       headers: mergedConfig.headers,
       signal: mergedConfig.signal,
+      keepalive: mergedConfig.keepalive,
     };
 
     // add request body
