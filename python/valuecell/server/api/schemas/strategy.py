@@ -39,6 +39,9 @@ class StrategySummaryData(BaseModel):
         None, description="Associated exchange identifier"
     )
     model_id: Optional[str] = Field(None, description="Associated model identifier")
+    decide_interval: Optional[int] = Field(
+        None, description="Decision interval in seconds"
+    )
 
 
 class StrategyListData(BaseModel):

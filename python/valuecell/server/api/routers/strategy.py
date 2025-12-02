@@ -150,6 +150,7 @@ def create_strategy_router() -> APIRouter:
             for s in strategies:
                 meta = s.strategy_metadata or {}
                 cfg = s.config or {}
+                tr = (cfg.get("trading_config") or {})
                 status = map_status(s.status)
                 stop_reason_display = ""
                 if status == "stopped":
@@ -188,6 +189,9 @@ def create_strategy_router() -> APIRouter:
                         or meta.get("llm_model_id")
                         or cfg.get("model_id")
                         or cfg.get("llm_model_id")
+                    ),
+                    decide_interval=(
+                        int(tr.get("decide_interval")) if tr.get("decide_interval") is not None else None
                     ),
                 )
                 strategy_data_list.append(item)

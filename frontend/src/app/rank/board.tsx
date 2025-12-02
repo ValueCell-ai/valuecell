@@ -215,9 +215,11 @@ export default function RankBoard() {
 
                   <p>Decision Interval</p>
                   <span>
-                    {strategyDetail.decide_interval !== undefined
-                      ? `${strategyDetail.decide_interval}s`
-                      : "60s"}
+                    {`${Number(
+                      (strategyDetail as any).decide_interval ??
+                      (strategyDetail as any).decideInterval ??
+                      60,
+                    )}s`}
                   </span>
 
                   <p>Trading Symbols</p>
