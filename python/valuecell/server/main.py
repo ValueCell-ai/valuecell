@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import os
 import sys
 import threading
 from typing import Callable, Optional, TextIO
@@ -66,13 +67,23 @@ def main() -> None:
         server.should_exit = True
         logger.info("Shutdown signal propagated to uvicorn")
 
-    control_thread = threading.Thread(
-        target=control_loop,
-        name="stdin-control",
-        args=(request_stop,),
-        daemon=True,
-    )
-    control_thread.start()
+    # In local development / IDE debug mode (ENV=local_dev) the interactive
+    # stdin wrapper (e.g. PyCharm debug) can cause attribute errors when
+    # iterating over `sys.stdin`. Skip creating the control thread in that
+    # environment to avoid crashing the background thread.
+    if os.getenv("ENV") == "local_dev":
+        logger.info(
+            "ENV=local_dev detected: skipping stdin control thread (IDE debug mode)"
+        )
+        control_thread = None
+    else:
+        control_thread = threading.Thread(
+            target=control_loop,
+            name="stdin-control",
+            args=(request_stop,),
+            daemon=True,
+        )
+        control_thread.start()
 
     try:
         server.run()
