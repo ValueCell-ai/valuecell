@@ -21,6 +21,7 @@ import CloseButton from "@/components/valuecell/button/close-button";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { TRADING_SYMBOLS } from "@/constants/agent";
 import { useAppForm } from "@/hooks/use-form";
+import { tracker } from "@/lib/tracker";
 import type { Strategy } from "@/types/strategy";
 import { AIModelForm } from "../forms/ai-model-form";
 import { EXCHANGE_OPTIONS, ExchangeForm } from "../forms/exchange-form";
@@ -281,6 +282,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
       };
 
       await createStrategy(payload);
+      tracker.send("use", { agent_name: "StrategyAgent" });
       resetAll();
     },
   });
