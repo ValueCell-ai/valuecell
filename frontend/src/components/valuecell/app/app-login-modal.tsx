@@ -14,6 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
+import { tracker } from "@/lib/tracker";
 import { useSystemStore } from "@/store/system-store";
 import CloseButton from "../button/close-button";
 import SvgIcon from "../icon/svg-icon";
@@ -87,6 +88,8 @@ export default function AppLoginModal({ children }: AppLoginModalProps) {
                 ...userInfo,
               });
             }
+
+            tracker.send("login");
 
             setOpen(false);
           }

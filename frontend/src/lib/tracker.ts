@@ -5,8 +5,8 @@ import { useSystemStore } from "@/store/system-store";
 import { apiClient } from "./api-client";
 
 export interface TrackingEvents {
-  login: null;
-  logout: null;
+  login: undefined;
+  logout: undefined;
   use: {
     agent_name: string;
   };
@@ -66,7 +66,7 @@ class Tracker {
 
   public send<K extends keyof TrackingEvents>(
     event: K,
-    params: TrackingEvents[K],
+    params?: TrackingEvents[K],
   ) {
     const payload = {
       event,
@@ -103,11 +103,11 @@ const tracker = new Tracker({
 
 export const withTrack = <T extends keyof TrackingEvents>(
   event: T,
-  params: TrackingEvents[T],
+  params?: TrackingEvents[T],
 ) => {
   return {
     "data-track": event,
-    "data-track-params": JSON.stringify(params),
+    "data-track-params": JSON.stringify(params ?? {}),
   };
 };
 

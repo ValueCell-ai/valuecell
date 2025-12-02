@@ -13,6 +13,7 @@ import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { API_QUERY_KEYS } from "@/constants/api";
 import useSSE from "@/hooks/use-sse";
 import { getServerUrl } from "@/lib/api-client";
+import { tracker } from "@/lib/tracker";
 import {
   MultiSectionProvider,
   useMultiSection,
@@ -150,6 +151,10 @@ const CommonAgentAreaContent: FC<CommonAgentAreaProps> = ({ agentName }) => {
           agent_name: agentName,
           conversation_id: conversationId,
         };
+
+        tracker.send("use", {
+          agent_name: agentName,
+        });
 
         // Connect SSE client with request body to receive streaming response
         await connect(JSON.stringify(request));

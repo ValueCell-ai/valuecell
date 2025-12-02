@@ -49,7 +49,11 @@ export default function GeneralPage() {
               </FieldDescription>
             </FieldContent>
             {isLoggedIn ? (
-              <Button variant="outline" onClick={() => signOut()}>
+              <Button
+                variant="outline"
+                data-track="logout"
+                onClick={() => signOut()}
+              >
                 Sign Out
               </Button>
             ) : (
