@@ -1,5 +1,7 @@
+import { useEffect, useRef } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
+import { toast } from "sonner";
 import AppSidebar from "@/components/valuecell/app-sidebar";
 import { Toaster } from "./components/ui/sonner";
 
@@ -42,6 +44,69 @@ const queryClient = new QueryClient({
 });
 
 export default function Root() {
+  const bannerShownRef = useRef(false);
+
+  useEffect(() => {
+    const checkApiConfig = async () => {
+      if (bannerShownRef.current) {
+        return;
+      }
+
+      try {
+        const baseUrl =
+          import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
+
+        const response = await fetch(`${baseUrl}/system/health`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          bannerShownRef.current = true;
+          toast.error(
+            "⚠️ No LLM APIs configured. Please set up API keys in your .env file",
+            {
+              duration: Infinity,
+              description:
+                "Add API keys for OpenRouter, SiliconFlow, Google, or OpenAI",
+            }
+          );
+          return;
+        }
+
+        const data = await response.json();
+
+        if (data?.data?.api_configured === false) {
+          bannerShownRef.current = true;
+          toast.error(
+            "⚠️ No LLM APIs configured. Please set up API keys in your .env file",
+            {
+              duration: Infinity,
+              description:
+                "Add API keys for OpenRouter, SiliconFlow, Google, or OpenAI",
+            }
+          );
+        } else if (data?.data?.api_configured === true) {
+          bannerShownRef.current = true;
+        }
+      } catch (_error) {
+        bannerShownRef.current = true;
+        toast.error(
+          "⚠️ No LLM APIs configured. Please set up API keys in your .env file",
+          {
+            duration: Infinity,
+            description:
+              "Add API keys for OpenRouter, SiliconFlow, Google, or OpenAI",
+          }
+        );
+      }
+    };
+
+    checkApiConfig();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <SidebarProvider>
