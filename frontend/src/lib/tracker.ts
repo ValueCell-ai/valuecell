@@ -4,7 +4,7 @@ import { VALUECELL_BACKEND_URL } from "@/constants/api";
 import { useSystemStore } from "@/store/system-store";
 import { apiClient } from "./api-client";
 
-interface TrackingEvents {
+export interface TrackingEvents {
   login: null;
   logout: null;
   use: {
