@@ -1,9 +1,5 @@
-import { Plus } from "lucide-react";
 import { Outlet } from "react-router";
-import { Button } from "@/components/ui/button";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
-import StockList from "./components/stock-list";
-import StockSearchModal from "./components/stock-search-modal";
 
 export default function HomeLayout() {
   return (
@@ -17,7 +13,7 @@ export default function HomeLayout() {
           </ScrollContainer>
         </main>
 
-        <aside className="flex min-w-62 max-w-80 flex-col justify-between rounded-lg bg-white">
+        {/* <aside className="flex min-w-62 max-w-80 flex-col justify-between rounded-lg bg-white">
           <StockList />
 
           <StockSearchModal>
@@ -29,7 +25,7 @@ export default function HomeLayout() {
               Add Stocks
             </Button>
           </StockSearchModal>
-        </aside>
+        </aside> */}
       </div>
     </div>
   );
