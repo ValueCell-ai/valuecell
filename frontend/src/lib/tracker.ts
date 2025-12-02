@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 import { arch, platform, version } from "@tauri-apps/plugin-os";
 import { VALUECELL_BACKEND_URL } from "@/constants/api";
 import { useSystemStore } from "@/store/system-store";
@@ -68,6 +68,8 @@ class Tracker {
     event: K,
     params?: TrackingEvents[K],
   ) {
+    if (!isTauri()) return;
+
     const payload = {
       event,
       ...this.params,
