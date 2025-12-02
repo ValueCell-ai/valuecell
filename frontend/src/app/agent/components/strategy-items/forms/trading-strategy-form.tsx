@@ -27,6 +27,7 @@ export const TradingStrategyForm = withForm({
     strategy_name: "",
     initial_capital: 1000,
     max_leverage: 2,
+    decide_interval: 60,
     symbols: TRADING_SYMBOLS,
     template_id: "",
   },
@@ -89,6 +90,19 @@ export const TradingStrategyForm = withForm({
                 className="flex-1"
                 label="Max Leverage"
                 placeholder="Max Leverage"
+              />
+            )}
+          </form.AppField>
+
+        </FieldGroup>
+
+        <FieldGroup className="gap-4">
+          <form.AppField name="decide_interval">
+            {(field) => (
+              <field.NumberField
+                className="w-full"
+                label="Decision Interval (seconds)"
+                placeholder="e.g. 300"
               />
             )}
           </form.AppField>
