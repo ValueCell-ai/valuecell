@@ -101,6 +101,7 @@ export interface CreateStrategyRequest {
     symbols: string[]; // e.g. ['BTC', 'ETH', ...]
     template_id: string;
     custom_prompt?: string;
+    decide_interval?: number;
   };
 }
 

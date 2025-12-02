@@ -27,6 +27,7 @@ export const TradingStrategyForm = withForm({
     strategy_name: "",
     initial_capital: 1000,
     max_leverage: 2,
+    decide_interval: 60,
     symbols: TRADING_SYMBOLS,
     template_id: "",
   },
@@ -93,6 +94,15 @@ export const TradingStrategyForm = withForm({
             )}
           </form.AppField>
         </FieldGroup>
+
+        <form.AppField name="decide_interval">
+          {(field) => (
+            <field.NumberField
+              label="Decision Interval (seconds)"
+              placeholder="e.g. 300"
+            />
+          )}
+        </form.AppField>
 
         <form.Subscribe selector={(state) => state.values.strategy_type}>
           {(strategyType) => {
