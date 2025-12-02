@@ -85,6 +85,7 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
       <div className="flex items-center gap-2 font-medium text-gray-400 text-sm">
         <p>{strategy.model_id}</p>
         <p>{strategy.exchange_id}</p>
+        <p>{(strategy.decide_interval ?? 60)}s</p>
       </div>
 
       {/* PnL, Trading Mode, and Status */}
