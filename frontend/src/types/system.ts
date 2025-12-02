@@ -35,6 +35,7 @@ export interface StrategyDetail {
   llm_model_id: string;
   max_leverage: number;
   initial_capital: number;
+  decide_interval?: number;
   prompt: string;
 }
 

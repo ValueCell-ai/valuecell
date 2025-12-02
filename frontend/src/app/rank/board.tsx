@@ -213,6 +213,13 @@ export default function RankBoard() {
                   <p>Max Leverage</p>
                   <span>{strategyDetail.max_leverage}x</span>
 
+                  <p>Decision Interval</p>
+                  <span>
+                    {strategyDetail.decide_interval !== undefined
+                      ? `${strategyDetail.decide_interval}s`
+                      : "-"}
+                  </span>
+
                   <p>Trading Symbols</p>
                   <span className="whitespace-normal">
                     {strategyDetail.symbols.join(", ")}
