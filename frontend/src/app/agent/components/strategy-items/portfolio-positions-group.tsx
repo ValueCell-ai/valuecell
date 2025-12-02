@@ -34,7 +34,7 @@ import {
 } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
 import { useIsLoggedIn, useSystemInfo } from "@/store/system-store";
-import type { PortfolioSummary, Position } from "@/types/strategy";
+import type { PortfolioSummary, Position, Strategy } from "@/types/strategy";
 import type { SharePortfolioCardRef } from "./modals/share-portfolio-modal";
 import SharePortfolioModal from "./modals/share-portfolio-modal";
 
@@ -42,8 +42,7 @@ interface PortfolioPositionsGroupProps {
   priceCurve: Array<Array<number | string>>;
   positions: Position[];
   summary?: PortfolioSummary;
-  strategyId: string;
-  isLive: boolean;
+  strategy: Strategy;
 }
 
 interface PositionRowProps {
@@ -100,8 +99,7 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
   summary,
   priceCurve,
   positions,
-  strategyId,
-  isLive,
+  strategy,
 }) => {
   const sharePortfolioModalRef = useRef<SharePortfolioCardRef>(null);
 
@@ -116,7 +114,9 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
   const { mutate: publishStrategy, isPending: isPublishing } =
     usePublishStrategy();
 
-  const { refetch: refetchPerformance } = useStrategyPerformance(strategyId);
+  const { refetch: refetchPerformance } = useStrategyPerformance(
+    strategy.strategy_id,
+  );
 
   const handlePublishToRankBoard = async () => {
     const { data } = await refetchPerformance();
@@ -132,6 +132,7 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
     sharePortfolioModalRef.current?.open({
       ...data,
       total_pnl: summary?.total_pnl ?? 0,
+      created_at: strategy.created_at,
     });
   };
 
@@ -143,7 +144,7 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
           <h3 className="font-semibold text-base text-gray-950">
             Portfolio Value History
           </h3>
-          {isLive &&
+          {strategy.trading_mode === "live" &&
             (isLogin ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

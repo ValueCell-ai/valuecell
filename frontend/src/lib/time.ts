@@ -43,25 +43,6 @@ export class TimeUtils {
   }
 
   /**
-   * Create UTC time from input
-   * @param input - Time input (optional, defaults to current time)
-   * @returns UTC time as Dayjs instance
-   */
-  static createUTC(input?: TimeInput): Dayjs {
-    return input ? dayjs.utc(input) : dayjs.utc();
-  }
-
-  /**
-   * Format time with specified format
-   * @param time - Time input to format
-   * @param fmt - Format string (defaults to DATETIME)
-   * @returns Formatted time string
-   */
-  static format(time: TimeInput, fmt: string = TIME_FORMATS.DATETIME): string {
-    return dayjs(time).format(fmt);
-  }
-
-  /**
    * Format UTC time with specified format
    * @param time - Time input to format as UTC
    * @param fmt - Format string (defaults to DATETIME)
@@ -72,6 +53,10 @@ export class TimeUtils {
     fmt: string = TIME_FORMATS.DATETIME,
   ): string {
     return dayjs.utc(time).local().format(fmt);
+  }
+
+  static formUTCDiff(time: TimeInput): number {
+    return dayjs.utc().diff(dayjs.utc(time), "day");
   }
 
   /**
