@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from enum import IntEnum
-from typing import Generic, Optional, TypeVar
+from typing import Generic, List, Optional, TypeVar
 
 from pydantic import BaseModel, Field
 
@@ -73,3 +73,7 @@ class HealthCheckData(BaseModel):
     status: str = Field(..., description="Service status")
     version: str = Field(..., description="Service version")
     timestamp: Optional[datetime] = Field(None, description="Check timestamp")
+    api_configured: bool = Field(..., description="Whether LLM APIs are configured")
+    available_providers: List[str] = Field(
+        default_factory=list, description="List of available LLM providers"
+    )
