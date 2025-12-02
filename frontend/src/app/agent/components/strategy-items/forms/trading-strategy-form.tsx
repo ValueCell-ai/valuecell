@@ -93,7 +93,6 @@ export const TradingStrategyForm = withForm({
               />
             )}
           </form.AppField>
-
         </FieldGroup>
 
         <FieldGroup className="gap-4">
