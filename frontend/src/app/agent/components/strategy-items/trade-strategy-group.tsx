@@ -80,7 +80,7 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
           {strategy.trading_mode === "live" ? "Live" : "Virtual"}
         </p>
         <p className="rounded-sm bg-gray-100 px-2 py-1 text-gray-700 text-xs">
-          {(strategy.decide_interval ?? 60)}s
+          {strategy.decide_interval ?? 60}s
         </p>
       </div>
 

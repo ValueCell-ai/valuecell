@@ -150,7 +150,7 @@ def create_strategy_router() -> APIRouter:
             for s in strategies:
                 meta = s.strategy_metadata or {}
                 cfg = s.config or {}
-                tr = (cfg.get("trading_config") or {})
+                tr = cfg.get("trading_config") or {}
                 status = map_status(s.status)
                 stop_reason_display = ""
                 if status == "stopped":
@@ -162,11 +162,8 @@ def create_strategy_router() -> APIRouter:
                     ) or "..."
 
                 total_pnl, total_pnl_pct = 0.0, 0.0
-                if (
-                    portfolio_summary
-                    := await StrategyService.get_strategy_portfolio_summary(
-                        s.strategy_id
-                    )
+                if portfolio_summary := await StrategyService.get_strategy_portfolio_summary(
+                    s.strategy_id
                 ):
                     total_pnl = to_optional_float(portfolio_summary.total_pnl) or 0.0
                     total_pnl_pct = (
@@ -191,7 +188,9 @@ def create_strategy_router() -> APIRouter:
                         or cfg.get("llm_model_id")
                     ),
                     decide_interval=(
-                        int(tr.get("decide_interval")) if tr.get("decide_interval") is not None else None
+                        int(tr.get("decide_interval"))
+                        if tr.get("decide_interval") is not None
+                        else None
                     ),
                 )
                 strategy_data_list.append(item)

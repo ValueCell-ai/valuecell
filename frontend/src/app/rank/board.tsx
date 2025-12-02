@@ -216,9 +216,15 @@ export default function RankBoard() {
                   <p>Decision Interval</p>
                   <span>
                     {`${Number(
-                      (strategyDetail as any).decide_interval ??
-                      (strategyDetail as any).decideInterval ??
-                      60,
+                      strategyDetail.decide_interval ??
+                        ("decideInterval" in strategyDetail
+                          ? (
+                              strategyDetail as unknown as {
+                                decideInterval?: number;
+                              }
+                            ).decideInterval
+                          : undefined) ??
+                        60,
                     )}s`}
                   </span>
 
