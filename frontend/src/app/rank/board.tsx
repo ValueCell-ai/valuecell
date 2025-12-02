@@ -67,13 +67,13 @@ export default function RankBoard() {
           </Tabs>
         </CardHeader>
         <CardContent className="px-0">
-          <ScrollContainer className="max-h-[88vh]">
+          <ScrollContainer className="max-h-[82vh]">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-[80px]">Rank</TableHead>
                   <TableHead>User</TableHead>
-                  <TableHead>Return</TableHead>
+                  <TableHead>P&L</TableHead>
                   <TableHead>Strategy</TableHead>
                   <TableHead>Exchange</TableHead>
                   <TableHead>Trading Portfolio</TableHead>
@@ -180,12 +180,7 @@ export default function RankBoard() {
                     />
                     <AvatarFallback>{strategyDetail.name[0]}</AvatarFallback>
                   </Avatar>
-                  <div>
-                    <h3 className="font-bold text-lg">{strategyDetail.name}</h3>
-                    <p className="text-gray-500 text-sm">
-                      User ID: {strategyDetail.user_id}
-                    </p>
-                  </div>
+                  <h3 className="font-bold text-lg">{strategyDetail.name}</h3>
                   <div className="ml-auto text-right">
                     <div
                       className="font-bold text-2xl"
