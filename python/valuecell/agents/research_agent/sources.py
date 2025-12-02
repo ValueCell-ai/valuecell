@@ -1,3 +1,4 @@
+import asyncio
 import os
 import re
 from datetime import date, datetime
@@ -153,22 +154,27 @@ async def fetch_periodic_sec_filings(
         List[SECFilingResult]
     """
     req_forms = set(_ensure_list(forms)) or {"10-Q"}
-    company = Company(cik_or_ticker)
+    company = await asyncio.to_thread(lambda: Company(cik_or_ticker))
 
+    logger.info(f"Fetching filings for {cik_or_ticker} with params {req_forms}")
     # If year is omitted, use latest(limit). Quarter without year is not supported.
     if year is None:
         if quarter is not None:
             raise ValueError(
                 "quarter requires year to be specified for periodic filings"
             )
-        filings = company.get_filings(form=list(req_forms)).latest(limit)
+        filings = await asyncio.to_thread(
+            lambda: company.get_filings(form=list(req_forms)).latest(limit)
+        )
         if isinstance(filings, EntityFilings):
             items = list(filings)
         else:
             items = [filings]
         return await _write_and_ingest(items, Path(get_knowledge_path()))
 
-    filings = company.get_filings(form=list(req_forms), year=year, quarter=quarter)
+    filings = await asyncio.to_thread(
+        lambda: company.get_filings(form=list(req_forms), year=year, quarter=quarter)
+    )
 
     return await _write_and_ingest(filings, Path(get_knowledge_path()))
 
@@ -199,11 +205,13 @@ async def fetch_event_sec_filings(
         raise ValueError("start_date cannot be after end_date")
 
     req_forms = set(_ensure_list(forms)) or {"8-K"}
-    company = Company(cik_or_ticker)
+    company = await asyncio.to_thread(lambda: Company(cik_or_ticker))
 
     # If no date range specified, leverage edgar's latest(count) for efficiency
     if not sd and not ed:
-        filings = company.get_filings(form=list(req_forms)).latest(limit)
+        filings = await asyncio.to_thread(
+            lambda: company.get_filings(form=list(req_forms)).latest(limit)
+        )
         if isinstance(filings, EntityFilings):
             items = list(filings)
         else:
@@ -211,7 +219,7 @@ async def fetch_event_sec_filings(
         return await _write_and_ingest(items, Path(get_knowledge_path()))
 
     # Otherwise, fetch and filter by filing_date range
-    filings = company.get_filings(form=list(req_forms))
+    filings = await asyncio.to_thread(lambda: company.get_filings(form=list(req_forms)))
     if isinstance(filings, EntityFilings):
         items = list(filings)
     else:
