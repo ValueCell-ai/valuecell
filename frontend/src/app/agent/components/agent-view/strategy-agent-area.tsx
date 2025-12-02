@@ -128,8 +128,7 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
               summary={summary}
               priceCurve={priceCurve}
               positions={positions}
-              strategyId={selectedStrategy.strategy_id}
-              isLive={selectedStrategy.trading_mode === "live"}
+              strategy={selectedStrategy}
             />
           </>
         ) : (

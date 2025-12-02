@@ -25,6 +25,7 @@ type SharePortfolioData = Pick<
   "return_rate_pct" | "llm_model_id" | "exchange_id" | "strategy_type"
 > & {
   total_pnl: number;
+  created_at: string;
 };
 
 export interface SharePortfolioCardRef {
@@ -109,7 +110,9 @@ const SharePortfolioModal: FC<{
 
           {/* Main Return */}
           <div className="space-y-4 text-center">
-            <div className="font-normal text-gray-950 text-xl">30-Day ROI</div>
+            <div className="font-normal text-gray-950 text-xl">
+              {TimeUtils.formUTCDiff(data.created_at)}-Day ROI
+            </div>
             <div
               className="font-bold text-6xl tracking-tighter"
               style={{
