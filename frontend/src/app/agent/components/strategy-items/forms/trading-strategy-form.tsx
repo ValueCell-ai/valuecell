@@ -95,14 +95,14 @@ export const TradingStrategyForm = withForm({
           </form.AppField>
         </FieldGroup>
 
-          <form.AppField name="decide_interval">
-            {(field) => (
-              <field.NumberField
-                label="Decision Interval (seconds)"
-                placeholder="e.g. 300"
-              />
-            )}
-          </form.AppField>
+        <form.AppField name="decide_interval">
+          {(field) => (
+            <field.NumberField
+              label="Decision Interval (seconds)"
+              placeholder="e.g. 300"
+            />
+          )}
+        </form.AppField>
 
         <form.Subscribe selector={(state) => state.values.strategy_type}>
           {(strategyType) => {
