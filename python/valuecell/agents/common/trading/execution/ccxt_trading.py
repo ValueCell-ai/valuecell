@@ -118,6 +118,7 @@ class CCXTExecutionGateway(BaseExecutionGateway):
                 "defaultType": self._choose_default_type_for_exchange(),
                 **self._ccxt_options,
             },
+            "aiohttp_trust_env": True,
         }
 
         # Hyperliquid uses wallet-based authentication
