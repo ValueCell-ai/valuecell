@@ -95,17 +95,14 @@ export const TradingStrategyForm = withForm({
           </form.AppField>
         </FieldGroup>
 
-        <FieldGroup className="gap-4">
           <form.AppField name="decide_interval">
             {(field) => (
               <field.NumberField
-                className="w-full"
                 label="Decision Interval (seconds)"
                 placeholder="e.g. 300"
               />
             )}
           </form.AppField>
-        </FieldGroup>
 
         <form.Subscribe selector={(state) => state.values.strategy_type}>
           {(strategyType) => {
