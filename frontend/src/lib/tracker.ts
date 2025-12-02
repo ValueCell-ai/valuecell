@@ -60,7 +60,7 @@ class Tracker {
         os: systemInfo,
       };
     } catch (error) {
-      console.warn("Failed to initialize tracker:", error);
+      console.warn("Failed to initialize tracker:", JSON.stringify(error));
     }
   }
 
@@ -74,18 +74,21 @@ class Tracker {
       ...params,
     };
 
-    if (navigator.sendBeacon) {
-      const blob = new Blob([JSON.stringify(payload)], {
-        type: "application/json",
+    // if (navigator.sendBeacon) {
+    //   const blob = new Blob([JSON.stringify(payload)], {
+    //     type: "application/json",
+    //   });
+    //   navigator.sendBeacon(this.config.endpoint, blob);
+    // } else {
+    apiClient
+      .post(this.config.endpoint, payload, {
+        keepalive: true,
+        wrapError: false,
+      })
+      .catch((error) => {
+        console.warn("Failed to send tracking event:", JSON.stringify(error));
       });
-      navigator.sendBeacon(this.config.endpoint, blob);
-    } else {
-      apiClient
-        .post(this.config.endpoint, payload, { keepalive: true })
-        .catch((error) => {
-          console.warn("Failed to send tracking event:", error);
-        });
-    }
+    // }
 
     if (import.meta.env.DEV) {
       console.log(

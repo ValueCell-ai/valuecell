@@ -34,5 +34,5 @@ export const TrackerProvider = ({
     };
   }, []);
 
-  return children;
+  return <>{children}</>;
 };

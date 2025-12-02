@@ -29,6 +29,7 @@ export interface RequestConfig {
   headers?: Record<string, string>;
   signal?: AbortSignal;
   keepalive?: boolean;
+  wrapError?: boolean;
 }
 
 export const getServerUrl = (endpoint: string) => {
@@ -46,14 +47,18 @@ class ApiClient {
     },
   };
 
-  private async handleResponse<T>(response: Response): Promise<T> {
-    if (!response.ok) {
+  private async handleResponse<T>(
+    response: Response,
+    wrapError: boolean,
+  ): Promise<T> {
+    if (wrapError && !response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      const message =
+      const message = JSON.stringify(
         errorData.message ||
-        errorData.detail ||
-        response.statusText ||
-        `HTTP ${response.status}`;
+          errorData.detail ||
+          response.statusText ||
+          `HTTP ${response.status}`,
+      );
 
       //TODO: Handle 401 unauthorized
       if (response.status === 401) {
@@ -132,7 +137,7 @@ class ApiClient {
     }
 
     const response = await fetch(url, requestConfig);
-    return this.handleResponse<T>(response);
+    return this.handleResponse<T>(response, config.wrapError ?? true);
   }
 
   async get<T>(endpoint: string, config?: RequestConfig): Promise<T> {
