@@ -162,8 +162,11 @@ def create_strategy_router() -> APIRouter:
                     ) or "..."
 
                 total_pnl, total_pnl_pct = 0.0, 0.0
-                if portfolio_summary := await StrategyService.get_strategy_portfolio_summary(
-                    s.strategy_id
+                if (
+                    portfolio_summary
+                    := await StrategyService.get_strategy_portfolio_summary(
+                        s.strategy_id
+                    )
                 ):
                     total_pnl = to_optional_float(portfolio_summary.total_pnl) or 0.0
                     total_pnl_pct = (
