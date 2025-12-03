@@ -82,7 +82,7 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
             self.page = await context.new_page()
 
             logger.info(f"Navigating to {self.target_url}")
-            await self.page.goto(self.target_url, wait_until="networkidle")
+            await self.page.goto(self.target_url)
 
             logger.info("Waiting for core UI elements...")
             # Wait for the green menu button to ensure page load
@@ -118,7 +118,7 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
             await import_btn.click()
 
             logger.info("Import successful. Waiting for modal to close...")
-            await asyncio.sleep(3)
+            await asyncio.sleep(1)
 
             return self
 
