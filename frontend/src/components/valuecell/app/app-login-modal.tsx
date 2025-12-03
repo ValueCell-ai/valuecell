@@ -89,7 +89,7 @@ export default function AppLoginModal({ children }: AppLoginModalProps) {
               });
             }
 
-            tracker.send("login");
+            tracker.send("login", { user_id: userInfo.id });
 
             setOpen(false);
           }
