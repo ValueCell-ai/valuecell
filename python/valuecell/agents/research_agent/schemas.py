@@ -16,6 +16,14 @@ class SECFilingResult:
     path: Path
     metadata: SECFilingMetadata
 
+    def __repr__(self) -> str:
+        meta = self.metadata
+        return (
+            f"Fetched SEC Filing '{self.name}' for {meta.company} "
+            f"(type: {meta.doc_type}, period: {meta.period_of_report}, filed: {meta.filing_date}) "
+            f"located at {self.path}"
+        )
+
 
 @dataclass
 class AShareFilingMetadata:
