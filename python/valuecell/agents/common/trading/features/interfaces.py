@@ -89,7 +89,7 @@ class BaseFeaturesPipeline(ABC):
         This method will be called by the runtime when available; callers may
         ignore if not needed.
         """
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     async def close(self) -> None:
@@ -98,4 +98,4 @@ class BaseFeaturesPipeline(ABC):
         Called by the runtime during shutdown to release resources (e.g., close
         browser, stop background tasks). Implementations should make this idempotent.
         """
-        raise NotImplementedError
+        pass

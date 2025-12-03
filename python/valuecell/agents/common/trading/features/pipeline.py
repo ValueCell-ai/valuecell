@@ -110,8 +110,12 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
         ):
 
             async def _fetch_image_features() -> List[FeatureVector]:
-                img = await self._screenshot_data_source.capture()
-                return await self._image_feature_computer.compute_features(images=[img])
+                try:
+                    img = await self._screenshot_data_source.capture()
+                    return await self._image_feature_computer.compute_features(images=[img])
+                except Exception as e:
+                    logger.error(f"Failed to capture screenshot: {e}")
+                    return []
 
             tasks_map["image"] = asyncio.create_task(_fetch_image_features())
 
