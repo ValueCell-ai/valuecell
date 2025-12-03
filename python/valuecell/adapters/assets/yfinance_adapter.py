@@ -5,12 +5,12 @@ to fetch stock market data, including real-time prices and historical data.
 """
 
 import logging
+import time
 from datetime import datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
 
 import yfinance as yf
-import time
 
 from .base import AdapterCapability, BaseDataAdapter
 from .types import (
@@ -236,7 +236,7 @@ class YFinanceAdapter(BaseDataAdapter):
                         break
                 except Exception as e:
                     if attempt < self.retry_attempts - 1:
-                        time.sleep(self.retry_backoff_base * (2 ** attempt))
+                        time.sleep(self.retry_backoff_base * (2**attempt))
                         continue
                     logger.error(f"Error fetching asset info for {ticker}: {e}")
                     return None
@@ -431,7 +431,9 @@ class YFinanceAdapter(BaseDataAdapter):
                         prev_close_val = current_price
                     change = current_price - prev_close_val
                     change_percent = (
-                        (change / prev_close_val) * 100 if prev_close_val else Decimal("0")
+                        (change / prev_close_val) * 100
+                        if prev_close_val
+                        else Decimal("0")
                     )
                     return AssetPrice(
                         ticker=ticker,

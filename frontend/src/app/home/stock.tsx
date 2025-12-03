@@ -1,5 +1,4 @@
 import BackButton from "@valuecell/button/back-button";
-import { StockChart } from "./components/stock-chart";
 import { memo, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
@@ -12,6 +11,7 @@ import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import { formatChange, getChangeType } from "@/lib/utils";
 import { useStockBadgeColors } from "@/store/settings-store";
 import type { Route } from "./+types/stock";
+import { StockChart } from "./components/stock-chart";
 
 function Stock() {
   const { stockId } = useParams<Route.LoaderArgs["params"]>();
@@ -86,7 +86,7 @@ function Stock() {
     return (
       <div className="flex h-96 flex-col items-center justify-center gap-4">
         <div className="text-lg text-red-500">
-          Error loading stock data: {" "}
+          Error loading stock data:{" "}
           {priceError?.message || detailError?.message}
         </div>
         <Button
