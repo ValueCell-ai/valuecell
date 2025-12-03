@@ -112,7 +112,9 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
             async def _fetch_image_features() -> List[FeatureVector]:
                 try:
                     img = await self._screenshot_data_source.capture()
-                    return await self._image_feature_computer.compute_features(images=[img])
+                    return await self._image_feature_computer.compute_features(
+                        images=[img]
+                    )
                 except Exception as e:
                     logger.error(f"Failed to capture screenshot: {e}")
                     return []
@@ -159,9 +161,7 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
         market_snapshot_computer = MarketSnapshotFeatureComputer()
 
         try:
-            image_feature_computer = MLLMImageFeatureComputer.from_request(
-                request
-            )
+            image_feature_computer = MLLMImageFeatureComputer.from_request(request)
             charts_json = Path(__file__).parent / "configs" / "charts.json"
             screenshot_data_source = PlaywrightScreenshotDataSource(
                 target_url="https://aggr.trade",

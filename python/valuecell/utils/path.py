@@ -88,3 +88,15 @@ def get_knowledge_path() -> str:
         pass
 
     return str(new_path)
+
+
+def get_screenshot_path() -> str:
+    """
+    Returns the path to the screenshots directory located in the system application directory.
+
+    Returns:
+        str: Absolute path of the screenshots directory
+    """
+    screenshot_path = Path(get_system_env_dir()) / "screenshots"
+    screenshot_path.mkdir(parents=True, exist_ok=True)
+    return str(screenshot_path)

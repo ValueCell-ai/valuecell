@@ -52,8 +52,8 @@ class BaseScreenshotDataSource(ABC):
     """
 
     @abstractmethod
-    async def capture(self, *args, **kwargs) -> Image:
+    async def capture(self, *args, **kwargs) -> Image | None:
         """
-        Captures a screenshot and returns an agno.media.Image object.
+        Captures a screenshot and optionally returns an agno.media.Image object.
         """
         raise NotImplementedError
