@@ -55,7 +55,6 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
         self._screenshot_data_source = screenshot_data_source
         self._image_feature_computer = image_feature_computer
         self._candle_configurations = candle_configurations or [
-            CandleConfig(interval="1s", lookback=60 * 3),
             CandleConfig(interval="1m", lookback=60 * 4),
         ]
 
