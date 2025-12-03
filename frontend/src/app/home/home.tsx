@@ -44,9 +44,15 @@ function Home() {
         <section className="flex w-full flex-col items-center gap-8 overflow-visible rounded-lg bg-white py-8">
           <div className="space-y-4 text-center text-gray-950">
             <h1 className="font-medium text-3xl">👋 Hello Investor!</h1>
-            <p>
-              You can analyze and track the stock information you want to know
-            </p>
+
+          </div>
+
+          <div className="flex w-full max-w-[800px] flex-col gap-4 px-4">
+            <div className="flex w-full justify-center gap-4">
+              {tickers.slice(0, 3).map((ticker) => (
+                <StockCard key={ticker.ticker} ticker={ticker.ticker} />
+              ))}
+            </div>
           </div>
 
           <ChatInputArea
@@ -74,12 +80,6 @@ function Home() {
                     },
                   ]}
                 />
-              ))}
-            </div>
-
-            <div className="flex w-full justify-center gap-4">
-              {tickers.slice(0, 3).map((ticker) => (
-                <StockCard key={ticker.ticker} ticker={ticker.ticker} />
               ))}
             </div>
           </div>
