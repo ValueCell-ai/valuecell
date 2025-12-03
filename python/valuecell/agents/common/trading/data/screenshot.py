@@ -161,9 +161,7 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
                 await fh.write(screenshot_bytes)
 
             # Create agno Image object and attach path for callers who prefer file-based access
-            image_obj = Image(
-                content=screenshot_bytes, format=format
-            )
+            image_obj = Image(content=screenshot_bytes, format=format)
 
             logger.info("Screenshot captured and saved to {}", full_path)
             return image_obj
