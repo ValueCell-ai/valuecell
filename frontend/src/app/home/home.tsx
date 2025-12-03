@@ -44,7 +44,6 @@ function Home() {
         <section className="flex w-full flex-col items-center gap-8 overflow-visible rounded-lg bg-white py-8">
           <div className="space-y-4 text-center text-gray-950">
             <h1 className="font-medium text-3xl">👋 Hello Investor!</h1>
-
           </div>
 
           <div className="flex w-full max-w-[800px] flex-col gap-4 px-4">
