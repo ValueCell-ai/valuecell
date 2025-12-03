@@ -5,8 +5,12 @@ import { useSystemStore } from "@/store/system-store";
 import { apiClient } from "./api-client";
 
 export interface TrackingEvents {
-  login: undefined;
-  logout: undefined;
+  login: {
+    user_id: string;
+  };
+  logout: {
+    user_id: string;
+  };
   use: {
     agent_name: string;
   };
@@ -14,7 +18,8 @@ export interface TrackingEvents {
 declare module "react" {
   interface HTMLAttributes<T> extends DOMAttributes<T> {
     "data-track"?: keyof TrackingEvents;
-    "data-track-params"?: string; // 必须是 JSON 字符串
+    // must be JSON string
+    "data-track-params"?: string;
   }
 }
 
