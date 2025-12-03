@@ -1,10 +1,9 @@
 import BackButton from "@valuecell/button/back-button";
-import Sparkline from "@valuecell/charts/sparkline";
+import { StockChart } from "./components/stock-chart";
 import { memo, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   useGetStockDetail,
-  useGetStockHistory,
   useGetStockPrice,
   useRemoveStockFromWatchlist,
 } from "@/api/stock";
@@ -12,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import { formatChange, getChangeType } from "@/lib/utils";
 import { useStockBadgeColors } from "@/store/settings-store";
-import type { SparklineData } from "@/types/chart";
 import type { Route } from "./+types/stock";
 
 function Stock() {
@@ -55,42 +53,7 @@ function Stock() {
     }
   };
 
-  // Calculate date range for 60-day historical data
-  const dateRange = useMemo(() => {
-    const now = TimeUtils.nowUTC();
-    const sixtyDaysAgo = now.subtract(60, "day");
-    return {
-      startDate: sixtyDaysAgo.toISOString(),
-      endDate: now.toISOString(),
-    };
-  }, []);
-
-  // Fetch historical data for chart
-  const {
-    data: stockHistoryData,
-    isLoading: isHistoryLoading,
-    error: historyError,
-  } = useGetStockHistory({
-    ticker,
-    interval: "1d",
-    start_date: dateRange.startDate,
-    end_date: dateRange.endDate,
-  });
-
-  // Transform historical data to chart format
-  const chartData = useMemo(() => {
-    if (!stockHistoryData?.prices) return [];
-
-    // Convert UTC timestamp strings to UTC millisecond timestamps for chart
-    const sparklineData: SparklineData = stockHistoryData.prices.map(
-      (price) => [
-        TimeUtils.createUTC(price.timestamp).valueOf(),
-        price.close_price,
-      ],
-    );
-
-    return sparklineData;
-  }, [stockHistoryData]);
+  // Historical chart is rendered by StockChart component using lightweight-charts
 
   // Create stock info from API data
   const stockInfo = useMemo(() => {
@@ -110,7 +73,7 @@ function Stock() {
   }, [stockPriceData, stockDetailData, ticker]);
 
   // Handle loading states
-  if (isPriceLoading || isHistoryLoading || isDetailLoading) {
+  if (isPriceLoading || isDetailLoading) {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="text-gray-500 text-lg">Loading stock data...</div>
@@ -119,12 +82,12 @@ function Stock() {
   }
 
   // Handle error states
-  if (priceError || historyError || detailError) {
+  if (priceError || detailError) {
     return (
       <div className="flex h-96 flex-col items-center justify-center gap-4">
         <div className="text-lg text-red-500">
-          Error loading stock data:{" "}
-          {priceError?.message || historyError?.message || detailError?.message}
+          Error loading stock data: {" "}
+          {priceError?.message || detailError?.message}
         </div>
         <Button
           variant="secondary"
@@ -192,7 +155,14 @@ function Stock() {
           </p>
         </div>
 
-        <Sparkline data={chartData} changeType={changeType} />
+        <div className="w-full">
+          <StockChart
+            ticker={ticker}
+            interval="1d"
+            title={stockInfo.companyName}
+            minHeight={420}
+          />
+        </div>
       </div>
 
       {/* <div className="flex flex-col gap-4">
