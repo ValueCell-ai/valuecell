@@ -26,6 +26,8 @@ export type StrategyPerformance = {
   max_leverage: number;
   symbols: string[];
   prompt: string;
+  prompt_name: string;
+  trading_mode: Strategy["trading_mode"];
 };
 
 // Position types
