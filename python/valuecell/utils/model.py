@@ -327,6 +327,42 @@ def create_model_with_provider(
     return provider_instance.create_model(model_id, **kwargs)
 
 
+def supports_model_images(provider: str, model_id: Optional[str]) -> bool:
+    """Return True if the given provider+model_id supports image inputs.
+
+    This inspects the provider YAML loaded by `ConfigManager` and looks for a
+    `supported_inputs` entry on the matching model definition. If `model_id` is
+    None the provider's `default_model` is used. The check is case-insensitive
+    and tolerant of missing fields.
+    """
+    try:
+        from valuecell.config.manager import get_config_manager
+
+        cfg_mgr = get_config_manager()
+        prov = cfg_mgr.get_provider_config(provider)
+        if not prov:
+            return False
+
+        models = prov.models or []
+        target_id = model_id or prov.default_model
+
+        for m in models:
+            mid = m.get("id") or m.get("name") or ""
+            if not mid:
+                continue
+            if target_id and target_id != "" and mid != target_id:
+                # continue searching for exact match
+                continue
+            inputs = m.get("supported_inputs") or []
+            # normalize to lower-case
+            if any(str(i).lower() == "images" for i in inputs):
+                return True
+        return False
+    except Exception:
+        logger.debug("supports_model_images: failed to read provider config, assuming False")
+        return False
+
+
 # ============================================
 # Embedding Functions
 # ============================================

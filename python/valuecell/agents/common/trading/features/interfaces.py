@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from valuecell.agents.common.trading.models import (
     Candle,
     FeaturesPipelineResult,
     FeatureVector,
 )
+
+if TYPE_CHECKING:
+    # Only for type hints to avoid hard dependency at runtime
+    from agno.media import Image
 
 # Contracts for feature computation (module-local abstract interfaces).
 # Plain ABCs (not Pydantic) to keep implementations lightweight.
@@ -35,6 +39,31 @@ class CandleBasedFeatureComputer(ABC):
                 use this to populate FeatureVector.meta.
         Returns:
             A list of FeatureVector items, one or more per instrument.
+        """
+        raise NotImplementedError
+
+
+class ImageBasedFeatureComputer(ABC):
+    """Abstract base for image-based feature computers.
+
+    Implementations consume one or more images (screenshots, dashboard panes)
+    and return domain FeatureVector objects. The concrete implementations may
+    call external vision/LLM services.
+    """
+
+    @abstractmethod
+    async def compute_features(
+        self,
+        images: Optional[List["Image"]] = None,
+        meta: Optional[Dict[str, Any]] = None,
+    ) -> List[FeatureVector]:
+        """Build feature vectors from the provided images.
+
+        Args:
+            images: list of image objects. Implementations expect `agno.media.Image`.
+            meta: optional metadata such as instrument or timestamps.
+        Returns:
+            A list of `FeatureVector` items.
         """
         raise NotImplementedError
 

@@ -384,7 +384,7 @@ class FeatureVector(BaseModel):
         ...,
         description="Feature vector timestamp in ms",
     )
-    instrument: InstrumentRef
+    instrument: Optional[InstrumentRef]
     values: Dict[CommonKeyType, CommonValueType | List[CommonValueType]] = Field(
         default_factory=dict, description="Feature name to numeric value"
     )

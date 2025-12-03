@@ -3,6 +3,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List
 
+from agno.media import Image
+
 from valuecell.agents.common.trading.models import Candle, MarketSnapShotType
 
 # Contracts for market data sources (module-local abstract interfaces).
@@ -41,4 +43,17 @@ class BaseMarketDataSource(ABC):
         latest price floats (or absent if not available).
         """
 
+        raise NotImplementedError
+
+
+class BaseScreenshotDataSource(ABC):
+    """
+    Abstract base class for screenshot data sources.
+    """
+
+    @abstractmethod
+    async def capture(self, *args, **kwargs) -> Image:
+        """
+        Captures a screenshot and returns an agno.media.Image object.
+        """
         raise NotImplementedError
