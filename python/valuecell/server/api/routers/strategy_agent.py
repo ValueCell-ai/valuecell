@@ -19,7 +19,7 @@ from valuecell.agents.common.trading.models import (
 from valuecell.config.loader import get_config_loader
 from valuecell.core.coordinate.orchestrator import AgentOrchestrator
 from valuecell.core.types import CommonResponseEvent, UserInput, UserInputMetadata
-from valuecell.server.api.schemas.base import SuccessResponse
+from valuecell.server.api.schemas.base import ErrorResponse, StatusCode, SuccessResponse
 
 # Note: Strategy type is now part of TradingConfig in the request body.
 from valuecell.server.db.connection import get_db
@@ -191,7 +191,10 @@ def create_strategy_agent_router() -> APIRouter:
                             # Do not fail the API due to persistence error
                             pass
 
-                        return status_content
+                        # Unified success response with strategy_id
+                        return SuccessResponse.create(
+                            data={"strategy_id": status_content.strategy_id}
+                        )
 
                 # If no status event received, fallback to DB-only creation
                 fallback_strategy_id = generate_uuid("strategy")
@@ -227,8 +230,9 @@ def create_strategy_agent_router() -> APIRouter:
                 except Exception:
                     pass
 
-                return StrategyStatusContent(
-                    strategy_id=fallback_strategy_id, status="stopped"
+                # Unified success response in fallback creation
+                return SuccessResponse.create(
+                    data={"strategy_id": fallback_strategy_id}, msg="success"
                 )
             except Exception as exc:
                 # Orchestrator failed; fallback to direct DB creation
@@ -264,8 +268,9 @@ def create_strategy_agent_router() -> APIRouter:
                     )
                 except Exception:
                     pass
-                return StrategyStatusContent(
-                    strategy_id=fallback_strategy_id, status="stopped"
+                # Unified error response for orchestrator failure
+                return ErrorResponse.create(
+                    code=StatusCode.INTERNAL_ERROR, msg=str(exc)
                 )
 
         except Exception as e:
@@ -308,13 +313,9 @@ def create_strategy_agent_router() -> APIRouter:
                     f"Failed to persist error state for strategy: {db_exc}"
                 )
                 # If DB persistence also fails, return a generic error without a valid ID
-                return StrategyStatusContent(
-                    strategy_id="unknown", status=StrategyStatus.ERROR
-                )
+                return ErrorResponse.create(code=StatusCode.INTERNAL_ERROR, msg=str(e))
 
-            return StrategyStatusContent(
-                strategy_id=fallback_strategy_id, status=StrategyStatus.ERROR
-            )
+            return ErrorResponse.create(code=StatusCode.INTERNAL_ERROR, msg=str(e))
 
     @router.post("/test-connection")
     async def test_exchange_connection(request: ExchangeConfig):
