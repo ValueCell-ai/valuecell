@@ -1,11 +1,17 @@
+import { useMemo } from "react";
+import { useGetStockHistory, useGetStockPrice } from "@/api/stock";
 import { AgentMenuCard } from "@/components/valuecell/menus/agent-menus";
+import type { StockInterval } from "@/types/stock";
 import { StockChart } from "./stock-chart";
 
 export function StockCard({ ticker }: { ticker: string }) {
   const interval: StockInterval = "1d";
   const endDate = useMemo(() => new Date().toISOString().split("T")[0], []);
   const startDate = useMemo(
-    () => new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    () =>
+      new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0],
     [],
   );
 
@@ -42,6 +48,3 @@ export function StockCard({ ticker }: { ticker: string }) {
     </AgentMenuCard>
   );
 }
-import { useMemo } from "react";
-import { useGetStockHistory, useGetStockPrice } from "@/api/stock";
-import type { StockInterval } from "@/types/stock";
