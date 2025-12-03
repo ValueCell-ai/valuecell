@@ -53,7 +53,6 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
         self._symbols = list(dict.fromkeys(request.trading_config.symbols))
         self._market_snapshot_computer = market_snapshot_computer
         self._screenshot_data_source = screenshot_data_source
-        self._screenshot_ctx: Optional[PlaywrightScreenshotDataSource] = None
         self._image_feature_computer = image_feature_computer
         self._candle_configurations = candle_configurations or [
             CandleConfig(interval="1s", lookback=60 * 3),
@@ -64,7 +63,7 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
         """Open any long-lived resources needed by the pipeline."""
 
         if self._screenshot_data_source is not None:
-            self._screenshot_ctx = await self._screenshot_data_source.__aenter__()
+            await self._screenshot_data_source.open()
 
     async def build(self) -> FeaturesPipelineResult:
         """
@@ -111,7 +110,7 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
         ):
 
             async def _fetch_image_features() -> List[FeatureVector]:
-                img = await self._screenshot_ctx.capture()
+                img = await self._screenshot_data_source.capture()
                 return await self._image_feature_computer.compute_features(images=[img])
 
             tasks_map["image"] = asyncio.create_task(_fetch_image_features())
@@ -143,11 +142,8 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
 
     async def close(self) -> None:
         """Close any long-lived resources created by the pipeline."""
-        if self._screenshot_ctx is not None:
-            try:
-                await self._screenshot_ctx.__aexit__(None, None, None)
-            finally:
-                self._screenshot_ctx = None
+        if self._screenshot_data_source is not None:
+            await self._screenshot_data_source.close()
 
     @classmethod
     def from_request(cls, request: UserRequest) -> DefaultFeaturesPipeline:
@@ -160,7 +156,7 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
 
         try:
             image_feature_computer = MLLMImageFeatureComputer.from_request(
-                request.llm_model_config
+                request
             )
             charts_json = Path(__file__).parent / "configs" / "charts.json"
             screenshot_data_source = PlaywrightScreenshotDataSource(

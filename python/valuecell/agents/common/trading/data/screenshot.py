@@ -40,6 +40,34 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
         Magic method for 'async with'.
         Starts the browser, navigates to the URL, and performs the setup automation.
         """
+        # Delegate to explicit open() so callers can avoid repeated __aenter__ overhead
+        return await self.open()
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """
+        Magic method for 'async with'.
+        Handles cleanup of browser resources.
+        """
+        if exc_type:
+            logger.error(f"Exiting session due to exception: {exc_val}")
+
+        await self.close()
+
+    async def _cleanup(self):
+        """
+        Internal helper to close browser resources.
+        """
+        if self.browser:
+            await self.browser.close()
+        if self.playwright:
+            await self.playwright.stop()
+
+    async def open(self):
+        """Explicit initialization to support one-time setup.
+
+        Returns:
+            self: the initialized data source (same as __aenter__ would).
+        """
         try:
             logger.info("Initializing Playwright session...")
             self.playwright = await async_playwright().start()
@@ -97,25 +125,13 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
             await self._cleanup()
             raise e
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """
-        Magic method for 'async with'.
-        Handles cleanup of browser resources.
-        """
-        if exc_type:
-            logger.error(f"Exiting session due to exception: {exc_val}")
+    async def close(self):
+        """Explicit cleanup to support one-time teardown.
 
+        Calls internal cleanup helpers and logs session close.
+        """
         await self._cleanup()
         logger.info("Session closed.")
-
-    async def _cleanup(self):
-        """
-        Internal helper to close browser resources.
-        """
-        if self.browser:
-            await self.browser.close()
-        if self.playwright:
-            await self.playwright.stop()
 
     async def capture(self, *args, **kwargs) -> Image:
         """
