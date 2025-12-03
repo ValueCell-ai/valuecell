@@ -25,7 +25,7 @@ from valuecell.server.api.schemas.base import ErrorResponse, StatusCode, Success
 from valuecell.server.db.connection import get_db
 from valuecell.server.db.repositories import get_strategy_repository
 from valuecell.server.services.strategy_autoresume import auto_resume_strategies
-from valuecell.utils.uuid import generate_conversation_id, generate_uuid
+from valuecell.utils.uuid import generate_conversation_id
 
 
 def create_strategy_agent_router() -> APIRouter:
@@ -178,6 +178,10 @@ def create_strategy_agent_router() -> APIRouter:
                                 metadata["stop_reason_detail"] = (
                                     status_content.stop_reason_detail
                                 )
+                                return ErrorResponse.create(
+                                    code=StatusCode.INTERNAL_ERROR,
+                                    msg=status_content.stop_reason_detail,
+                                )
                             repo.upsert_strategy(
                                 strategy_id=status_content.strategy_id,
                                 name=name,
@@ -196,125 +200,20 @@ def create_strategy_agent_router() -> APIRouter:
                             data={"strategy_id": status_content.strategy_id}
                         )
 
-                # If no status event received, fallback to DB-only creation
-                fallback_strategy_id = generate_uuid("strategy")
-                try:
-                    name = (
-                        request.trading_config.strategy_name
-                        or f"Strategy-{fallback_strategy_id.split('-')[-1][:8]}"
-                    )
-                    metadata = {
-                        "agent_name": agent_name,
-                        "strategy_type": strategy_type_enum,
-                        "model_provider": request.llm_model_config.provider,
-                        "model_id": request.llm_model_config.model_id,
-                        "exchange_id": request.exchange_config.exchange_id,
-                        "trading_mode": (
-                            request.exchange_config.trading_mode.value
-                            if hasattr(request.exchange_config.trading_mode, "value")
-                            else str(request.exchange_config.trading_mode)
-                        ),
-                        "fallback": True,
-                        "stop_reason": "error",
-                        "stop_reason_detail": "No status event from orchestrator",
-                    }
-                    repo.upsert_strategy(
-                        strategy_id=fallback_strategy_id,
-                        name=name,
-                        description=None,
-                        user_id=user_input_meta.user_id,
-                        status="stopped",
-                        config=request.model_dump(),
-                        metadata=metadata,
-                    )
-                except Exception:
-                    pass
-
-                # Unified success response in fallback creation
-                return SuccessResponse.create(
-                    data={"strategy_id": fallback_strategy_id}, msg="success"
+                # No status event received; do NOT persist or fallback, return error only
+                return ErrorResponse.create(
+                    code=StatusCode.INTERNAL_ERROR,
+                    msg="No status event from orchestrator",
                 )
             except Exception as exc:
-                # Orchestrator failed; fallback to direct DB creation
-                fallback_strategy_id = generate_uuid("strategy")
-                try:
-                    name = (
-                        request.trading_config.strategy_name
-                        or f"Strategy-{fallback_strategy_id.split('-')[-1][:8]}"
-                    )
-                    metadata = {
-                        "agent_name": agent_name,
-                        "strategy_type": strategy_type_enum,
-                        "model_provider": request.llm_model_config.provider,
-                        "model_id": request.llm_model_config.model_id,
-                        "exchange_id": request.exchange_config.exchange_id,
-                        "trading_mode": (
-                            request.exchange_config.trading_mode.value
-                            if hasattr(request.exchange_config.trading_mode, "value")
-                            else str(request.exchange_config.trading_mode)
-                        ),
-                        "fallback": True,
-                        "stop_reason": "error",
-                        "stop_reason_detail": str(exc),
-                    }
-                    repo.upsert_strategy(
-                        strategy_id=fallback_strategy_id,
-                        name=name,
-                        description=None,
-                        user_id=user_input_meta.user_id,
-                        status="stopped",
-                        config=request.model_dump(),
-                        metadata=metadata,
-                    )
-                except Exception:
-                    pass
-                # Unified error response for orchestrator failure
+                # Orchestrator failed; do NOT persist or fallback, return error only
                 return ErrorResponse.create(
                     code=StatusCode.INTERNAL_ERROR, msg=str(exc)
                 )
 
         except Exception as e:
-            # As a last resort, log the exception and attempt to create a DB record
-            # with "error" status, then return a structured error.
+            # As a last resort, log the exception and return error without persistence or fallback.
             logger.exception(f"Failed to create strategy in API endpoint: {e}")
-            fallback_strategy_id = generate_uuid("strategy")
-            try:
-                repo = get_strategy_repository(db_session=db)
-                name = (
-                    request.trading_config.strategy_name
-                    or f"Strategy-{fallback_strategy_id.split('-')[-1][:8]}"
-                )
-                metadata = {
-                    "agent_name": agent_name,
-                    "strategy_type": strategy_type_enum,
-                    "model_provider": request.llm_model_config.provider,
-                    "model_id": request.llm_model_config.model_id,
-                    "exchange_id": request.exchange_config.exchange_id,
-                    "trading_mode": (
-                        request.exchange_config.trading_mode.value
-                        if hasattr(request.exchange_config.trading_mode, "value")
-                        else str(request.exchange_config.trading_mode)
-                    ),
-                    "fallback": True,
-                    "stop_reason": "error",
-                    "stop_reason_detail": str(e),
-                }
-                repo.upsert_strategy(
-                    strategy_id=fallback_strategy_id,
-                    name=name,
-                    description=f"Failed to create strategy: {str(e)}",
-                    user_id="default_user",  # Assuming a default user
-                    status=StrategyStatus.ERROR.value,
-                    config=request.model_dump(),
-                    metadata=metadata,
-                )
-            except Exception as db_exc:
-                logger.exception(
-                    f"Failed to persist error state for strategy: {db_exc}"
-                )
-                # If DB persistence also fails, return a generic error without a valid ID
-                return ErrorResponse.create(code=StatusCode.INTERNAL_ERROR, msg=str(e))
-
             return ErrorResponse.create(code=StatusCode.INTERNAL_ERROR, msg=str(e))
 
     @router.post("/test-connection")
