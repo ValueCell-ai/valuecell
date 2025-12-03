@@ -12,10 +12,13 @@ from valuecell.agents.research_agent.prompts import (
     KNOWLEDGE_AGENT_EXPECTED_OUTPUT,
     KNOWLEDGE_AGENT_INSTRUCTION,
 )
-from valuecell.agents.research_agent.sources import (  # search_crypto_people,; search_crypto_projects,; search_crypto_vcs,
+from valuecell.agents.research_agent.sources import (
     fetch_ashare_filings,
     fetch_event_sec_filings,
     fetch_periodic_sec_filings,
+    search_crypto_people,
+    search_crypto_projects,
+    search_crypto_vcs,
     web_search,
 )
 from valuecell.agents.utils.context import build_ctx_from_dep
@@ -32,10 +35,9 @@ class ResearchAgent(BaseAgent):
             fetch_event_sec_filings,
             fetch_ashare_filings,
             web_search,
-            # TODO: The RootData tools will cost lots of time, so we disable them for now.
-            # search_crypto_projects,
-            # search_crypto_vcs,
-            # search_crypto_people,
+            search_crypto_projects,
+            search_crypto_vcs,
+            search_crypto_people,
         ]
         # Lazily obtain knowledge; disable search if unavailable
         knowledge = get_knowledge()
