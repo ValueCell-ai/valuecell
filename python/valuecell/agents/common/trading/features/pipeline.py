@@ -9,8 +9,8 @@ computer—everything is orchestrated by the pipeline.
 from __future__ import annotations
 
 import asyncio
-from typing import List, Optional
 from pathlib import Path
+from typing import List, Optional
 
 from loguru import logger
 
@@ -23,14 +23,14 @@ from valuecell.agents.common.trading.models import (
 
 from ..data.interfaces import BaseMarketDataSource
 from ..data.market import SimpleMarketDataSource
+from ..data.screenshot import PlaywrightScreenshotDataSource
 from .candle import SimpleCandleFeatureComputer
+from .image import MLLMImageFeatureComputer
 from .interfaces import (
     BaseFeaturesPipeline,
     CandleBasedFeatureComputer,
 )
 from .market_snapshot import MarketSnapshotFeatureComputer
-from ..data.screenshot import PlaywrightScreenshotDataSource
-from .image import MLLMImageFeatureComputer
 
 
 class DefaultFeaturesPipeline(BaseFeaturesPipeline):
@@ -53,11 +53,18 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
         self._symbols = list(dict.fromkeys(request.trading_config.symbols))
         self._market_snapshot_computer = market_snapshot_computer
         self._screenshot_data_source = screenshot_data_source
+        self._screenshot_ctx: Optional[PlaywrightScreenshotDataSource] = None
         self._image_feature_computer = image_feature_computer
         self._candle_configurations = candle_configurations or [
             CandleConfig(interval="1s", lookback=60 * 3),
             CandleConfig(interval="1m", lookback=60 * 4),
         ]
+
+    async def open(self) -> None:
+        """Open any long-lived resources needed by the pipeline."""
+
+        if self._screenshot_data_source is not None:
+            self._screenshot_ctx = await self._screenshot_data_source.__aenter__()
 
     async def build(self) -> FeaturesPipelineResult:
         """
@@ -104,11 +111,7 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
         ):
 
             async def _fetch_image_features() -> List[FeatureVector]:
-                # Ensure the screenshot data source lifecycle is managed via async context
-                async with self._screenshot_data_source as ds:
-                    img = await ds.capture()
-
-                # image_feature_computer expects a list of agno.media.Image
+                img = await self._screenshot_ctx.capture()
                 return await self._image_feature_computer.compute_features(images=[img])
 
             tasks_map["image"] = asyncio.create_task(_fetch_image_features())
@@ -138,6 +141,14 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
 
         return FeaturesPipelineResult(features=candle_features)
 
+    async def close(self) -> None:
+        """Close any long-lived resources created by the pipeline."""
+        if self._screenshot_ctx is not None:
+            try:
+                await self._screenshot_ctx.__aexit__(None, None, None)
+            finally:
+                self._screenshot_ctx = None
+
     @classmethod
     def from_request(cls, request: UserRequest) -> DefaultFeaturesPipeline:
         """Factory creating the default pipeline from a user request."""
@@ -148,7 +159,9 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
         market_snapshot_computer = MarketSnapshotFeatureComputer()
 
         try:
-            image_feature_computer = MLLMImageFeatureComputer.from_request(request)
+            image_feature_computer = MLLMImageFeatureComputer.from_request(
+                request.llm_model_config
+            )
             charts_json = Path(__file__).parent / "configs" / "charts.json"
             screenshot_data_source = PlaywrightScreenshotDataSource(
                 target_url="https://aggr.trade",

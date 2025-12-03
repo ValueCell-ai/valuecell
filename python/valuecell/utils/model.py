@@ -359,7 +359,9 @@ def supports_model_images(provider: str, model_id: Optional[str]) -> bool:
                 return True
         return False
     except Exception:
-        logger.debug("supports_model_images: failed to read provider config, assuming False")
+        logger.debug(
+            "supports_model_images: failed to read provider config, assuming False"
+        )
         return False
 
 

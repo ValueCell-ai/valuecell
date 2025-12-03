@@ -22,14 +22,16 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
         """
         self.target_url = target_url
         self.file_path = file_path
-        
+
         self.playwright: Optional[Playwright] = None
         self.browser: Optional[Browser] = None
         self.page: Optional[Page] = None
 
         # Ensure dummy file exists if not present
         if not os.path.exists(self.file_path):
-            logger.warning(f"File {self.file_path} not found. Creating empty JSON file.")
+            logger.warning(
+                f"File {self.file_path} not found. Creating empty JSON file."
+            )
             with open(self.file_path, "w") as f:
                 f.write("{}")
 
@@ -42,8 +44,10 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
             logger.info("Initializing Playwright session...")
             self.playwright = await async_playwright().start()
             self.browser = await self.playwright.chromium.launch(headless=True)
-            
-            context = await self.browser.new_context(viewport={"width": 1600, "height": 900})
+
+            context = await self.browser.new_context(
+                viewport={"width": 1600, "height": 900}
+            )
             self.page = await context.new_page()
 
             logger.info(f"Navigating to {self.target_url}")
@@ -69,10 +73,10 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
             logger.info("Uploading file...")
             async with self.page.expect_file_chooser() as fc_info:
                 await self.page.get_by_text("Upload template file").click()
-            
+
             file_chooser = await fc_info.value
             await file_chooser.set_files(self.file_path)
-            
+
             # Wait slightly for UI render
             await asyncio.sleep(1)
 
@@ -100,7 +104,7 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
         """
         if exc_type:
             logger.error(f"Exiting session due to exception: {exc_val}")
-        
+
         await self._cleanup()
         logger.info("Session closed.")
 
@@ -126,12 +130,12 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
 
             # Capture screenshot bytes
             screenshot_bytes = await self.page.screenshot(full_page=True)
-            
+
             # Create agno Image object
-            # Assuming Image can be initialized with content/bytes. 
+            # Assuming Image can be initialized with content/bytes.
             # If agno.media.Image requires a file path, we would save it to disk first.
             image_obj = Image(content=screenshot_bytes)
-            
+
             logger.info("Screenshot captured successfully.")
             return image_obj
 
