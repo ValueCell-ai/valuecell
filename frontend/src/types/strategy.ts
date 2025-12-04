@@ -77,8 +77,8 @@ export interface StrategyPrompt {
   content: string;
 }
 
-// Create Strategy Request types
-export interface CreateStrategyRequest {
+// Create Strategy types
+export interface CreateStrategy {
   // LLM Model Configuration
   llm_model_config: {
     provider: string; // e.g. 'openrouter'
@@ -90,9 +90,11 @@ export interface CreateStrategyRequest {
   exchange_config: {
     exchange_id: string; // e.g. 'okx'
     trading_mode: "live" | "virtual";
-    api_key?: string;
-    secret_key?: string;
-    passphrase?: string; // Required for some exchanges like OKX
+    api_key: string;
+    secret_key: string;
+    passphrase: string; // Required for some exchanges like OKX
+    wallet_address: string;
+    private_key: string;
   };
 
   // Trading Strategy Configuration
@@ -102,8 +104,8 @@ export interface CreateStrategyRequest {
     max_leverage: number;
     symbols: string[]; // e.g. ['BTC', 'ETH', ...]
     template_id: string;
-    custom_prompt?: string;
-    decide_interval?: number;
+    decide_interval: number;
+    strategy_type: Strategy["strategy_type"];
   };
 }
 

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { API_QUERY_KEYS } from "@/constants/api";
 import { type ApiResponse, apiClient } from "@/lib/api-client";
 import type {
-  CreateStrategyRequest,
+  CreateStrategy,
   PortfolioSummary,
   Position,
   Strategy,
@@ -83,7 +83,7 @@ export const useCreateStrategy = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateStrategyRequest) =>
+    mutationFn: (data: CreateStrategy) =>
       apiClient.post<ApiResponse<{ strategy_id: string }>>(
         "/strategies/create",
         data,
@@ -99,7 +99,7 @@ export const useCreateStrategy = () => {
 
 export const useTestConnection = () => {
   return useMutation({
-    mutationFn: (data: CreateStrategyRequest["exchange_config"]) =>
+    mutationFn: (data: CreateStrategy["exchange_config"]) =>
       apiClient.post<ApiResponse<null>>("/strategies/test-connection", data),
   });
 };

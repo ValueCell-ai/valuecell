@@ -1,6 +1,6 @@
 import { useStore } from "@tanstack/react-form";
-import type { FC } from "react";
-import { memo, useState } from "react";
+import type { FC, RefObject } from "react";
+import { memo, useImperativeHandle, useState } from "react";
 import { useGetModelProviderDetail } from "@/api/setting";
 import {
   useCreateStrategy,
@@ -26,13 +26,17 @@ import {
 } from "@/constants/schema";
 import { useAppForm } from "@/hooks/use-form";
 import { tracker } from "@/lib/tracker";
-import type { Strategy } from "@/types/strategy";
+import type { CreateStrategy, Strategy } from "@/types/strategy";
 import { AIModelForm } from "../forms/ai-model-form";
 import { EXCHANGE_OPTIONS, ExchangeForm } from "../forms/exchange-form";
 import { TradingStrategyForm } from "../forms/trading-strategy-form";
 
+interface CreateStrategyModelRef {
+  open: (data?: CreateStrategy) => void;
+}
 interface CreateStrategyModalProps {
   children?: React.ReactNode;
+  ref: RefObject<CreateStrategyModelRef>;
 }
 
 const STEPS = [
@@ -41,7 +45,10 @@ const STEPS = [
   { step: 3, title: "Trading strategy" },
 ];
 
-const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
+const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
+  ref,
+  children,
+}) => {
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -149,6 +156,17 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
       setCurrentStep((prev) => prev - 1);
     }
   };
+
+  useImperativeHandle(ref, () => ({
+    open: (data) => {
+      if (data) {
+        form1.reset(data.llm_model_config);
+        form2.reset(data.exchange_config);
+        form3.reset(data.trading_config);
+      }
+      setOpen(true);
+    },
+  }));
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
