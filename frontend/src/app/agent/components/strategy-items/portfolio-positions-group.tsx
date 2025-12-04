@@ -21,10 +21,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import AppLoginModal from "@/components/valuecell/app/app-login-modal";
 import MultiLineChart from "@/components/valuecell/charts/model-multi-line";
 import { PngIcon } from "@/components/valuecell/icon/png-icon";
 import SvgIcon from "@/components/valuecell/icon/svg-icon";
+import LoginModal from "@/components/valuecell/modal/login-modal";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import {
   formatChange,
@@ -170,11 +170,11 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <AppLoginModal>
+              <LoginModal>
                 <Button>
                   <SvgIcon name={Send} className="size-5" /> Publish
                 </Button>
-              </AppLoginModal>
+              </LoginModal>
             ))}
         </div>
 

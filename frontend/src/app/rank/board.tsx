@@ -14,12 +14,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import AppStrategyModal, {
-  type AppStrategyModalRef,
-} from "@/components/valuecell/app/app-strategy-modal";
 import { Tag } from "@/components/valuecell/button/tag-groups";
 import { Rank1Icon, Rank2Icon, Rank3Icon } from "@/components/valuecell/icon";
 import { PngIcon } from "@/components/valuecell/icon/png-icon";
+import StrategyDetailModal, {
+  type StrategyDetailModalRef,
+} from "@/components/valuecell/modal/strategy-detail-modal";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { EXCHANGE_ICONS } from "@/constants/icons";
 import { getChangeType, numberFixed } from "@/lib/utils";
@@ -27,7 +27,7 @@ import { useStockColors } from "@/store/settings-store";
 
 export default function RankBoard() {
   const [days, setDays] = useState(7);
-  const strategyModalRef = useRef<AppStrategyModalRef>(null);
+  const strategyDetailModalRef = useRef<StrategyDetailModalRef>(null);
 
   const stockColors = useStockColors();
 
@@ -44,7 +44,7 @@ export default function RankBoard() {
   };
 
   const handleViewStrategy = (strategyId: number) => {
-    strategyModalRef.current?.open(strategyId);
+    strategyDetailModalRef.current?.open(strategyId);
   };
 
   return (
@@ -156,7 +156,7 @@ export default function RankBoard() {
         </CardContent>
       </Card>
 
-      <AppStrategyModal ref={strategyModalRef} />
+      <StrategyDetailModal ref={strategyDetailModalRef} />
     </div>
   );
 }

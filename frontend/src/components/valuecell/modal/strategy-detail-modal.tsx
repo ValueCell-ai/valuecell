@@ -13,15 +13,15 @@ import { getChangeType, numberFixed } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
 import ScrollContainer from "../scroll/scroll-container";
 
-export interface AppStrategyModalRef {
+export interface StrategyDetailModalRef {
   open: (strategyId: number) => void;
 }
 
-interface AppStrategyModalProps {
-  ref: RefObject<AppStrategyModalRef | null>;
+interface StrategyDetailModalProps {
+  ref: RefObject<StrategyDetailModalRef | null>;
 }
 
-const AppStrategyModal: FC<AppStrategyModalProps> = ({ ref }) => {
+const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
   const stockColors = useStockColors();
   const [open, setOpen] = useState(false);
   const [strategyId, setStrategyId] = useState<number | null>(null);
@@ -115,4 +115,4 @@ const AppStrategyModal: FC<AppStrategyModalProps> = ({ ref }) => {
   );
 };
 
-export default AppStrategyModal;
+export default StrategyDetailModal;

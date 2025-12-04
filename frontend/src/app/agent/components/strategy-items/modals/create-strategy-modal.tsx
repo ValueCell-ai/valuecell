@@ -36,7 +36,7 @@ interface CreateStrategyModelRef {
 }
 interface CreateStrategyModalProps {
   children?: React.ReactNode;
-  ref: RefObject<CreateStrategyModelRef>;
+  ref?: RefObject<CreateStrategyModelRef>;
 }
 
 const STEPS = [
