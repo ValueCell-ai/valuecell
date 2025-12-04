@@ -259,8 +259,14 @@ class StrategyPerformanceData(BaseModel):
     strategy_type: Optional[StrategyType] = Field(
         None, description="Strategy type (PromptBasedStrategy/GridStrategy)"
     )
+    trading_mode: Optional[Literal["live", "virtual"]] = Field(
+        None, description="Trading mode: live or virtual"
+    )
     max_leverage: Optional[float] = Field(None, description="Maximum leverage")
     symbols: Optional[List[str]] = Field(None, description="Symbols universe")
+    prompt_name: Optional[str] = Field(
+        None, description="Prompt template name used by the strategy"
+    )
     prompt: Optional[str] = Field(
         None, description="Final resolved prompt text used by the strategy"
     )

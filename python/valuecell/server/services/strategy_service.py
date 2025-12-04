@@ -216,6 +216,9 @@ class StrategyService:
         if trading_mode_raw.startswith("tradingmode."):
             trading_mode_raw = trading_mode_raw.split(".", 1)[1]
         is_live_mode = trading_mode_raw == "live"
+        trading_mode: Optional[str] = (
+            trading_mode_raw if trading_mode_raw in ("live", "virtual") else None
+        )
 
         if is_live_mode:
             # Fast path: read from metadata set on first LIVE snapshot
@@ -240,14 +243,17 @@ class StrategyService:
             tr.get("template_id") if tr.get("template_id") is not None else None
         )
         final_prompt: Optional[str] = None
+        prompt_name: Optional[str] = None
         if template_id:
             try:
                 prompt_item = repo.get_prompt_by_id(template_id)
                 if prompt_item and getattr(prompt_item, "content", None):
                     final_prompt = prompt_item.content
+                    prompt_name = getattr(prompt_item, "name", None)
             except Exception:
                 # Strict mode: do not fallback; leave final_prompt as None
                 final_prompt = None
+                prompt_name = None
 
         total_value = (
             _to_optional_float(getattr(snapshot, "total_value", None))
@@ -272,8 +278,10 @@ class StrategyService:
             llm_model_id=llm_model_id,
             exchange_id=exchange_id,
             strategy_type=strategy_type,
+            trading_mode=trading_mode,
             max_leverage=max_leverage,
             symbols=symbols,
+            prompt_name=prompt_name,
             prompt=final_prompt,
         )
 
