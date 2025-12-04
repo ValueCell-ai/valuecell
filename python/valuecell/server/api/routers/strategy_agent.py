@@ -54,6 +54,20 @@ def create_strategy_agent_router() -> APIRouter:
         UserRequest JSON, and returns an aggregated JSON response (non-SSE).
         """
         try:
+            # Helper: dump request config without sensitive credentials
+            def _safe_config_dump(req: UserRequest) -> dict:
+                return req.model_dump(
+                    exclude={
+                        "exchange_config": {
+                            "api_key",
+                            "secret_key",
+                            "passphrase",
+                            "wallet_address",
+                            "private_key",
+                        }
+                    }
+                )
+
             # Ensure we only serialize the core UserRequest fields, excluding conversation_id
             user_request = UserRequest(
                 llm_model_config=request.llm_model_config,
@@ -188,7 +202,7 @@ def create_strategy_agent_router() -> APIRouter:
                                 description=None,
                                 user_id=user_input_meta.user_id,
                                 status=status.value,
-                                config=request.model_dump(),
+                                config=_safe_config_dump(request),
                                 metadata=metadata,
                             )
                         except Exception:
@@ -205,16 +219,18 @@ def create_strategy_agent_router() -> APIRouter:
                     code=StatusCode.INTERNAL_ERROR,
                     msg="No status event from orchestrator",
                 )
-            except Exception as exc:
-                # Orchestrator failed; do NOT persist or fallback, return error only
+            except Exception:
+                # Orchestrator failed; do NOT persist or fallback, return generic error only
                 return ErrorResponse.create(
-                    code=StatusCode.INTERNAL_ERROR, msg=str(exc)
+                    code=StatusCode.INTERNAL_ERROR, msg="Internal error"
                 )
 
-        except Exception as e:
-            # As a last resort, log the exception and return error without persistence or fallback.
-            logger.exception(f"Failed to create strategy in API endpoint: {e}")
-            return ErrorResponse.create(code=StatusCode.INTERNAL_ERROR, msg=str(e))
+        except Exception:
+            # As a last resort, log without sensitive details and return generic error.
+            logger.exception("Failed to create strategy in API endpoint")
+            return ErrorResponse.create(
+                code=StatusCode.INTERNAL_ERROR, msg="Internal error"
+            )
 
     @router.post("/test-connection")
     async def test_exchange_connection(request: ExchangeConfig):
@@ -256,11 +272,11 @@ def create_strategy_agent_router() -> APIRouter:
             finally:
                 await gateway.close()
 
-        except Exception as e:
-            # If create_ccxt_gateway fails or other error
-            logger.warning(f"Connection test failed: {e}")
+        except Exception:
+            # If create_ccxt_gateway fails or other error, avoid logging sensitive info
+            logger.warning("Connection test failed")
             raise HTTPException(
-                status_code=400, detail=f"Failed, please check your API key: {str(e)}"
+                status_code=400, detail="Failed, please check your API key"
             )
 
     @router.delete("/delete")
