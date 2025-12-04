@@ -25,35 +25,42 @@ export const AIModelForm = withForm({
     } = useGetSortedModelProviders();
 
     const provider = useStore(form.store, (state) => state.values.provider);
-    const { data: modelProviderDetail } = useGetModelProviderDetail(provider);
+    const {
+      isLoading: isLoadingModelProviderDetail,
+      data: modelProviderDetail,
+      refetch: fetchModelProviderDetail,
+    } = useGetModelProviderDetail(provider);
 
     // Set the default provider once loaded and provider is not yet selected
     useEffect(() => {
-      if (isLoadingProviders) return;
-      if (!defaultProvider) return;
+      if (isLoadingProviders || !defaultProvider) return;
       // Only set if provider field is empty (not yet selected by user)
       if (!provider) {
         form.setFieldValue("provider", defaultProvider);
       }
     }, [isLoadingProviders, defaultProvider, provider]);
 
-    useEffect(() => {
-      if (!modelProviderDetail) return;
-
-      form.setFieldValue(
-        "model_id",
-        modelProviderDetail.default_model_id ?? "",
-      );
-      form.setFieldValue("api_key", modelProviderDetail.api_key ?? "");
-    }, [modelProviderDetail]);
-
-    if (isLoadingProviders) {
+    if (isLoadingProviders || isLoadingModelProviderDetail) {
       return <div>Loading...</div>;
     }
 
     return (
       <FieldGroup className="gap-6">
-        <form.AppField name="provider" defaultValue={defaultProvider}>
+        <form.AppField
+          listeners={{
+            onMount: async () => {
+              const { data } = await fetchModelProviderDetail();
+              form.setFieldValue("api_key", data?.api_key ?? "");
+            },
+            onChange: async () => {
+              const { data } = await fetchModelProviderDetail();
+
+              form.setFieldValue("model_id", data?.default_model_id ?? "");
+              form.setFieldValue("api_key", data?.api_key ?? "");
+            },
+          }}
+          name="provider"
+        >
           {(field) => (
             <field.SelectField label="Model Platform">
               {sortedProviders.map(({ provider }) => (

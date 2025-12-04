@@ -28,14 +28,17 @@ export interface StrategyDetail {
   name: string;
   avatar: string;
   return_rate_pct: number;
-  strategy_type: string;
-  exchange: string;
+  strategy_type: Strategy["strategy_type"];
+  exchange_id: string;
   symbols: string[];
   llm_provider: string;
   llm_model_id: string;
   max_leverage: number;
   initial_capital: number;
+  decide_interval: number;
   prompt: string;
+  prompt_name: string;
+  trading_mode: Strategy["trading_mode"];
 }
 
 export interface StrategyReport {
@@ -50,4 +53,6 @@ export interface StrategyReport {
   max_leverage: number;
   initial_capital: number;
   prompt: string;
+  prompt_name: string;
+  trading_mode: Strategy["trading_mode"];
 }

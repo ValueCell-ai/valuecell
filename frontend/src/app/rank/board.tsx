@@ -1,16 +1,10 @@
 import { Eye } from "lucide-react";
-import { useState } from "react";
-import { useGetStrategyDetail, useGetStrategyList } from "@/api/system";
+import { useRef, useState } from "react";
+import { useGetStrategyList } from "@/api/system";
 import { ValueCellAgentPng } from "@/assets/png";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -27,12 +21,13 @@ import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { EXCHANGE_ICONS } from "@/constants/icons";
 import { getChangeType, numberFixed } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
+import StrategyRemoteModal, {
+  type StrategyRemoteModalRef,
+} from "./components/strategy-remote-modal";
 
 export default function RankBoard() {
   const [days, setDays] = useState(7);
-  const [selectedStrategyId, setSelectedStrategyId] = useState<number | null>(
-    null,
-  );
+  const strategyRemoteModalRef = useRef<StrategyRemoteModalRef>(null);
 
   const stockColors = useStockColors();
 
@@ -40,13 +35,16 @@ export default function RankBoard() {
     limit: 30,
     days,
   });
-  const { data: strategyDetail } = useGetStrategyDetail(selectedStrategyId);
 
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <Rank1Icon />;
     if (rank === 2) return <Rank2Icon />;
     if (rank === 3) return <Rank3Icon />;
     return <span className="text-gray-950 text-sm">{rank}</span>;
+  };
+
+  const handleViewStrategy = (strategyId: number) => {
+    strategyRemoteModalRef.current?.open(strategyId);
   };
 
   return (
@@ -142,7 +140,7 @@ export default function RankBoard() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setSelectedStrategyId(strategy.id)}
+                          onClick={() => handleViewStrategy(strategy.id)}
                           className="gap-2"
                         >
                           <Eye className="h-4 w-4" />
@@ -158,80 +156,7 @@ export default function RankBoard() {
         </CardContent>
       </Card>
 
-      <Dialog
-        open={!!selectedStrategyId}
-        onOpenChange={(open) => !open && setSelectedStrategyId(null)}
-      >
-        <DialogContent
-          className="flex max-h-[90vh] min-h-96 flex-col"
-          aria-describedby={undefined}
-        >
-          <DialogHeader>
-            <DialogTitle>Strategy Details</DialogTitle>
-          </DialogHeader>
-          <ScrollContainer>
-            {strategyDetail ? (
-              <div className="grid gap-4 py-4">
-                <div className="flex items-center gap-4">
-                  <Avatar className="size-16">
-                    <AvatarImage
-                      src={strategyDetail.avatar}
-                      alt={strategyDetail.name}
-                    />
-                    <AvatarFallback>{strategyDetail.name[0]}</AvatarFallback>
-                  </Avatar>
-                  <h3 className="font-bold text-lg">{strategyDetail.name}</h3>
-                  <div className="ml-auto text-right">
-                    <div
-                      className="font-bold text-2xl"
-                      style={{
-                        color:
-                          stockColors[
-                            getChangeType(strategyDetail.return_rate_pct)
-                          ],
-                      }}
-                    >
-                      {numberFixed(strategyDetail.return_rate_pct, 2)}%
-                    </div>
-                    <div className="text-gray-500 text-sm">Return Rate</div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-[auto_1fr] gap-y-2 text-nowrap text-sm [&>p]:text-gray-500 [&>span]:text-right">
-                  <p>Strategy Type</p>
-                  <span>{strategyDetail.strategy_type}</span>
-
-                  <p>Model Provider</p>
-                  <span>{strategyDetail.llm_provider}</span>
-
-                  <p>Model ID</p>
-                  <span>{strategyDetail.llm_model_id}</span>
-
-                  <p>Initial Capital</p>
-                  <span>{strategyDetail.initial_capital}</span>
-
-                  <p>Max Leverage</p>
-                  <span>{strategyDetail.max_leverage}x</span>
-
-                  <p>Trading Symbols</p>
-                  <span className="whitespace-normal">
-                    {strategyDetail.symbols.join(", ")}
-                  </span>
-                </div>
-
-                <div className="gap-2">
-                  <span className="text-gray-500 text-sm">Prompt</span>
-                  <p className="rounded-md bg-gray-50 p-3 text-gray-700 text-sm">
-                    {strategyDetail.prompt}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="py-8 text-center">Loading details...</div>
-            )}
-          </ScrollContainer>
-        </DialogContent>
-      </Dialog>
+      <StrategyRemoteModal ref={strategyRemoteModalRef} />
     </div>
   );
 }

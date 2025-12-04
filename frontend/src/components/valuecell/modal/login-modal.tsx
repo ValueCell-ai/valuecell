@@ -22,11 +22,11 @@ import ScrollContainer from "../scroll/scroll-container";
 
 type PendingAction = "gmail" | "apple";
 
-export interface AppLoginModalProps {
+export interface LoginModalProps {
   children?: React.ReactNode;
 }
 
-export default function AppLoginModal({ children }: AppLoginModalProps) {
+export default function LoginModal({ children }: LoginModalProps) {
   const [open, setOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(
     null,

@@ -1,7 +1,7 @@
 // Strategy types
 
 export interface Strategy {
-  strategy_id: string;
+  strategy_id: number;
   strategy_name: string;
   strategy_type: "PromptBasedStrategy" | "GridStrategy";
   status: "running" | "stopped";
@@ -26,6 +26,9 @@ export type StrategyPerformance = {
   max_leverage: number;
   symbols: string[];
   prompt: string;
+  prompt_name: string;
+  trading_mode: Strategy["trading_mode"];
+  decide_interval: number;
 };
 
 // Position types
@@ -75,8 +78,8 @@ export interface StrategyPrompt {
   content: string;
 }
 
-// Create Strategy Request types
-export interface CreateStrategyRequest {
+// Create Strategy types
+export interface CreateStrategy {
   // LLM Model Configuration
   llm_model_config: {
     provider: string; // e.g. 'openrouter'
@@ -88,9 +91,11 @@ export interface CreateStrategyRequest {
   exchange_config: {
     exchange_id: string; // e.g. 'okx'
     trading_mode: "live" | "virtual";
-    api_key?: string;
-    secret_key?: string;
-    passphrase?: string; // Required for some exchanges like OKX
+    api_key: string;
+    secret_key: string;
+    passphrase: string; // Required for some exchanges like OKX
+    wallet_address: string;
+    private_key: string;
   };
 
   // Trading Strategy Configuration
@@ -100,8 +105,41 @@ export interface CreateStrategyRequest {
     max_leverage: number;
     symbols: string[]; // e.g. ['BTC', 'ETH', ...]
     template_id: string;
-    custom_prompt?: string;
-    decide_interval?: number;
+    decide_interval: number;
+    strategy_type: Strategy["strategy_type"];
+  };
+}
+
+// Copy Strategy types
+export interface CopyStrategy {
+  // LLM Model Configuration
+  llm_model_config: {
+    provider: string; // e.g. 'openrouter'
+    model_id: string; // e.g. 'deepseek-ai/deepseek-v3.1'
+    api_key: string;
+  };
+
+  // Exchange Configuration
+  exchange_config: {
+    exchange_id: string; // e.g. 'okx'
+    trading_mode: "live" | "virtual";
+    api_key: string;
+    secret_key: string;
+    passphrase: string; // Required for some exchanges like OKX
+    wallet_address: string;
+    private_key: string;
+  };
+
+  // Trading Strategy Configuration
+  trading_config: {
+    strategy_name: string;
+    initial_capital: number;
+    max_leverage: number;
+    symbols: string[]; // e.g. ['BTC', 'ETH', ...]
+    decide_interval: number;
+    strategy_type: Strategy["strategy_type"];
+    prompt_name: string;
+    prompt: string;
   };
 }
 

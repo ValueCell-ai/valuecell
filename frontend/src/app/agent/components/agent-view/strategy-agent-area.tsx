@@ -9,11 +9,11 @@ import {
   useGetStrategyPriceCurve,
   useStopStrategy,
 } from "@/api/strategy";
+import CreateStrategyModal from "@/app/agent/components/strategy-items/modals/create-strategy-modal";
 import { Button } from "@/components/ui/button";
 import type { AgentViewProps } from "@/types/agent";
 import type { Strategy } from "@/types/strategy";
 import {
-  CreateStrategyModal,
   PortfolioPositionsGroup,
   StrategyComposeList,
   TradeStrategyGroup,

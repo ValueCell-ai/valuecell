@@ -1,6 +1,8 @@
 import { MultiSelect } from "@valuecell/multi-select";
 import { Eye, Plus } from "lucide-react";
 import { useCreateStrategyPrompt } from "@/api/strategy";
+import NewPromptModal from "@/app/agent/components/strategy-items/modals/new-prompt-modal";
+import ViewStrategyModal from "@/app/agent/components/strategy-items/modals/view-strategy-modal";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -18,8 +20,6 @@ import {
 import { TRADING_SYMBOLS } from "@/constants/agent";
 import { withForm } from "@/hooks/use-form";
 import type { Strategy, StrategyPrompt } from "@/types/strategy";
-import NewPromptModal from "../modals/new-prompt-modal";
-import ViewStrategyModal from "../modals/view-strategy-modal";
 
 export const TradingStrategyForm = withForm({
   defaultValues: {

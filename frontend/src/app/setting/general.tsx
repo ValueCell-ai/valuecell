@@ -10,7 +10,7 @@ import {
   FieldTitle,
 } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import AppLoginModal from "@/components/valuecell/app/app-login-modal";
+import LoginModal from "@/components/valuecell/modal/login-modal";
 import { useTauriInfo } from "@/hooks/use-tauri-info";
 import { useUpdateToast } from "@/hooks/use-update-toast";
 import { withTrack } from "@/lib/tracker";
@@ -58,9 +58,9 @@ export default function GeneralPage() {
                 Sign Out
               </Button>
             ) : (
-              <AppLoginModal>
+              <LoginModal>
                 <Button>Sign In</Button>
-              </AppLoginModal>
+              </LoginModal>
             )}
           </Field>
         )}
