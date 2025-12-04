@@ -211,7 +211,7 @@ class AggrScreenshotDataSource(PlaywrightScreenshotDataSource):
         await import_btn.click()
 
         logger.info("Import successful. Waiting for modal to close...")
-        await asyncio.sleep(2)
+        await asyncio.sleep(3)
 
 
 class TradingViewScreenshotDataSource(PlaywrightScreenshotDataSource):
