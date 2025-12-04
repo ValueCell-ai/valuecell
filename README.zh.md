@@ -257,6 +257,22 @@ bash start.sh
 - **测试框架**：单元测试、集成测试和模拟数据提供商
 
 
+# 许可证
+
+本项目依据 **Apache License 2.0** 授权发布；详情参见 `LICENSE` 文件。
+
+> 📌 注意：Apache 2.0 仅适用于由 ValueCell 团队及贡献者创作的原始代码。第三方组件（如 API、挂件、库）受其各自的许可证与使用条款约束——见下方说明。
+
+## 第三方组件与许可
+
+ValueCell 集成外部服务并嵌入第三方挂件。其使用不受 Apache 2.0 覆盖，遵循其服务条款的合规责任由用户/开发者自行承担。
+
+| 组件 | 类型 | 许可证 / 条款 |
+|---------|------|-----------------|----------------------|
+| **TradingView 高级图表** | 嵌入式 iframe 挂件 | [Free Advanced Charts Agreement](https://www.tradingview.com/chart-embedding/)（专有） |
+| **交易所 API**（Binance、OKX、Hyperliquid 等） | REST/WebSocket 接口 | 各交易所的服务条款（例如 [Binance API 条款](https://www.binance.com/en/terms)） |
+| **大语言模型提供商**（OpenAI、Azure、Google、DeepSeek 等） | 推理 API | 供应商特定的使用条款（例如 [OpenAI 使用条款](https://openai.com/policies/terms-of-use)） |
+
 # Star
 
 <div align="center">
