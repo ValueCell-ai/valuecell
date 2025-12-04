@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from agno.agent import Agent as AgnoAgent
-from agno.models import Model as AgnoModel
 from agno.media import Image as AgnoImage
+from agno.models.base import Model as AgnoModel
 from loguru import logger
 
 from valuecell.utils import model as model_utils

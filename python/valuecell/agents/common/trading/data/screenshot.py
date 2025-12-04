@@ -11,8 +11,9 @@ from valuecell.agents.common.trading.models import DataSourceImage
 from valuecell.utils.path import get_screenshot_path
 
 from ..models import InstrumentRef
+from ..utils import normalize_symbol_tradingview
 from .interfaces import BaseScreenshotDataSource
-from .utils import generate_tradingview_html, normalize_symbol_tradingview
+from .utils import generate_tradingview_html
 
 
 class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
