@@ -1,10 +1,47 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useAllPollTaskList } from "@/api/conversation";
 import { useGetDefaultTickers } from "@/api/system";
 import { agentSuggestions } from "@/mock/agent-data";
 import ChatInputArea from "../agent/components/chat-conversation/chat-input-area";
-import { AgentSuggestionsList, AgentTaskCards, StockCard } from "./components";
+import { AgentSuggestionsList, AgentTaskCards } from "./components";
+
+function TradingViewTickerTape({ symbols }: { symbols: string[] }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const theme = "light";
+  const tapeSymbols = useMemo(
+    () =>
+      symbols.slice(0, 8).map((s) => ({
+        proName: s,
+      })),
+    [symbols],
+  );
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    containerRef.current.innerHTML = "";
+    const script = document.createElement("script");
+    script.type = "text/javascript";
+    script.async = true;
+    script.src =
+      "https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js";
+    script.innerHTML = JSON.stringify({
+      symbols: tapeSymbols,
+      showSymbolLogo: true,
+      colorTheme: theme,
+      isTransparent: false,
+      displayMode: "regular",
+      locale: "en",
+    });
+    containerRef.current.appendChild(script);
+  }, [tapeSymbols, theme]);
+
+  return (
+    <div className="w-full">
+      <div ref={containerRef} />
+    </div>
+  );
+}
 
 function Home() {
   const navigate = useNavigate();
@@ -18,11 +55,20 @@ function Home() {
   };
 
   const tickers = defaultTickersData?.tickers || [];
+  const indexSymbols = [
+    "FOREXCOM:SPXUSD",
+    "NASDAQ:IXIC",
+    "NASDAQ:NDX",
+    "INDEX:HSI",
+    "SSE:000001",
+    "BINANCE:BTCUSDT",
+    "BINANCE:ETHUSDT",
+  ];
 
   return (
-    <div className="flex h-full min-w-[800px] flex-col gap-3 overflow-y-auto pb-4">
+    <div className="scroll-container flex min-h-svh min-w-[800px] flex-col gap-3 pb-4">
       {allPollTaskList && allPollTaskList.length > 0 ? (
-        <section className="flex flex-1 flex-col items-center justify-between gap-4 overflow-hidden">
+        <section className="flex h-full flex-1 flex-col items-center justify-between gap-4 overflow-hidden">
           <div className="scroll-container w-full">
             <AgentTaskCards tasks={allPollTaskList} />
           </div>
@@ -41,17 +87,16 @@ function Home() {
           />
         </section>
       ) : (
-        <section className="flex w-full flex-col items-center gap-8 overflow-visible rounded-lg bg-white py-8">
+        <section className="flex h-full w-full flex-1 flex-col items-center gap-8 overflow-hidden rounded-lg bg-white py-8">
+          <div className="mx-auto w-4/5 max-w-[800px] px-4">
+            <TradingViewTickerTape symbols={indexSymbols} />
+          </div>
           <div className="space-y-4 text-center text-gray-950">
             <h1 className="font-medium text-3xl">👋 Hello Investor!</h1>
           </div>
 
           <div className="flex w-full max-w-[800px] flex-col gap-4 px-4">
-            <div className="flex w-full justify-center gap-4">
-              {tickers.slice(0, 3).map((ticker) => (
-                <StockCard key={ticker.ticker} ticker={ticker.ticker} />
-              ))}
-            </div>
+            {/* Index section redesigned to ticker tape */}
           </div>
 
           <ChatInputArea

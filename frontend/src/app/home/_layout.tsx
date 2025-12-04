@@ -14,8 +14,10 @@ export default function HomeLayout() {
         </main>
 
         {
-          <aside className="flex min-w-62 max-w-80 flex-col justify-between rounded-lg bg-white">
-            <StockList />
+          <aside className="flex h-full min-w-62 max-w-80 flex-col overflow-hidden rounded-lg bg-white">
+            <div className="flex-1 overflow-hidden">
+              <StockList />
+            </div>
 
             <StockSearchModal>
               <Button
