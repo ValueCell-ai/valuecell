@@ -162,7 +162,7 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
 
         try:
             image_feature_computer = MLLMImageFeatureComputer.from_request(request)
-            charts_json = Path(__file__).parent / "configs" / "charts.json"
+            charts_json = Path(__file__).parent.parent / "data" / "configs" / "aggr" / "charts.json"
             screenshot_data_source = AggrScreenshotDataSource(
                 target_url="https://aggr.trade",
                 file_path=str(charts_json),
