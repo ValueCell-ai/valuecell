@@ -138,10 +138,10 @@ const StrategyRemoteModal: FC<StrategyRemoteModalProps> = ({ ref }) => {
                   strategy_name: "",
                   strategy_type:
                     strategyDetail?.strategy_type || "PromptBasedStrategy",
-                  initial_capital: strategyDetail?.initial_capital || 0,
-                  max_leverage: strategyDetail?.max_leverage || 0,
+                  initial_capital: strategyDetail?.initial_capital || 1000,
+                  max_leverage: strategyDetail?.max_leverage || 2,
                   symbols: strategyDetail?.symbols || [],
-                  decide_interval: strategyDetail?.decide_interval || 0,
+                  decide_interval: strategyDetail?.decide_interval || 60,
                   prompt: strategyDetail?.prompt || "",
                   prompt_name: strategyDetail?.prompt_name || "",
                 },
