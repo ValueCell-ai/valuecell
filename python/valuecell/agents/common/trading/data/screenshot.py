@@ -12,6 +12,7 @@ from valuecell.utils.path import get_screenshot_path
 
 from ..models import InstrumentRef
 from .interfaces import BaseScreenshotDataSource
+from .utils import generate_tradingview_html, normalize_symbol_tradingview
 
 
 class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
@@ -22,13 +23,15 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
 
     def __init__(
         self,
-        target_url: str,
+        target_url: Optional[str] = None,
+        page_content: Optional[str] = None,
         instrument: Optional[InstrumentRef] = None,
     ):
         """
         Initializes configuration.
         """
         self.target_url = target_url
+        self.page_content = page_content
         self.instrument = instrument
 
         self.playwright: Optional[Playwright] = None
@@ -63,7 +66,15 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
             await self.playwright.stop()
 
     async def _setup(self):
-        pass
+        if self.target_url:
+            logger.info(f"Navigating to {self.target_url}")
+            await self.page.goto(self.target_url)
+            return
+
+        if self.page_content:
+            logger.info("Setting page content from provided HTML.")
+            await self.page.set_content(self.page_content)
+            return
 
     async def open(self):
         """Explicit initialization to support one-time setup.
@@ -80,9 +91,6 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
                 viewport={"width": 1600, "height": 900}
             )
             self.page = await context.new_page()
-
-            logger.info(f"Navigating to {self.target_url}")
-            await self.page.goto(self.target_url)
 
             await self._setup()
 
@@ -165,6 +173,9 @@ class AggrScreenshotDataSource(PlaywrightScreenshotDataSource):
                 f.write("{}")
 
     async def _setup(self):
+        logger.info(f"Navigating to {self.target_url}")
+        await self.page.goto(self.target_url)
+
         logger.info("Waiting for core UI elements...")
         # Wait for the green menu button to ensure page load
         menu_btn = self.page.locator("#menu .menu__button")
@@ -200,3 +211,76 @@ class AggrScreenshotDataSource(PlaywrightScreenshotDataSource):
 
         logger.info("Import successful. Waiting for modal to close...")
         await asyncio.sleep(2)
+
+
+class TradingViewScreenshotDataSource(PlaywrightScreenshotDataSource):
+    """Screenshot data source that renders a TradingView widget for a given symbol
+
+    It generates an HTML page containing the TradingView advanced-chart widget,
+    waits for the iframe and a short stabilization period, then captures only
+    the widget container element to produce a focused screenshot.
+    """
+
+    def __init__(
+        self,
+        symbol: str,
+        instrument: Optional[InstrumentRef] = None,
+    ) -> None:
+        symbol = normalize_symbol_tradingview(symbol)
+        page_content = generate_tradingview_html(symbol)
+        super().__init__(
+            target_url=None, page_content=page_content, instrument=instrument
+        )
+
+        self.symbol = symbol
+
+    async def _setup(self):
+        # Build full HTML wrapper and set as page content
+        await self.page.set_content(self.page_content)
+        logger.info("Loading TradingView widget for %s", self.symbol)
+
+        # Wait for the iframe to attach
+        await self.page.wait_for_selector("iframe", timeout=15000)
+
+        # Wait for visual stability (widgets often animate/fetch data)
+        await self.page.wait_for_timeout(3000)
+
+        # Ensure the container is visible
+        widget_locator = self.page.locator(".tradingview-widget-container")
+        await widget_locator.wait_for(state="visible", timeout=10000)
+
+    async def capture(self, *args, **kwargs) -> List[DataSourceImage]:
+        if not self.page:
+            logger.error("Page is not initialized. Cannot capture screenshot.")
+            return []
+
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+            logger.info(
+                f"Capturing TradingView widget screenshot for {self.symbol} at {timestamp}..."
+            )
+
+            widget_locator = self.page.locator(".tradingview-widget-container")
+            # Capture only the widget element to reduce noise
+            png_bytes = await widget_locator.screenshot()
+
+            fmt = "png"
+            full_path = os.path.join(
+                get_screenshot_path(), f"tradingview_{self.symbol}_{timestamp}.{fmt}"
+            )
+            async with aiofiles.open(full_path, "wb") as fh:
+                await fh.write(png_bytes)
+
+            ds_image = DataSourceImage(
+                url=None,
+                filepath=full_path,
+                content=png_bytes,
+                instrument=self.instrument,
+            )
+
+            logger.info(f"TradingView screenshot saved to {full_path}")
+            return [ds_image]
+
+        except Exception as e:
+            logger.error(f"Failed to capture TradingView screenshot: {e}")
+            return []
