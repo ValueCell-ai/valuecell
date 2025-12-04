@@ -6,6 +6,16 @@ import { agentSuggestions } from "@/mock/agent-data";
 import ChatInputArea from "../agent/components/chat-conversation/chat-input-area";
 import { AgentSuggestionsList, AgentTaskCards } from "./components";
 
+const INDEX_SYMBOLS = [
+  "FOREXCOM:SPXUSD",
+  "NASDAQ:IXIC",
+  "NASDAQ:NDX",
+  "INDEX:HSI",
+  "SSE:000001",
+  "BINANCE:BTCUSDT",
+  "BINANCE:ETHUSDT",
+];
+
 function TradingViewTickerTape({ symbols }: { symbols: string[] }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const theme = "light";
@@ -55,15 +65,6 @@ function Home() {
   };
 
   const tickers = defaultTickersData?.tickers || [];
-  const indexSymbols = [
-    "FOREXCOM:SPXUSD",
-    "NASDAQ:IXIC",
-    "NASDAQ:NDX",
-    "INDEX:HSI",
-    "SSE:000001",
-    "BINANCE:BTCUSDT",
-    "BINANCE:ETHUSDT",
-  ];
 
   return (
     <div className="scroll-container flex min-h-svh min-w-[800px] flex-col gap-3 pb-4">
@@ -89,7 +90,7 @@ function Home() {
       ) : (
         <section className="flex h-full w-full flex-1 flex-col items-center gap-8 overflow-hidden rounded-lg bg-white py-8">
           <div className="mx-auto w-4/5 max-w-[800px] px-4">
-            <TradingViewTickerTape symbols={indexSymbols} />
+            <TradingViewTickerTape symbols={INDEX_SYMBOLS} />
           </div>
           <div className="space-y-4 text-center text-gray-950">
             <h1 className="font-medium text-3xl">👋 Hello Investor!</h1>
