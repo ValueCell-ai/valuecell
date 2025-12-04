@@ -20,25 +20,20 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
     Implements Async Context Manager protocol for automatic setup and teardown.
     """
 
-    def __init__(self, target_url: str, file_path: str, instrument: Optional[InstrumentRef] = None):
+    def __init__(
+        self,
+        target_url: str,
+        instrument: Optional[InstrumentRef] = None,
+    ):
         """
         Initializes configuration.
         """
         self.target_url = target_url
-        self.file_path = file_path
         self.instrument = instrument
 
         self.playwright: Optional[Playwright] = None
         self.browser: Optional[Browser] = None
         self.page: Optional[Page] = None
-
-        # Ensure dummy file exists if not present
-        if not os.path.exists(self.file_path):
-            logger.warning(
-                f"File {self.file_path} not found. Creating empty JSON file."
-            )
-            with open(self.file_path, "w") as f:
-                f.write("{}")
 
     async def __aenter__(self):
         """
@@ -67,6 +62,9 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
         if self.playwright:
             await self.playwright.stop()
 
+    async def _setup(self):
+        pass
+
     async def open(self):
         """Explicit initialization to support one-time setup.
 
@@ -86,41 +84,7 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
             logger.info(f"Navigating to {self.target_url}")
             await self.page.goto(self.target_url)
 
-            logger.info("Waiting for core UI elements...")
-            # Wait for the green menu button to ensure page load
-            menu_btn = self.page.locator("#menu .menu__button")
-            await menu_btn.wait_for(state="visible", timeout=60000)
-
-            logger.info("Page loaded. Executing setup sequence.")
-
-            # 1. Click Menu
-            await menu_btn.click()
-
-            # 2. Click Settings
-            await self.page.get_by_text("Settings", exact=True).click()
-
-            # 3. Click New
-            await self.page.locator("button").filter(has_text="New").click()
-
-            # 4. Handle File Upload
-            logger.info("Uploading file...")
-            async with self.page.expect_file_chooser() as fc_info:
-                await self.page.get_by_text("Upload template file").click()
-
-            file_chooser = await fc_info.value
-            await file_chooser.set_files(self.file_path)
-
-            # Wait slightly for UI render
-            await asyncio.sleep(1)
-
-            # 5. Click IMPORT
-            logger.info("Confirming import...")
-            import_btn = self.page.locator("button").filter(has_text="IMPORT")
-            await import_btn.wait_for(state="visible")
-            await import_btn.click()
-
-            logger.info("Import successful. Waiting for modal to close...")
-            await asyncio.sleep(1)
+            await self._setup()
 
             return self
 
@@ -176,3 +140,63 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
         except Exception as e:
             logger.error(f"Failed to capture screenshot: {e}")
             return []
+
+
+class AggrScreenshotDataSource(PlaywrightScreenshotDataSource):
+    """
+    Composite data source that aggregates multiple screenshot data sources.
+    """
+
+    def __init__(
+        self,
+        target_url: str,
+        file_path: str,
+        instrument: Optional[InstrumentRef] = None,
+    ):
+        super().__init__(target_url, instrument=instrument)
+        self.file_path = file_path
+
+        # Ensure dummy file exists if not present
+        if not os.path.exists(self.file_path):
+            logger.warning(
+                f"File {self.file_path} not found. Creating empty JSON file."
+            )
+            with open(self.file_path, "w") as f:
+                f.write("{}")
+
+    async def _setup(self):
+        logger.info("Waiting for core UI elements...")
+        # Wait for the green menu button to ensure page load
+        menu_btn = self.page.locator("#menu .menu__button")
+        await menu_btn.wait_for(state="visible", timeout=60000)
+
+        logger.info("Page loaded. Executing setup sequence.")
+
+        # 1. Click Menu
+        await menu_btn.click()
+
+        # 2. Click Settings
+        await self.page.get_by_text("Settings", exact=True).click()
+
+        # 3. Click New
+        await self.page.locator("button").filter(has_text="New").click()
+
+        # 4. Handle File Upload
+        logger.info("Uploading file...")
+        async with self.page.expect_file_chooser() as fc_info:
+            await self.page.get_by_text("Upload template file").click()
+
+        file_chooser = await fc_info.value
+        await file_chooser.set_files(self.file_path)
+
+        # Wait slightly for UI render
+        await asyncio.sleep(1)
+
+        # 5. Click IMPORT
+        logger.info("Confirming import...")
+        import_btn = self.page.locator("button").filter(has_text="IMPORT")
+        await import_btn.wait_for(state="visible")
+        await import_btn.click()
+
+        logger.info("Import successful. Waiting for modal to close...")
+        await asyncio.sleep(2)

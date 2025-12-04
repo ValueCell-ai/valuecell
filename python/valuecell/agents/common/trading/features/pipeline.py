@@ -23,7 +23,7 @@ from valuecell.agents.common.trading.models import (
 
 from ..data.interfaces import BaseMarketDataSource
 from ..data.market import SimpleMarketDataSource
-from ..data.screenshot import PlaywrightScreenshotDataSource
+from ..data.screenshot import AggrScreenshotDataSource, PlaywrightScreenshotDataSource
 from ..models import InstrumentRef
 from .candle import SimpleCandleFeatureComputer
 from .image import MLLMImageFeatureComputer
@@ -163,7 +163,7 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
         try:
             image_feature_computer = MLLMImageFeatureComputer.from_request(request)
             charts_json = Path(__file__).parent / "configs" / "charts.json"
-            screenshot_data_source = PlaywrightScreenshotDataSource(
+            screenshot_data_source = AggrScreenshotDataSource(
                 target_url="https://aggr.trade",
                 file_path=str(charts_json),
                 instrument=InstrumentRef(symbol="BTCUSD"),
