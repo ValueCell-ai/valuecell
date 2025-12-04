@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useStockColors } from "@/store/settings-store";
 import type { Route } from "./+types/stock";
- 
+
 function TradingViewAdvancedChart({
   ticker,
   interval = "D",
@@ -145,7 +145,8 @@ function Stock() {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="text-lg text-red-500">
-          Error loading stock data: {priceError?.message || detailError?.message}
+          Error loading stock data:{" "}
+          {priceError?.message || detailError?.message}
         </div>
       </div>
     );
@@ -159,8 +160,6 @@ function Stock() {
       </div>
     );
   }
-
-  
 
   return (
     <div className="flex flex-col gap-8 bg-white px-8 py-6">
@@ -179,7 +178,11 @@ function Stock() {
         </div>
       </div>
       <div className="w-full">
-        <TradingViewAdvancedChart ticker={ticker} interval="D" minHeight={420} />
+        <TradingViewAdvancedChart
+          ticker={ticker}
+          interval="D"
+          minHeight={420}
+        />
       </div>
 
       {/* <div className="flex flex-col gap-4">
