@@ -1,5 +1,5 @@
 import BackButton from "@valuecell/button/back-button";
-import { memo, useMemo } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   useGetStockDetail,
@@ -7,16 +7,79 @@ import {
   useRemoveStockFromWatchlist,
 } from "@/api/stock";
 import { Button } from "@/components/ui/button";
-import { TIME_FORMATS, TimeUtils } from "@/lib/time";
-import { formatChange, getChangeType } from "@/lib/utils";
-import { useStockBadgeColors } from "@/store/settings-store";
+import { useStockColors } from "@/store/settings-store";
 import type { Route } from "./+types/stock";
-import { StockChart } from "./components/stock-chart";
+ 
+function TradingViewAdvancedChart({
+  ticker,
+  interval = "D",
+  minHeight = 420,
+}: {
+  ticker: string;
+  interval?: string;
+  minHeight?: number;
+}) {
+  const stockColors = useStockColors();
+  const upColor = stockColors.positive;
+  const downColor = stockColors.negative;
+  const containerId = useMemo(
+    () => `tv_${ticker.replace(/[^A-Za-z0-9_]/g, "_")}_${interval}`,
+    [ticker, interval],
+  );
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const init = () => {
+      const tv = (window as any).TradingView;
+      if (!tv || !containerRef.current) return;
+      containerRef.current.innerHTML = "";
+      new tv.widget({
+        container_id: containerId,
+        symbol: ticker,
+        interval,
+        timezone: "UTC",
+        theme: "light",
+        locale: "en",
+        autosize: true,
+        hide_top_toolbar: false,
+        hide_side_toolbar: false,
+        hide_bottom_toolbar: false,
+        allow_symbol_change: false,
+        details: true,
+        overrides: {
+          "mainSeriesProperties.candleStyle.upColor": upColor,
+          "mainSeriesProperties.candleStyle.downColor": downColor,
+          "mainSeriesProperties.candleStyle.borderUpColor": upColor,
+          "mainSeriesProperties.candleStyle.borderDownColor": downColor,
+          "mainSeriesProperties.candleStyle.wickUpColor": upColor,
+          "mainSeriesProperties.candleStyle.wickDownColor": downColor,
+          "mainSeriesProperties.candleStyle.drawWick": true,
+          "mainSeriesProperties.candleStyle.drawBorder": true,
+        },
+      });
+    };
+
+    if ((window as any).TradingView) {
+      init();
+    } else {
+      const script = document.createElement("script");
+      script.src = "https://s3.tradingview.com/tv.js";
+      script.async = true;
+      script.onload = init;
+      document.head.appendChild(script);
+    }
+  }, [containerId, interval, ticker]);
+
+  return (
+    <div className="w-full" style={{ height: minHeight }}>
+      <div id={containerId} ref={containerRef} className="h-full" />
+    </div>
+  );
+}
 
 function Stock() {
   const { stockId } = useParams<Route.LoaderArgs["params"]>();
   const navigate = useNavigate();
-  const badgeColors = useStockBadgeColors();
   // Use stockId as ticker to fetch real data from API
   const ticker = stockId || "";
 
@@ -38,18 +101,14 @@ function Stock() {
     ticker,
   });
 
-  // Remove stock from watchlist mutation
   const removeStockMutation = useRemoveStockFromWatchlist();
 
-  // Handle remove stock from watchlist
   const handleRemoveStock = async () => {
     try {
       await removeStockMutation.mutateAsync(ticker);
-
       navigate(-1);
     } catch (error) {
       console.error("Failed to remove stock from watchlist:", error);
-      // Handle error - could show error toast
     }
   };
 
@@ -84,19 +143,10 @@ function Stock() {
   // Handle error states
   if (priceError || detailError) {
     return (
-      <div className="flex h-96 flex-col items-center justify-center gap-4">
+      <div className="flex h-96 items-center justify-center">
         <div className="text-lg text-red-500">
-          Error loading stock data:{" "}
-          {priceError?.message || detailError?.message}
+          Error loading stock data: {priceError?.message || detailError?.message}
         </div>
-        <Button
-          variant="secondary"
-          className="cursor-pointer text-neutral-400"
-          onClick={handleRemoveStock}
-          disabled={removeStockMutation.isPending}
-        >
-          {removeStockMutation.isPending ? "Removing..." : "Remove"}
-        </Button>
       </div>
     );
   }
@@ -110,18 +160,14 @@ function Stock() {
     );
   }
 
-  const changeType = getChangeType(stockInfo.changePercent);
+  
 
   return (
     <div className="flex flex-col gap-8 bg-white px-8 py-6">
-      {/* Stock Main Info */}
       <div className="flex flex-col gap-4">
         <BackButton />
-
         <div className="flex items-center gap-2">
-          {/* <StockIcon stock={stockInfo} /> */}
           <span className="font-bold text-lg">{stockInfo.companyName}</span>
-
           <Button
             variant="secondary"
             className="ml-auto text-neutral-400"
@@ -131,38 +177,9 @@ function Stock() {
             {removeStockMutation.isPending ? "Removing..." : "Remove"}
           </Button>
         </div>
-
-        <div>
-          <div className="mb-3 flex items-center gap-3">
-            <span className="font-bold text-2xl">{stockInfo.price}</span>
-            <span
-              className="rounded-lg p-2 font-bold text-xs"
-              style={{
-                backgroundColor: badgeColors[changeType].bg,
-                color: badgeColors[changeType].text,
-              }}
-            >
-              {formatChange(stockInfo.changePercent, "%")}
-            </span>
-          </div>
-          <p className="font-medium text-muted-foreground text-xs">
-            {/* Convert UTC timestamp to local time for display */}
-            {TimeUtils.formatUTC(
-              stockPriceData.timestamp,
-              TIME_FORMATS.STOCK_TIME,
-            )}{" "}
-            . {stockPriceData.source} . Disclaimer
-          </p>
-        </div>
-
-        <div className="w-full">
-          <StockChart
-            ticker={ticker}
-            interval="1d"
-            title={stockInfo.companyName}
-            minHeight={420}
-          />
-        </div>
+      </div>
+      <div className="w-full">
+        <TradingViewAdvancedChart ticker={ticker} interval="D" minHeight={420} />
       </div>
 
       {/* <div className="flex flex-col gap-4">
