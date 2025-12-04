@@ -1,4 +1,10 @@
-import { type FC, type RefObject, useImperativeHandle, useState } from "react";
+import {
+  type FC,
+  type RefObject,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { useGetStrategyDetail } from "@/api/system";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -12,7 +18,9 @@ import {
 import { getChangeType, numberFixed } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
 import ScrollContainer from "../scroll/scroll-container";
-
+import CreateStrategyModal, {
+  type CreateStrategyModelRef,
+} from "./create-strategy-modal";
 export interface StrategyDetailModalRef {
   open: (strategyId: number) => void;
 }
@@ -25,7 +33,7 @@ const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
   const stockColors = useStockColors();
   const [open, setOpen] = useState(false);
   const [strategyId, setStrategyId] = useState<number | null>(null);
-
+  const createStrategyModalRef = useRef<CreateStrategyModelRef>(null);
   const { data: strategyDetail, isLoading: isLoadingStrategyDetail } =
     useGetStrategyDetail(strategyId);
 
@@ -108,9 +116,15 @@ const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
         </ScrollContainer>
 
         <DialogFooter>
-          <Button className="w-full">Copy and create</Button>
+          <Button
+            className="w-full"
+            onClick={() => createStrategyModalRef.current?.open()}
+          >
+            Copy and create
+          </Button>
         </DialogFooter>
       </DialogContent>
+      <CreateStrategyModal ref={createStrategyModalRef} />
     </Dialog>
   );
 };

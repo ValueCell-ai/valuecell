@@ -7,6 +7,12 @@ import {
   useGetStrategyList,
   useGetStrategyPrompts,
 } from "@/api/strategy";
+import { AIModelForm } from "@/app/agent/components/strategy-items/forms/ai-model-form";
+import {
+  EXCHANGE_OPTIONS,
+  ExchangeForm,
+} from "@/app/agent/components/strategy-items/forms/exchange-form";
+import { TradingStrategyForm } from "@/app/agent/components/strategy-items/forms/trading-strategy-form";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,16 +33,13 @@ import {
 import { useAppForm } from "@/hooks/use-form";
 import { tracker } from "@/lib/tracker";
 import type { CreateStrategy, Strategy } from "@/types/strategy";
-import { AIModelForm } from "../forms/ai-model-form";
-import { EXCHANGE_OPTIONS, ExchangeForm } from "../forms/exchange-form";
-import { TradingStrategyForm } from "../forms/trading-strategy-form";
 
-interface CreateStrategyModelRef {
+export interface CreateStrategyModelRef {
   open: (data?: CreateStrategy) => void;
 }
 interface CreateStrategyModalProps {
   children?: React.ReactNode;
-  ref?: RefObject<CreateStrategyModelRef>;
+  ref?: RefObject<CreateStrategyModelRef | null>;
 }
 
 const STEPS = [
