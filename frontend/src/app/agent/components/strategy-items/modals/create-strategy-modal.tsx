@@ -1,8 +1,6 @@
 import { useStore } from "@tanstack/react-form";
-import { Check } from "lucide-react";
 import type { FC } from "react";
 import { memo, useState } from "react";
-import { z } from "zod";
 import { useGetModelProviderDetail } from "@/api/setting";
 import {
   useCreateStrategy,
@@ -19,7 +17,13 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import CloseButton from "@/components/valuecell/button/close-button";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
+import { StepIndicator } from "@/components/valuecell/step-indicator";
 import { TRADING_SYMBOLS } from "@/constants/agent";
+import {
+  aiModelSchema,
+  exchangeSchema,
+  tradingStrategySchema,
+} from "@/constants/schema";
 import { useAppForm } from "@/hooks/use-form";
 import { tracker } from "@/lib/tracker";
 import type { Strategy } from "@/types/strategy";
@@ -31,170 +35,15 @@ interface CreateStrategyModalProps {
   children?: React.ReactNode;
 }
 
-type StepNumber = 1 | 2 | 3;
-
-// Step 1 Schema: AI Models
-const step1Schema = z.object({
-  provider: z.string().min(1, "Model platform is required"),
-  model_id: z.string().min(1, "Model selection is required"),
-  api_key: z.string().min(1, "API key is required"),
-});
-
-// Step 2 Schema: Exchanges (conditional validation with superRefine)
-// Base schema with all fields optional (empty strings allowed)
-const baseStep2Fields = {
-  exchange_id: z.string(),
-  api_key: z.string(),
-  secret_key: z.string(),
-  passphrase: z.string(),
-  wallet_address: z.string(),
-  private_key: z.string(),
-};
-
-const step2Schema = z.union([
-  // Virtual Trading
-  z.object({
-    ...baseStep2Fields,
-    trading_mode: z.literal("virtual"),
-  }),
-
-  // Live Trading - Hyperliquid
-  z.object({
-    ...baseStep2Fields,
-    trading_mode: z.literal("live"),
-    exchange_id: z.literal("hyperliquid"),
-    wallet_address: z
-      .string()
-      .min(1, "Wallet Address is required for Hyperliquid"),
-    private_key: z.string().min(1, "Private Key is required for Hyperliquid"),
-  }),
-
-  // Live Trading - OKX & Coinbase (Require Passphrase)
-  z.object({
-    ...baseStep2Fields,
-    trading_mode: z.literal("live"),
-    exchange_id: z.enum(["okx", "coinbaseexchange"]),
-    api_key: z.string().min(1, "API key is required"),
-    secret_key: z.string().min(1, "Secret key is required"),
-    passphrase: z.string().min(1, "Passphrase is required"),
-  }),
-
-  // Live Trading - Standard Exchanges
-  z.object({
-    ...baseStep2Fields,
-    trading_mode: z.literal("live"),
-    exchange_id: z.enum(["binance", "blockchaincom", "gate", "mexc"]),
-    api_key: z.string().min(1, "API key is required"),
-    secret_key: z.string().min(1, "Secret key is required"),
-  }),
-]);
-
-// Step 3 Schema: Trading Strategy
-const step3Schema = z.object({
-  strategy_type: z.enum(["PromptBasedStrategy", "GridStrategy"]),
-  strategy_name: z.string().min(1, "Strategy name is required"),
-  initial_capital: z.number().min(1, "Initial capital must be at least 1"),
-  max_leverage: z
-    .number()
-    .min(1, "Leverage must be at least 1")
-    .max(5, "Leverage must be at most 5"),
-  symbols: z.array(z.string()).min(1, "At least one symbol is required"),
-  template_id: z.string().min(1, "Template selection is required"),
-  decide_interval: z
-    .number()
-    .min(10, "Interval must be at least 10 seconds")
-    .max(3600, "Interval must be at most 3600 seconds"),
-});
-
 const STEPS = [
-  { number: 1 as const, title: "AI Models" },
-  { number: 2 as const, title: "Exchanges" },
-  { number: 3 as const, title: "Trading strategy" },
+  { step: 1, title: "AI Models" },
+  { step: 2, title: "Exchanges" },
+  { step: 3, title: "Trading strategy" },
 ];
-
-const StepIndicator: FC<{ currentStep: StepNumber }> = ({ currentStep }) => {
-  const getStepState = (stepNumber: StepNumber) => ({
-    isCompleted: stepNumber < currentStep,
-    isCurrent: stepNumber === currentStep,
-    isActive: stepNumber <= currentStep,
-    isLast: stepNumber === STEPS.length,
-  });
-
-  const renderStepNumber = (
-    step: StepNumber,
-    isCurrent: boolean,
-    isCompleted: boolean,
-  ) => {
-    if (isCompleted) {
-      return (
-        <div className="flex size-6 items-center justify-center rounded-full bg-gray-950">
-          <Check className="size-3 text-white" />
-        </div>
-      );
-    }
-
-    return (
-      <div className="relative flex size-6 items-center justify-center">
-        <div
-          className={`absolute inset-0 rounded-full border-2 ${
-            isCurrent ? "border-gray-950 bg-gray-950" : "border-black/40"
-          }`}
-        />
-        <span
-          className={`relative font-semibold text-base ${
-            isCurrent ? "text-white" : "text-black/40"
-          }`}
-        >
-          {step}
-        </span>
-      </div>
-    );
-  };
-
-  return (
-    <div className="flex items-start">
-      {STEPS.map((step) => {
-        const { isCompleted, isCurrent, isActive, isLast } = getStepState(
-          step.number,
-        );
-
-        return (
-          <div key={step.number} className="flex min-w-0 flex-1 items-start">
-            <div className="flex w-full items-start gap-2">
-              {/* Step number/icon */}
-              <div className="shrink-0">
-                {renderStepNumber(step.number, isCurrent, isCompleted)}
-              </div>
-
-              {/* Step title and connector line */}
-              <div className="flex min-w-0 flex-1 items-center gap-3 pr-3">
-                <span
-                  className={`shrink-0 whitespace-nowrap text-base ${
-                    isActive ? "text-black/90" : "text-black/40"
-                  }`}
-                >
-                  {step.title}
-                </span>
-
-                {!isLast && (
-                  <div
-                    className={`h-0.5 min-w-0 flex-1 ${
-                      isCompleted ? "bg-gray-950" : "bg-gray-200"
-                    }`}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
 
 const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
   const [open, setOpen] = useState(false);
-  const [currentStep, setCurrentStep] = useState<StepNumber>(1);
+  const [currentStep, setCurrentStep] = useState(1);
 
   const { data: prompts = [] } = useGetStrategyPrompts();
   const { data: strategies = [] } = useGetStrategyList();
@@ -209,7 +58,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
       api_key: "",
     },
     validators: {
-      onSubmit: step1Schema,
+      onSubmit: aiModelSchema,
     },
     onSubmit: () => {
       setCurrentStep(2);
@@ -231,7 +80,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
       private_key: "",
     },
     validators: {
-      onSubmit: step2Schema,
+      onSubmit: exchangeSchema,
     },
     onSubmit: () => {
       const modelId = form1.state.values.model_id;
@@ -272,7 +121,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
       template_id: prompts.length > 0 ? prompts[0].id : "",
     },
     validators: {
-      onSubmit: step3Schema,
+      onSubmit: tradingStrategySchema,
     },
     onSubmit: async ({ value }) => {
       const payload = {
@@ -297,7 +146,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
 
   const handleBack = () => {
     if (currentStep > 1) {
-      setCurrentStep((prev) => (prev - 1) as StepNumber);
+      setCurrentStep((prev) => prev - 1);
     }
   };
 
@@ -316,7 +165,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({ children }) => {
             <CloseButton onClick={resetAll} />
           </div>
 
-          <StepIndicator currentStep={currentStep} />
+          <StepIndicator steps={STEPS} currentStep={currentStep} />
         </DialogTitle>
 
         {/* Form content with scroll */}
