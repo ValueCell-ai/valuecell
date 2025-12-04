@@ -48,7 +48,7 @@ function StockList() {
   };
 
   return (
-    <StockMenu>
+    <StockMenu className="h-full">
       <StockMenuHeader>My Watchlist</StockMenuHeader>
       <div className="scroll-container">
         {stockData?.map((stock) => (
