@@ -148,7 +148,7 @@ const StrategyRemoteModal: FC<StrategyRemoteModalProps> = ({ ref }) => {
               })
             }
           >
-            Dumplicate
+            Duplicate
           </Button>
         </DialogFooter>
       </DialogContent>

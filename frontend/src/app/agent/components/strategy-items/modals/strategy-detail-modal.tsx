@@ -160,7 +160,7 @@ const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
               });
             }}
           >
-            Dumplicate
+            Duplicate
           </Button>
         </DialogFooter>
       </DialogContent>
