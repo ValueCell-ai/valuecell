@@ -23,7 +23,7 @@ import CopyStrategyModal, {
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { getChangeType, numberFixed } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
-import { useSystemInfo } from "@/store/system-store";
+import { useIsLoggedIn, useSystemInfo } from "@/store/system-store";
 export interface StrategyDetailModalRef {
   open: (strategyId: number) => void;
 }
@@ -43,6 +43,7 @@ const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
     refetch: refetchStrategyDetail,
   } = useStrategyPerformance(strategyId);
   const { name, avatar } = useSystemInfo();
+  const isLoggedin = useIsLoggedIn();
 
   useEffect(() => {
     if (strategyId) {
@@ -73,12 +74,15 @@ const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
             <div className="grid gap-4 py-4">
               <div className="flex items-center gap-4">
                 <Avatar className="size-16">
-                  <AvatarImage src={avatar} alt={name} />
-                  <AvatarFallback>
-                    <AvatarImage src={ValueCellAgentPng} />
-                  </AvatarFallback>
+                  <AvatarImage
+                    src={isLoggedin ? avatar : ValueCellAgentPng}
+                    alt={name}
+                  />
+                  <AvatarFallback>{isLoggedin ? name[0] : "V"}</AvatarFallback>
                 </Avatar>
-                <h3 className="font-bold text-lg">{name ?? "ValueCell"}</h3>
+                <h3 className="font-bold text-lg">
+                  {isLoggedin ? name : "ValueCell"}
+                </h3>
                 <div className="ml-auto text-right">
                   <div
                     className="font-bold text-2xl"
