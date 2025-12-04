@@ -10,6 +10,7 @@ from playwright.async_api import Browser, Page, Playwright, async_playwright
 from valuecell.agents.common.trading.models import DataSourceImage
 from valuecell.utils.path import get_screenshot_path
 
+from ..models import InstrumentRef
 from .interfaces import BaseScreenshotDataSource
 
 
@@ -19,12 +20,13 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
     Implements Async Context Manager protocol for automatic setup and teardown.
     """
 
-    def __init__(self, target_url: str, file_path: str):
+    def __init__(self, target_url: str, file_path: str, instrument: Optional[InstrumentRef] = None):
         """
         Initializes configuration.
         """
         self.target_url = target_url
         self.file_path = file_path
+        self.instrument = instrument
 
         self.playwright: Optional[Playwright] = None
         self.browser: Optional[Browser] = None
@@ -165,6 +167,7 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
                 url=None,
                 filepath=full_path,
                 content=screenshot_bytes,
+                instrument=self.instrument,
             )
 
             logger.info(f"Screenshot captured and saved to {full_path}")

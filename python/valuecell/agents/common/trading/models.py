@@ -955,3 +955,8 @@ class DataSourceImage:
     url: Optional[str] = None  # Remote location
     filepath: Optional[Path | str] = None  # Local file path
     content: Optional[bytes] = None  # Raw image bytes (standardized to bytes)
+
+    instrument: Optional[InstrumentRef] = None  # Associated instrument, if any
+
+    def __repr__(self):
+        return f"DataSourceImage(url={self.url}, filepath={self.filepath}, content={'<bytes>' if self.content else None}, instrument={self.instrument})"

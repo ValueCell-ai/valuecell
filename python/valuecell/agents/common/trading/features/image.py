@@ -115,7 +115,7 @@ class MLLMImageFeatureComputer(ImageBasedFeatureComputer):
             logger.warning("No images provided for image feature computation")
             return []
 
-        logger.info("Running MLLM analysis on provided image")
+        logger.info("Running MLLM analysis on provided images: {}", images)
         # Convert DataSourceImage -> agno.media.Image for the agent
         agno_images: List[AgnoImage] = []
         for ds in images:
@@ -149,9 +149,10 @@ class MLLMImageFeatureComputer(ImageBasedFeatureComputer):
             FEATURE_GROUP_BY_KEY: FEATURE_GROUP_BY_IMAGE_ANALYSIS,
             **meta,
         }
+        instrument = images[0].instrument
         fv = FeatureVector(
             ts=get_current_timestamp_ms(),
-            instrument=None,
+            instrument=instrument,
             values=values,
             meta=fv_meta,
         )

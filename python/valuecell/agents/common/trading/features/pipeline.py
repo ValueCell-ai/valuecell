@@ -24,6 +24,7 @@ from valuecell.agents.common.trading.models import (
 from ..data.interfaces import BaseMarketDataSource
 from ..data.market import SimpleMarketDataSource
 from ..data.screenshot import PlaywrightScreenshotDataSource
+from ..models import InstrumentRef
 from .candle import SimpleCandleFeatureComputer
 from .image import MLLMImageFeatureComputer
 from .interfaces import (
@@ -165,6 +166,7 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
             screenshot_data_source = PlaywrightScreenshotDataSource(
                 target_url="https://aggr.trade",
                 file_path=str(charts_json),
+                instrument=InstrumentRef(symbol="BTCUSD"),
             )
         except Exception as e:
             logger.warning(
