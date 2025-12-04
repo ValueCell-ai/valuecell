@@ -76,7 +76,7 @@ export default function RankBoard() {
                   <TableHead>P&L</TableHead>
                   <TableHead>Strategy</TableHead>
                   <TableHead>Exchange</TableHead>
-                  <TableHead>Trading Portfolio</TableHead>
+                  <TableHead>Model</TableHead>
                   <TableHead>Details</TableHead>
                 </TableRow>
               </TableHeader>
