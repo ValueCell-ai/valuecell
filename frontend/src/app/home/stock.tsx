@@ -112,8 +112,6 @@ function Stock() {
     }
   };
 
-  // Historical chart is rendered by StockChart component using lightweight-charts
-
   // Create stock info from API data
   const stockInfo = useMemo(() => {
     if (!stockPriceData) return null;
