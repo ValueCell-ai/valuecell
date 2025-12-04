@@ -88,7 +88,7 @@ function Home() {
           />
         </section>
       ) : (
-        <section className="flex h-full w-full flex-1 flex-col items-center gap-8 overflow-hidden rounded-lg bg-white py-8">
+        <section className="flex h-full w-full flex-1 flex-col items-center gap-8 overflow-hidden rounded-lg bg-white pt-22 pb-8">
           <div className="mx-auto w-4/5 max-w-[800px] px-4">
             <TradingViewTickerTape symbols={INDEX_SYMBOLS} />
           </div>
