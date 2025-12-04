@@ -48,6 +48,10 @@ export const AIModelForm = withForm({
       <FieldGroup className="gap-6">
         <form.AppField
           listeners={{
+            onMount: async () => {
+              const { data } = await fetchModelProviderDetail();
+              form.setFieldValue("api_key", data?.api_key ?? "");
+            },
             onChange: async () => {
               const { data } = await fetchModelProviderDetail();
 

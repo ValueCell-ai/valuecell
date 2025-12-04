@@ -51,6 +51,7 @@ const STEPS = [
 const CopyStrategyModal: FC<CopyStrategyModalProps> = ({ ref, children }) => {
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [defaultValues, setDefaultValues] = useState<CopyStrategy>();
 
   const { data: strategies = [] } = useGetStrategyList();
   const { mutateAsync: createStrategy, isPending: isCreatingStrategy } =
@@ -59,7 +60,7 @@ const CopyStrategyModal: FC<CopyStrategyModalProps> = ({ ref, children }) => {
 
   // Step 1 Form: AI Models
   const form1 = useAppForm({
-    defaultValues: {
+    defaultValues: defaultValues?.llm_model_config || {
       provider: "",
       model_id: "",
       api_key: "",
@@ -77,7 +78,7 @@ const CopyStrategyModal: FC<CopyStrategyModalProps> = ({ ref, children }) => {
 
   // Step 2 Form: Exchanges
   const form2 = useAppForm({
-    defaultValues: {
+    defaultValues: defaultValues?.exchange_config || {
       trading_mode: "live" as "live" | "virtual",
       exchange_id: "okx",
       api_key: "",
@@ -118,7 +119,7 @@ const CopyStrategyModal: FC<CopyStrategyModalProps> = ({ ref, children }) => {
 
   // Step 3 Form: Trading Strategy
   const form3 = useAppForm({
-    defaultValues: {
+    defaultValues: defaultValues?.trading_config || {
       strategy_type: "PromptBasedStrategy" as Strategy["strategy_type"],
       strategy_name: "",
       initial_capital: 1000,
@@ -168,12 +169,8 @@ const CopyStrategyModal: FC<CopyStrategyModalProps> = ({ ref, children }) => {
 
   useImperativeHandle(ref, () => ({
     open: (data) => {
-      if (data) {
-        form1.reset(data.llm_model_config);
-        form2.reset(data.exchange_config);
-        form3.reset(data.trading_config);
-      }
       setOpen(true);
+      setDefaultValues(data);
     },
   }));
 

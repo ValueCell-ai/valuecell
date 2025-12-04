@@ -5,13 +5,7 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectItem } from "@/components/ui/select";
 import { TRADING_SYMBOLS } from "@/constants/agent";
 import { withForm } from "@/hooks/use-form";
 import type { Strategy } from "@/types/strategy";
@@ -131,31 +125,14 @@ export const CopyStrategyForm = withForm({
           {(strategyType) => {
             return (
               strategyType === "PromptBasedStrategy" && (
-                <form.Field name="prompt_name">
+                <form.Field name="prompt">
                   {(field) => (
                     <Field>
                       <FieldLabel className="font-medium text-base text-gray-950">
                         System Prompt Template
                       </FieldLabel>
-                      <div className="flex items-center gap-3">
-                        <Select
-                          value={field.state.value}
-                          onValueChange={(value) => {
-                            field.handleChange(value);
-                          }}
-                        >
-                          <SelectTrigger className="flex-1">
-                            <SelectValue />
-                          </SelectTrigger>
-
-                          <SelectContent>
-                            <SelectItem
-                              value={`${form.state.values.prompt_name} Copy`}
-                            >
-                              {`${form.state.values.prompt_name} Copy`}
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
+                      <div className="text-gray-500 text-sm">
+                        {field.state.value}
                       </div>
                       <FieldError errors={field.state.meta.errors} />
                     </Field>

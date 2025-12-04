@@ -68,6 +68,7 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const strategyDetailModalRef = useRef<StrategyDetailModalRef>(null);
   const copyStrategyModalRef = useRef<CopyStrategyModelRef>(null);
+
   const { refetch: refetchStrategyPerformance } = useStrategyPerformance(
     strategy.strategy_id,
   );
@@ -184,10 +185,6 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
                 onClick={async () => {
                   const { data: strategyDetail } =
                     await refetchStrategyPerformance();
-                  console.log(
-                    "🚀 ~ TradeStrategyCard ~ strategyDetail:",
-                    strategyDetail,
-                  );
 
                   copyStrategyModalRef.current?.open({
                     llm_model_config: {
