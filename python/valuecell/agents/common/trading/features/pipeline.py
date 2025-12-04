@@ -111,9 +111,9 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
 
             async def _fetch_image_features() -> List[FeatureVector]:
                 try:
-                    img = await self._screenshot_data_source.capture()
+                    images = await self._screenshot_data_source.capture()
                     return await self._image_feature_computer.compute_features(
-                        images=[img]
+                        images=images
                     )
                 except Exception as e:
                     logger.error(f"Failed to capture screenshot: {e}")

@@ -1,7 +1,7 @@
 import asyncio
 import os
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 import aiofiles
 from loguru import logger
@@ -138,13 +138,13 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
         await self._cleanup()
         logger.info("Session closed.")
 
-    async def capture(self, *args, **kwargs) -> DataSourceImage | None:
+    async def capture(self, *args, **kwargs) -> List[DataSourceImage]:
         """
         Captures the current state of the page.
         """
         if not self.page:
             logger.error("Page is not initialized. Cannot capture screenshot.")
-            return None
+            return []
 
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
@@ -154,9 +154,9 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
             screenshot_bytes = await self.page.screenshot(full_page=True)
 
             # Persist bytes to screenshots directory asynchronously using aiofiles
-            format = "png"
+            fmt = "png"
             full_path = os.path.join(
-                get_screenshot_path(), f"screenshot_{timestamp}.{format}"
+                get_screenshot_path(), f"screenshot_{timestamp}.{fmt}"
             )
 
             async with aiofiles.open(full_path, "wb") as fh:
@@ -171,8 +171,8 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
             )
 
             logger.info(f"Screenshot captured and saved to {full_path}")
-            return ds_image
+            return [ds_image]
 
         except Exception as e:
             logger.error(f"Failed to capture screenshot: {e}")
-            return None
+            return []

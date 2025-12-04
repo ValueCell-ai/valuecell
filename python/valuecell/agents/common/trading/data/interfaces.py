@@ -54,9 +54,9 @@ class BaseScreenshotDataSource(ABC):
     """
 
     @abstractmethod
-    async def capture(self, *args, **kwargs) -> DataSourceImage | None:
+    async def capture(self, *args, **kwargs) -> List[DataSourceImage]:
         """
-        Captures a screenshot and returns a `DataSourceImage` describing the
+        Captures a screenshot and returns a list of `DataSourceImage` instances describing the
         captured bytes and/or saved file path. Implementations should standardize
         on `DataSourceImage.content` (bytes) and/or `DataSourceImage.filepath`.
         """
