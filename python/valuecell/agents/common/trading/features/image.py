@@ -145,6 +145,7 @@ class MLLMImageFeatureComputer(ImageBasedFeatureComputer):
         # Store only the raw markdown report as requested.
         values: Dict[str, Any] = {"report_markdown": content}
         meta = meta or {}
+        # TODO: include image metadata such as filepath, url
         fv_meta = {
             FEATURE_GROUP_BY_KEY: FEATURE_GROUP_BY_IMAGE_ANALYSIS,
             **meta,
