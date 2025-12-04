@@ -4,10 +4,10 @@ from datetime import datetime
 from typing import Optional
 
 import aiofiles
-from agno.media import Image
 from loguru import logger
 from playwright.async_api import Browser, Page, Playwright, async_playwright
 
+from valuecell.agents.common.trading.models import DataSourceImage
 from valuecell.utils.path import get_screenshot_path
 
 from .interfaces import BaseScreenshotDataSource
@@ -136,7 +136,7 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
         await self._cleanup()
         logger.info("Session closed.")
 
-    async def capture(self, *args, **kwargs) -> Image | None:
+    async def capture(self, *args, **kwargs) -> DataSourceImage | None:
         """
         Captures the current state of the page.
         """
@@ -160,11 +160,15 @@ class PlaywrightScreenshotDataSource(BaseScreenshotDataSource):
             async with aiofiles.open(full_path, "wb") as fh:
                 await fh.write(screenshot_bytes)
 
-            # Create agno Image object and attach path for callers who prefer file-based access
-            image_obj = Image(content=screenshot_bytes, format=format)
+            # Build DataSourceImage with both bytes and file path
+            ds_image = DataSourceImage(
+                url=None,
+                filepath=full_path,
+                content=screenshot_bytes,
+            )
 
-            logger.info("Screenshot captured and saved to {}", full_path)
-            return image_obj
+            logger.info(f"Screenshot captured and saved to {full_path}")
+            return ds_image
 
         except Exception as e:
             logger.error(f"Failed to capture screenshot: {e}")

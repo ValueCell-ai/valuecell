@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -947,3 +948,10 @@ class DecisionCycleResult:
     history_records: List[HistoryRecord]
     digest: TradeDigest
     portfolio_view: PortfolioView
+
+
+@dataclass
+class DataSourceImage:
+    url: Optional[str] = None  # Remote location
+    filepath: Optional[Path | str] = None  # Local file path
+    content: Optional[bytes] = None  # Raw image bytes (standardized to bytes)

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from agno.agent import Agent
+from agno.media import Image as AgnoImage
 from loguru import logger
 
 from valuecell.utils import model as model_utils
@@ -21,7 +22,7 @@ from .interfaces import (
 )
 
 if TYPE_CHECKING:
-    from agno.media import Image
+    from valuecell.agents.common.trading.models import DataSourceImage
 
 
 PROMPTS: str = """
@@ -68,16 +69,14 @@ class MLLMImageFeatureComputer(ImageBasedFeatureComputer):
     left unset (market-wide analysis).
     """
 
-    def __init__(self, agent: object):
+    def __init__(self, agent: Agent):
         """Initialize with a pre-built `Agent` instance.
 
         The agent's `.model` and `.model.id` are inspected for provider/model
         metadata.
         """
         self._agent = agent
-        self._model = getattr(agent, "model", None)
-        # default fallback model id when none available
-        self._model_id = getattr(self._model, "id", "gemini-2.5-flash")
+        self._model = agent.model
 
     @classmethod
     def from_request(cls, request: UserRequest) -> "MLLMImageFeatureComputer":
@@ -109,7 +108,7 @@ class MLLMImageFeatureComputer(ImageBasedFeatureComputer):
 
     async def compute_features(
         self,
-        images: Optional[List["Image"]] = None,
+        images: Optional[List["DataSourceImage"]] = None,
         meta: Optional[Dict[str, Any]] = None,
     ) -> List[FeatureVector]:
         if not images:
@@ -117,9 +116,27 @@ class MLLMImageFeatureComputer(ImageBasedFeatureComputer):
             return []
 
         logger.info("Running MLLM analysis on provided image")
+        # Convert DataSourceImage -> agno.media.Image for the agent
+        agno_images: List[AgnoImage] = []
+        for ds in images:
+            try:
+                if content := ds.content:
+                    agno_images.append(AgnoImage(content=content))
+                    continue
+
+                if filepath := ds.filepath:
+                    agno_images.append(AgnoImage(filepath=filepath))
+                    continue
+
+                if url := ds.url:
+                    agno_images.append(AgnoImage(url=url))
+
+            except Exception as e:
+                logger.warning("Failed to convert DataSourceImage to agno.Image: {}", e)
+
         resp = await self._agent.arun(
             "analyze the trading dashboard configuration in the provided image and generate a brief report.",
-            images=images,
+            images=agno_images,
         )
 
         content: str = getattr(resp, "content", "") or ""

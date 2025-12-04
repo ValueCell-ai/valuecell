@@ -3,9 +3,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import List
 
-from agno.media import Image
-
-from valuecell.agents.common.trading.models import Candle, MarketSnapShotType
+from valuecell.agents.common.trading.models import (
+    Candle,
+    DataSourceImage,
+    MarketSnapShotType,
+)
 
 # Contracts for market data sources (module-local abstract interfaces).
 # These are plain ABCs (not Pydantic models) so implementations can be
@@ -52,8 +54,10 @@ class BaseScreenshotDataSource(ABC):
     """
 
     @abstractmethod
-    async def capture(self, *args, **kwargs) -> Image | None:
+    async def capture(self, *args, **kwargs) -> DataSourceImage | None:
         """
-        Captures a screenshot and optionally returns an agno.media.Image object.
+        Captures a screenshot and returns a `DataSourceImage` describing the
+        captured bytes and/or saved file path. Implementations should standardize
+        on `DataSourceImage.content` (bytes) and/or `DataSourceImage.filepath`.
         """
         raise NotImplementedError

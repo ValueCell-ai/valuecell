@@ -11,7 +11,7 @@ from valuecell.agents.common.trading.models import (
 
 if TYPE_CHECKING:
     # Only for type hints to avoid hard dependency at runtime
-    from agno.media import Image
+    from valuecell.agents.common.trading.models import DataSourceImage
 
 # Contracts for feature computation (module-local abstract interfaces).
 # Plain ABCs (not Pydantic) to keep implementations lightweight.
@@ -54,13 +54,13 @@ class ImageBasedFeatureComputer(ABC):
     @abstractmethod
     async def compute_features(
         self,
-        images: Optional[List["Image"]] = None,
+        images: Optional[List["DataSourceImage"]] = None,
         meta: Optional[Dict[str, Any]] = None,
     ) -> List[FeatureVector]:
         """Build feature vectors from the provided images.
 
         Args:
-            images: list of image objects. Implementations expect `agno.media.Image`.
+            images: list of `DataSourceImage` objects produced by data sources.
             meta: optional metadata such as instrument or timestamps.
         Returns:
             A list of `FeatureVector` items.
