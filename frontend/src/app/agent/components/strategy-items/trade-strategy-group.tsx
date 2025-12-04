@@ -267,7 +267,7 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
   return (
     <>
       {hasStrategies ? (
-        <ScrollContainer>
+        <ScrollContainer className="flex-1">
           <div className="flex flex-col gap-3">
             {strategies.map((strategy) => (
               <TradeStrategyCard

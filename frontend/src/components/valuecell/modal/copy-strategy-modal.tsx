@@ -137,7 +137,7 @@ const CopyStrategyModal: FC<CopyStrategyModalProps> = ({ ref, children }) => {
       const {
         data: { id: template_id },
       } = await createStrategyPrompt({
-        name: prompt_name,
+        name: `${prompt_name} Copy`,
         content: prompt,
       });
 
