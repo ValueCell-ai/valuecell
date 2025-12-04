@@ -32,6 +32,7 @@ from .interfaces import (
     CandleBasedFeatureComputer,
 )
 from .market_snapshot import MarketSnapshotFeatureComputer
+from .prompts import AGGR_PROMPT
 
 
 class DefaultFeaturesPipeline(BaseFeaturesPipeline):
@@ -161,7 +162,7 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
         market_snapshot_computer = MarketSnapshotFeatureComputer()
 
         try:
-            image_feature_computer = MLLMImageFeatureComputer.from_request(request)
+            image_feature_computer = MLLMImageFeatureComputer.from_request(request, prompt=AGGR_PROMPT)
             charts_json = Path(__file__).parent.parent / "data" / "configs" / "aggr" / "charts.json"
             screenshot_data_source = AggrScreenshotDataSource(
                 target_url="https://aggr.trade",

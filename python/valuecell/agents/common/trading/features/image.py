@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from agno.agent import Agent
+from agno.agent import Agent as AgnoAgent
+from agno.models import Model as AgnoModel
 from agno.media import Image as AgnoImage
 from loguru import logger
 
@@ -25,42 +26,6 @@ if TYPE_CHECKING:
     from valuecell.agents.common.trading.models import DataSourceImage
 
 
-PROMPTS: str = """
-# Role
-You are an expert High-Frequency Trader (HFT) and Order Flow Analyst specializing in crypto market microstructure. You are analyzing a dashboard from Aggr.trade.
-
-# Visual Context
-The image displays three vertical panes:
-1.  **Top (Price & Global CVD):** 5s candles, Aggregate Volume, Liquidations (bright bars), and Global CVD line.
-2.  **Middle (Delta Grid):** Net Delta per exchange/pair (5m timeframe). Key: Spot (S) vs. Perps (P).
-3.  **Bottom (Exchange CVDs):** Cumulative Volume Delta lines for individual exchanges (15m timeframe). 
-	*   *Legend Assumption:* Cyan/Blue = Coinbase (Spot); Yellow/Red = Binance (Spot/Perps).
-
-# Analysis Objectives
-Please analyze the order flow dynamics and provide a scalping strategy based on the following:
-
-1.  **Spot vs. Perp Dynamics:** 
-	*   Is the price action driven by Spot demand (e.g., Coinbase buying) or Perp speculation?
-	*   Identify any **"Spot Premium"** or **"Perp Discount"** behavior.
-
-2.  **Absorption & Divergences (CRITICAL):**
-	*   Look for **"Passive Absorption"**: Are we seeing aggressive selling (Red Delta/CVD) resulting in stable or rising prices?
-	*   Look for **"CVD Divergences"**: Is Price making Higher Highs while Global/Binance CVD makes Lower Highs?
-
-3.  **Exchange Specific Flows:**
-	*   Compare **Coinbase Spot (Smart Money)** vs. **Binance Perps (Retail/Speculative)**. Are they correlated or fighting each other?
-
-# Output Format
-Provide a concise professional report:
-*   **Market State:** (e.g., Spot-Led Grind, Short Squeeze, Liquidation Cascade)
-*   **Key Observation:** (One sentence on the most critical anomaly, e.g., "Coinbase bidding while Binance dumps.")
-*   **Trade Setup:** 
-	*   **Bias:** [LONG / SHORT / NEUTRAL]
-	*   **Entry Trigger:** (e.g., "Enter on retest of VWAP with absorption.")
-	*   **Invalidation:** (Where does the thesis fail?)
-"""
-
-
 class MLLMImageFeatureComputer(ImageBasedFeatureComputer):
     """Image feature computer using an MLLM (Gemini via agno Agent).
 
@@ -69,17 +34,24 @@ class MLLMImageFeatureComputer(ImageBasedFeatureComputer):
     left unset (market-wide analysis).
     """
 
-    def __init__(self, agent: Agent):
+    def __init__(self, model: AgnoModel, prompt: str) -> None:
         """Initialize with a pre-built `Agent` instance.
 
         The agent's `.model` and `.model.id` are inspected for provider/model
         metadata.
         """
-        self._agent = agent
-        self._model = agent.model
+        self._model = model
+        self._prompt = prompt
+        self._agent = AgnoAgent(
+            model=model,
+            instructions=[self._prompt],
+            markdown=True,
+        )
 
     @classmethod
-    def from_request(cls, request: UserRequest) -> "MLLMImageFeatureComputer":
+    def from_request(
+        cls, request: UserRequest, prompt: str
+    ) -> "MLLMImageFeatureComputer":
         """Create an instance from an `LLMModelConfig`.
 
         Builds a model via `model_utils.create_model_with_provider` and
@@ -98,13 +70,7 @@ class MLLMImageFeatureComputer(ImageBasedFeatureComputer):
                 f"Model {llm_cfg.model_id} from provider {llm_cfg.provider} does not declare support for images"
             )
 
-        agent = Agent(
-            model=created_model,
-            markdown=True,
-            instructions=[PROMPTS],
-        )
-
-        return cls(agent=agent)
+        return cls(created_model, prompt)
 
     async def compute_features(
         self,
