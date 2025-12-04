@@ -9,8 +9,8 @@ import {
   useGetStrategyPriceCurve,
   useStopStrategy,
 } from "@/api/strategy";
+import CreateStrategyModal from "@/app/agent/components/strategy-items/modals/create-strategy-modal";
 import { Button } from "@/components/ui/button";
-import CreateStrategyModal from "@/components/valuecell/modal/create-strategy-modal";
 import type { AgentViewProps } from "@/types/agent";
 import type { Strategy } from "@/types/strategy";
 import {

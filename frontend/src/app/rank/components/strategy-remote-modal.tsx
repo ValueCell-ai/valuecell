@@ -15,25 +15,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import CopyStrategyModal, {
+  type CopyStrategyModelRef,
+} from "@/components/valuecell/modal/copy-strategy-modal";
+import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { getChangeType, numberFixed } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
-import ScrollContainer from "../scroll/scroll-container";
-import CreateStrategyModal, {
-  type CreateStrategyModelRef,
-} from "./create-strategy-modal";
-export interface StrategyDetailModalRef {
+export interface StrategyRemoteModalRef {
   open: (strategyId: number) => void;
 }
 
-interface StrategyDetailModalProps {
-  ref: RefObject<StrategyDetailModalRef | null>;
+interface StrategyRemoteModalProps {
+  ref?: RefObject<StrategyRemoteModalRef | null>;
 }
 
-const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
+const StrategyRemoteModal: FC<StrategyRemoteModalProps> = ({ ref }) => {
   const stockColors = useStockColors();
   const [open, setOpen] = useState(false);
   const [strategyId, setStrategyId] = useState<number | null>(null);
-  const createStrategyModalRef = useRef<CreateStrategyModelRef>(null);
+  const copyStrategyModalRef = useRef<CopyStrategyModelRef>(null);
   const { data: strategyDetail, isLoading: isLoadingStrategyDetail } =
     useGetStrategyDetail(strategyId);
 
@@ -118,15 +118,44 @@ const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
         <DialogFooter>
           <Button
             className="w-full"
-            onClick={() => createStrategyModalRef.current?.open()}
+            onClick={() =>
+              copyStrategyModalRef.current?.open({
+                llm_model_config: {
+                  provider: strategyDetail?.llm_provider || "",
+                  model_id: strategyDetail?.llm_model_id || "",
+                  api_key: "",
+                },
+                exchange_config: {
+                  exchange_id: strategyDetail?.exchange_id || "",
+                  trading_mode: strategyDetail?.trading_mode || "virtual",
+                  api_key: "",
+                  secret_key: "",
+                  passphrase: "",
+                  wallet_address: "",
+                  private_key: "",
+                },
+                trading_config: {
+                  strategy_name: "",
+                  strategy_type:
+                    strategyDetail?.strategy_type || "PromptBasedStrategy",
+                  initial_capital: strategyDetail?.initial_capital || 0,
+                  max_leverage: strategyDetail?.max_leverage || 0,
+                  symbols: strategyDetail?.symbols || [],
+                  decide_interval: strategyDetail?.decide_interval || 0,
+                  prompt: strategyDetail?.prompt || "",
+                  prompt_name: strategyDetail?.prompt_name || "",
+                },
+              })
+            }
           >
-            Copy and create
+            Dumplicate
           </Button>
         </DialogFooter>
       </DialogContent>
-      <CreateStrategyModal ref={createStrategyModalRef} />
+
+      <CopyStrategyModal ref={copyStrategyModalRef} />
     </Dialog>
   );
 };
 
-export default StrategyDetailModal;
+export default StrategyRemoteModal;

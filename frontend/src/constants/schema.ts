@@ -70,3 +70,20 @@ export const tradingStrategySchema = z.object({
     .min(10, "Interval must be at least 10 seconds")
     .max(3600, "Interval must be at most 3600 seconds"),
 });
+
+export const copyTradingStrategySchema = z.object({
+  strategy_name: z.string().min(1, "Strategy name is required"),
+  initial_capital: z.number().min(1, "Initial capital must be at least 1"),
+  max_leverage: z
+    .number()
+    .min(1, "Leverage must be at least 1")
+    .max(5, "Leverage must be at most 5"),
+  symbols: z.array(z.string()).min(1, "At least one symbol is required"),
+  decide_interval: z
+    .number()
+    .min(10, "Interval must be at least 10 seconds")
+    .max(3600, "Interval must be at most 3600 seconds"),
+  strategy_type: z.enum(["PromptBasedStrategy", "GridStrategy"]),
+  prompt_name: z.string().min(1, "Prompt name is required"),
+  prompt: z.string().min(1, "Prompt is required"),
+});

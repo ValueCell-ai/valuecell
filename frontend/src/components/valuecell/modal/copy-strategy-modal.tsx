@@ -4,15 +4,9 @@ import { memo, useImperativeHandle, useState } from "react";
 import { useGetModelProviderDetail } from "@/api/setting";
 import {
   useCreateStrategy,
+  useCreateStrategyPrompt,
   useGetStrategyList,
-  useGetStrategyPrompts,
 } from "@/api/strategy";
-import { AIModelForm } from "@/app/agent/components/strategy-items/forms/ai-model-form";
-import {
-  EXCHANGE_OPTIONS,
-  ExchangeForm,
-} from "@/app/agent/components/strategy-items/forms/exchange-form";
-import { TradingStrategyForm } from "@/app/agent/components/strategy-items/forms/trading-strategy-form";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,24 +16,30 @@ import {
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import CloseButton from "@/components/valuecell/button/close-button";
+import { AIModelForm } from "@/components/valuecell/form/ai-model-form";
+import {
+  EXCHANGE_OPTIONS,
+  ExchangeForm,
+} from "@/components/valuecell/form/exchange-form";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { StepIndicator } from "@/components/valuecell/step-indicator";
 import { TRADING_SYMBOLS } from "@/constants/agent";
 import {
   aiModelSchema,
+  copyTradingStrategySchema,
   exchangeSchema,
-  tradingStrategySchema,
 } from "@/constants/schema";
 import { useAppForm } from "@/hooks/use-form";
 import { tracker } from "@/lib/tracker";
-import type { CreateStrategy, Strategy } from "@/types/strategy";
+import type { CopyStrategy, Strategy } from "@/types/strategy";
+import { CopyStrategyForm } from "../form/copy-strategy-form";
 
-export interface CreateStrategyModelRef {
-  open: (data?: CreateStrategy) => void;
+export interface CopyStrategyModelRef {
+  open: (data?: CopyStrategy) => void;
 }
-interface CreateStrategyModalProps {
+interface CopyStrategyModalProps {
   children?: React.ReactNode;
-  ref?: RefObject<CreateStrategyModelRef | null>;
+  ref?: RefObject<CopyStrategyModelRef | null>;
 }
 
 const STEPS = [
@@ -48,17 +48,14 @@ const STEPS = [
   { step: 3, title: "Trading strategy" },
 ];
 
-const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
-  ref,
-  children,
-}) => {
+const CopyStrategyModal: FC<CopyStrategyModalProps> = ({ ref, children }) => {
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
 
-  const { data: prompts = [] } = useGetStrategyPrompts();
   const { data: strategies = [] } = useGetStrategyList();
   const { mutateAsync: createStrategy, isPending: isCreatingStrategy } =
     useCreateStrategy();
+  const { mutateAsync: createStrategyPrompt } = useCreateStrategyPrompt();
 
   // Step 1 Form: AI Models
   const form1 = useAppForm({
@@ -128,16 +125,25 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
       max_leverage: 2,
       decide_interval: 60,
       symbols: TRADING_SYMBOLS,
-      template_id: prompts.length > 0 ? prompts[0].id : "",
+      prompt_name: "",
+      prompt: "",
     },
     validators: {
-      onSubmit: tradingStrategySchema,
+      onSubmit: copyTradingStrategySchema,
     },
     onSubmit: async ({ value }) => {
+      const { prompt_name, prompt, ...rest } = value;
+      const {
+        data: { id: template_id },
+      } = await createStrategyPrompt({
+        name: prompt_name,
+        content: prompt,
+      });
+
       const payload = {
         llm_model_config: form1.state.values,
         exchange_config: form2.state.values,
-        trading_config: value,
+        trading_config: { ...rest, template_id },
       };
 
       await createStrategy(payload);
@@ -199,9 +205,8 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
 
           {/* Step 3: Trading Strategy */}
           {currentStep === 3 && (
-            <TradingStrategyForm
+            <CopyStrategyForm
               form={form3}
-              prompts={prompts}
               tradingMode={form2.state.values.trading_mode}
             />
           )}
@@ -243,4 +248,4 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
   );
 };
 
-export default memo(CreateStrategyModal);
+export default memo(CopyStrategyModal);

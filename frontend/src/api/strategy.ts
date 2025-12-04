@@ -25,7 +25,7 @@ export const useGetStrategyList = () => {
   });
 };
 
-export const useGetStrategyDetails = (strategyId?: string) => {
+export const useGetStrategyDetails = (strategyId?: number) => {
   return useQuery({
     queryKey: API_QUERY_KEYS.STRATEGY.strategyTrades([strategyId ?? ""]),
     queryFn: () =>
@@ -38,7 +38,7 @@ export const useGetStrategyDetails = (strategyId?: string) => {
   });
 };
 
-export const useGetStrategyHoldings = (strategyId?: string) => {
+export const useGetStrategyHoldings = (strategyId?: number) => {
   return useQuery({
     queryKey: API_QUERY_KEYS.STRATEGY.strategyHoldings([strategyId ?? ""]),
     queryFn: () =>
@@ -51,7 +51,7 @@ export const useGetStrategyHoldings = (strategyId?: string) => {
   });
 };
 
-export const useGetStrategyPriceCurve = (strategyId?: string) => {
+export const useGetStrategyPriceCurve = (strategyId?: number) => {
   return useQuery({
     queryKey: API_QUERY_KEYS.STRATEGY.strategyPriceCurve([strategyId ?? ""]),
     queryFn: () =>
@@ -64,7 +64,7 @@ export const useGetStrategyPriceCurve = (strategyId?: string) => {
   });
 };
 
-export const useGetStrategyPortfolioSummary = (strategyId?: string) => {
+export const useGetStrategyPortfolioSummary = (strategyId?: number) => {
   return useQuery({
     queryKey: API_QUERY_KEYS.STRATEGY.strategyPortfolioSummary([
       strategyId ?? "",
@@ -108,7 +108,7 @@ export const useStopStrategy = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (strategyId: string) =>
+    mutationFn: (strategyId: number) =>
       apiClient.post<ApiResponse<{ message: string }>>(
         `/strategies/stop?id=${strategyId}`,
       ),
@@ -124,7 +124,7 @@ export const useStopStrategy = () => {
 export const useDeleteStrategy = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (strategyId: string) =>
+    mutationFn: (strategyId: number) =>
       apiClient.delete<ApiResponse<null>>(
         `/strategies/delete?id=${strategyId}`,
       ),
@@ -163,9 +163,11 @@ export const useCreateStrategyPrompt = () => {
   });
 };
 
-export const useStrategyPerformance = (strategyId?: string) => {
+export const useStrategyPerformance = (strategyId: number | null) => {
   return useQuery({
-    queryKey: API_QUERY_KEYS.STRATEGY.strategyPerformance([strategyId ?? ""]),
+    queryKey: API_QUERY_KEYS.STRATEGY.strategyPerformance(
+      strategyId ? [strategyId] : [],
+    ),
     queryFn: () =>
       apiClient.get<ApiResponse<StrategyPerformance>>(
         `/strategies/performance?id=${strategyId}`,

@@ -1,5 +1,6 @@
-import { Plus, TrendingUp } from "lucide-react";
-import { type FC, memo } from "react";
+import { Copy, Eye, MoreVertical, Plus, TrendingUp } from "lucide-react";
+import { type FC, memo, useRef, useState } from "react";
+import { useStrategyPerformance } from "@/api/strategy";
 import { DeleteStrategy, StrategyStatus } from "@/assets/svg";
 import {
   AlertDialog,
@@ -14,17 +15,29 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import SvgIcon from "@/components/valuecell/icon/svg-icon";
+import CopyStrategyModal, {
+  type CopyStrategyModelRef,
+} from "@/components/valuecell/modal/copy-strategy-modal";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import { formatChange, getChangeType } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
 import type { Strategy } from "@/types/strategy";
-import CreateStrategyModal from "../../../../components/valuecell/modal/create-strategy-modal";
+import CreateStrategyModal from "./modals/create-strategy-modal";
+import StrategyDetailModal, {
+  type StrategyDetailModalRef,
+} from "./modals/strategy-detail-modal";
 
 interface TradeStrategyCardProps {
   strategy: Strategy;
@@ -38,8 +51,8 @@ interface TradeStrategyGroupProps {
   strategies: Strategy[];
   selectedStrategy?: Strategy | null;
   onStrategySelect?: (strategy: Strategy) => void;
-  onStrategyStop?: (strategyId: string) => void;
-  onStrategyDelete?: (strategyId: string) => void;
+  onStrategyStop?: (strategyId: number) => void;
+  onStrategyDelete?: (strategyId: number) => void;
 }
 
 const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
@@ -51,6 +64,14 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
 }) => {
   const stockColors = useStockColors();
   const changeType = getChangeType(strategy.total_pnl_pct);
+
+  const [isDeleting, setIsDeleting] = useState(false);
+  const strategyDetailModalRef = useRef<StrategyDetailModalRef>(null);
+  const copyStrategyModalRef = useRef<CopyStrategyModelRef>(null);
+  const { refetch: refetchStrategyPerformance } = useStrategyPerformance(
+    strategy.strategy_id,
+  );
+
   return (
     <div
       onClick={onClick}
@@ -144,35 +165,95 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
             </AlertDialog>
           )}
 
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="flex items-center rounded-md"
-              >
-                <SvgIcon name={DeleteStrategy} className="size-6" />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreVertical />
               </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Strategy?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Deleting the strategy "{strategy.strategy_name}" will stop it
-                  immediately and trigger a forced liquidation. Do you want to
-                  proceed?
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={onDelete}>
-                  Confirm Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem
+                onClick={() =>
+                  strategyDetailModalRef.current?.open(strategy.strategy_id)
+                }
+              >
+                <Eye className="ml-1 size-5" />
+                Details
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={async () => {
+                  const { data: strategyDetail } =
+                    await refetchStrategyPerformance();
+                  console.log(
+                    "🚀 ~ TradeStrategyCard ~ strategyDetail:",
+                    strategyDetail,
+                  );
+
+                  copyStrategyModalRef.current?.open({
+                    llm_model_config: {
+                      provider: strategyDetail?.llm_provider || "",
+                      model_id: strategyDetail?.llm_model_id || "",
+                      api_key: "",
+                    },
+                    exchange_config: {
+                      exchange_id: strategyDetail?.exchange_id || "",
+                      trading_mode: strategyDetail?.trading_mode || "virtual",
+                      api_key: "",
+                      secret_key: "",
+                      passphrase: "",
+                      wallet_address: "",
+                      private_key: "",
+                    },
+                    trading_config: {
+                      strategy_name: "",
+                      strategy_type:
+                        strategyDetail?.strategy_type || "PromptBasedStrategy",
+                      initial_capital: strategyDetail?.initial_capital || 0,
+                      max_leverage: strategyDetail?.max_leverage || 0,
+                      symbols: strategyDetail?.symbols || [],
+                      decide_interval: strategyDetail?.decide_interval || 0,
+                      prompt: strategyDetail?.prompt || "",
+                      prompt_name: strategyDetail?.prompt_name || "",
+                    },
+                  });
+                }}
+              >
+                <Copy className="ml-1 size-5" />
+                Duplicate
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsDeleting(true)}>
+                <SvgIcon
+                  name={DeleteStrategy}
+                  className="size-6 text-red-500"
+                />{" "}
+                <span className="text-red-500">Delete</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
+
+      <AlertDialog open={isDeleting} onOpenChange={setIsDeleting}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Strategy?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deleting the strategy "{strategy.strategy_name}" will stop it
+              immediately and trigger a forced liquidation. Do you want to
+              proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={onDelete}>
+              Confirm Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <StrategyDetailModal ref={strategyDetailModalRef} />
+      <CopyStrategyModal ref={copyStrategyModalRef} />
     </div>
   );
 };
@@ -222,6 +303,7 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
           </div>
         </div>
       )}
+
       <div>
         <CreateStrategyModal>
           <Button

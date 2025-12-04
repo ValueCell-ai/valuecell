@@ -17,17 +17,17 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tag } from "@/components/valuecell/button/tag-groups";
 import { Rank1Icon, Rank2Icon, Rank3Icon } from "@/components/valuecell/icon";
 import { PngIcon } from "@/components/valuecell/icon/png-icon";
-import StrategyDetailModal, {
-  type StrategyDetailModalRef,
-} from "@/components/valuecell/modal/strategy-detail-modal";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { EXCHANGE_ICONS } from "@/constants/icons";
 import { getChangeType, numberFixed } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
+import StrategyRemoteModal, {
+  type StrategyRemoteModalRef,
+} from "./components/strategy-remote-modal";
 
 export default function RankBoard() {
   const [days, setDays] = useState(7);
-  const strategyDetailModalRef = useRef<StrategyDetailModalRef>(null);
+  const strategyRemoteModalRef = useRef<StrategyRemoteModalRef>(null);
 
   const stockColors = useStockColors();
 
@@ -44,7 +44,7 @@ export default function RankBoard() {
   };
 
   const handleViewStrategy = (strategyId: number) => {
-    strategyDetailModalRef.current?.open(strategyId);
+    strategyRemoteModalRef.current?.open(strategyId);
   };
 
   return (
@@ -156,7 +156,7 @@ export default function RankBoard() {
         </CardContent>
       </Card>
 
-      <StrategyDetailModal ref={strategyDetailModalRef} />
+      <StrategyRemoteModal ref={strategyRemoteModalRef} />
     </div>
   );
 }
