@@ -121,6 +121,10 @@ class AgentOrchestrator:
                 # Never fail producer due to queue issues; just drop
                 pass
 
+        logger.info(
+            "process_user_input: starting background session for conversation {}",
+            user_input.meta.conversation_id,
+        )
         # Start background producer
         asyncio.create_task(self._run_session(user_input, emit))
 
@@ -193,11 +197,19 @@ class AgentOrchestrator:
                 yield await self.event_service.emit(started)
 
             if conversation.status == ConversationStatus.REQUIRE_USER_INPUT:
+                logger.info(
+                    "_generate_responses: resuming conversation {} in REQUIRE_USER_INPUT",
+                    conversation_id,
+                )
                 async for response in self._handle_conversation_continuation(
                     user_input
                 ):
                     yield response
             else:
+                logger.info(
+                    "_generate_responses: handling new request for conversation {}",
+                    conversation_id,
+                )
                 async for response in self._handle_new_request(user_input):
                     yield response
 
@@ -369,9 +381,18 @@ class AgentOrchestrator:
 
         # 2) Planner phase (existing logic)
         # Create planning task with user input callback
+        logger.info(
+            "_handle_new_request: starting planner for conversation {}, thread {}",
+            conversation_id,
+            thread_id,
+        )
         context_aware_callback = self._create_context_aware_callback(conversation_id)
         planning_task = self.plan_service.start_planning_task(
             user_input, thread_id, context_aware_callback
+        )
+        logger.info(
+            "_handle_new_request: planner task started for conversation {}",
+            conversation_id,
         )
 
         # Monitor planning progress
@@ -428,6 +449,10 @@ class AgentOrchestrator:
         )
 
         # Wait for planning completion or user input request
+        logger.info(
+            "_monitor_planning_task: monitoring planning task for conversation {}",
+            conversation_id,
+        )
         while not planning_task.done():
             if self.plan_service.has_pending_request(conversation_id):
                 # Save planning context
@@ -454,6 +479,10 @@ class AgentOrchestrator:
 
             await asyncio.sleep(ASYNC_SLEEP_INTERVAL)
 
+        logger.info(
+            "_monitor_planning_task: planning completed for conversation {}; executing plan",
+            conversation_id,
+        )
         # Planning completed, execute plan
         plan: "ExecutionPlan" = await planning_task
 

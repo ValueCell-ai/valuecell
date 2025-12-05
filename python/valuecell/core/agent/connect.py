@@ -197,6 +197,7 @@ class RemoteConnections:
             )
             return
 
+        logger.info(f"Loading agent cards from {agent_card_dir}")
         for json_file in agent_card_dir.glob("*.json"):
             try:
                 # Read name minimally to resolve via helper
@@ -229,6 +230,9 @@ class RemoteConnections:
                     f"Failed to load agent card from {json_file}; skipping: {e}"
                 )
                 continue
+        logger.info(
+            f"Loaded {len(self._contexts)} agent card(s) from {agent_card_dir}: {list(self._contexts.keys())}"
+        )
         self._remote_contexts_loaded = True
 
     def _ensure_remote_contexts_loaded(self) -> None:
@@ -254,6 +258,9 @@ class RemoteConnections:
         """
         # Use agent-specific lock to prevent concurrent starts of the same agent
         agent_lock = self._get_agent_lock(agent_name)
+        logger.info(
+            f"Request to start agent '{agent_name}' (with_listener={with_listener})"
+        )
         async with agent_lock:
             ctx = await self._get_or_create_context(agent_name)
 
@@ -309,6 +316,9 @@ class RemoteConnections:
         if not url:
             raise ValueError(f"Unable to determine URL for agent '{ctx.name}'")
         # Initialize a temporary client; only assign to context on success
+        logger.info(
+            f"Initializing client for '{ctx.name}' at {url} (listener_url={ctx.listener_url})"
+        )
         tmp_client = AgentClient(url, push_notification_url=ctx.listener_url)
         try:
             await self._initialize_client(tmp_client, ctx)
@@ -353,6 +363,7 @@ class RemoteConnections:
             logger.info(f"Launching in-process agent '{ctx.name}'")
 
         if ctx.agent_task is None:
+            logger.info(f"Creating task to run in-process agent '{ctx.name}'")
             ctx.agent_task = asyncio.create_task(ctx.agent_instance.serve())
             # Give the event loop a chance to schedule startup work
             await asyncio.sleep(0)
@@ -371,9 +382,15 @@ class RemoteConnections:
         """Initialize client with retry for local agents."""
         retries = 3 if ctx.agent_task else 1
         delay = 0.2
+        logger.info(
+            f"_initialize_client: initializing client for '{ctx.name}' (retries={retries})"
+        )
         for attempt in range(retries):
             try:
                 await client.ensure_initialized()
+                logger.info(
+                    f"Client initialized for '{ctx.name}' on attempt {attempt + 1}"
+                )
                 return
             except Exception as exc:
                 if attempt >= retries - 1:
