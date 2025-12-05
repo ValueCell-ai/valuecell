@@ -1,8 +1,8 @@
 import asyncio
 import json
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from importlib import import_module
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Type
 
@@ -129,9 +129,13 @@ async def _resolve_local_agent_class(spec: str) -> Optional[Type[Any]]:
     loop = asyncio.get_running_loop()
     # Delegate the synchronous import to the thread pool
     try:
-        agent_cls = await loop.run_in_executor(executor, _resolve_local_agent_class_sync, spec)
+        agent_cls = await loop.run_in_executor(
+            executor, _resolve_local_agent_class_sync, spec
+        )
     except Exception as exc:
-        logger.error("_resolve_local_agent_class: threaded import failed for '{}': {}", spec, exc)
+        logger.error(
+            "_resolve_local_agent_class: threaded import failed for '{}': {}", spec, exc
+        )
         return None
 
     return agent_cls
