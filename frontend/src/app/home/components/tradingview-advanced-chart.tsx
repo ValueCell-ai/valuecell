@@ -2,6 +2,7 @@ import { memo, useEffect, useMemo, useRef } from "react";
 
 type Props = {
   ticker: string;
+  mappingUrl?: string;
   interval?: string;
   minHeight?: number;
   theme?: "light" | "dark";
@@ -12,6 +13,7 @@ type Props = {
 
 function TradingViewAdvancedChart({
   ticker,
+  mappingUrl,
   interval = "D",
   minHeight = 420,
   theme = "light",
@@ -19,9 +21,35 @@ function TradingViewAdvancedChart({
   locale = "en",
   timezone = "UTC",
 }: Props) {
+  const symbolMapRef = useRef<Record<string, string> | null>(null);
+
+  useEffect(() => {
+    if (!mappingUrl) return;
+    let cancelled = false;
+    fetch(mappingUrl)
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((json) => {
+        if (!cancelled) symbolMapRef.current = json || {};
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [mappingUrl]);
+
+  const tvSymbol = useMemo(() => {
+    const m = symbolMapRef.current;
+    if (m && typeof m === "object" && ticker in m) {
+      const v = m[ticker];
+      if (typeof v === "string" && v.length > 0) return v;
+    }
+    if (ticker.includes(":")) return ticker;
+    return ticker;
+  }, [ticker, mappingUrl]);
+
   const containerId = useMemo(
-    () => `tv_${ticker.replace(/[^A-Za-z0-9_]/g, "_")}_${interval}`,
-    [ticker, interval],
+    () => `tv_${tvSymbol.replace(/[^A-Za-z0-9_]/g, "_")}_${interval}`,
+    [tvSymbol, interval],
   );
 
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -59,7 +87,7 @@ function TradingViewAdvancedChart({
     };
 
     cleanup();
-    if (!ticker) return;
+    if (!tvSymbol) return;
 
     loadTradingView().then(() => {
       const w = window as any;
@@ -84,7 +112,7 @@ function TradingViewAdvancedChart({
 
       const widget = new w.TradingView.widget({
         container_id: containerId,
-        symbol: ticker,
+        symbol: tvSymbol,
         interval,
         timezone,
         theme,
@@ -106,7 +134,7 @@ function TradingViewAdvancedChart({
       cancelled = true;
       cleanup();
     };
-  }, [ticker, interval, theme, colors, locale, timezone]);
+  }, [tvSymbol, interval, theme, colors, locale, timezone]);
 
   return (
     <div className="w-full" style={{ height: minHeight }}>
