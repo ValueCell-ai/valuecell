@@ -14,6 +14,7 @@ import {
   OpenAiPng,
   OpenRouterPng,
   SiliconFlowPng,
+  ValueCellAgentPng,
 } from "@/assets/png";
 
 export const MODEL_PROVIDER_ICONS = {
@@ -36,4 +37,5 @@ export const EXCHANGE_ICONS = {
   hyperliquid: HyperliquidPng,
   mexc: MexcPng,
   okx: OkxPng,
+  virtual: ValueCellAgentPng,
 };
