@@ -132,6 +132,31 @@ async def test_load_from_dir_and_list(tmp_path: Path, monkeypatch: pytest.Monkey
     assert set(all_agents) == {"AgentAlpha", "AgentBeta"}
 
 
+def test_preload_agent_classes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    # Prepare an agent card with a local class spec
+    dir_path = tmp_path / "agent_cards"
+    dir_path.mkdir(parents=True)
+
+    card = make_card_dict("LocalAgent", "http://127.0.0.1:8101", push_notifications=False)
+    # Add metadata with local_agent_class
+    card["metadata"] = {"local_agent_class": "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"}
+    with open(dir_path / "LocalAgent.json", "w", encoding="utf-8") as f:
+        json.dump(card, f)
+
+    rc = RemoteConnections()
+    rc.load_from_dir(str(dir_path))
+
+    # Before preload, agent_instance_class should be None
+    ctx = rc._contexts["LocalAgent"]
+    assert ctx.agent_instance_class is None
+
+    # Call preload
+    rc.preload_local_agent_classes()
+
+    # After preload, agent_instance_class should be set
+    assert ctx.agent_instance_class is not None
+
+
 @pytest.mark.asyncio
 async def test_start_agent_without_listener(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -523,6 +548,32 @@ def test_resolve_local_agent_class_invalid_spec():
     spec = "valuecell.nonexistent:Missing"
     # Use synchronous resolver helper for direct check
     result = connect_mod._resolve_local_agent_class_sync(spec)
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_resolve_local_agent_class_async_cache_hit():
+    spec = "cached:Spec"
+    sentinel = object()
+    connect_mod._LOCAL_AGENT_CLASS_CACHE[spec] = sentinel
+    try:
+        # Call the async resolver to verify cache hit
+        result = await connect_mod._resolve_local_agent_class(spec)
+        assert result is sentinel
+    finally:
+        connect_mod._LOCAL_AGENT_CLASS_CACHE.pop(spec, None)
+
+
+@pytest.mark.asyncio
+async def test_resolve_local_agent_class_async_import_failure(monkeypatch: pytest.MonkeyPatch):
+    spec = "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
+    # Mock the sync resolver to raise an exception
+    def failing_resolver(spec_arg):
+        raise ImportError("Simulated import failure")
+    
+    monkeypatch.setattr(connect_mod, "_resolve_local_agent_class_sync", failing_resolver)
+    
+    result = await connect_mod._resolve_local_agent_class(spec)
     assert result is None
 
 

@@ -295,7 +295,7 @@ class RemoteConnections:
         for name, ctx in self._contexts.items():
             if ctx.agent_class_spec and ctx.agent_instance_class is None:
                 logger.info("Preloading agent class for '{}'", name)
-                cls = _resolve_local_agent_class(ctx.agent_class_spec)
+                cls = _resolve_local_agent_class_sync(ctx.agent_class_spec)
                 ctx.agent_instance_class = cls
                 if cls is None:
                     logger.warning(
