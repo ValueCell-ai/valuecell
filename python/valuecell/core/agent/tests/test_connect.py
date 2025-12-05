@@ -161,6 +161,85 @@ def test_preload_agent_classes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     assert ctx.agent_instance_class is not None
 
 
+def test_preload_skips_agents_without_class_spec(tmp_path: Path):
+    """Test that preload skips agents without agent_class_spec."""
+    dir_path = tmp_path / "agent_cards"
+    dir_path.mkdir(parents=True)
+
+    # Card without metadata (no local_agent_class)
+    card = make_card_dict(
+        "NoSpecAgent", "http://127.0.0.1:8102", push_notifications=False
+    )
+    with open(dir_path / "NoSpecAgent.json", "w", encoding="utf-8") as f:
+        json.dump(card, f)
+
+    rc = RemoteConnections()
+    rc.load_from_dir(str(dir_path))
+
+    ctx = rc._contexts["NoSpecAgent"]
+    assert ctx.agent_class_spec is None
+
+    # Preload should skip this agent (no error, just skip)
+    rc.preload_local_agent_classes()
+
+    # Still None since there was no spec
+    assert ctx.agent_instance_class is None
+
+
+def test_preload_skips_already_loaded_class(tmp_path: Path):
+    """Test that preload skips agents with class already loaded."""
+    dir_path = tmp_path / "agent_cards"
+    dir_path.mkdir(parents=True)
+
+    card = make_card_dict(
+        "PreloadedAgent", "http://127.0.0.1:8103", push_notifications=False
+    )
+    card["metadata"] = {
+        "local_agent_class": "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
+    }
+    with open(dir_path / "PreloadedAgent.json", "w", encoding="utf-8") as f:
+        json.dump(card, f)
+
+    rc = RemoteConnections()
+    rc.load_from_dir(str(dir_path))
+
+    ctx = rc._contexts["PreloadedAgent"]
+    # Simulate class already loaded
+    sentinel_class = type("SentinelClass", (), {})
+    ctx.agent_instance_class = sentinel_class
+
+    # Preload should skip since class is already loaded
+    rc.preload_local_agent_classes()
+
+    # Should still be sentinel, not replaced
+    assert ctx.agent_instance_class is sentinel_class
+
+
+def test_preload_handles_failed_import(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Test that preload warns on failed import but continues."""
+    dir_path = tmp_path / "agent_cards"
+    dir_path.mkdir(parents=True)
+
+    card = make_card_dict(
+        "FailAgent", "http://127.0.0.1:8104", push_notifications=False
+    )
+    card["metadata"] = {"local_agent_class": "nonexistent.module:FakeClass"}
+    with open(dir_path / "FailAgent.json", "w", encoding="utf-8") as f:
+        json.dump(card, f)
+
+    rc = RemoteConnections()
+    rc.load_from_dir(str(dir_path))
+
+    ctx = rc._contexts["FailAgent"]
+    assert ctx.agent_class_spec == "nonexistent.module:FakeClass"
+
+    # Preload should warn but not raise
+    rc.preload_local_agent_classes()
+
+    # Class should remain None due to failed import
+    assert ctx.agent_instance_class is None
+
+
 @pytest.mark.asyncio
 async def test_start_agent_without_listener(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
