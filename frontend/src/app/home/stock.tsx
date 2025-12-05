@@ -11,7 +11,6 @@ import { useStockColors } from "@/store/settings-store";
 import type { Route } from "./+types/stock";
 import TradingViewAdvancedChart from "./components/TradingViewAdvancedChart";
 
-
 function Stock() {
   const { stockId } = useParams<Route.LoaderArgs["params"]>();
   const navigate = useNavigate();
@@ -117,7 +116,10 @@ function Stock() {
           interval="D"
           minHeight={420}
           theme="light"
-          colors={{ upColor: stockColors.positive, downColor: stockColors.negative }}
+          colors={{
+            upColor: stockColors.positive,
+            downColor: stockColors.negative,
+          }}
         />
       </div>
 

@@ -6,7 +6,11 @@ type Props = {
   locale?: string;
 };
 
-function TradingViewTickerTape({ symbols, theme = "light", locale = "en" }: Props) {
+function TradingViewTickerTape({
+  symbols,
+  theme = "light",
+  locale = "en",
+}: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const scriptRef = useRef<HTMLScriptElement | null>(null);
 
@@ -43,7 +47,11 @@ function TradingViewTickerTape({ symbols, theme = "light", locale = "en" }: Prop
     scriptRef.current = script;
 
     return () => {
-      if (scriptRef.current && containerRef.current && containerRef.current.contains(scriptRef.current)) {
+      if (
+        scriptRef.current &&
+        containerRef.current &&
+        containerRef.current.contains(scriptRef.current)
+      ) {
         containerRef.current.removeChild(scriptRef.current);
         scriptRef.current = null;
       }
