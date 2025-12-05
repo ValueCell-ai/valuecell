@@ -39,7 +39,7 @@ async def _create_execution_gateway(request: UserRequest) -> BaseExecutionGatewa
     except Exception:
         # Log the error but continue - user might have set initial portfolio manually
         logger.exception(
-            "Failed to fetch exchange balance for LIVE mode. Will use configured initial portfolio instead."
+            "Failed to fetch exchange portfolio for LIVE mode. Will use configured initial portfolio instead."
         )
 
     # Validate initial capital for LIVE mode

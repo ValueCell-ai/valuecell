@@ -122,7 +122,10 @@ async def fetch_positions_from_gateway(
     logger.info("Fetching positions for LIVE trading mode")
     try:
         if not hasattr(execution_gateway, "fetch_positions"):
-            return {}
+            raise AttributeError(
+                f"Execution gateway {execution_gateway.__class__.__name__} "
+                "does not implement the required 'fetch_positions' method."
+            )
         raw_positions = await execution_gateway.fetch_positions()
     except Exception as e:
         if retry_cnt < max_retries:
@@ -136,10 +139,10 @@ async def fetch_positions_from_gateway(
                 execution_gateway, retry_cnt + 1, max_retries
             )
         logger.error(
-            f"Failed to fetch positions from exchange after {max_retries} retries, returning no positions",
+            f"Failed to fetch positions from exchange after {max_retries} retries.",
             exception=e,
         )
-        return {}
+        raise e
 
     logger.debug(f"Raw positions response: {raw_positions}")
     positions = {}

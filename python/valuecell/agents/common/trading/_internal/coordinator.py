@@ -133,11 +133,24 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                     portfolio.buying_power = float(free_cash)
                     # Also update free_cash field in view if it exists
                     portfolio.free_cash = float(free_cash)
-                positions = await fetch_positions_from_gateway(self._execution_gateway)
-                if len(positions) == 0:
-                    logger.warning("No position available, skipping sync")
+                try:
+                    positions = await fetch_positions_from_gateway(
+                        self._execution_gateway
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "Failed to sync live positions: %s - skipping sync", e
+                    )
                 else:
                     portfolio.positions = positions
+                    total_unrealized_pnl = sum(
+                        value.unrealized_pnl
+                        for value in positions.values()
+                        if value.unrealized_pnl is not None
+                    )
+                    portfolio.total_unrealized_pnl = total_unrealized_pnl
+                    if total_cash > 0:
+                        portfolio.total_value = total_cash + total_unrealized_pnl
         except Exception:
             # If syncing fails, continue with existing portfolio view
             logger.warning(
