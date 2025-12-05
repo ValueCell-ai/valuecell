@@ -87,12 +87,20 @@ def _resolve_local_agent_class(spec: str) -> Optional[Type[Any]]:
 
     cached = _LOCAL_AGENT_CLASS_CACHE.get(spec)
     if cached is not None:
+        logger.debug("_resolve_local_agent_class: cache hit for '{}'", spec)
         return cached
 
     try:
         module_path, class_name = spec.split(":", 1)
+        logger.info(
+            "_resolve_local_agent_class: importing module '{}' for class '{}'",
+            module_path,
+            class_name,
+        )
         module = import_module(module_path)
+        logger.info("_resolve_local_agent_class: module imported, getting class")
         agent_cls = getattr(module, class_name)
+        logger.info("_resolve_local_agent_class: class '{}' resolved", class_name)
     except (ValueError, AttributeError, ImportError) as exc:
         logger.error("Failed to import agent class '{}': {}", spec, exc)
         return None
@@ -238,6 +246,28 @@ class RemoteConnections:
     def _ensure_remote_contexts_loaded(self) -> None:
         if not self._remote_contexts_loaded:
             self._load_remote_contexts()
+
+    def preload_local_agent_classes(self) -> None:
+        """Preload all local agent classes synchronously at startup.
+
+        This method should be called during application startup (before the
+        event loop processes requests) to avoid import deadlocks on Windows.
+        Importing Python modules in a worker thread while the main thread holds
+        the import lock can cause hangs. By importing everything upfront in
+        the main thread, we sidestep this issue entirely.
+        """
+        self._ensure_remote_contexts_loaded()
+        for name, ctx in self._contexts.items():
+            if ctx.agent_class_spec and ctx.agent_instance_class is None:
+                logger.info("Preloading agent class for '{}'", name)
+                cls = _resolve_local_agent_class(ctx.agent_class_spec)
+                ctx.agent_instance_class = cls
+                if cls is None:
+                    logger.warning(
+                        "Failed to preload agent class '{}' for '{}'",
+                        ctx.agent_class_spec,
+                        name,
+                    )
 
     # Public helper primarily for tests or tooling to load from a custom dir
     def load_from_dir(self, config_dir: str) -> None:
