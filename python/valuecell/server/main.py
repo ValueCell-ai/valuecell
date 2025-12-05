@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import io
 import os
-import ssl as _  # noqa: F401
 import sys
 import threading
 from typing import Callable, Optional, TextIO
