@@ -43,6 +43,7 @@ export interface CopyStrategyModelRef {
 interface CopyStrategyModalProps {
   children?: React.ReactNode;
   ref?: RefObject<CopyStrategyModelRef | null>;
+  callback?: () => void;
 }
 
 const STEPS = [
@@ -51,7 +52,11 @@ const STEPS = [
   { step: 3, title: "Trading strategy" },
 ];
 
-const CopyStrategyModal: FC<CopyStrategyModalProps> = ({ ref, children }) => {
+const CopyStrategyModal: FC<CopyStrategyModalProps> = ({
+  ref,
+  children,
+  callback,
+}) => {
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [defaultValues, setDefaultValues] = useState<CopyStrategy>();
@@ -159,6 +164,7 @@ const CopyStrategyModal: FC<CopyStrategyModalProps> = ({ ref, children }) => {
 
       tracker.send("use", { agent_name: "StrategyAgent" });
       resetAll();
+      callback?.();
     },
   });
 

@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useNavigate } from "react-router";
 import { useGetStrategyDetail } from "@/api/system";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,8 @@ interface StrategyRemoteModalProps {
 
 const StrategyRemoteModal: FC<StrategyRemoteModalProps> = ({ ref }) => {
   const stockColors = useStockColors();
+  const navigate = useNavigate();
+
   const [open, setOpen] = useState(false);
   const [strategyId, setStrategyId] = useState<number | null>(null);
   const copyStrategyModalRef = useRef<CopyStrategyModelRef>(null);
@@ -153,7 +156,10 @@ const StrategyRemoteModal: FC<StrategyRemoteModalProps> = ({ ref }) => {
         </DialogFooter>
       </DialogContent>
 
-      <CopyStrategyModal ref={copyStrategyModalRef} />
+      <CopyStrategyModal
+        ref={copyStrategyModalRef}
+        callback={() => navigate(`/agent/StrategyAgent`)}
+      />
     </Dialog>
   );
 };
