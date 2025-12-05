@@ -60,7 +60,6 @@ class ApiClient {
           `HTTP ${response.status}`,
       );
 
-      //TODO: Handle 401 unauthorized
       if (response.status === 401) {
         try {
           const {
