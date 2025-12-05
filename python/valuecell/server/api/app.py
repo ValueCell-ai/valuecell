@@ -24,17 +24,11 @@ from .routers.agent_stream import create_agent_stream_router
 from .routers.conversation import create_conversation_router
 from .routers.i18n import create_i18n_router
 from .routers.models import create_models_router
-
-# from .routers.strategy_alias import create_strategy_alias_router
 from .routers.strategy_api import create_strategy_api_router
-
-# from .routers.strategy_agent import create_strategy_agent_router
 from .routers.system import create_system_router
 from .routers.task import create_task_router
 from .routers.user_profile import create_user_profile_router
 from .routers.watchlist import create_watchlist_router
-
-# from .routers.strategy import create_strategy_router
 from .schemas import AppInfoData, SuccessResponse
 
 
@@ -241,14 +235,6 @@ def _add_routes(app: FastAPI, settings) -> None:
 
     # Include task router
     app.include_router(create_task_router(), prefix=API_PREFIX)
-
-    # Include trading router
-    try:
-        from .routers.trading import create_trading_router
-
-        app.include_router(create_trading_router(), prefix=API_PREFIX)
-    except Exception as e:
-        logger.info(f"Skip trading router because of import error: {e}")
 
 
 # For uvicorn
