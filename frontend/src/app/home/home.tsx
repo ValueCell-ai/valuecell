@@ -16,8 +16,6 @@ const INDEX_SYMBOLS = [
   "BINANCE:ETHUSDT",
 ];
 
-
-
 function Home() {
   const navigate = useNavigate();
   const [inputValue, setInputValue] = useState<string>("");

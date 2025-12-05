@@ -16,8 +16,7 @@ function TradingViewAdvancedChart({
   colors,
 }: Props) {
   const containerId = useMemo(
-    () =>
-      `tv_${ticker.replace(/[^A-Za-z0-9_]/g, "_")}_${interval}`,
+    () => `tv_${ticker.replace(/[^A-Za-z0-9_]/g, "_")}_${interval}`,
     [ticker, interval],
   );
 
@@ -67,7 +66,8 @@ function TradingViewAdvancedChart({
             "mainSeriesProperties.candleStyle.upColor": colors.upColor,
             "mainSeriesProperties.candleStyle.downColor": colors.downColor,
             "mainSeriesProperties.candleStyle.borderUpColor": colors.upColor,
-            "mainSeriesProperties.candleStyle.borderDownColor": colors.downColor,
+            "mainSeriesProperties.candleStyle.borderDownColor":
+              colors.downColor,
             "mainSeriesProperties.candleStyle.wickUpColor": colors.upColor,
             "mainSeriesProperties.candleStyle.wickDownColor": colors.downColor,
             "mainSeriesProperties.candleStyle.drawWick": true,
