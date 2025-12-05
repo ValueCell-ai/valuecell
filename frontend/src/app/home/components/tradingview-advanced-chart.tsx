@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef } from "react";
+import defaultMap from "./tv-symbol-map.json";
 
 type Props = {
   ticker: string;
@@ -21,7 +22,9 @@ function TradingViewAdvancedChart({
   locale = "en",
   timezone = "UTC",
 }: Props) {
-  const symbolMapRef = useRef<Record<string, string> | null>(null);
+  const symbolMapRef = useRef<Record<string, string> | null>(
+    defaultMap as Record<string, string>,
+  );
 
   useEffect(() => {
     if (!mappingUrl) return;
@@ -29,7 +32,8 @@ function TradingViewAdvancedChart({
     fetch(mappingUrl)
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((json) => {
-        if (!cancelled) symbolMapRef.current = json || {};
+        if (!cancelled)
+          symbolMapRef.current = (json || {}) as Record<string, string>;
       })
       .catch(() => {});
     return () => {

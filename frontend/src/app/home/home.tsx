@@ -3,8 +3,8 @@ import { useNavigate } from "react-router";
 import { useAllPollTaskList } from "@/api/conversation";
 import { agentSuggestions } from "@/mock/agent-data";
 import ChatInputArea from "../agent/components/chat-conversation/chat-input-area";
-import { AgentSuggestionsList, AgentTaskCards } from "./components";
-import TradingViewTickerTape from "./components/TradingViewTickerTape";
+import { AgentSuggestionItem, AgentTaskCards } from "./components";
+import TradingViewTickerTape from "./components/tradingview-ticker-tape";
 
 const INDEX_SYMBOLS = [
   "FOREXCOM:SPXUSD",
@@ -73,20 +73,16 @@ function Home() {
             }
           />
 
-          <div className="flex w-full max-w-[800px] flex-col gap-4 px-4">
-            <div className="grid grid-cols-3 gap-4">
-              {agentSuggestions.map((suggestion) => (
-                <AgentSuggestionsList
-                  key={suggestion.id}
-                  suggestions={[
-                    {
-                      ...suggestion,
-                      onClick: () => handleAgentClick(suggestion.id),
-                    },
-                  ]}
-                />
-              ))}
-            </div>
+          <div className="grid w-full max-w-[800px] grid-cols-3 gap-4 px-4">
+            {agentSuggestions.map((suggestion) => (
+              <AgentSuggestionItem
+                key={suggestion.id}
+                suggestion={{
+                  ...suggestion,
+                  onClick: () => handleAgentClick(suggestion.id),
+                }}
+              />
+            ))}
           </div>
         </section>
       )}
