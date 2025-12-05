@@ -44,7 +44,12 @@ export const EXCHANGE_OPTIONS = [
 
 const getPlaceholder = (
   exchangeId: string,
-  fieldType: "api_key" | "secret_key" | "passphrase" | "wallet_address" | "private_key"
+  fieldType:
+    | "api_key"
+    | "secret_key"
+    | "passphrase"
+    | "wallet_address"
+    | "private_key",
 ): string => {
   switch (exchangeId) {
     case "binance":
@@ -52,30 +57,40 @@ const getPlaceholder = (
       if (fieldType === "secret_key") return "Enter Secret Key (64 characters)";
       break;
     case "okx":
-      if (fieldType === "api_key") return "Enter API Key (Format: xxxxxxxx-xxxx-...)";
-      if (fieldType === "secret_key") return "Enter Secret Key (32 uppercase letters & numbers)";
-      if (fieldType === "passphrase") return "Enter Passphrase (Set during API creation)";
+      if (fieldType === "api_key")
+        return "Enter API Key (Format: xxxxxxxx-xxxx-...)";
+      if (fieldType === "secret_key")
+        return "Enter Secret Key (32 uppercase letters & numbers)";
+      if (fieldType === "passphrase")
+        return "Enter Passphrase (Set during API creation)";
       break;
     case "gate":
       if (fieldType === "api_key") return "Enter API Key (Starts with 'key_')";
       if (fieldType === "secret_key") return "Enter Secret Key (64 characters)";
       break;
     case "hyperliquid":
-      if (fieldType === "wallet_address") return "Enter Wallet Address (Starts with '0x')";
-      if (fieldType === "private_key") return "Enter Private Key (64 characters)";
+      if (fieldType === "wallet_address")
+        return "Enter Wallet Address (Starts with '0x')";
+      if (fieldType === "private_key")
+        return "Enter Private Key (64 characters)";
       break;
     case "blockchaincom":
-      if (fieldType === "api_key") return "Enter API Key (Format: xxxxxxxx-xxxx-...)";
+      if (fieldType === "api_key")
+        return "Enter API Key (Format: xxxxxxxx-xxxx-...)";
       if (fieldType === "secret_key") return "Enter Secret Key";
       break;
     case "coinbaseexchange":
       if (fieldType === "api_key") return "Enter API Key (or Key Name)";
-      if (fieldType === "secret_key") return "Enter API Secret (or Private Key)";
-      if (fieldType === "passphrase") return "Enter Passphrase (Required for Legacy Pro API)";
+      if (fieldType === "secret_key")
+        return "Enter API Secret (or Private Key)";
+      if (fieldType === "passphrase")
+        return "Enter Passphrase (Required for Legacy Pro API)";
       break;
     case "mexc":
-      if (fieldType === "api_key") return "Enter Access Key (Starts with 'mx0')";
-      if (fieldType === "secret_key") return "Enter Secret Key (Usually 32 characters)";
+      if (fieldType === "api_key")
+        return "Enter Access Key (Starts with 'mx0')";
+      if (fieldType === "secret_key")
+        return "Enter Secret Key (Usually 32 characters)";
       break;
   }
 
@@ -192,7 +207,7 @@ export const ExchangeForm = withForm({
                                 label="Wallet Address"
                                 placeholder={getPlaceholder(
                                   exchangeId || "",
-                                  "wallet_address"
+                                  "wallet_address",
                                 )}
                               />
                             )}
@@ -203,7 +218,7 @@ export const ExchangeForm = withForm({
                                 label="Private Key"
                                 placeholder={getPlaceholder(
                                   exchangeId || "",
-                                  "private_key"
+                                  "private_key",
                                 )}
                               />
                             )}
@@ -217,7 +232,7 @@ export const ExchangeForm = withForm({
                                 label="API Key"
                                 placeholder={getPlaceholder(
                                   exchangeId || "",
-                                  "api_key"
+                                  "api_key",
                                 )}
                               />
                             )}
@@ -228,7 +243,7 @@ export const ExchangeForm = withForm({
                                 label="Secret Key"
                                 placeholder={getPlaceholder(
                                   exchangeId || "",
-                                  "secret_key"
+                                  "secret_key",
                                 )}
                               />
                             )}
@@ -242,7 +257,7 @@ export const ExchangeForm = withForm({
                                   label="Passphrase"
                                   placeholder={getPlaceholder(
                                     exchangeId || "",
-                                    "passphrase"
+                                    "passphrase",
                                   )}
                                 />
                               )}
