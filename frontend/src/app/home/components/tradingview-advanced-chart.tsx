@@ -22,7 +22,9 @@ function TradingViewAdvancedChart({
   locale = "en",
   timezone = "UTC",
 }: Props) {
-  const symbolMapRef = useRef<Record<string, string> | null>(defaultMap as Record<string, string>);
+  const symbolMapRef = useRef<Record<string, string> | null>(
+    defaultMap as Record<string, string>,
+  );
 
   useEffect(() => {
     if (!mappingUrl) return;
@@ -30,7 +32,8 @@ function TradingViewAdvancedChart({
     fetch(mappingUrl)
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((json) => {
-        if (!cancelled) symbolMapRef.current = (json || {}) as Record<string, string>;
+        if (!cancelled)
+          symbolMapRef.current = (json || {}) as Record<string, string>;
       })
       .catch(() => {});
     return () => {
