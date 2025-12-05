@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -9,6 +10,7 @@ from typing import ClassVar, Dict, Optional
 import pytest
 from a2a.client.client_factory import minimal_agent_card
 from a2a.types import AgentCard
+
 from valuecell.core.agent import connect as connect_mod
 from valuecell.core.agent.connect import RemoteConnections
 
@@ -545,6 +547,63 @@ async def test_build_local_agent_invokes_factory(monkeypatch: pytest.MonkeyPatch
     )
 
     assert await connect_mod._build_local_agent(ctx) is sentinel
+
+
+@pytest.mark.asyncio
+async def test_build_local_agent_threaded_success(monkeypatch: pytest.MonkeyPatch):
+    """When asyncio.to_thread returns quickly, the threaded path should be used."""
+    spec = "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
+
+    # Ensure cache is clear for deterministic behavior
+    connect_mod._LOCAL_AGENT_CLASS_CACHE.pop(spec, None)
+
+    async def fake_to_thread(func, arg):
+        # emulate correct threaded resolution
+        return connect_mod._resolve_local_agent_class(arg)
+
+    monkeypatch.setattr(asyncio, "to_thread", fake_to_thread)
+
+    ctx = connect_mod.AgentContext(
+        name="PromptBasedStrategyAgent", agent_class_spec=spec
+    )
+
+    inst = await connect_mod._build_local_agent(ctx)
+
+    assert inst is not None
+    # returned object should be an instance (callable class instance)
+    assert not inspect.isclass(inst)
+
+
+@pytest.mark.asyncio
+async def test_build_local_agent_threaded_timeout_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """If the threaded import times out, code should fall back to sync import."""
+    spec = "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
+
+    connect_mod._LOCAL_AGENT_CLASS_CACHE.pop(spec, None)
+
+    # Make asyncio.wait_for raise TimeoutError to exercise the except branch
+    original_wait_for = asyncio.wait_for
+
+    def fake_wait_for(awaitable, timeout=None):
+        raise asyncio.TimeoutError()
+
+    monkeypatch.setattr(asyncio, "wait_for", fake_wait_for)
+
+    # Sync resolver should still succeed
+    ctx = connect_mod.AgentContext(
+        name="PromptBasedStrategyAgent", agent_class_spec=spec
+    )
+
+    try:
+        inst = await connect_mod._build_local_agent(ctx)
+    finally:
+        # restore
+        monkeypatch.setattr(asyncio, "wait_for", original_wait_for)
+
+    assert inst is not None
+    assert not inspect.isclass(inst)
 
 
 @pytest.mark.asyncio
