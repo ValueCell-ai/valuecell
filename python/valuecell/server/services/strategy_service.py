@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import List, Optional
 
+from loguru import logger
+
 from valuecell.server.api.schemas.strategy import (
     PositionHoldingItem,
     StrategyActionCard,
@@ -116,13 +118,27 @@ class StrategyService:
 
         ts = snapshot.snapshot_ts or datetime.now(datetime.timezone.utc)
         total_value = _to_optional_float(snapshot.total_value)
+        base_value = _to_optional_float(first_snapshot.total_value)
+
         total_pnl = StrategyService._combine_realized_unrealized(snapshot)
-        total_pnl_pct = (
-            total_pnl / (total_value - total_pnl) if total_pnl is not None else 0.0
-        )
-        if baseline := _to_optional_float(first_snapshot.total_value):
-            total_pnl = total_value - baseline
-            total_pnl_pct = total_pnl / baseline
+        total_pnl_pct = 0.0
+        if base_value is not None and base_value != 0:
+            # Option B: Use explicit baseline
+            # Note: This overrides the local variable total_pnl used in the return object
+            total_pnl = (total_value or 0.0) - base_value
+            total_pnl_pct = total_pnl / base_value
+        else:
+            # Option A: Infer baseline from current PnL
+            # Uses the existing total_pnl variable
+            current_pnl = total_pnl or 0.0
+            denom = total_value - current_pnl
+
+            if denom != 0:
+                total_pnl_pct = current_pnl / denom
+            else:
+                logger.warning(
+                    f"Cannot compute pnl_pct: denom is 0 for strategy_id={strategy_id}"
+                )
 
         return StrategyPortfolioSummaryData(
             strategy_id=strategy_id,
@@ -130,7 +146,7 @@ class StrategyService:
             cash=_to_optional_float(snapshot.cash),
             total_value=total_value,
             total_pnl=total_pnl,
-            total_pnl_pct=_to_optional_float(total_pnl_pct) * 100.0,
+            total_pnl_pct=total_pnl_pct * 100.0,
             gross_exposure=_to_optional_float(
                 getattr(snapshot, "gross_exposure", None)
             ),
@@ -138,11 +154,9 @@ class StrategyService:
         )
 
     @staticmethod
-    def _combine_realized_unrealized(snapshot) -> Optional[float]:
+    def _combine_realized_unrealized(snapshot) -> float:
         realized = _to_optional_float(getattr(snapshot, "total_realized_pnl", None))
         unrealized = _to_optional_float(getattr(snapshot, "total_unrealized_pnl", None))
-        if realized is None and unrealized is None:
-            return None
         return (realized or 0.0) + (unrealized or 0.0)
 
     @staticmethod
