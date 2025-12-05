@@ -441,11 +441,10 @@ async def test_resolve_local_agent_class_from_metadata(
     class DummyAgent:
         pass
 
-    monkeypatch.setattr(
-        connect_mod,
-        "_resolve_local_agent_class",
-        lambda spec: DummyAgent if spec == "fake:Spec" else None,
-    )
+    async def _fake_resolver(spec):
+        return DummyAgent if spec == "fake:Spec" else None
+
+    monkeypatch.setattr(connect_mod, "_resolve_local_agent_class", _fake_resolver)
 
     rc = RemoteConnections()
     rc.load_from_dir(str(dir_path))
@@ -505,7 +504,8 @@ async def test_initialize_client_retries():
 
 
 def test_resolve_local_agent_class_empty_spec_returns_none():
-    assert connect_mod._resolve_local_agent_class("") is None
+    # Use the synchronous resolver helper for direct, non-async assertions
+    assert connect_mod._resolve_local_agent_class_sync("") is None
 
 
 def test_resolve_local_agent_class_cache_hit():
@@ -513,14 +513,16 @@ def test_resolve_local_agent_class_cache_hit():
     sentinel = object()
     connect_mod._LOCAL_AGENT_CLASS_CACHE[spec] = sentinel
     try:
-        assert connect_mod._resolve_local_agent_class(spec) is sentinel
+        # Call the synchronous resolver to verify cache hit
+        assert connect_mod._resolve_local_agent_class_sync(spec) is sentinel
     finally:
         connect_mod._LOCAL_AGENT_CLASS_CACHE.pop(spec, None)
 
 
 def test_resolve_local_agent_class_invalid_spec():
     spec = "valuecell.nonexistent:Missing"
-    result = connect_mod._resolve_local_agent_class(spec)
+    # Use synchronous resolver helper for direct check
+    result = connect_mod._resolve_local_agent_class_sync(spec)
     assert result is None
 
 
@@ -587,7 +589,23 @@ async def test_build_local_agent_threaded_timeout_fallback(
     original_wait_for = asyncio.wait_for
 
     def fake_wait_for(awaitable, timeout=None):
-        raise asyncio.TimeoutError()
+        # If a coroutine/future was passed, ensure it's closed/cancelled so
+        # the test does not leave an un-awaited coroutine (which would emit
+        # a RuntimeWarning). Real asyncio.wait_for would cancel the inner
+        # awaitable on timeout; emulate that behavior here.
+        try:
+            if hasattr(awaitable, "cancel"):
+                try:
+                    awaitable.cancel()
+                except Exception:
+                    pass
+            elif hasattr(awaitable, "close"):
+                try:
+                    awaitable.close()
+                except Exception:
+                    pass
+        finally:
+            raise asyncio.TimeoutError()
 
     monkeypatch.setattr(asyncio, "wait_for", fake_wait_for)
 
