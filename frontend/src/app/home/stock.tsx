@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useStockColors } from "@/store/settings-store";
 import type { Route } from "./+types/stock";
-import TradingViewAdvancedChart from "./components/TradingViewAdvancedChart";
+import TradingViewAdvancedChart from "./components/tradingview-advanced-chart";
 
 function Stock() {
   const { stockId } = useParams<Route.LoaderArgs["params"]>();
