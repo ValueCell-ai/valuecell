@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useAllPollTaskList } from "@/api/conversation";
-import { useGetDefaultTickers } from "@/api/system";
 import { agentSuggestions } from "@/mock/agent-data";
 import ChatInputArea from "../agent/components/chat-conversation/chat-input-area";
 import { AgentSuggestionsList, AgentTaskCards } from "./components";
+import TradingViewTickerTape from "./components/TradingViewTickerTape";
 
 const INDEX_SYMBOLS = [
   "FOREXCOM:SPXUSD",
@@ -16,42 +16,7 @@ const INDEX_SYMBOLS = [
   "BINANCE:ETHUSDT",
 ];
 
-function TradingViewTickerTape({ symbols }: { symbols: string[] }) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const theme = "light";
-  const tapeSymbols = useMemo(
-    () =>
-      symbols.slice(0, 8).map((s) => ({
-        proName: s,
-      })),
-    [symbols],
-  );
 
-  useEffect(() => {
-    if (!containerRef.current) return;
-    containerRef.current.innerHTML = "";
-    const script = document.createElement("script");
-    script.type = "text/javascript";
-    script.async = true;
-    script.src =
-      "https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js";
-    script.innerHTML = JSON.stringify({
-      symbols: tapeSymbols,
-      showSymbolLogo: true,
-      colorTheme: theme,
-      isTransparent: false,
-      displayMode: "regular",
-      locale: "en",
-    });
-    containerRef.current.appendChild(script);
-  }, [tapeSymbols, theme]);
-
-  return (
-    <div className="w-full">
-      <div ref={containerRef} />
-    </div>
-  );
-}
 
 function Home() {
   const navigate = useNavigate();
