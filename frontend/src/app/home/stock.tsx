@@ -9,79 +9,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { useStockColors } from "@/store/settings-store";
 import type { Route } from "./+types/stock";
+import TradingViewAdvancedChart from "./components/TradingViewAdvancedChart";
 
-function TradingViewAdvancedChart({
-  ticker,
-  interval = "D",
-  minHeight = 420,
-}: {
-  ticker: string;
-  interval?: string;
-  minHeight?: number;
-}) {
-  const stockColors = useStockColors();
-  const upColor = stockColors.positive;
-  const downColor = stockColors.negative;
-  const containerId = useMemo(
-    () => `tv_${ticker.replace(/[^A-Za-z0-9_]/g, "_")}_${interval}`,
-    [ticker, interval],
-  );
-  const containerRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const init = () => {
-      const tv = (window as any).TradingView;
-      if (!tv || !containerRef.current) return;
-      containerRef.current.innerHTML = "";
-      new tv.widget({
-        container_id: containerId,
-        symbol: ticker,
-        interval,
-        timezone: "UTC",
-        theme: "light",
-        locale: "en",
-        autosize: true,
-        hide_top_toolbar: false,
-        hide_side_toolbar: false,
-        hide_bottom_toolbar: false,
-        allow_symbol_change: false,
-        details: true,
-        overrides: {
-          "mainSeriesProperties.candleStyle.upColor": upColor,
-          "mainSeriesProperties.candleStyle.downColor": downColor,
-          "mainSeriesProperties.candleStyle.borderUpColor": upColor,
-          "mainSeriesProperties.candleStyle.borderDownColor": downColor,
-          "mainSeriesProperties.candleStyle.wickUpColor": upColor,
-          "mainSeriesProperties.candleStyle.wickDownColor": downColor,
-          "mainSeriesProperties.candleStyle.drawWick": true,
-          "mainSeriesProperties.candleStyle.drawBorder": true,
-        },
-      });
-    };
-
-    if ((window as any).TradingView) {
-      init();
-    } else {
-      const script = document.createElement("script");
-      script.src = "https://s3.tradingview.com/tv.js";
-      script.async = true;
-      script.onload = init;
-      document.head.appendChild(script);
-    }
-  }, [containerId, interval, ticker]);
-
-  return (
-    <div className="w-full" style={{ height: minHeight }}>
-      <div id={containerId} ref={containerRef} className="h-full" />
-    </div>
-  );
-}
 
 function Stock() {
   const { stockId } = useParams<Route.LoaderArgs["params"]>();
   const navigate = useNavigate();
   // Use stockId as ticker to fetch real data from API
   const ticker = stockId || "";
+  const stockColors = useStockColors();
 
   // Fetch current stock price data
   const {
@@ -180,6 +116,8 @@ function Stock() {
           ticker={ticker}
           interval="D"
           minHeight={420}
+          theme="light"
+          colors={{ upColor: stockColors.positive, downColor: stockColors.negative }}
         />
       </div>
 
