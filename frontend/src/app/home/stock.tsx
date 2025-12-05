@@ -1,5 +1,5 @@
 import BackButton from "@valuecell/button/back-button";
-import { memo, useEffect, useMemo, useRef } from "react";
+import { memo, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 import {
   useGetStockDetail,
@@ -120,6 +120,8 @@ function Stock() {
             upColor: stockColors.positive,
             downColor: stockColors.negative,
           }}
+          locale="en"
+          timezone="UTC"
         />
       </div>
 
