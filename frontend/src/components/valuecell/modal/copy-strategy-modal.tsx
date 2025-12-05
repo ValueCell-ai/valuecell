@@ -227,7 +227,7 @@ const CopyStrategyModal: FC<CopyStrategyModalProps> = ({
           )}
         </ScrollContainer>
 
-        <DialogFooter className="flex flex-col! gap-2">
+        <DialogFooter className="mt-auto flex flex-col! gap-2">
           {error && (
             <Alert variant="destructive">
               <AlertCircleIcon />
