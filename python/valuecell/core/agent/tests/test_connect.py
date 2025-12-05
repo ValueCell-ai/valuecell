@@ -137,9 +137,13 @@ def test_preload_agent_classes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     dir_path = tmp_path / "agent_cards"
     dir_path.mkdir(parents=True)
 
-    card = make_card_dict("LocalAgent", "http://127.0.0.1:8101", push_notifications=False)
+    card = make_card_dict(
+        "LocalAgent", "http://127.0.0.1:8101", push_notifications=False
+    )
     # Add metadata with local_agent_class
-    card["metadata"] = {"local_agent_class": "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"}
+    card["metadata"] = {
+        "local_agent_class": "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
+    }
     with open(dir_path / "LocalAgent.json", "w", encoding="utf-8") as f:
         json.dump(card, f)
 
@@ -565,16 +569,25 @@ async def test_resolve_local_agent_class_async_cache_hit():
 
 
 @pytest.mark.asyncio
-async def test_resolve_local_agent_class_async_import_failure(monkeypatch: pytest.MonkeyPatch):
+async def test_resolve_local_agent_class_async_import_failure(
+    monkeypatch: pytest.MonkeyPatch,
+):
     spec = "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
-    # Mock the sync resolver to raise an exception
-    def failing_resolver(spec_arg):
-        raise ImportError("Simulated import failure")
-    
-    monkeypatch.setattr(connect_mod, "_resolve_local_agent_class_sync", failing_resolver)
-    
-    result = await connect_mod._resolve_local_agent_class(spec)
-    assert result is None
+    # Clear cache to ensure we hit the import path
+    connect_mod._LOCAL_AGENT_CLASS_CACHE.pop(spec, None)
+    try:
+        # Mock the sync resolver to raise an exception
+        def failing_resolver(spec_arg):
+            raise ImportError("Simulated import failure")
+
+        monkeypatch.setattr(
+            connect_mod, "_resolve_local_agent_class_sync", failing_resolver
+        )
+
+        result = await connect_mod._resolve_local_agent_class(spec)
+        assert result is None
+    finally:
+        connect_mod._LOCAL_AGENT_CLASS_CACHE.pop(spec, None)
 
 
 @pytest.mark.asyncio

@@ -553,9 +553,10 @@ async def test_handle_user_input_for_require_user_input_conversation(
 
     # Mock _handle_conversation_continuation to yield a response
     mock_response = Mock()
+
     async def mock_continuation(user_input):
         yield mock_response
-    
+
     orchestrator._handle_conversation_continuation = mock_continuation
 
     # Execute
