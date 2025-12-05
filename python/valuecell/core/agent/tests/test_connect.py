@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -9,6 +10,7 @@ from typing import ClassVar, Dict, Optional
 import pytest
 from a2a.client.client_factory import minimal_agent_card
 from a2a.types import AgentCard
+
 from valuecell.core.agent import connect as connect_mod
 from valuecell.core.agent.connect import RemoteConnections
 
@@ -128,6 +130,35 @@ async def test_load_from_dir_and_list(tmp_path: Path, monkeypatch: pytest.Monkey
 
     all_agents = rc.list_available_agents()
     assert set(all_agents) == {"AgentAlpha", "AgentBeta"}
+
+
+def test_preload_agent_classes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    # Prepare an agent card with a local class spec
+    dir_path = tmp_path / "agent_cards"
+    dir_path.mkdir(parents=True)
+
+    card = make_card_dict(
+        "LocalAgent", "http://127.0.0.1:8101", push_notifications=False
+    )
+    # Add metadata with local_agent_class
+    card["metadata"] = {
+        "local_agent_class": "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
+    }
+    with open(dir_path / "LocalAgent.json", "w", encoding="utf-8") as f:
+        json.dump(card, f)
+
+    rc = RemoteConnections()
+    rc.load_from_dir(str(dir_path))
+
+    # Before preload, agent_instance_class should be None
+    ctx = rc._contexts["LocalAgent"]
+    assert ctx.agent_instance_class is None
+
+    # Call preload
+    rc.preload_local_agent_classes()
+
+    # After preload, agent_instance_class should be set
+    assert ctx.agent_instance_class is not None
 
 
 @pytest.mark.asyncio
@@ -439,11 +470,10 @@ async def test_resolve_local_agent_class_from_metadata(
     class DummyAgent:
         pass
 
-    monkeypatch.setattr(
-        connect_mod,
-        "_resolve_local_agent_class",
-        lambda spec: DummyAgent if spec == "fake:Spec" else None,
-    )
+    async def _fake_resolver(spec):
+        return DummyAgent if spec == "fake:Spec" else None
+
+    monkeypatch.setattr(connect_mod, "_resolve_local_agent_class", _fake_resolver)
 
     rc = RemoteConnections()
     rc.load_from_dir(str(dir_path))
@@ -503,7 +533,8 @@ async def test_initialize_client_retries():
 
 
 def test_resolve_local_agent_class_empty_spec_returns_none():
-    assert connect_mod._resolve_local_agent_class("") is None
+    # Use the synchronous resolver helper for direct, non-async assertions
+    assert connect_mod._resolve_local_agent_class_sync("") is None
 
 
 def test_resolve_local_agent_class_cache_hit():
@@ -511,15 +542,52 @@ def test_resolve_local_agent_class_cache_hit():
     sentinel = object()
     connect_mod._LOCAL_AGENT_CLASS_CACHE[spec] = sentinel
     try:
-        assert connect_mod._resolve_local_agent_class(spec) is sentinel
+        # Call the synchronous resolver to verify cache hit
+        assert connect_mod._resolve_local_agent_class_sync(spec) is sentinel
     finally:
         connect_mod._LOCAL_AGENT_CLASS_CACHE.pop(spec, None)
 
 
 def test_resolve_local_agent_class_invalid_spec():
     spec = "valuecell.nonexistent:Missing"
-    result = connect_mod._resolve_local_agent_class(spec)
+    # Use synchronous resolver helper for direct check
+    result = connect_mod._resolve_local_agent_class_sync(spec)
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_resolve_local_agent_class_async_cache_hit():
+    spec = "cached:Spec"
+    sentinel = object()
+    connect_mod._LOCAL_AGENT_CLASS_CACHE[spec] = sentinel
+    try:
+        # Call the async resolver to verify cache hit
+        result = await connect_mod._resolve_local_agent_class(spec)
+        assert result is sentinel
+    finally:
+        connect_mod._LOCAL_AGENT_CLASS_CACHE.pop(spec, None)
+
+
+@pytest.mark.asyncio
+async def test_resolve_local_agent_class_async_import_failure(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    spec = "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
+    # Clear cache to ensure we hit the import path
+    connect_mod._LOCAL_AGENT_CLASS_CACHE.pop(spec, None)
+    try:
+        # Mock the sync resolver to raise an exception
+        def failing_resolver(spec_arg):
+            raise ImportError("Simulated import failure")
+
+        monkeypatch.setattr(
+            connect_mod, "_resolve_local_agent_class_sync", failing_resolver
+        )
+
+        result = await connect_mod._resolve_local_agent_class(spec)
+        assert result is None
+    finally:
+        connect_mod._LOCAL_AGENT_CLASS_CACHE.pop(spec, None)
 
 
 @pytest.mark.asyncio
@@ -545,6 +613,79 @@ async def test_build_local_agent_invokes_factory(monkeypatch: pytest.MonkeyPatch
     )
 
     assert await connect_mod._build_local_agent(ctx) is sentinel
+
+
+@pytest.mark.asyncio
+async def test_build_local_agent_threaded_success(monkeypatch: pytest.MonkeyPatch):
+    """When asyncio.to_thread returns quickly, the threaded path should be used."""
+    spec = "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
+
+    # Ensure cache is clear for deterministic behavior
+    connect_mod._LOCAL_AGENT_CLASS_CACHE.pop(spec, None)
+
+    async def fake_to_thread(func, arg):
+        # emulate correct threaded resolution
+        return connect_mod._resolve_local_agent_class(arg)
+
+    monkeypatch.setattr(asyncio, "to_thread", fake_to_thread)
+
+    ctx = connect_mod.AgentContext(
+        name="PromptBasedStrategyAgent", agent_class_spec=spec
+    )
+
+    inst = await connect_mod._build_local_agent(ctx)
+
+    assert inst is not None
+    # returned object should be an instance (callable class instance)
+    assert not inspect.isclass(inst)
+
+
+@pytest.mark.asyncio
+async def test_build_local_agent_threaded_timeout_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """If the threaded import times out, code should fall back to sync import."""
+    spec = "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
+
+    connect_mod._LOCAL_AGENT_CLASS_CACHE.pop(spec, None)
+
+    # Make asyncio.wait_for raise TimeoutError to exercise the except branch
+    original_wait_for = asyncio.wait_for
+
+    def fake_wait_for(awaitable, timeout=None):
+        # If a coroutine/future was passed, ensure it's closed/cancelled so
+        # the test does not leave an un-awaited coroutine (which would emit
+        # a RuntimeWarning). Real asyncio.wait_for would cancel the inner
+        # awaitable on timeout; emulate that behavior here.
+        try:
+            if hasattr(awaitable, "cancel"):
+                try:
+                    awaitable.cancel()
+                except Exception:
+                    pass
+            elif hasattr(awaitable, "close"):
+                try:
+                    awaitable.close()
+                except Exception:
+                    pass
+        finally:
+            raise asyncio.TimeoutError()
+
+    monkeypatch.setattr(asyncio, "wait_for", fake_wait_for)
+
+    # Sync resolver should still succeed
+    ctx = connect_mod.AgentContext(
+        name="PromptBasedStrategyAgent", agent_class_spec=spec
+    )
+
+    try:
+        inst = await connect_mod._build_local_agent(ctx)
+    finally:
+        # restore
+        monkeypatch.setattr(asyncio, "wait_for", original_wait_for)
+
+    assert inst is not None
+    assert not inspect.isclass(inst)
 
 
 @pytest.mark.asyncio
