@@ -12,9 +12,10 @@ export default function HomeLayout() {
         <main className="scroll-container h-full min-h-0 flex-1 rounded-lg">
           <Outlet />
         </main>
+        </main>
 
         {
-          <aside className="flex h-full min-h-0 min-w-62 max-w-80 flex-col overflow-hidden rounded-lg bg-white">
+          <aside className="flex h-full min-w-62 max-w-80 flex-col overflow-hidden rounded-lg bg-white">
             <div className="min-h-0 flex-1 overflow-hidden">
               <StockList />
             </div>
