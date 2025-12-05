@@ -42,6 +42,67 @@ export const EXCHANGE_OPTIONS = [
   },
 ];
 
+const getPlaceholder = (
+  exchangeId: string,
+  fieldType:
+    | "api_key"
+    | "secret_key"
+    | "passphrase"
+    | "wallet_address"
+    | "private_key",
+): string => {
+  switch (exchangeId) {
+    case "binance":
+      if (fieldType === "api_key") return "Enter API Key (64 characters)";
+      if (fieldType === "secret_key") return "Enter Secret Key (64 characters)";
+      break;
+    case "okx":
+      if (fieldType === "api_key")
+        return "Enter API Key (Format: xxxxxxxx-xxxx-...)";
+      if (fieldType === "secret_key")
+        return "Enter Secret Key (32 uppercase letters & numbers)";
+      if (fieldType === "passphrase")
+        return "Enter Passphrase (Set during API creation)";
+      break;
+    case "gate":
+      if (fieldType === "api_key") return "Enter API Key (Starts with 'key_')";
+      if (fieldType === "secret_key") return "Enter Secret Key (64 characters)";
+      break;
+    case "hyperliquid":
+      if (fieldType === "wallet_address")
+        return "Enter Wallet Address (Starts with '0x')";
+      if (fieldType === "private_key")
+        return "Enter Private Key (64 characters)";
+      break;
+    case "blockchaincom":
+      if (fieldType === "api_key")
+        return "Enter API Key (Format: xxxxxxxx-xxxx-...)";
+      if (fieldType === "secret_key") return "Enter Secret Key";
+      break;
+    case "coinbaseexchange":
+      if (fieldType === "api_key") return "Enter API Key (or Key Name)";
+      if (fieldType === "secret_key")
+        return "Enter API Secret (or Private Key)";
+      if (fieldType === "passphrase")
+        return "Enter Passphrase (Required for Legacy Pro API)";
+      break;
+    case "mexc":
+      if (fieldType === "api_key")
+        return "Enter Access Key (Starts with 'mx0')";
+      if (fieldType === "secret_key")
+        return "Enter Secret Key (Usually 32 characters)";
+      break;
+  }
+
+  // Default placeholders
+  if (fieldType === "api_key") return "Paste your API Key here";
+  if (fieldType === "secret_key") return "Paste your Secret Key here";
+  if (fieldType === "passphrase") return "Enter Passphrase";
+  if (fieldType === "wallet_address") return "Enter Wallet Address";
+  if (fieldType === "private_key") return "Enter Private Key";
+  return "";
+};
+
 export const ExchangeForm = withForm({
   defaultValues: {
     trading_mode: "live" as "live" | "virtual",
@@ -144,7 +205,10 @@ export const ExchangeForm = withForm({
                             {(field) => (
                               <field.TextField
                                 label="Wallet Address"
-                                placeholder="Enter Main Wallet Address"
+                                placeholder={getPlaceholder(
+                                  exchangeId || "",
+                                  "wallet_address",
+                                )}
                               />
                             )}
                           </form.AppField>
@@ -152,7 +216,10 @@ export const ExchangeForm = withForm({
                             {(field) => (
                               <field.PasswordField
                                 label="Private Key"
-                                placeholder="Enter Wallet Private Key"
+                                placeholder={getPlaceholder(
+                                  exchangeId || "",
+                                  "private_key",
+                                )}
                               />
                             )}
                           </form.AppField>
@@ -163,7 +230,10 @@ export const ExchangeForm = withForm({
                             {(field) => (
                               <field.PasswordField
                                 label="API Key"
-                                placeholder="Enter API Key"
+                                placeholder={getPlaceholder(
+                                  exchangeId || "",
+                                  "api_key",
+                                )}
                               />
                             )}
                           </form.AppField>
@@ -171,7 +241,10 @@ export const ExchangeForm = withForm({
                             {(field) => (
                               <field.PasswordField
                                 label="Secret Key"
-                                placeholder="Enter Secret Key"
+                                placeholder={getPlaceholder(
+                                  exchangeId || "",
+                                  "secret_key",
+                                )}
                               />
                             )}
                           </form.AppField>
@@ -182,7 +255,10 @@ export const ExchangeForm = withForm({
                               {(field) => (
                                 <field.PasswordField
                                   label="Passphrase"
-                                  placeholder="Enter Passphrase"
+                                  placeholder={getPlaceholder(
+                                    exchangeId || "",
+                                    "passphrase",
+                                  )}
                                 />
                               )}
                             </form.AppField>
