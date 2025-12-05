@@ -68,6 +68,11 @@ def create_strategy_agent_router() -> APIRouter:
                     }
                 )
 
+            # Assign initial_capital value to initial_free_cash.
+            # Only used for paper tradings, the system would use account portfolio data for LIVE tradings.
+            request.trading_config.initial_free_cash = (
+                request.trading_config.initial_capital
+            )
             # Ensure we only serialize the core UserRequest fields, excluding conversation_id
             user_request = UserRequest(
                 llm_model_config=request.llm_model_config,

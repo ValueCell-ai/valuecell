@@ -1,4 +1,6 @@
+import asyncio
 import os
+import random
 from typing import Dict, List, Optional, Tuple
 
 import ccxt.pro as ccxtpro
@@ -9,11 +11,16 @@ from valuecell.agents.common.trading.constants import (
     FEATURE_GROUP_BY_KEY,
     FEATURE_GROUP_BY_MARKET_SNAPSHOT,
 )
-from valuecell.agents.common.trading.models import FeatureVector
+from valuecell.agents.common.trading.models import (
+    FeatureVector,
+    InstrumentRef,
+    PositionSnapshot,
+    TradeType,
+)
 
 
 async def fetch_free_cash_from_gateway(
-    execution_gateway, symbols: list[str]
+    execution_gateway, symbols: list[str], retry_cnt: int = 0, max_retries: int = 3
 ) -> Tuple[float, float]:
     """Fetch exchange balance via `execution_gateway.fetch_balance()` and
     aggregate free cash for the given `symbols` (quote currencies).
@@ -26,7 +33,21 @@ async def fetch_free_cash_from_gateway(
         if not hasattr(execution_gateway, "fetch_balance"):
             return 0.0, 0.0
         balance = await execution_gateway.fetch_balance()
-    except Exception:
+    except Exception as e:
+        if retry_cnt < max_retries:
+            logger.warning(
+                f"Failed to fetch free cash from exchange, retrying... ({retry_cnt + 1}/{max_retries})"
+            )
+            await asyncio.sleep(
+                random.uniform(retry_cnt, retry_cnt + 1)
+            )  # jitter to prevent mass retry at the same time
+            return await fetch_free_cash_from_gateway(
+                execution_gateway, symbols, retry_cnt + 1, max_retries
+            )
+        logger.error(
+            f"Failed to fetch free cash from exchange after {max_retries} retries, returning 0.0",
+            exception=e,
+        )
         return 0.0, 0.0
 
     logger.info(f"Raw balance response: {balance}")
@@ -92,6 +113,72 @@ async def fetch_free_cash_from_gateway(
     )
 
     return float(free_cash), float(total_cash)
+
+
+async def fetch_positions_from_gateway(
+    execution_gateway, retry_cnt: int = 0, max_retries: int = 3
+) -> Dict[str, PositionSnapshot]:
+    """Fetch positions from exchange."""
+    logger.info("Fetching positions for LIVE trading mode")
+    try:
+        if not hasattr(execution_gateway, "fetch_positions"):
+            raise AttributeError(
+                f"Execution gateway {execution_gateway.__class__.__name__} "
+                "does not implement the required 'fetch_positions' method."
+            )
+        raw_positions = await execution_gateway.fetch_positions()
+    except Exception as e:
+        if retry_cnt < max_retries:
+            logger.warning(
+                f"Failed to fetch positions from exchange, retrying... ({retry_cnt + 1}/{max_retries})"
+            )
+            await asyncio.sleep(
+                random.uniform(retry_cnt, retry_cnt + 1)
+            )  # jitter to prevent mass retry at the same time
+            return await fetch_positions_from_gateway(
+                execution_gateway, retry_cnt + 1, max_retries
+            )
+        logger.error(
+            f"Failed to fetch positions from exchange after {max_retries} retries.",
+            exception=e,
+        )
+        raise e
+
+    logger.debug(f"Raw positions response: {raw_positions}")
+    positions = {}
+    for position in raw_positions:
+        if "symbol" in position:
+            symbol = position.get("symbol").split(":")[0]
+            position = PositionSnapshot(
+                instrument=InstrumentRef(
+                    exchange_id=execution_gateway.exchange_id,
+                    symbol=symbol,
+                ),
+                quantity=(
+                    position.get("contracts")
+                    if position.get("side") == "long"
+                    else -position.get("contracts")
+                ),
+                avg_price=position.get("entryPrice"),
+                mark_price=position.get("markPrice"),
+                unrealized_pnl=position.get("unrealizedPnl"),
+                notional=position.get("notional"),
+                leverage=position.get("leverage") or 1,
+                entry_ts=position.get("timestamp"),
+                trade_type=(
+                    TradeType.LONG
+                    if position.get("side") == "long"
+                    else TradeType.SHORT
+                ),
+            )
+            if position.notional is not None and position.notional != 0:
+                position.unrealized_pnl_pct = (
+                    position.unrealized_pnl / position.notional
+                )
+            positions[symbol] = position
+    logger.info(f"Fetched positions: {positions}")
+
+    return positions
 
 
 def extract_market_snapshot_features(

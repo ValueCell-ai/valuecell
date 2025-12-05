@@ -236,20 +236,23 @@ class StrategyService:
 
         if is_live_mode:
             # Fast path: read from metadata set on first LIVE snapshot
-            initial_capital = _to_optional_float(meta.get("initial_capital_live"))
-            if initial_capital is None:
+            initial_total_cash = _to_optional_float(meta.get("initial_total_cash_live"))
+            if initial_total_cash is None:
                 # Rare path: metadata missing (older strategies); query first snapshot once
                 try:
                     first_snapshot = repo.get_first_portfolio_snapshot(strategy_id)
-                    initial_capital = (
-                        _to_optional_float(getattr(first_snapshot, "cash", None))
+                    initial_total_cash = (
+                        _to_optional_float(
+                            first_snapshot.total_value
+                            - first_snapshot.total_unrealized_pnl
+                        )
                         if first_snapshot
                         else None
                     )
                 except Exception:
-                    initial_capital = None
+                    initial_total_cash = None
         else:
-            initial_capital = _to_optional_float(tr.get("initial_capital"))
+            initial_total_cash = _to_optional_float(tr.get("initial_capital"))
         max_leverage = _to_optional_float(tr.get("max_leverage"))
         symbols = tr.get("symbols") if tr.get("symbols") is not None else None
         # Resolve final prompt strictly via template_id from strategy_prompts (no fallback)
@@ -277,16 +280,20 @@ class StrategyService:
 
         return_rate_pct: Optional[float] = None
         try:
-            if initial_capital and initial_capital > 0 and total_value is not None:
+            if (
+                initial_total_cash
+                and initial_total_cash > 0
+                and total_value is not None
+            ):
                 return_rate_pct = (
-                    (total_value - initial_capital) / initial_capital
+                    (total_value - initial_total_cash) / initial_total_cash
                 ) * 100.0
         except Exception:
             return_rate_pct = None
 
         return StrategyPerformanceData(
             strategy_id=strategy_id,
-            initial_capital=initial_capital,
+            initial_capital=initial_total_cash,
             return_rate_pct=return_rate_pct,
             llm_provider=llm_provider,
             llm_model_id=llm_model_id,

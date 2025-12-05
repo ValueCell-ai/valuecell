@@ -120,7 +120,8 @@ UserRequest
 TradingConfig
 
 - `strategy_name?: str` — Display name
-- `initial_capital: float` — Starting capital (USD)
+- `initial_capital: float` — Starting total cash in USD
+- `initial_free_cash: float` — Starting free cash in USD (same as initial_capital if there's no initial positions)
 - `max_leverage: float` — Maximum leverage allowed
 - `max_positions: int` — Concurrent position limit
 - `symbols: List[str]` — Instruments to trade (e.g., `["BTC-USDT", "ETH-USDT"]`)
@@ -459,7 +460,8 @@ For live trading with real exchanges:
 **The runtime automatically:**
 
 - Fetches real account balance
-- Sets `initial_capital` to available cash
+- Sets `initial_capital` to account total cash
+- Sets `initial_free_cash` to available cash
 - Uses `CCXTExecutionGateway` for order submission
 
 **Always test on testnet first** before using real funds
