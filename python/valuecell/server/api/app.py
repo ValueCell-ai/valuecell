@@ -138,17 +138,6 @@ def create_app() -> FastAPI:
         except Exception as e:
             logger.info(f"Error configuring adapters: {e}")
 
-        # Preload local agent classes to avoid import deadlocks on Windows
-        try:
-            from valuecell.core.agent.connect import RemoteConnections
-
-            logger.info("Preloading local agent classes...")
-            rc = RemoteConnections()
-            rc.preload_local_agent_classes()
-            logger.info("✓ Local agent classes preloaded")
-        except Exception as e:
-            logger.warning(f"✗ Failed to preload local agent classes: {e}")
-
         yield
         # Shutdown
         logger.info("ValueCell Server shutting down...")
@@ -171,7 +160,29 @@ def create_app() -> FastAPI:
     # Add routes
     _add_routes(app, settings)
 
+    # Preload local agent classes synchronously at module load time
+    # to avoid import deadlocks on Windows when using thread pools later.
+    # This runs once when the app is created, before any requests.
+    _preload_agent_classes()
+
     return app
+
+
+def _preload_agent_classes() -> None:
+    """Preload local agent classes to avoid Windows import lock deadlocks.
+    
+    This must run in the main thread before any async operations that might
+    trigger imports in worker threads.
+    """
+    try:
+        from valuecell.core.agent.connect import RemoteConnections
+
+        logger.info("Preloading local agent classes...")
+        rc = RemoteConnections()
+        rc.preload_local_agent_classes()
+        logger.info("✓ Local agent classes preloaded")
+    except Exception as e:
+        logger.warning(f"✗ Failed to preload local agent classes: {e}")
 
 
 def _add_middleware(app: FastAPI, settings) -> None:

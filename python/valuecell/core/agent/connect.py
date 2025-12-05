@@ -123,8 +123,10 @@ async def _resolve_local_agent_class(spec: str) -> Optional[Type[Any]]:
     # Fast path: cache hit
     cached = _LOCAL_AGENT_CLASS_CACHE.get(spec)
     if cached is not None:
-        logger.debug("_resolve_local_agent_class: cache hit for '{}'", spec)
+        logger.info("_resolve_local_agent_class: cache hit for '{}'", spec)
         return cached
+
+    logger.info("_resolve_local_agent_class: cache miss for '{}', delegating to executor", spec)
 
     loop = asyncio.get_running_loop()
     # Delegate the synchronous import to the thread pool
@@ -292,17 +294,43 @@ class RemoteConnections:
         the main thread, we sidestep this issue entirely.
         """
         self._ensure_remote_contexts_loaded()
+        preloaded_count = 0
         for name, ctx in self._contexts.items():
-            if ctx.agent_class_spec and ctx.agent_instance_class is None:
-                logger.info("Preloading agent class for '{}'", name)
-                cls = _resolve_local_agent_class_sync(ctx.agent_class_spec)
-                ctx.agent_instance_class = cls
-                if cls is None:
-                    logger.warning(
-                        "Failed to preload agent class '{}' for '{}'",
-                        ctx.agent_class_spec,
-                        name,
-                    )
+            if not ctx.agent_class_spec:
+                logger.debug(
+                    "Skipping preload for '{}': no agent_class_spec", name
+                )
+                continue
+            if ctx.agent_instance_class is not None:
+                logger.debug(
+                    "Skipping preload for '{}': class already loaded", name
+                )
+                continue
+            logger.info(
+                "Preloading agent class for '{}' (spec='{}')",
+                name,
+                ctx.agent_class_spec,
+            )
+            cls = _resolve_local_agent_class_sync(ctx.agent_class_spec)
+            ctx.agent_instance_class = cls
+            if cls is None:
+                logger.warning(
+                    "Failed to preload agent class '{}' for '{}'",
+                    ctx.agent_class_spec,
+                    name,
+                )
+            else:
+                preloaded_count += 1
+                logger.info(
+                    "Successfully preloaded class '{}' for '{}'",
+                    cls.__name__,
+                    name,
+                )
+        logger.info(
+            "Preload complete: {}/{} agent classes loaded",
+            preloaded_count,
+            len(self._contexts),
+        )
 
     # Public helper primarily for tests or tooling to load from a custom dir
     def load_from_dir(self, config_dir: str) -> None:
