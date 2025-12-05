@@ -121,8 +121,14 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
   const handlePublishToRankBoard = async () => {
     const { data } = await refetchPerformance();
     if (!data) return;
+    const { exchange_id, ...rest } = data;
 
-    publishStrategy({ ...data, name, avatar });
+    publishStrategy({
+      ...rest,
+      exchange_id: exchange_id || "virtual",
+      name,
+      avatar,
+    });
   };
 
   const handleSharePortfolio = async () => {
@@ -144,38 +150,37 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
           <h3 className="font-semibold text-base text-gray-950">
             Portfolio Value History
           </h3>
-          {strategy.trading_mode === "live" &&
-            (isLogin ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button>
-                    <SvgIcon name={Send} className="size-5" /> Publish
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleSharePortfolio}>
-                    <SvgIcon name={Share} className="size-5" /> Share to Social
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={handlePublishToRankBoard}
-                    disabled={isPublishing}
-                  >
-                    {isPublishing ? (
-                      <Spinner className="size-5" />
-                    ) : (
-                      <SvgIcon name={Send} className="size-5" />
-                    )}{" "}
-                    Share to Ranking
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <LoginModal>
+          {isLogin ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button>
                   <SvgIcon name={Send} className="size-5" /> Publish
                 </Button>
-              </LoginModal>
-            ))}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleSharePortfolio}>
+                  <SvgIcon name={Share} className="size-5" /> Share to Social
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handlePublishToRankBoard}
+                  disabled={isPublishing}
+                >
+                  {isPublishing ? (
+                    <Spinner className="size-5" />
+                  ) : (
+                    <SvgIcon name={Send} className="size-5" />
+                  )}{" "}
+                  Share to Ranking
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <LoginModal>
+              <Button>
+                <SvgIcon name={Send} className="size-5" /> Publish
+              </Button>
+            </LoginModal>
+          )}
         </div>
 
         <div className="grid grid-cols-3 gap-4 text-nowrap">
