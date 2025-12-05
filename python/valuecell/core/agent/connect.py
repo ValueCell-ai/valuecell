@@ -126,7 +126,9 @@ async def _resolve_local_agent_class(spec: str) -> Optional[Type[Any]]:
         logger.info("_resolve_local_agent_class: cache hit for '{}'", spec)
         return cached
 
-    logger.info("_resolve_local_agent_class: cache miss for '{}', delegating to executor", spec)
+    logger.info(
+        "_resolve_local_agent_class: cache miss for '{}', delegating to executor", spec
+    )
 
     loop = asyncio.get_running_loop()
     # Delegate the synchronous import to the thread pool
@@ -297,14 +299,10 @@ class RemoteConnections:
         preloaded_count = 0
         for name, ctx in self._contexts.items():
             if not ctx.agent_class_spec:
-                logger.debug(
-                    "Skipping preload for '{}': no agent_class_spec", name
-                )
+                logger.debug("Skipping preload for '{}': no agent_class_spec", name)
                 continue
             if ctx.agent_instance_class is not None:
-                logger.debug(
-                    "Skipping preload for '{}': class already loaded", name
-                )
+                logger.debug("Skipping preload for '{}': class already loaded", name)
                 continue
             logger.info(
                 "Preloading agent class for '{}' (spec='{}')",

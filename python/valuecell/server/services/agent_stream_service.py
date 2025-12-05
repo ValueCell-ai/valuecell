@@ -21,7 +21,7 @@ _AGENT_CLASSES_PRELOADED = False
 
 def _preload_agent_classes_once() -> None:
     """Preload local agent classes once to avoid Windows import lock deadlocks.
-    
+
     This must run in the main thread before any async operations that might
     trigger imports in worker threads. Safe to call multiple times.
     """
@@ -29,7 +29,7 @@ def _preload_agent_classes_once() -> None:
     if _AGENT_CLASSES_PRELOADED:
         return
     _AGENT_CLASSES_PRELOADED = True
-    
+
     try:
         logger.info("Preloading local agent classes...")
         rc = RemoteConnections()
@@ -47,7 +47,7 @@ class AgentStreamService:
         # Preload agent classes before creating orchestrator to avoid
         # Windows import lock deadlocks when using thread pools
         _preload_agent_classes_once()
-        
+
         self.orchestrator = AgentOrchestrator()
         logger.info("Agent stream service initialized")
 
