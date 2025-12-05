@@ -269,7 +269,7 @@ ValueCell 集成外部服务并嵌入第三方挂件。其使用不受 Apache 2.
 
 | 组件 | 类型 | 许可证 / 条款 |
 |---------|------|-----------------|----------------------|
-| **TradingView 高级图表** | 嵌入式 iframe 挂件 | [Free Advanced Charts Agreement](https://www.tradingview.com/chart-embedding/)（专有） |
+| **TradingView Advanced Chart** | 嵌入式 iframe 挂件 | [Free Advanced Charts Agreement](https://www.tradingview.com/chart-embedding/)（专有） |
 | **交易所 API**（Binance、OKX、Hyperliquid 等） | REST/WebSocket 接口 | 各交易所的服务条款（例如 [Binance API 条款](https://www.binance.com/en/terms)） |
 | **大语言模型提供商**（OpenAI、Azure、Google、DeepSeek 等） | 推理 API | 供应商特定的使用条款（例如 [OpenAI 使用条款](https://openai.com/policies/terms-of-use)） |
 

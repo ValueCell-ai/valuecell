@@ -256,7 +256,7 @@ bash start.sh
 
 # ライセンス
 
-本プロジェクトは **Apache License 2.0** の下でライセンスされています。詳細は `LICENSE` を参照してください。
+本プロジェクトは **Apache License 2.0** ライセンスの下で提供されています。詳細は `LICENSE` を参照してください。
 
 > 📌 注意: Apache 2.0 は、ValueCell チームおよびコントリビューターが作成したオリジナルコードにのみ適用されます。サードパーティのコンポーネント（API、ウィジェット、ライブラリなど）は、それぞれのライセンスや利用規約に従います。
 
@@ -266,7 +266,7 @@ ValueCell は外部サービスを統合し、サードパーティ製ウィジ�
 
 | コンポーネント | タイプ | ライセンス / 利用規約 |
 |---------|------|-----------------|----------------------|
-| **TradingView 高度なチャート** | 埋め込み iframe ウィジェット | [Free Advanced Charts Agreement](https://www.tradingview.com/chart-embedding/)（プロプライエタリ） |
+| **TradingView Advanced Chart** | 埋め込み iframe ウィジェット | [Free Advanced Charts Agreement](https://www.tradingview.com/chart-embedding/)（プロプライエタリ） |
 | **取引所 API**（Binance、OKX、Hyperliquid など） | REST/WebSocket エンドポイント | 各取引所の利用規約（例: [Binance API 規約](https://www.binance.com/en/terms)） |
 | **LLM プロバイダー**（OpenAI、Azure、Google、DeepSeek など） | 推論 API | プロバイダー固有の利用規約（例: [OpenAI 利用規約](https://openai.com/policies/terms-of-use)） |
 
