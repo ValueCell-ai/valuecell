@@ -6,6 +6,8 @@ type Props = {
   minHeight?: number;
   theme?: "light" | "dark";
   colors?: { upColor: string; downColor: string };
+  locale?: string;
+  timezone?: string;
 };
 
 function TradingViewAdvancedChart({
@@ -14,6 +16,8 @@ function TradingViewAdvancedChart({
   minHeight = 420,
   theme = "light",
   colors,
+  locale = "en",
+  timezone = "UTC",
 }: Props) {
   const containerId = useMemo(
     () => `tv_${ticker.replace(/[^A-Za-z0-9_]/g, "_")}_${interval}`,
@@ -82,9 +86,9 @@ function TradingViewAdvancedChart({
         container_id: containerId,
         symbol: ticker,
         interval,
-        timezone: "UTC",
+        timezone,
         theme,
-        locale: "en",
+        locale,
         autosize: true,
         hide_top_toolbar: false,
         hide_side_toolbar: false,
@@ -102,7 +106,7 @@ function TradingViewAdvancedChart({
       cancelled = true;
       cleanup();
     };
-  }, [ticker, interval, theme, colors]);
+  }, [ticker, interval, theme, colors, locale, timezone]);
 
   return (
     <div className="w-full" style={{ height: minHeight }}>
