@@ -132,11 +132,13 @@ class StrategyService:
             # Uses the existing total_pnl variable
             current_pnl = total_pnl or 0.0
             denom = total_value - current_pnl
-            
+
             if denom != 0:
                 total_pnl_pct = current_pnl / denom
             else:
-                logger.warning(f"Cannot compute pnl_pct: denom is 0 for strategy_id={strategy_id}")
+                logger.warning(
+                    f"Cannot compute pnl_pct: denom is 0 for strategy_id={strategy_id}"
+                )
 
         return StrategyPortfolioSummaryData(
             strategy_id=strategy_id,
