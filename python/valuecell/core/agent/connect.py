@@ -2,6 +2,7 @@ import asyncio
 import json
 from dataclasses import dataclass
 from importlib import import_module
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Type
 
@@ -70,42 +71,69 @@ class AgentContext:
 
 _LOCAL_AGENT_CLASS_CACHE: Dict[str, Type[Any]] = {}
 
+# Global thread pool for offloading imports. Using a fixed executor allows
+# better control and avoids unbounded thread creation when many imports are
+# requested concurrently.
+executor = ThreadPoolExecutor(max_workers=4)
 
-def _resolve_local_agent_class(spec: str) -> Optional[Type[Any]]:
-    """Resolve a `module:Class` spec to a Python class.
 
-    This function is synchronous and performs a normal import. Callers that
-    need to avoid blocking the event loop should invoke this via
-    `asyncio.to_thread(_resolve_local_agent_class, spec)`.
+def _resolve_local_agent_class_sync(spec: str) -> Optional[Type[Any]]:
+    """Synchronous resolver used for fallback and direct calls.
 
-    Results are cached in `_LOCAL_AGENT_CLASS_CACHE` to avoid repeated
-    imports/attribute lookups.
+    Keeps the original import behavior but is extracted so it can be invoked
+    from a thread pool via `run_in_executor`.
     """
-
     if not spec:
         return None
 
     cached = _LOCAL_AGENT_CLASS_CACHE.get(spec)
     if cached is not None:
-        logger.debug("_resolve_local_agent_class: cache hit for '{}'", spec)
+        logger.debug("_resolve_local_agent_class_sync: cache hit for '{}'", spec)
         return cached
 
     try:
         module_path, class_name = spec.split(":", 1)
         logger.info(
-            "_resolve_local_agent_class: importing module '{}' for class '{}'",
+            "_resolve_local_agent_class_sync: importing module '{}' for class '{}'",
             module_path,
             class_name,
         )
         module = import_module(module_path)
-        logger.info("_resolve_local_agent_class: module imported, getting class")
+        logger.info("_resolve_local_agent_class_sync: module imported, getting class")
         agent_cls = getattr(module, class_name)
-        logger.info("_resolve_local_agent_class: class '{}' resolved", class_name)
+        logger.info("_resolve_local_agent_class_sync: class '{}' resolved", class_name)
     except (ValueError, AttributeError, ImportError) as exc:
         logger.error("Failed to import agent class '{}': {}", spec, exc)
         return None
 
     _LOCAL_AGENT_CLASS_CACHE[spec] = agent_cls
+    return agent_cls
+
+
+async def _resolve_local_agent_class(spec: str) -> Optional[Type[Any]]:
+    """Asynchronously resolve a `module:Class` spec to a Python class.
+
+    The actual import is executed in a thread pool via `loop.run_in_executor`
+    to avoid blocking the event loop. Results are cached in
+    `_LOCAL_AGENT_CLASS_CACHE` to avoid repeated imports.
+    """
+    if not spec:
+        return None
+
+    # Fast path: cache hit
+    cached = _LOCAL_AGENT_CLASS_CACHE.get(spec)
+    if cached is not None:
+        logger.debug("_resolve_local_agent_class: cache hit for '{}'", spec)
+        return cached
+
+    loop = asyncio.get_running_loop()
+    # Delegate the synchronous import to the thread pool
+    try:
+        agent_cls = await loop.run_in_executor(executor, _resolve_local_agent_class_sync, spec)
+    except Exception as exc:
+        logger.error("_resolve_local_agent_class: threaded import failed for '{}': {}", spec, exc)
+        return None
+
     return agent_cls
 
 
@@ -128,19 +156,22 @@ async def _build_local_agent(ctx: AgentContext):
     agent_cls = ctx.agent_instance_class
     if agent_cls is None and ctx.agent_class_spec:
         # Try resolving the import in a worker thread with a timeout.
-        # On Windows, import lock contention can cause hangs, so we fall back
-        # to synchronous import if the threaded approach times out.
+        # Use the async resolver which delegates to a thread pool. If the
+        # operation times out, attempt a direct import in the executor as a
+        # final fallback.
         try:
             agent_cls = await asyncio.wait_for(
-                asyncio.to_thread(_resolve_local_agent_class, ctx.agent_class_spec),
-                timeout=5.0,
+                _resolve_local_agent_class(ctx.agent_class_spec), timeout=5.0
             )
         except asyncio.TimeoutError:
             logger.warning(
-                "Threaded import timed out for '{}', falling back to sync import",
+                "Threaded import timed out for '{}', falling back to executor sync import",
                 ctx.agent_class_spec,
             )
-            agent_cls = _resolve_local_agent_class(ctx.agent_class_spec)
+            loop = asyncio.get_running_loop()
+            agent_cls = await loop.run_in_executor(
+                executor, _resolve_local_agent_class_sync, ctx.agent_class_spec
+            )
 
         ctx.agent_instance_class = agent_cls
         if agent_cls is None:
