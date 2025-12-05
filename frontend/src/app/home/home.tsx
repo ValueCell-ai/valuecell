@@ -4,7 +4,18 @@ import { useAllPollTaskList } from "@/api/conversation";
 import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { agentSuggestions } from "@/mock/agent-data";
 import ChatInputArea from "../agent/components/chat-conversation/chat-input-area";
-import { AgentSuggestionsList, AgentTaskCards } from "./components";
+import { AgentSuggestionItem, AgentTaskCards } from "./components";
+import TradingViewTickerTape from "./components/tradingview-ticker-tape";
+
+const INDEX_SYMBOLS = [
+  "FOREXCOM:SPXUSD",
+  "NASDAQ:IXIC",
+  "NASDAQ:NDX",
+  "INDEX:HSI",
+  "SSE:000001",
+  "BINANCE:BTCUSDT",
+  "BINANCE:ETHUSDT",
+];
 
 function Home() {
   const navigate = useNavigate();
@@ -12,36 +23,17 @@ function Home() {
 
   const { data: allPollTaskList } = useAllPollTaskList();
 
-  // Get region-aware default tickers from API
-  // const { data: defaultTickersData } = useGetDefaultTickers();
-
-  // Use API-returned tickers, fallback to hardcoded values if API fails
-  // const stockConfig = useMemo(() => {
-  //   if (defaultTickersData?.tickers) {
-  //     return defaultTickersData.tickers.map((t) => ({
-  //       ticker: t.ticker,
-  //       symbol: t.symbol,
-  //     }));
-  //   }
-  //   // Fallback to hardcoded values
-  //   return [...HOME_STOCK_SHOW];
-  // }, [defaultTickersData]);
-
-  // const { sparklineStocks } = useSparklineStocks(stockConfig);
-
   const handleAgentClick = (agentId: string) => {
     navigate(`/agent/${agentId}`);
   };
 
   return (
-    <div className="flex h-full min-w-[800px] flex-col gap-3">
-      {/* <SparklineStockList stocks={sparklineStocks} /> */}
-
+    <ScrollContainer className="flex min-h-svh min-w-[800px] flex-col gap-3 pb-4">
       {allPollTaskList && allPollTaskList.length > 0 ? (
-        <section className="flex flex-1 flex-col items-center justify-between gap-4 overflow-hidden">
-          <ScrollContainer className="w-full">
+        <section className="flex h-full flex-1 flex-col items-center justify-between gap-4 overflow-hidden">
+          <div className="w-full">
             <AgentTaskCards tasks={allPollTaskList} />
-          </ScrollContainer>
+          </div>
 
           <ChatInputArea
             className="w-full"
@@ -57,12 +49,16 @@ function Home() {
           />
         </section>
       ) : (
-        <section className="flex w-full flex-1 flex-col items-center justify-center gap-8 overflow-hidden rounded-lg bg-white py-8">
-          <div className="space-y-4 text-center text-gray-950">
+        <section className="flex h-full w-full flex-1 flex-col items-center gap-8 overflow-hidden rounded-lg bg-white pt-12">
+          <div className="mx-auto w-4/5 max-w-[800px] px-4">
+            <TradingViewTickerTape symbols={INDEX_SYMBOLS} />
+          </div>
+          <div className="mt-16 space-y-4 text-center text-gray-950">
             <h1 className="font-medium text-3xl">👋 Hello Investor!</h1>
-            <p>
-              You can analyze and track the stock information you want to know
-            </p>
+          </div>
+
+          <div className="flex w-full max-w-[800px] flex-col gap-4 px-4">
+            {/* Index section redesigned to ticker tape */}
           </div>
 
           <ChatInputArea
@@ -78,15 +74,20 @@ function Home() {
             }
           />
 
-          <AgentSuggestionsList
-            suggestions={agentSuggestions.map((suggestion) => ({
-              ...suggestion,
-              onClick: () => handleAgentClick(suggestion.id),
-            }))}
-          />
+          <div className="grid w-full max-w-[800px] grid-cols-3 gap-4 px-4">
+            {agentSuggestions.map((suggestion) => (
+              <AgentSuggestionItem
+                key={suggestion.id}
+                suggestion={{
+                  ...suggestion,
+                  onClick: () => handleAgentClick(suggestion.id),
+                }}
+              />
+            ))}
+          </div>
         </section>
       )}
-    </div>
+    </ScrollContainer>
   );
 }
 

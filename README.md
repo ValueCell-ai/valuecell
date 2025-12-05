@@ -253,6 +253,21 @@ More detailed configuration information can be found at [CONFIGURATION_GUIDE](./
 - **Code Examples**: Sample implementations in multiple programming languages
 - **Testing Framework**: Unit tests, integration tests, and mock data providers
 
+# LICENSE
+
+This project is licensed under the **Apache License 2.0** — see the [LICENSE](./LICENSE) file for details.
+
+> 📌 Note: Apache 2.0 applies **only to original code authored by the ValueCell team and contributors**. Third-party components (e.g., APIs, widgets, libraries) are governed by their own licenses and terms — see below.
+
+## Third-Party Components & Licensing
+
+ValueCell integrates external services and embeds third-party widgets. Their usage is **not covered by Apache 2.0**, and compliance with their terms is your responsibility as a user/developer.
+
+| Component | Type | License / Terms |
+|---------|------|-----------------|----------------------|
+| **TradingView Advanced Chart** | Embedded iframe widget | [Free Advanced Charts Agreement](https://www.tradingview.com/chart-embedding/) (proprietary) |
+| **Exchange APIs** (Binance, OKX, Hyperliquid, etc.) | REST/WebSocket endpoints | Each exchange’s ToS (e.g., [Binance API Terms](https://www.binance.com/en/terms)) |
+| **LLM Providers** (OpenAI, Azure, Google, DeepSeek, etc.) | Inference APIs | Provider-specific ToS (e.g., [OpenAI ToS](https://openai.com/policies/terms-of-use)) |
 
 # Star History
 

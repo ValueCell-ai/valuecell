@@ -49,9 +49,9 @@ function StockList() {
   };
 
   return (
-    <StockMenu>
+    <StockMenu className="h-full">
       <StockMenuHeader>My Watchlist</StockMenuHeader>
-      <ScrollContainer>
+      <ScrollContainer className="h-full">
         {stockData?.map((stock) => (
           <StockItem key={stock.symbol} stock={stock} />
         ))}
