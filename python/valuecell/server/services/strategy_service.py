@@ -117,9 +117,10 @@ class StrategyService:
         ts = snapshot.snapshot_ts or datetime.now(datetime.timezone.utc)
         total_value = _to_optional_float(snapshot.total_value)
         total_pnl = StrategyService._combine_realized_unrealized(snapshot)
-        total_pnl_pct = (
-            total_pnl / (total_value - total_pnl) if total_pnl is not None else 0.0
-        )
+        total_pnl_pct = 0.0
+        if total_value - total_pnl != 0:
+            total_pnl_pct = total_pnl / (total_value - total_pnl)
+
         if baseline := _to_optional_float(first_snapshot.total_value):
             total_pnl = total_value - baseline
             total_pnl_pct = total_pnl / baseline
@@ -138,11 +139,11 @@ class StrategyService:
         )
 
     @staticmethod
-    def _combine_realized_unrealized(snapshot) -> Optional[float]:
+    def _combine_realized_unrealized(snapshot) -> float:
         realized = _to_optional_float(getattr(snapshot, "total_realized_pnl", None))
         unrealized = _to_optional_float(getattr(snapshot, "total_unrealized_pnl", None))
         if realized is None and unrealized is None:
-            return None
+            return 0.0
         return (realized or 0.0) + (unrealized or 0.0)
 
     @staticmethod
