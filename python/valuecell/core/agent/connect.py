@@ -109,8 +109,9 @@ async def _build_local_agent(ctx: AgentContext):
     - If `agent_instance_class` is already present, use it.
     - Otherwise, if `agent_class_spec` is provided, resolve it off the
       event loop (`asyncio.to_thread`) so imports don't block the loop.
-    - If resolution fails, log a warning and return `None` (caller will
-      treat missing factory as "no local agent available").
+      A timeout is applied to prevent hangs on Windows where import lock
+      contention between threads and the event loop can cause deadlocks.
+    - If resolution fails or times out, fall back to synchronous import.
     - The actual wrapping call (`create_wrapped_agent`) is performed on
       the event loop; this preserves any asyncio-related initialization
       semantics required by the wrapper (if it needs loop context).
@@ -118,10 +119,21 @@ async def _build_local_agent(ctx: AgentContext):
 
     agent_cls = ctx.agent_instance_class
     if agent_cls is None and ctx.agent_class_spec:
-        # Resolve the import in a worker thread to avoid blocking the loop.
-        agent_cls = await asyncio.to_thread(
-            _resolve_local_agent_class, ctx.agent_class_spec
-        )
+        # Try resolving the import in a worker thread with a timeout.
+        # On Windows, import lock contention can cause hangs, so we fall back
+        # to synchronous import if the threaded approach times out.
+        try:
+            agent_cls = await asyncio.wait_for(
+                asyncio.to_thread(_resolve_local_agent_class, ctx.agent_class_spec),
+                timeout=5.0,
+            )
+        except asyncio.TimeoutError:
+            logger.warning(
+                "Threaded import timed out for '{}', falling back to sync import",
+                ctx.agent_class_spec,
+            )
+            agent_cls = _resolve_local_agent_class(ctx.agent_class_spec)
+
         ctx.agent_instance_class = agent_cls
         if agent_cls is None:
             logger.warning(
