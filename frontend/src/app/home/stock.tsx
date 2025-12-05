@@ -113,7 +113,6 @@ function Stock() {
       <div className="w-full">
         <TradingViewAdvancedChart
           ticker={ticker}
-          mappingUrl="/tv-symbol-map.json"
           interval="D"
           minHeight={420}
           theme="light"
