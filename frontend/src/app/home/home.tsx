@@ -59,13 +59,10 @@ function Home() {
   const [inputValue, setInputValue] = useState<string>("");
 
   const { data: allPollTaskList } = useAllPollTaskList();
-  const { data: defaultTickersData } = useGetDefaultTickers();
 
   const handleAgentClick = (agentId: string) => {
     navigate(`/agent/${agentId}`);
   };
-
-  const tickers = defaultTickersData?.tickers || [];
 
   return (
     <ScrollContainer className="flex min-h-svh min-w-[800px] flex-col gap-3 pb-4">
