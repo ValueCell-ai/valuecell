@@ -1,0 +1,114 @@
+import { memo, useEffect, useMemo, useRef } from "react";
+
+type Props = {
+  ticker: string;
+  interval?: string;
+  minHeight?: number;
+  theme?: "light" | "dark";
+  colors?: { upColor: string; downColor: string };
+};
+
+function TradingViewAdvancedChart({
+  ticker,
+  interval = "D",
+  minHeight = 420,
+  theme = "light",
+  colors,
+}: Props) {
+  const containerId = useMemo(
+    () =>
+      `tv_${ticker.replace(/[^A-Za-z0-9_]/g, "_")}_${interval}`,
+    [ticker, interval],
+  );
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const loadTradingView = () => {
+    const w = window as any;
+    if (w.TradingView) return Promise.resolve();
+    if (w.__tvScriptPromise) return w.__tvScriptPromise;
+    w.__tvScriptPromise = new Promise<void>((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://s3.tradingview.com/tv.js";
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+    return w.__tvScriptPromise;
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const cleanup = () => {
+      const current = containerRef.current as any;
+      const widget = current?.__tv_widget__;
+      if (widget && typeof widget.remove === "function") {
+        try {
+          widget.remove();
+        } catch {}
+      }
+      if (containerRef.current) {
+        (containerRef.current as any).__tv_widget__ = null;
+        containerRef.current.innerHTML = "";
+      }
+    };
+
+    cleanup();
+    if (!ticker) return;
+
+    loadTradingView().then(() => {
+      const w = window as any;
+      if (cancelled || !containerRef.current || !w.TradingView) return;
+
+      const overrides = colors
+        ? {
+            "mainSeriesProperties.candleStyle.upColor": colors.upColor,
+            "mainSeriesProperties.candleStyle.downColor": colors.downColor,
+            "mainSeriesProperties.candleStyle.borderUpColor": colors.upColor,
+            "mainSeriesProperties.candleStyle.borderDownColor": colors.downColor,
+            "mainSeriesProperties.candleStyle.wickUpColor": colors.upColor,
+            "mainSeriesProperties.candleStyle.wickDownColor": colors.downColor,
+            "mainSeriesProperties.candleStyle.drawWick": true,
+            "mainSeriesProperties.candleStyle.drawBorder": true,
+          }
+        : {
+            "mainSeriesProperties.candleStyle.drawWick": true,
+            "mainSeriesProperties.candleStyle.drawBorder": true,
+          };
+
+      const widget = new w.TradingView.widget({
+        container_id: containerId,
+        symbol: ticker,
+        interval,
+        timezone: "UTC",
+        theme,
+        locale: "en",
+        autosize: true,
+        hide_top_toolbar: false,
+        hide_side_toolbar: false,
+        hide_bottom_toolbar: false,
+        allow_symbol_change: false,
+        details: true,
+        overrides,
+      });
+
+      const current = containerRef.current as any;
+      if (current) current.__tv_widget__ = widget;
+    });
+
+    return () => {
+      cancelled = true;
+      cleanup();
+    };
+  }, [ticker, interval, theme, colors]);
+
+  return (
+    <div className="w-full" style={{ height: minHeight }}>
+      <div id={containerId} ref={containerRef} className="h-full" />
+    </div>
+  );
+}
+
+export default memo(TradingViewAdvancedChart);
