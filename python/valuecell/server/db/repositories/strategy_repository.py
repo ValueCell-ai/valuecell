@@ -586,7 +586,7 @@ class StrategyRepository:
 
     def delete_prompt(self, prompt_id: str) -> bool:
         """Delete a prompt by prompt_id.
-        
+
         Returns True on success, False if the prompt does not exist or on error.
         """
         session = self._get_session()
@@ -599,7 +599,7 @@ class StrategyRepository:
             )
             if not prompt:
                 return False
-                
+
             session.query(StrategyPrompt).filter(StrategyPrompt.id == prompt_id).delete(
                 synchronize_session=False
             )

@@ -74,7 +74,9 @@ def create_strategy_prompts_router() -> APIRouter:
         summary="Delete a strategy prompt",
         description="Permanently delete a strategy prompt by its ID.",
     )
-    async def delete_prompt(prompt_id: str, db: Session = Depends(get_db)) -> PromptDeleteSuccessResponse:
+    async def delete_prompt(
+        prompt_id: str, db: Session = Depends(get_db)
+    ) -> PromptDeleteSuccessResponse:
         try:
             repo = get_strategy_repository(db_session=db)
             deleted = repo.delete_prompt(prompt_id=prompt_id)
@@ -83,9 +85,9 @@ def create_strategy_prompts_router() -> APIRouter:
                     data=PromptDeleteResponse(
                         deleted=True,
                         prompt_id=prompt_id,
-                        message="Prompt successfully deleted"
+                        message="Prompt successfully deleted",
                     ),
-                    msg="Prompt deleted successfully"
+                    msg="Prompt deleted successfully",
                 )
             else:
                 raise HTTPException(status_code=404, detail="Prompt not found")
