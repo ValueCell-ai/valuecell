@@ -91,7 +91,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         self._request = request
         self.strategy_id = strategy_id
         self.portfolio_service = portfolio_service
-        self._features_pipeline = features_pipeline
+        self.features_pipeline = features_pipeline
         self._composer = composer
         self._execution_gateway = execution_gateway
         self._history_recorder = history_recorder
@@ -144,7 +144,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             if self._request.exchange_config.market_type == MarketType.SPOT:
                 portfolio.buying_power = max(0.0, float(portfolio.account_balance))
 
-        pipeline_result = await self._features_pipeline.build()
+        pipeline_result = await self.features_pipeline.build()
         features = list(pipeline_result.features or [])
         market_features = extract_market_snapshot_features(features)
         digest = self._digest_builder.build(self._history_recorder.get_records())
@@ -612,7 +612,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             market_features: List[FeatureVector] = []
             if self._request.exchange_config.trading_mode == TradingMode.VIRTUAL:
                 try:
-                    pipeline_result = await self._features_pipeline.build()
+                    pipeline_result = await self.features_pipeline.build()
                     market_features = extract_market_snapshot_features(
                         pipeline_result.features or []
                     )

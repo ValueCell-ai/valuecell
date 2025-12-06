@@ -182,6 +182,40 @@ def normalize_symbol(symbol: str) -> str:
     return base_symbol
 
 
+def normalize_symbol_tradingview(symbol: str) -> str:
+    """Normalize symbol format for TradingView widgets.
+
+    Rules implemented:
+    - If the input contains a colon ("A/B:B" style), take the portion
+      to the left of the first colon, remove separators (`-` and `/`),
+      convert to upper-case and append the suffix `.P`.
+      Example: `BTC-USDT:USDT` or `BTC/USDT:PERP` -> `BTCUSDT.P`.
+    - Otherwise remove separators (`-` and `/`) and convert to upper-case.
+      Examples: `BTC-USD` -> `BTCUSD`, `ETH/USDT` -> `ETHUSDT`.
+
+    Args:
+        symbol: Input symbol string (e.g., 'BTC-USD', 'BTC/USDT', 'BTC-USDT:USDT', 'BTC/USDT:PERP').
+
+    Returns:
+        Normalized TradingView symbol string in upper-case. The `.P` suffix
+        is used for inputs that include a colon to indicate the right-hand
+        side (perpetual/venue) was present and was stripped from the output.
+    """
+    if not symbol:
+        return symbol
+
+    s = str(symbol).upper()
+
+    # If a colon is present, keep the left side, strip separators, and append .P
+    if ":" in s:
+        left, _ = s.split(":", 1)
+        left_clean = left.replace("-", "").replace("/", "")
+        return f"{left_clean}.P"
+
+    # Otherwise remove common separators and return uppercase
+    return s.replace("-", "").replace("/", "")
+
+
 def get_exchange_cls(exchange_id: str):
     """Get CCXT exchange class by exchange ID."""
 
