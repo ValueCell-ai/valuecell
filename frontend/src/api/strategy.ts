@@ -163,6 +163,22 @@ export const useCreateStrategyPrompt = () => {
   });
 };
 
+export const useDeleteStrategyPrompt = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (promptId: string) =>
+      apiClient.delete<
+        ApiResponse<{ deleted: boolean; prompt_id: string; message: string }>
+      >(`/strategies/prompts/${promptId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: API_QUERY_KEYS.STRATEGY.strategyPrompts,
+      });
+    },
+  });
+};
+
 export const useStrategyPerformance = (strategyId: number | null) => {
   return useQuery({
     queryKey: API_QUERY_KEYS.STRATEGY.strategyPerformance(

@@ -238,6 +238,17 @@ PromptListResponse = SuccessResponse[list[PromptItem]]
 PromptCreateResponse = SuccessResponse[PromptItem]
 
 
+class PromptDeleteResponse(BaseModel):
+    deleted: bool = Field(
+        ..., description="Whether the prompt was successfully deleted"
+    )
+    prompt_id: str = Field(..., description="ID of the deleted prompt")
+    message: str = Field(..., description="Delete operation result message")
+
+
+PromptDeleteSuccessResponse = SuccessResponse[PromptDeleteResponse]
+
+
 class StrategyPerformanceData(BaseModel):
     """Performance overview for a strategy including ROI and config."""
 
