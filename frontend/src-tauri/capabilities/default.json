@@ -11,6 +11,16 @@
     "store:default",
     "deep-link:default",
     "core:window:allow-set-focus",
-    "dialog:default"
+    "dialog:default",
+    "fs:default",
+    "fs:allow-app-write",
+    {
+      "identifier": "opener:allow-open-path",
+      "allow": [
+        {
+          "path": "$HOME/**"
+        }
+      ]
+    }
   ]
 }
