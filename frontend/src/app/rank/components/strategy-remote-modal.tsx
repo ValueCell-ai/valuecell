@@ -117,7 +117,7 @@ const StrategyRemoteModal: FC<StrategyRemoteModalProps> = ({ ref }) => {
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="mt-auto">
           <Button
             className="w-full"
             onClick={() =>
@@ -128,7 +128,10 @@ const StrategyRemoteModal: FC<StrategyRemoteModalProps> = ({ ref }) => {
                   api_key: "",
                 },
                 exchange_config: {
-                  exchange_id: strategyDetail?.exchange_id || "",
+                  exchange_id:
+                    strategyDetail?.exchange_id !== "virtual"
+                      ? (strategyDetail?.exchange_id ?? "")
+                      : "",
                   trading_mode: strategyDetail?.trading_mode || "virtual",
                   api_key: "",
                   secret_key: "",
