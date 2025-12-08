@@ -28,7 +28,7 @@ export const useGetAgentList = (
     queryKey: API_QUERY_KEYS.AGENT.agentList(Object.values(params)),
     queryFn: () =>
       apiClient.get<ApiResponse<{ agents: AgentInfo[] }>>(
-        `/agents?enabled_only=${params.enabled_only}`,
+        `/agents/?enabled_only=${params.enabled_only}`,
       ),
     select: (data) => data.data.agents,
   });

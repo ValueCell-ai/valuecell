@@ -24,7 +24,7 @@ export interface DefaultTickersResponse {
 export const useBackendHealth = () => {
   return useQuery({
     queryKey: ["backend-health"],
-    queryFn: () => apiClient.get<boolean>("/healthz"),
+    queryFn: () => apiClient.get<boolean>("/healthz/"),
     retry: false,
     refetchInterval: (query) => {
       return query.state.status === "error" ? 2000 : 10000;
