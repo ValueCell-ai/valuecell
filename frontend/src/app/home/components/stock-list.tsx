@@ -6,7 +6,6 @@ import {
   StockMenuHeader,
   StockMenuListItem,
 } from "@/components/valuecell/menus/stock-menus";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import type { Stock } from "@/types/stock";
 
 function StockList() {
@@ -51,11 +50,11 @@ function StockList() {
   return (
     <StockMenu>
       <StockMenuHeader>My Watchlist</StockMenuHeader>
-      <ScrollContainer>
+      <div className="scroll-container">
         {stockData?.map((stock) => (
           <StockItem key={stock.symbol} stock={stock} />
         ))}
-      </ScrollContainer>
+      </div>
     </StockMenu>
   );
 }

@@ -3,7 +3,6 @@ import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 import AppSidebar from "@/components/valuecell/app/app-sidebar";
 import { Toaster } from "./components/ui/sonner";
 
-import "overlayscrollbars/overlayscrollbars.css";
 import "./global.css";
 import { SidebarProvider } from "./components/ui/sidebar";
 

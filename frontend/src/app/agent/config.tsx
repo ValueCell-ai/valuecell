@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import BackButton from "@/components/valuecell/button/back-button";
 import AgentAvatar from "@/components/valuecell/icon/agent-avatar";
 import { MarkdownRenderer } from "@/components/valuecell/renderer";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import type { Route } from "./+types/config";
 
 export default function AgentConfig() {
@@ -25,11 +24,11 @@ export default function AgentConfig() {
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-4 overflow-hidden py-8">
-      <BackButton className="mx-8" />
+    <div className="scroll-container flex flex-1 flex-col gap-4 p-8">
+      <BackButton />
 
       {/* Agent info and configure button */}
-      <div className="mx-4 mb-6 flex items-center justify-between rounded-lg bg-gray-50 px-4 py-8">
+      <div className="mb-6 flex items-center justify-between rounded-lg bg-gray-50 px-4 py-8">
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
             <AgentAvatar agentName={agentName ?? ""} className="size-16" />
@@ -75,9 +74,7 @@ export default function AgentConfig() {
         )}
       </div>
 
-      <ScrollContainer className="px-8">
-        <MarkdownRenderer content={agent?.description ?? ""} />
-      </ScrollContainer>
+      <MarkdownRenderer content={agent?.description ?? ""} />
     </div>
   );
 }

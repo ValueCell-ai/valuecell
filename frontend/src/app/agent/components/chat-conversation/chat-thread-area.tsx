@@ -1,5 +1,5 @@
 import { type FC, Fragment, memo } from "react";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
+import { useStickToBottom } from "use-stick-to-bottom";
 import { cn } from "@/lib/utils";
 import type { ConversationView } from "@/types/agent";
 import ChatItemArea from "./chat-item-area";
@@ -16,12 +16,14 @@ const ChatThreadArea: FC<ChatThreadAreaProps> = ({
   threads,
   isStreaming,
 }) => {
+  const { scrollRef, contentRef } = useStickToBottom();
+
   return (
-    <ScrollContainer
-      className={cn("w-full flex-1 space-y-6 py-6", className)}
-      autoScrollToBottom
+    <div
+      ref={scrollRef}
+      className={cn("scroll-container w-full flex-1 space-y-6 py-6", className)}
     >
-      <main className="main-chat-area mx-auto space-y-6">
+      <main ref={contentRef} className="main-chat-area mx-auto space-y-6">
         {Object.entries(threads).map(([threadId, thread]) => {
           return (
             <Fragment key={threadId}>
@@ -39,7 +41,7 @@ const ChatThreadArea: FC<ChatThreadAreaProps> = ({
         {/* Streaming indicator */}
         {isStreaming && <ChatStreamingIndicator />}
       </main>
-    </ScrollContainer>
+    </div>
   );
 };
 

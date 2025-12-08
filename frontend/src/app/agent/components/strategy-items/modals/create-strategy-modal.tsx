@@ -25,7 +25,6 @@ import {
   ExchangeForm,
 } from "@/components/valuecell/form/exchange-form";
 import { TradingStrategyForm } from "@/components/valuecell/form/trading-strategy-form";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { StepIndicator } from "@/components/valuecell/step-indicator";
 import { TRADING_SYMBOLS } from "@/constants/agent";
 import {
@@ -200,7 +199,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
         </DialogTitle>
 
         {/* Form content with scroll */}
-        <ScrollContainer className="px-1 py-2">
+        <div className="scroll-container px-1 py-2">
           {/* Step 1: AI Models */}
           {currentStep === 1 && <AIModelForm form={form1} />}
 
@@ -215,7 +214,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
               tradingMode={form2.state.values.trading_mode}
             />
           )}
-        </ScrollContainer>
+        </div>
 
         <DialogFooter className="mt-auto flex flex-col! gap-2">
           {error && (

@@ -17,7 +17,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tag } from "@/components/valuecell/button/tag-groups";
 import { Rank1Icon, Rank2Icon, Rank3Icon } from "@/components/valuecell/icon";
 import { PngIcon } from "@/components/valuecell/icon/png-icon";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { EXCHANGE_ICONS } from "@/constants/icons";
 import { getChangeType, numberFixed } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
@@ -65,7 +64,7 @@ export default function RankBoard() {
           </Tabs>
         </CardHeader>
         <CardContent className="px-0">
-          <ScrollContainer className="max-h-[82vh]">
+          <div className="scroll-container max-h-[82vh]">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -152,7 +151,7 @@ export default function RankBoard() {
                 )}
               </TableBody>
             </Table>
-          </ScrollContainer>
+          </div>
         </CardContent>
       </Card>
 
