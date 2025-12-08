@@ -38,7 +38,7 @@ models:
   - id: "google/gemini-3-pro-preview"
     name: "Gemini 3 Pro Preview"
   - id: "x-ai/grok-4.1-fast"
-    name: "Grok 4.1 Fast(free)"
+    name: "Grok 4.1 Fast"
 
 # ============================================
 # Embedding Models Configuration
