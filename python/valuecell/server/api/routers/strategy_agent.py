@@ -82,7 +82,7 @@ def create_strategy_agent_router() -> APIRouter:
                     "Virtual trading requested on non-default exchange_id '{}'. Ensure this is intended.",
                     request.exchange_config.exchange_id,
                 )
-                request.exchange_config.exchange_id = ""
+                request.exchange_config.exchange_id = None
             # Ensure we only serialize the core UserRequest fields, excluding conversation_id
             user_request = UserRequest(
                 llm_model_config=request.llm_model_config,
