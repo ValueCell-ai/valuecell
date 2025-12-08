@@ -245,11 +245,15 @@ def test_preload_with_names_loads_only_specified(tmp_path: Path):
     dir_path = tmp_path / "agent_cards"
     dir_path.mkdir(parents=True)
 
-    card1 = make_card_dict("AgentOne", "http://127.0.0.1:9001", push_notifications=False)
+    card1 = make_card_dict(
+        "AgentOne", "http://127.0.0.1:9001", push_notifications=False
+    )
     card1["metadata"] = {
         "local_agent_class": "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
     }
-    card2 = make_card_dict("AgentTwo", "http://127.0.0.1:9002", push_notifications=False)
+    card2 = make_card_dict(
+        "AgentTwo", "http://127.0.0.1:9002", push_notifications=False
+    )
     card2["metadata"] = {
         "local_agent_class": "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
     }
@@ -274,7 +278,9 @@ def test_preload_with_names_not_present_skips_all(tmp_path: Path):
     dir_path = tmp_path / "agent_cards"
     dir_path.mkdir(parents=True)
 
-    card = make_card_dict("OnlyAgent", "http://127.0.0.1:9003", push_notifications=False)
+    card = make_card_dict(
+        "OnlyAgent", "http://127.0.0.1:9003", push_notifications=False
+    )
     card["metadata"] = {
         "local_agent_class": "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
     }
@@ -295,7 +301,9 @@ def test_preload_with_names_empty_list_skips_all(tmp_path: Path):
     dir_path = tmp_path / "agent_cards"
     dir_path.mkdir(parents=True)
 
-    card = make_card_dict("SomeAgent", "http://127.0.0.1:9004", push_notifications=False)
+    card = make_card_dict(
+        "SomeAgent", "http://127.0.0.1:9004", push_notifications=False
+    )
     card["metadata"] = {
         "local_agent_class": "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
     }
@@ -316,11 +324,15 @@ def test_preload_with_names_includes_agent_without_spec(tmp_path: Path):
     dir_path = tmp_path / "agent_cards"
     dir_path.mkdir(parents=True)
 
-    card_spec = make_card_dict("WithSpec", "http://127.0.0.1:9005", push_notifications=False)
+    card_spec = make_card_dict(
+        "WithSpec", "http://127.0.0.1:9005", push_notifications=False
+    )
     card_spec["metadata"] = {
         "local_agent_class": "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
     }
-    card_nospec = make_card_dict("NoSpec", "http://127.0.0.1:9006", push_notifications=False)
+    card_nospec = make_card_dict(
+        "NoSpec", "http://127.0.0.1:9006", push_notifications=False
+    )
 
     with open(dir_path / "WithSpec.json", "w", encoding="utf-8") as f:
         json.dump(card_spec, f)

@@ -304,7 +304,9 @@ class RemoteConnections:
         for name, ctx in self._contexts.items():
             # If caller passed a filter list, skip contexts not in that list
             if names is not None and name not in names:
-                logger.debug("Skipping preload for '{}': not in provided names list", name)
+                logger.debug(
+                    "Skipping preload for '{}': not in provided names list", name
+                )
                 continue
             if not ctx.agent_class_spec:
                 logger.debug("Skipping preload for '{}': no agent_class_spec", name)
