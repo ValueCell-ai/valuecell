@@ -130,7 +130,7 @@ const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="mt-auto">
           <Button
             className="w-full"
             onClick={async () => {
