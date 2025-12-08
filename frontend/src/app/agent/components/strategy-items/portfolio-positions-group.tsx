@@ -25,6 +25,7 @@ import MultiLineChart from "@/components/valuecell/charts/model-multi-line";
 import { PngIcon } from "@/components/valuecell/icon/png-icon";
 import SvgIcon from "@/components/valuecell/icon/svg-icon";
 import LoginModal from "@/components/valuecell/modal/login-modal";
+import { useTauriInfo } from "@/hooks/use-tauri-info";
 import {
   formatChange,
   getChangeType,
@@ -106,6 +107,7 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
   const changeType = getChangeType(summary?.total_pnl);
   const { name, avatar } = useSystemInfo();
   const isLogin = useIsLoggedIn();
+  const { isTauriApp } = useTauriInfo();
 
   const hasPositions = positions.length > 0;
   const hasPriceCurve = priceCurve.length > 0;
@@ -149,37 +151,38 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
           <h3 className="font-semibold text-base text-gray-950">
             Portfolio Value History
           </h3>
-          {isLogin ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+          {isTauriApp &&
+            (isLogin ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button>
+                    <SvgIcon name={Send} className="size-5" /> Publish
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleSharePortfolio}>
+                    <SvgIcon name={Share} className="size-5" /> Share to Social
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handlePublishToRankBoard}
+                    disabled={isPublishing}
+                  >
+                    {isPublishing ? (
+                      <Spinner className="size-5" />
+                    ) : (
+                      <SvgIcon name={Send} className="size-5" />
+                    )}{" "}
+                    Share to Ranking
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <LoginModal>
                 <Button>
                   <SvgIcon name={Send} className="size-5" /> Publish
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleSharePortfolio}>
-                  <SvgIcon name={Share} className="size-5" /> Share to Social
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handlePublishToRankBoard}
-                  disabled={isPublishing}
-                >
-                  {isPublishing ? (
-                    <Spinner className="size-5" />
-                  ) : (
-                    <SvgIcon name={Send} className="size-5" />
-                  )}{" "}
-                  Share to Ranking
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <LoginModal>
-              <Button>
-                <SvgIcon name={Send} className="size-5" /> Publish
-              </Button>
-            </LoginModal>
-          )}
+              </LoginModal>
+            ))}
         </div>
 
         <div className="grid grid-cols-3 gap-4 text-nowrap">
