@@ -42,13 +42,21 @@ function TradingViewAdvancedChart({
   }, [mappingUrl]);
 
   const tvSymbol = useMemo(() => {
+    const t = ticker;
+    if (typeof t === "string" && t.includes(":")) {
+      const [ex, sym] = t.split(":");
+      const exUpper = ex.toUpperCase();
+      if (exUpper === "HKEX") {
+        const norm = (sym ?? "").replace(/^0+/, "") || "0";
+        return `${exUpper}:${norm}`;
+      }
+    }
     const m = symbolMapRef.current;
-    if (m && typeof m === "object" && ticker in m) {
-      const v = m[ticker];
+    if (m && typeof m === "object" && t in m) {
+      const v = m[t];
       if (typeof v === "string" && v.length > 0) return v;
     }
-    if (ticker.includes(":")) return ticker;
-    return ticker;
+    return t;
   }, [ticker, mappingUrl]);
 
   const containerId = useMemo(
