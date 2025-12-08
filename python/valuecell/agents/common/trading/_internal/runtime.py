@@ -17,7 +17,7 @@ from ..history import (
 )
 from ..models import Constraints, DecisionCycleResult, TradingMode, UserRequest
 from ..portfolio.in_memory import InMemoryPortfolioService
-from ..utils import fetch_free_cash_from_gateway
+from ..utils import fetch_free_cash_from_gateway, fetch_positions_from_gateway
 from .coordinator import DefaultDecisionCoordinator
 
 
@@ -28,22 +28,26 @@ async def _create_execution_gateway(request: UserRequest) -> BaseExecutionGatewa
     # In LIVE mode, fetch exchange balance and set initial capital from free cash
     try:
         if request.exchange_config.trading_mode == TradingMode.LIVE:
-            free_cash, _ = await fetch_free_cash_from_gateway(
+            free_cash, total_cash = await fetch_free_cash_from_gateway(
                 execution_gateway, request.trading_config.symbols
             )
-            request.trading_config.initial_capital = float(free_cash)
+            request.trading_config.initial_free_cash = float(free_cash)
+            request.trading_config.initial_capital = float(total_cash)
+            request.trading_config.initial_positions = (
+                await fetch_positions_from_gateway(execution_gateway)
+            )
     except Exception:
-        # Log the error but continue - user might have set initial_capital manually
+        # Log the error but continue - user might have set initial portfolio manually
         logger.exception(
-            "Failed to fetch exchange balance for LIVE mode. Will use configured initial_capital instead."
+            "Failed to fetch exchange portfolio for LIVE mode. Will use configured initial portfolio instead."
         )
 
     # Validate initial capital for LIVE mode
     if request.exchange_config.trading_mode == TradingMode.LIVE:
-        initial_cap = request.trading_config.initial_capital or 0.0
-        if initial_cap <= 0:
+        initial_total_cash = request.trading_config.initial_capital or 0.0
+        if initial_total_cash <= 0:
             logger.error(
-                f"LIVE trading mode has initial_capital={initial_cap}. "
+                f"LIVE trading mode has initial_total_cash={initial_total_cash}. "
                 "This usually means balance fetch failed or account has no funds. "
                 "Strategy will not be able to trade without capital."
             )
@@ -100,6 +104,7 @@ async def create_strategy_runtime(
         ...     trading_config=TradingConfig(
         ...         symbols=['BTC-USDT', 'ETH-USDT'],
         ...         initial_capital=10000.0,
+        ...         initial_free_cash=10000.0,
         ...         max_leverage=10.0,
         ...         max_positions=5,
         ...     )
@@ -112,36 +117,45 @@ async def create_strategy_runtime(
     # Create strategy runtime components
     strategy_id = strategy_id_override or generate_uuid("strategy")
 
-    # If an initial capital override wasn't provided, and this is a resume
-    # of an existing strategy, attempt to initialize from the persisted
-    # portfolio snapshot so the in-memory portfolio starts with the
-    # previously recorded equity.
-    initial_capital_override = None
+    # If this is a resume of an existing strategy,
+    # attempt to initialize from the persisted portfolio snapshot
+    # so the in-memory portfolio starts with the previously recorded equity.
+    free_cash_override = None
+    total_cash_override = None
     if strategy_id_override:
         try:
             repo = get_strategy_repository()
             snap = repo.get_latest_portfolio_snapshot(strategy_id_override)
             if snap is not None:
-                initial_capital_override = float(snap.total_value or snap.cash or 0.0)
+                free_cash_override = float(snap.cash or 0.0)
+                total_cash_override = float(
+                    snap.total_value - snap.total_unrealized_pnl
+                    if (
+                        snap.total_value is not None
+                        and snap.total_unrealized_pnl is not None
+                    )
+                    else 0.0
+                )
                 logger.info(
-                    "Initialized runtime initial_capital from persisted snapshot for strategy_id=%s",
+                    "Initialized runtime initial capital from persisted snapshot for strategy_id=%s",
                     strategy_id_override,
                 )
         except Exception:
             logger.exception(
-                "Failed to initialize initial_capital from persisted snapshot for strategy_id=%s",
+                "Failed to initialize initial capital from persisted snapshot for strategy_id=%s",
                 strategy_id_override,
             )
 
-    initial_capital = (
-        initial_capital_override or request.trading_config.initial_capital or 0.0
-    )
+    free_cash = free_cash_override or request.trading_config.initial_free_cash or 0.0
+    total_cash = total_cash_override or request.trading_config.initial_capital or 0.0
     constraints = Constraints(
         max_positions=request.trading_config.max_positions,
         max_leverage=request.trading_config.max_leverage,
     )
     portfolio_service = InMemoryPortfolioService(
-        initial_capital=initial_capital,
+        free_cash=free_cash,
+        total_cash=total_cash,
+        initial_positions=request.trading_config.initial_positions,
         trading_mode=request.exchange_config.trading_mode,
         market_type=request.exchange_config.market_type,
         constraints=constraints,

@@ -371,8 +371,11 @@ def persist_instructions(
     return inserted
 
 
-def update_initial_capital(strategy_id: str, new_initial_capital: float) -> bool:
-    """Update `strategies.config.trading_config.initial_capital` for a strategy.
+def update_initial_capital(
+    strategy_id: str, new_initial_free_cash: float, new_initial_total_cash: float
+) -> bool:
+    """Update `strategies.config.trading_config.initial_capital` and
+    `strategies.config.trading_config.initial_free_cash` for a strategy.
 
     This writes the provided value into the persisted strategy config so that
     downstream performance APIs that read from `strategies.config` reflect the
@@ -385,7 +388,7 @@ def update_initial_capital(strategy_id: str, new_initial_capital: float) -> bool
         strategy = repo.get_strategy_by_strategy_id(strategy_id)
         if strategy is None:
             logger.info(
-                "Skip updating initial_capital: strategy={} not found (possibly deleted)",
+                "Skip updating initial capital: strategy={} not found (possibly deleted)",
                 strategy_id,
             )
             return False
@@ -395,24 +398,27 @@ def update_initial_capital(strategy_id: str, new_initial_capital: float) -> bool
         tr = dict((cfg.get("trading_config") or {}) or {})
 
         try:
-            tr["initial_capital"] = float(new_initial_capital)
+            tr["initial_free_cash"] = float(new_initial_free_cash)
+            tr["initial_total_cash"] = float(new_initial_total_cash)
         except Exception:
             # If conversion fails, keep raw value
-            tr["initial_capital"] = new_initial_capital
+            tr["initial_free_cash"] = new_initial_free_cash
+            tr["initial_total_cash"] = new_initial_total_cash
 
         cfg["trading_config"] = tr
 
         updated = repo.upsert_strategy(strategy_id=strategy_id, config=cfg)
         if updated is None:
             logger.warning(
-                "Failed to update initial_capital in config for strategy={}",
+                "Failed to update initial capital in config for strategy={}",
                 strategy_id,
             )
             return False
 
         logger.info(
-            "Updated strategies.config.trading_config.initial_capital to {} for strategy={}",
-            tr.get("initial_capital"),
+            "Updated strategies.config.trading_config.initial_free_cash to {}, initial_total_cash to {} for strategy={}",
+            tr.get("initial_free_cash"),
+            tr.get("initial_total_cash"),
             strategy_id,
         )
         return True
@@ -423,7 +429,8 @@ def update_initial_capital(strategy_id: str, new_initial_capital: float) -> bool
 
 def set_initial_capital_metadata(
     strategy_id: str,
-    initial_capital: float,
+    initial_free_cash: float,
+    initial_total_cash: float,
     *,
     source: str | None = None,
     ts_ms: int | None = None,
@@ -440,16 +447,18 @@ def set_initial_capital_metadata(
         strategy = repo.get_strategy_by_strategy_id(strategy_id)
         if strategy is None:
             logger.info(
-                "Skip setting initial_capital metadata: strategy={} not found",
+                "Skip setting initial capital metadata: strategy={} not found",
                 strategy_id,
             )
             return False
 
         meta = dict(strategy.strategy_metadata or {})
         try:
-            meta["initial_capital_live"] = float(initial_capital)
+            meta["initial_free_cash_live"] = float(initial_free_cash)
+            meta["initial_total_cash_live"] = float(initial_total_cash)
         except Exception:
-            meta["initial_capital_live"] = initial_capital
+            meta["initial_free_cash_live"] = initial_free_cash
+            meta["initial_total_cash_live"] = initial_total_cash
         if source is not None:
             meta["initial_capital_source"] = source
         if ts_ms is not None:
@@ -461,14 +470,15 @@ def set_initial_capital_metadata(
         updated = repo.upsert_strategy(strategy_id=strategy_id, metadata=meta)
         if updated is None:
             logger.warning(
-                "Failed to set initial_capital metadata for strategy={}",
+                "Failed to set initial capital metadata for strategy={}",
                 strategy_id,
             )
             return False
 
         logger.info(
-            "Set initial_capital_live={} (source={}) in metadata for strategy={}",
-            meta.get("initial_capital_live"),
+            "Set initial_free_cash_live={} initial_total_cash_live={} (source={}) in metadata for strategy={}",
+            meta.get("initial_free_cash_live"),
+            meta.get("initial_total_cash_live"),
             meta.get("initial_capital_source"),
             strategy_id,
         )
