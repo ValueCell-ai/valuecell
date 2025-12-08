@@ -11,7 +11,7 @@ export const useGetConversationList = () => {
   return useQuery({
     queryKey: API_QUERY_KEYS.CONVERSATION.conversationList,
     queryFn: () =>
-      apiClient.get<ApiResponse<ConversationList>>("/conversations"),
+      apiClient.get<ApiResponse<ConversationList>>("/conversations/"),
     select: (data) => data.data.conversations,
   });
 };

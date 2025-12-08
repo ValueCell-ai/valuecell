@@ -19,7 +19,7 @@ export const useGetStrategyList = () => {
         ApiResponse<{
           strategies: Strategy[];
         }>
-      >("/strategies"),
+      >("/strategies/"),
     select: (data) => data.data.strategies,
     refetchInterval: 5 * 1000,
   });

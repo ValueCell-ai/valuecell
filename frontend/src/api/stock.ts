@@ -13,7 +13,7 @@ import type {
 export const useGetWatchlist = () =>
   useQuery({
     queryKey: API_QUERY_KEYS.STOCK.watchlist,
-    queryFn: () => apiClient.get<ApiResponse<Watchlist[]>>("watchlist"),
+    queryFn: () => apiClient.get<ApiResponse<Watchlist[]>>("watchlist/"),
     select: (data) => data.data,
   });
 
