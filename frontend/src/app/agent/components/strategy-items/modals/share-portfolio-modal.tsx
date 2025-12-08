@@ -1,3 +1,4 @@
+import { save } from "@tauri-apps/plugin-dialog";
 import { snapdom } from "@zumer/snapdom";
 import { Download } from "lucide-react";
 import {
@@ -55,12 +56,20 @@ const SharePortfolioModal: FC<{
         outerShadows: true,
         backgroundColor: "#ffffff",
       });
-
-      await capture.download({
-        filename: `valuecell-${Date.now()}`,
+      const img = await capture.toPng({
         type: "png",
       });
 
+      const path = await save({
+        canCreateDirectories: true,
+        filters: [
+          {
+            name: `valucell-${TimeUtils.now()}`,
+            extensions: ["png"],
+          },
+        ],
+      });
+      console.log("🚀 ~ handleDownload ~ path:", path);
       setOpen(false);
       toast.success("Image downloaded in your Downloads folder");
     } catch (err) {
