@@ -212,16 +212,16 @@ export const TradingStrategyForm = withForm({
                                   <span>{prompt.name}</span>
                                   {field.state.value !== prompt.id && (
                                     <button
-                                    type="button"
-                                    className="absolute right-2 z-50 flex size-3.5 items-center justify-center rounded-sm p-0 opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive hover:opacity-100"
-                                    onPointerUp={(e) => {
-                                      e.stopPropagation();
-                                      e.preventDefault();
-                                      handleDeletePrompt(prompt.id);
-                                    }}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </button>
+                                      type="button"
+                                      className="absolute right-2 z-50 flex size-3.5 items-center justify-center rounded-sm p-0 opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive hover:opacity-100"
+                                      onPointerUp={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        handleDeletePrompt(prompt.id);
+                                      }}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
                                   )}
                                 </SelectItem>
                               ))}
