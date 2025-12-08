@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/select";
 import BackButton from "@/components/valuecell/button/back-button";
 import { MarkdownRenderer } from "@/components/valuecell/renderer";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { COMPONENT_RENDERER_MAP } from "@/constants/agent";
 import type { SectionComponentType, TaskView, ThreadView } from "@/types/agent";
 
@@ -45,9 +44,9 @@ const ScheduledTaskResultComponent: FC<{ tasks: Record<string, TaskView> }> = ({
   return selectedItemContent ? (
     <section className="flex flex-1 flex-col border-gray-200 border-l px-5 py-6">
       <BackButton className="mb-3" onClick={() => setSelectedItemContent("")} />
-      <ScrollContainer className="flex-1">
+      <div className="scroll-container flex-1">
         <MarkdownRenderer content={selectedItemContent} />
-      </ScrollContainer>
+      </div>
     </section>
   ) : (
     <section className="flex flex-1 flex-col gap-5 border-gray-200 border-l px-5 py-6">
@@ -68,7 +67,7 @@ const ScheduledTaskResultComponent: FC<{ tasks: Record<string, TaskView> }> = ({
       )}
 
       {/* render items */}
-      <ScrollContainer className="flex-1">
+      <div className="scroll-container flex-1">
         {selectedItems.length > 0 && (
           <div className="space-y-2.5">
             {selectedItems.map(
@@ -83,7 +82,7 @@ const ScheduledTaskResultComponent: FC<{ tasks: Record<string, TaskView> }> = ({
             )}
           </div>
         )}
-      </ScrollContainer>
+      </div>
     </section>
   );
 };

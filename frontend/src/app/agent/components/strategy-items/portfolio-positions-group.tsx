@@ -25,7 +25,6 @@ import MultiLineChart from "@/components/valuecell/charts/model-multi-line";
 import { PngIcon } from "@/components/valuecell/icon/png-icon";
 import SvgIcon from "@/components/valuecell/icon/svg-icon";
 import LoginModal from "@/components/valuecell/modal/login-modal";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import {
   formatChange,
   getChangeType,
@@ -143,7 +142,7 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-8 overflow-y-scroll p-6">
+    <div className="scroll-container flex flex-1 flex-col gap-8 p-6">
       {/* Portfolio Value History Section */}
       <div className="flex flex-1 flex-col gap-4">
         <div className="flex items-center justify-between">
@@ -234,41 +233,35 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
       <div className="flex flex-col gap-4">
         <h3 className="font-semibold text-base text-gray-950">Positions</h3>
         {hasPositions ? (
-          <ScrollContainer className="max-h-[260px]">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>
-                    <p className="font-normal text-gray-400 text-sm">Symbol</p>
-                  </TableHead>
-                  <TableHead>
-                    <p className="font-normal text-gray-400 text-sm">Type</p>
-                  </TableHead>
-                  <TableHead>
-                    <p className="font-normal text-gray-400 text-sm">
-                      Leverage
-                    </p>
-                  </TableHead>
-                  <TableHead>
-                    <p className="font-normal text-gray-400 text-sm">
-                      Quantity
-                    </p>
-                  </TableHead>
-                  <TableHead>
-                    <p className="font-normal text-gray-400 text-sm">P&L</p>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {positions.map((position, index) => (
-                  <PositionRow
-                    key={`${position.symbol}-${index}`}
-                    position={position}
-                  />
-                ))}
-              </TableBody>
-            </Table>
-          </ScrollContainer>
+          <Table className="scroll-container max-h-[260px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead>
+                  <p className="font-normal text-gray-400 text-sm">Symbol</p>
+                </TableHead>
+                <TableHead>
+                  <p className="font-normal text-gray-400 text-sm">Type</p>
+                </TableHead>
+                <TableHead>
+                  <p className="font-normal text-gray-400 text-sm">Leverage</p>
+                </TableHead>
+                <TableHead>
+                  <p className="font-normal text-gray-400 text-sm">Quantity</p>
+                </TableHead>
+                <TableHead>
+                  <p className="font-normal text-gray-400 text-sm">P&L</p>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {positions.map((position, index) => (
+                <PositionRow
+                  key={`${position.symbol}-${index}`}
+                  position={position}
+                />
+              ))}
+            </TableBody>
+          </Table>
         ) : (
           <div className="flex min-h-[240px] items-center justify-center rounded-xl bg-gray-50">
             <div className="flex flex-col items-center gap-4 px-6 py-10 text-center">

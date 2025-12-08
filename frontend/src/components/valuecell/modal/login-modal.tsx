@@ -18,7 +18,6 @@ import { tracker } from "@/lib/tracker";
 import { useSystemStore } from "@/store/system-store";
 import CloseButton from "../button/close-button";
 import SvgIcon from "../icon/svg-icon";
-import ScrollContainer from "../scroll/scroll-container";
 
 type PendingAction = "gmail" | "apple";
 
@@ -133,55 +132,54 @@ export default function LoginModal({ children }: LoginModalProps) {
           </DialogClose>
         </DialogTitle>
 
-        <ScrollContainer className="mt-10">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <SvgIcon
-              name={Logo}
-              className="size-14 rounded-full bg-black p-2.5 text-white"
-            />
-            <p className="font-medium text-3xl text-gray-950">ValueCell</p>
-            <p className="font-medium text-gray-500 text-sm">
-              The first open-source platform for financial agents
-            </p>
-          </div>
+        <div className="mt-10 flex flex-col items-center gap-3 text-center">
+          <SvgIcon
+            name={Logo}
+            className="size-14 rounded-full bg-black p-2.5 text-white"
+          />
+          <p className="font-medium text-3xl text-gray-950">ValueCell</p>
+          <p className="font-medium text-gray-500 text-sm">
+            The first open-source platform for financial agents
+          </p>
+        </div>
 
-          <div className="mt-10 flex flex-col gap-4 px-4 pb-4">
-            <Button
-              variant="outline"
-              className="relative bg-gray-50 py-6 text-base focus-visible:ring-gray-200"
-              onClick={() => handleLogin("gmail")}
-              disabled={pendingAction !== null}
+        <div className="mt-10 flex flex-col gap-4 px-4 pb-4">
+          <Button
+            variant="outline"
+            className="relative bg-gray-50 py-6 text-base focus-visible:ring-gray-200"
+            onClick={() => handleLogin("gmail")}
+            disabled={pendingAction !== null}
+          >
+            <svg
+              className="-translate-y-1/2 absolute top-1/2 left-4"
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
             >
-              <svg
-                className="-translate-y-1/2 absolute top-1/2 left-4"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-              >
-                <path
-                  d="M3.21121 7.67735C3.21181 7.19253 3.29133 6.71104 3.44664 6.25177L0.804273 4.27539C0.275388 5.3308 0 6.49504 0 7.67555C0 8.85607 0.275388 10.0203 0.804273 11.0757L3.4452 9.09646C3.29112 8.63917 3.21234 8.1599 3.21193 7.67735"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M7.85466 3.1395C8.90549 3.13673 9.92561 3.49371 10.7454 4.15109L13.03 1.91912C12.1221 1.13883 11.0497 0.573842 9.89275 0.266401C8.73582 -0.0410395 7.52437 -0.0829818 6.34895 0.14371C5.17353 0.370401 4.06456 0.859862 3.10495 1.5755C2.14533 2.29114 1.3599 3.21444 0.807373 4.27637L3.45118 6.25275C3.76674 5.33805 4.36165 4.54558 5.15189 3.98723C5.94214 3.42887 6.88781 3.13285 7.85538 3.14094"
-                  fill="#EA4335"
-                />
-                <path
-                  d="M7.85538 12.2134C6.88764 12.2214 5.9418 11.9254 5.15133 11.3671C4.36086 10.8088 3.76566 10.0163 3.44974 9.10156L0.807373 11.0779C1.46984 12.3744 2.47989 13.461 3.72457 14.2163C4.96926 14.9716 6.3995 15.3657 7.85538 15.3547C9.73948 15.3754 11.5637 14.6931 12.9716 13.441L10.4625 11.5423C9.67218 12.0034 8.76932 12.2357 7.85466 12.2134"
-                  fill="#34A853"
-                />
-                <path
-                  d="M15.3481 7.67634C15.3412 7.20575 15.2814 6.73744 15.1696 6.28027H7.85229V9.24664H12.0642C11.9718 9.7198 11.7814 10.1684 11.5053 10.5636C11.2291 10.9587 10.8734 11.2918 10.4608 11.5413L12.9693 13.4406C13.7524 12.704 14.3694 11.8088 14.7792 10.8148C15.1889 9.82081 15.3819 8.75085 15.3453 7.67634"
-                  fill="#4285F4"
-                />
-              </svg>
-              Continue with Google
-              {pendingAction === "gmail" && (
-                <Spinner className="-translate-y-1/2 absolute top-1/2 right-4" />
-              )}
-            </Button>
-            {/* 
+              <path
+                d="M3.21121 7.67735C3.21181 7.19253 3.29133 6.71104 3.44664 6.25177L0.804273 4.27539C0.275388 5.3308 0 6.49504 0 7.67555C0 8.85607 0.275388 10.0203 0.804273 11.0757L3.4452 9.09646C3.29112 8.63917 3.21234 8.1599 3.21193 7.67735"
+                fill="#FBBC05"
+              />
+              <path
+                d="M7.85466 3.1395C8.90549 3.13673 9.92561 3.49371 10.7454 4.15109L13.03 1.91912C12.1221 1.13883 11.0497 0.573842 9.89275 0.266401C8.73582 -0.0410395 7.52437 -0.0829818 6.34895 0.14371C5.17353 0.370401 4.06456 0.859862 3.10495 1.5755C2.14533 2.29114 1.3599 3.21444 0.807373 4.27637L3.45118 6.25275C3.76674 5.33805 4.36165 4.54558 5.15189 3.98723C5.94214 3.42887 6.88781 3.13285 7.85538 3.14094"
+                fill="#EA4335"
+              />
+              <path
+                d="M7.85538 12.2134C6.88764 12.2214 5.9418 11.9254 5.15133 11.3671C4.36086 10.8088 3.76566 10.0163 3.44974 9.10156L0.807373 11.0779C1.46984 12.3744 2.47989 13.461 3.72457 14.2163C4.96926 14.9716 6.3995 15.3657 7.85538 15.3547C9.73948 15.3754 11.5637 14.6931 12.9716 13.441L10.4625 11.5423C9.67218 12.0034 8.76932 12.2357 7.85466 12.2134"
+                fill="#34A853"
+              />
+              <path
+                d="M15.3481 7.67634C15.3412 7.20575 15.2814 6.73744 15.1696 6.28027H7.85229V9.24664H12.0642C11.9718 9.7198 11.7814 10.1684 11.5053 10.5636C11.2291 10.9587 10.8734 11.2918 10.4608 11.5413L12.9693 13.4406C13.7524 12.704 14.3694 11.8088 14.7792 10.8148C15.1889 9.82081 15.3819 8.75085 15.3453 7.67634"
+                fill="#4285F4"
+              />
+            </svg>
+            Continue with Google
+            {pendingAction === "gmail" && (
+              <Spinner className="-translate-y-1/2 absolute top-1/2 right-4" />
+            )}
+          </Button>
+          {/* 
             <Button
               variant="outline"
               className="relative bg-gray-50 py-6 text-base focus-visible:ring-gray-200"
@@ -205,8 +203,7 @@ export default function LoginModal({ children }: LoginModalProps) {
                 <Spinner className="-translate-y-1/2 absolute top-1/2 right-4" />
               )}
             </Button> */}
-          </div>
-        </ScrollContainer>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -10,7 +10,6 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { PngIcon } from "@/components/valuecell/icon/png-icon";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import {
   formatChange,
@@ -223,7 +222,7 @@ const StrategyComposeList: FC<StrategyComposeListProps> = ({
         </p>
       </div>
 
-      <ScrollContainer className="flex-1 px-6">
+      <div className="scroll-container flex-1 px-6">
         {composes.length > 0 ? (
           <div className="flex flex-col gap-4">
             {composes.map((compose) => (
@@ -247,7 +246,7 @@ const StrategyComposeList: FC<StrategyComposeListProps> = ({
             </div>
           </div>
         )}
-      </ScrollContainer>
+      </div>
     </div>
   );
 };

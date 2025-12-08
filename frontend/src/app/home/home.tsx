@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useAllPollTaskList } from "@/api/conversation";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { agentSuggestions } from "@/mock/agent-data";
 import ChatInputArea from "../agent/components/chat-conversation/chat-input-area";
 import { AgentSuggestionsList, AgentTaskCards } from "./components";
@@ -39,9 +38,9 @@ function Home() {
 
       {allPollTaskList && allPollTaskList.length > 0 ? (
         <section className="flex flex-1 flex-col items-center justify-between gap-4 overflow-hidden">
-          <ScrollContainer className="w-full">
+          <div className="scroll-container w-full">
             <AgentTaskCards tasks={allPollTaskList} />
-          </ScrollContainer>
+          </div>
 
           <ChatInputArea
             className="w-full"

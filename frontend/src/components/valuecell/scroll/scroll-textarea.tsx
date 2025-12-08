@@ -1,6 +1,5 @@
 import { useCallback, useImperativeHandle, useRef } from "react";
 import { cn } from "@/lib/utils";
-import ScrollContainer from "./scroll-container";
 
 export interface ScrollTextareaProps
   extends Omit<
@@ -18,7 +17,7 @@ export interface ScrollTextareaProps
    */
   minHeight?: number;
   /**
-   * Additional className for the ScrollContainer wrapper
+   * Additional className for the scroll container wrapper
    */
   containerClassName?: string;
   /**
@@ -86,8 +85,8 @@ function ScrollTextarea({
   }));
 
   return (
-    <ScrollContainer
-      className={containerClassName}
+    <div
+      className={cn("scroll-container", containerClassName)}
       style={{ maxHeight: `${maxHeight}px` }}
     >
       <textarea
@@ -99,7 +98,7 @@ function ScrollTextarea({
         )}
         {...props}
       />
-    </ScrollContainer>
+    </div>
   );
 }
 

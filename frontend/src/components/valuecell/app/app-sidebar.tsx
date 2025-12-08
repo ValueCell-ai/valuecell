@@ -24,7 +24,6 @@ import {
 import AppConversationSheet from "@/components/valuecell/app/app-conversation-sheet";
 import AgentAvatar from "@/components/valuecell/icon/agent-avatar";
 import SvgIcon from "@/components/valuecell/icon/svg-icon";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { cn } from "@/lib/utils";
 
 interface SidebarItemProps extends HTMLAttributes<HTMLButtonElement> {
@@ -223,32 +222,30 @@ const AppSidebar: FC = () => {
 
       <Separator className="w-10! bg-white" />
 
-      <SidebarContent className="max-h-[calc(100vh-11rem)]">
-        <ScrollContainer className="w-full">
-          <SidebarMenu className="py-3">
-            {agentItems?.map((item) => {
-              return (
-                <NavLink key={item.id} to={item.to}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <SidebarMenuItem
-                        type="agent"
-                        aria-label={item.label}
-                        data-active={verifyActive(item.to)}
-                      >
-                        <AgentAvatar agentName={item.id} />
-                      </SidebarMenuItem>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">{item.label}</TooltipContent>
-                  </Tooltip>
-                </NavLink>
-              );
-            })}
-          </SidebarMenu>
-        </ScrollContainer>
+      <SidebarContent className="scroll-container">
+        <SidebarMenu className="py-3">
+          {agentItems?.map((item) => {
+            return (
+              <NavLink key={item.id} to={item.to}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuItem
+                      type="agent"
+                      aria-label={item.label}
+                      data-active={verifyActive(item.to)}
+                    >
+                      <AgentAvatar agentName={item.id} />
+                    </SidebarMenuItem>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">{item.label}</TooltipContent>
+                </Tooltip>
+              </NavLink>
+            );
+          })}
+        </SidebarMenu>
       </SidebarContent>
 
-      <SidebarFooter className="mt-auto">
+      <SidebarFooter className="mt-auto pt-3">
         <SidebarMenu>
           {navItems.config.map((item) => {
             return (
