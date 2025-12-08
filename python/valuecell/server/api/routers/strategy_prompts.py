@@ -11,6 +11,8 @@ from valuecell.server.api.schemas.base import SuccessResponse
 from valuecell.server.api.schemas.strategy import (
     PromptCreateRequest,
     PromptCreateResponse,
+    PromptDeleteResponse,
+    PromptDeleteSuccessResponse,
     PromptItem,
     PromptListResponse,
 )
@@ -65,5 +67,33 @@ def create_strategy_prompts_router() -> APIRouter:
             raise
         except Exception as e:  # noqa: BLE001
             raise HTTPException(status_code=500, detail=f"Failed to create prompt: {e}")
+
+    @router.delete(
+        "/{prompt_id}",
+        response_model=PromptDeleteSuccessResponse,
+        summary="Delete a strategy prompt",
+        description="Permanently delete a strategy prompt by its ID.",
+    )
+    async def delete_prompt(
+        prompt_id: str, db: Session = Depends(get_db)
+    ) -> PromptDeleteSuccessResponse:
+        try:
+            repo = get_strategy_repository(db_session=db)
+            deleted = repo.delete_prompt(prompt_id=prompt_id)
+            if deleted:
+                return SuccessResponse.create(
+                    data=PromptDeleteResponse(
+                        deleted=True,
+                        prompt_id=prompt_id,
+                        message="Prompt successfully deleted",
+                    ),
+                    msg="Prompt deleted successfully",
+                )
+            else:
+                raise HTTPException(status_code=404, detail="Prompt not found")
+        except HTTPException:
+            raise
+        except Exception as e:  # noqa: BLE001
+            raise HTTPException(status_code=500, detail=f"Failed to delete prompt: {e}")
 
     return router

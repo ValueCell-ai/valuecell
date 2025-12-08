@@ -584,6 +584,34 @@ class StrategyRepository:
             if not self.db_session:
                 session.close()
 
+    def delete_prompt(self, prompt_id: str) -> bool:
+        """Delete a prompt by prompt_id.
+
+        Returns True on success, False if the prompt does not exist or on error.
+        """
+        session = self._get_session()
+        try:
+            # Ensure the prompt exists
+            prompt = (
+                session.query(StrategyPrompt)
+                .filter(StrategyPrompt.id == prompt_id)
+                .first()
+            )
+            if not prompt:
+                return False
+
+            session.query(StrategyPrompt).filter(StrategyPrompt.id == prompt_id).delete(
+                synchronize_session=False
+            )
+            session.commit()
+            return True
+        except Exception:
+            session.rollback()
+            return False
+        finally:
+            if not self.db_session:
+                session.close()
+
     def delete_strategy(self, strategy_id: str, cascade: bool = True) -> bool:
         """Delete a strategy by strategy_id.
 

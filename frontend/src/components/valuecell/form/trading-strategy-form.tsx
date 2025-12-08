@@ -1,8 +1,22 @@
 import { MultiSelect } from "@valuecell/multi-select";
-import { Eye, Plus } from "lucide-react";
-import { useCreateStrategyPrompt } from "@/api/strategy";
+import { Eye, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import {
+  useCreateStrategyPrompt,
+  useDeleteStrategyPrompt,
+} from "@/api/strategy";
 import NewPromptModal from "@/app/agent/components/strategy-items/modals/new-prompt-modal";
 import ViewStrategyModal from "@/app/agent/components/strategy-items/modals/view-strategy-modal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -37,6 +51,38 @@ export const TradingStrategyForm = withForm({
   },
   render({ form, prompts, tradingMode }) {
     const { mutateAsync: createStrategyPrompt } = useCreateStrategyPrompt();
+    const { mutate: deleteStrategyPrompt } = useDeleteStrategyPrompt();
+    const [deletePromptId, setDeletePromptId] = useState<string | null>(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+    const handleDeletePrompt = (promptId: string) => {
+      setDeletePromptId(promptId);
+      setIsDeleteDialogOpen(true);
+    };
+
+    const confirmDeletePrompt = () => {
+      if (deletePromptId) {
+        deleteStrategyPrompt(deletePromptId, {
+          onSuccess: () => {
+            // If the deleted prompt was currently selected, clear the selection
+            if (form.state.values.template_id === deletePromptId) {
+              form.setFieldValue("template_id", "");
+            }
+            setIsDeleteDialogOpen(false);
+            setDeletePromptId(null);
+          },
+          onError: () => {
+            setIsDeleteDialogOpen(false);
+            setDeletePromptId(null);
+          },
+        });
+      }
+    };
+
+    const cancelDeletePrompt = () => {
+      setIsDeleteDialogOpen(false);
+      setDeletePromptId(null);
+    };
 
     return (
       <FieldGroup className="gap-6">
@@ -158,8 +204,25 @@ export const TradingStrategyForm = withForm({
                           <SelectContent>
                             {prompts.length > 0 &&
                               prompts.map((prompt) => (
-                                <SelectItem key={prompt.id} value={prompt.id}>
-                                  {prompt.name}
+                                <SelectItem
+                                  key={prompt.id}
+                                  value={prompt.id}
+                                  className="relative hover:[&_button]:opacity-100 hover:[&_button]:transition-opacity"
+                                >
+                                  <span>{prompt.name}</span>
+                                  {field.state.value !== prompt.id && (
+                                    <button
+                                      type="button"
+                                      className="absolute right-2 z-50 flex size-3.5 items-center justify-center rounded-sm p-0 opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive hover:opacity-100"
+                                      onPointerUp={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        handleDeletePrompt(prompt.id);
+                                      }}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  )}
                                 </SelectItem>
                               ))}
                             <NewPromptModal
@@ -204,6 +267,34 @@ export const TradingStrategyForm = withForm({
             );
           }}
         </form.Subscribe>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Strategy Prompt</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this strategy prompt? This
+                action cannot be undone and will permanently remove the prompt
+                from the system.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={cancelDeletePrompt}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDeletePrompt}
+                className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              >
+                Confirm Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </FieldGroup>
     );
   },
