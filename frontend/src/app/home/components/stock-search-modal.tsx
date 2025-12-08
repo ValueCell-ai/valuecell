@@ -82,6 +82,25 @@ export default function StockSearchModal({ children }: StockSearchModalProps) {
     query: debouncedQuery,
   });
 
+  const filteredStockList = (stockList || []).filter((stock) => {
+    const assetType = stock.asset_type?.toLowerCase();
+    const exchange = (stock.exchange || "").toUpperCase();
+    const prefix = (stock.ticker?.split(":")[0] || "").toUpperCase();
+
+    const US_EXCHANGES = new Set(["NASDAQ", "NYSE", "AMEX"]);
+    const CN_EXCHANGES = new Set(["SSE", "SZSE", "HKEX"]);
+    const JP_EXCHANGES = new Set(["TSE", "JPX", "TYO"]);
+
+    const isCrypto = assetType === "crypto" || prefix === "CRYPTO";
+    const isUS = US_EXCHANGES.has(exchange) || US_EXCHANGES.has(prefix);
+    const isCN = CN_EXCHANGES.has(exchange) || CN_EXCHANGES.has(prefix);
+    const isJP = JP_EXCHANGES.has(exchange) || JP_EXCHANGES.has(prefix);
+
+    const isStock = assetType === "stock";
+
+    return isCrypto || (isStock && (isUS || isCN || isJP));
+  });
+
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -116,9 +135,9 @@ export default function StockSearchModal({ children }: StockSearchModalProps) {
             <p className="p-4 text-center text-neutral-400 text-sm">
               Searching...
             </p>
-          ) : stockList && stockList.length > 0 ? (
+          ) : filteredStockList && filteredStockList.length > 0 ? (
             <div className="rounded-lg bg-white py-2">
-              {stockList.map((stock) => (
+              {filteredStockList.map((stock) => (
                 <StockItem key={stock.ticker} stock={stock} />
               ))}
             </div>
@@ -126,7 +145,7 @@ export default function StockSearchModal({ children }: StockSearchModalProps) {
             query &&
             !isLoading &&
             stockList &&
-            stockList.length === 0 && (
+            filteredStockList.length === 0 && (
               <p className="p-4 text-center text-neutral-400 text-sm">
                 No related stocks found
               </p>
