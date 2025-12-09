@@ -35,7 +35,7 @@ class ToolRegistry:
         self,
         tool_id: str,
         func: CallableType,
-        description: str,
+        description: str | None = None,
         *,
         args_schema: Type[BaseModel] | None = None,
         name: Optional[str] = None,
@@ -44,6 +44,12 @@ class ToolRegistry:
         """Register a callable tool with optional schema reflection."""
         if tool_id in self._registry:
             raise ValueError(f"Tool '{tool_id}' already registered")
+        # Infer description from function docstring if missing
+        if description is None:
+            if getattr(func, "__doc__", None):
+                description = func.__doc__.strip().split("\n")[0]
+            else:
+                description = f"Execute tool {tool_id}."
 
         schema = args_schema or self._infer_schema(func)
         tool_name = name or tool_id.replace("_", " ").title()

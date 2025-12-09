@@ -4,34 +4,10 @@ from typing import Any, Callable
 
 from langchain_core.callbacks import adispatch_custom_event
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from ..models import ExecutorResult
 from ..tool_registry import registry
-
-
-class MarketDataArgs(BaseModel):
-    symbols: list[str] = Field(
-        default_factory=list, description="Ticker symbols to fetch"
-    )
-
-
-class ScreenArgs(BaseModel):
-    risk: str | None = Field(
-        default=None, description="Risk preference: Low, Medium, or High"
-    )
-
-
-class BacktestArgs(BaseModel):
-    symbols: list[str] = Field(
-        default_factory=list, description="Ticker symbols to backtest"
-    )
-    horizon_days: int = Field(default=90, description="Lookback window in days")
-
-
-class SummaryArgs(BaseModel):
-    class Config:
-        extra = "forbid"
 
 
 _TOOLS_REGISTERED = False
@@ -42,30 +18,10 @@ def ensure_default_tools_registered() -> None:
     if _TOOLS_REGISTERED:
         return
 
-    _register_tool(
-        "market_data",
-        _tool_market_data,
-        "Fetch market statistics for a list of symbols.",
-        args_schema=MarketDataArgs,
-    )
-    _register_tool(
-        "screen",
-        _tool_screen,
-        "Screen candidate symbols based on risk preference.",
-        args_schema=ScreenArgs,
-    )
-    _register_tool(
-        "backtest",
-        _tool_backtest,
-        "Run a simple backtest for provided symbols.",
-        args_schema=BacktestArgs,
-    )
-    _register_tool(
-        "summary",
-        _tool_summary,
-        "Summarize completed task outcomes.",
-        args_schema=SummaryArgs,
-    )
+    _register_tool("market_data", _tool_market_data)
+    _register_tool("screen", _tool_screen)
+    _register_tool("backtest", _tool_backtest)
+    _register_tool("summary", _tool_summary)
 
     _TOOLS_REGISTERED = True
 
@@ -73,9 +29,9 @@ def ensure_default_tools_registered() -> None:
 def _register_tool(
     tool_id: str,
     func: Callable[..., Any],
-    description: str,
+    description: str | None = None,
     *,
-    args_schema: type[BaseModel],
+    args_schema: type[BaseModel] | None = None,
 ) -> None:
     try:
         registry.register(
