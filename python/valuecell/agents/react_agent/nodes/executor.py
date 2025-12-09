@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Callable
+from ..state import AgentState
 
 from langchain_core.callbacks import adispatch_custom_event
 from loguru import logger
@@ -21,7 +22,6 @@ def ensure_default_tools_registered() -> None:
     _register_tool("market_data", _tool_market_data)
     _register_tool("screen", _tool_screen)
     _register_tool("backtest", _tool_backtest)
-    _register_tool("summary", _tool_summary)
 
     _TOOLS_REGISTERED = True
 
@@ -45,7 +45,7 @@ def _register_tool(
         pass
 
 
-async def executor_node(state: dict[str, Any], task: dict[str, Any]) -> dict[str, Any]:
+async def executor_node(state: AgentState, task: dict[str, Any]) -> dict[str, Any]:
     """Execute a single task in a stateless manner.
 
     Selects the tool by `task["tool_name"]` and returns updated state with
@@ -139,17 +139,6 @@ async def _tool_backtest(
     }
     await _emit_progress(85, "Backtest done")
     return result
-
-
-async def _tool_summary(*, state: dict[str, Any]) -> dict[str, Any]:
-    await _emit_progress(88, "Summarizing")
-    completed = state.get("completed_tasks") or {}
-    summary = {
-        "tasks": list(completed.keys()),
-        "ok_count": sum(1 for v in completed.values() if v.get("ok")),
-    }
-    await _emit_progress(92, "Summary done")
-    return summary
 
 
 ensure_default_tools_registered()
