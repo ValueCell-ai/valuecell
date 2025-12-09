@@ -21,6 +21,7 @@ function Home() {
   const [inputValue, setInputValue] = useState<string>("");
 
   const { data: allPollTaskList } = useAllPollTaskList();
+  const hasNewsTickerTape = allPollTaskList?.some((item) => item.agent_name === "NewsAgent");
 
   const handleAgentClick = (agentId: string) => {
     navigate(`/agent/${agentId}`);
@@ -30,6 +31,11 @@ function Home() {
     <div className="scroll-container flex min-h-svh min-w-[800px] flex-col gap-3 pb-4">
       {allPollTaskList && allPollTaskList.length > 0 ? (
         <section className="flex h-full flex-1 flex-col items-center justify-between gap-4 overflow-hidden">
+          {hasNewsTickerTape && (
+            <div className="mx-auto w-4/5 max-w-[800px] px-4">
+              <TradingViewTickerTape symbols={INDEX_SYMBOLS} />
+            </div>
+          )}
           <div className="scroll-container w-full">
             <AgentTaskCards tasks={allPollTaskList} />
           </div>
