@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "valuecell"
-version = "0.1.17"
+version = "0.1.18"
 description = "ValueCell is a community-driven, multi-agent platform for financial applications."
 readme = "README.md"
 requires-python = ">=3.12"
