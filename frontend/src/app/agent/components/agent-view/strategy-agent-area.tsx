@@ -40,6 +40,9 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
     null,
   );
 
+  const [previousStrategyIds, setPreviousStrategyIds] = useState<Set<number>>(
+    new Set(),
+  );
   const { data: composes = [] } = useGetStrategyDetails(
     selectedStrategy?.strategy_id,
   );
@@ -60,6 +63,19 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
   useEffect(() => {
     if (strategies.length === 0) {
       setSelectedStrategy(null);
+      setPreviousStrategyIds(new Set());
+      return;
+    }
+
+    const currentStrategyIds = new Set(strategies.map((s) => s.strategy_id));
+
+    const newlyAddedStrategy = strategies.find(
+      (s) => !previousStrategyIds.has(s.strategy_id),
+    );
+
+    if (newlyAddedStrategy) {
+      setSelectedStrategy(newlyAddedStrategy);
+      setPreviousStrategyIds(currentStrategyIds);
       return;
     }
 
@@ -72,6 +88,8 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
     if (!selectedStrategy || !hasSelectedStrategy) {
       setSelectedStrategy(strategies[0]);
     }
+
+    setPreviousStrategyIds(currentStrategyIds);
   }, [strategies, selectedStrategy]);
 
   if (isLoadingStrategies) return null;
@@ -92,6 +110,9 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
             }
             onStrategyDelete={async (strategyId) => {
               await deleteStrategy(strategyId);
+            }}
+            onStrategyCreated={() => {
+              /* No need for explicit ID, we'll detect the new strategy in the list */
             }}
           />
         ) : (

@@ -39,9 +39,11 @@ import type { CreateStrategy, Strategy } from "@/types/strategy";
 export interface CreateStrategyModelRef {
   open: (data?: CreateStrategy) => void;
 }
+
 interface CreateStrategyModalProps {
   children?: React.ReactNode;
   ref?: RefObject<CreateStrategyModelRef | null>;
+  onStrategyCreated?: (strategyId: number) => void;
 }
 
 const STEPS = [
@@ -53,6 +55,7 @@ const STEPS = [
 const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
   ref,
   children,
+  onStrategyCreated,
 }) => {
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
@@ -143,13 +146,16 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
         trading_config: value,
       };
 
-      const { code, msg } = await createStrategy(payload);
+      const { code, msg, data } = await createStrategy(payload);
       if (code !== 0) {
         setError(msg);
         return;
       }
 
       tracker.send("use", { agent_name: "StrategyAgent" });
+      if (data && data.strategy_id) {
+        onStrategyCreated?.(parseInt(data.strategy_id));
+      }
       resetAll();
     },
   });

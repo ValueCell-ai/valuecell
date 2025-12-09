@@ -52,6 +52,7 @@ interface TradeStrategyGroupProps {
   onStrategySelect?: (strategy: Strategy) => void;
   onStrategyStop?: (strategyId: number) => void;
   onStrategyDelete?: (strategyId: number) => void;
+  onStrategyCreated?: (strategyId: number) => void;
 }
 
 const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
@@ -260,6 +261,7 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
   onStrategySelect,
   onStrategyStop,
   onStrategyDelete,
+  onStrategyCreated,
 }) => {
   const hasStrategies = strategies.length > 0;
 
@@ -299,7 +301,7 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
       )}
 
       <div>
-        <CreateStrategyModal>
+        <CreateStrategyModal onStrategyCreated={onStrategyCreated}>
           <Button
             variant="outline"
             className="w-full gap-3 rounded-lg py-4 text-base"
