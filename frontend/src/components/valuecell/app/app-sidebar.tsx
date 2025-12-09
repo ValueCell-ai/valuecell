@@ -222,7 +222,7 @@ const AppSidebar: FC = () => {
 
       <Separator className="w-10! bg-white" />
 
-      <SidebarContent className="scroll-container">
+      <SidebarContent>
         <SidebarMenu className="py-3">
           {agentItems?.map((item) => {
             return (
