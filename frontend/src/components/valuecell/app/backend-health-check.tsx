@@ -3,7 +3,6 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import { useBackendHealth } from "@/api/system";
 import ValuecellLogo from "@/assets/png/logo/valuecell-logo.webp";
-import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 
 export function BackendHealthCheck({
@@ -11,7 +10,7 @@ export function BackendHealthCheck({
 }: {
   children: React.ReactNode;
 }) {
-  const { isError, refetch, isSuccess } = useBackendHealth();
+  const { isError, isSuccess } = useBackendHealth();
   const [showError, setShowError] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -72,19 +71,6 @@ export function BackendHealthCheck({
           className="fixed inset-0 z-9999 flex flex-col items-center justify-center bg-background/80 p-4 text-center"
         >
           <div className="relative flex flex-col items-center justify-center space-y-8 p-8">
-            {/* Logo Section with Glow Effect */}
-            <motion.div
-              animate={{
-                scale: [1, 1.1, 1],
-                opacity: [0.3, 0.6, 0.3],
-              }}
-              transition={{
-                duration: 4,
-                repeat: Number.POSITIVE_INFINITY,
-                ease: "easeInOut",
-              }}
-              className="-z-10 absolute inset-0 rounded-full bg-primary/20 blur-3xl"
-            />
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -94,7 +80,7 @@ export function BackendHealthCheck({
               <img
                 src={ValuecellLogo}
                 alt="Valuecell Logo"
-                className="size-52 object-contain drop-shadow-2xl"
+                className="size-52 object-contain"
               />
             </motion.div>
 
@@ -105,11 +91,8 @@ export function BackendHealthCheck({
               transition={{ delay: 0.2, duration: 0.5 }}
               className="space-y-4"
             >
-              <h2 className="font-extrabold text-4xl text-foreground tracking-tight">
-                Loading Resources
-              </h2>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                Please wait while we prepare the application environment...
+                Setting up environment...
               </p>
             </motion.div>
 
@@ -118,7 +101,7 @@ export function BackendHealthCheck({
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.5 }}
-              className="w-full space-y-4"
+              className="w-[400px] space-y-4"
             >
               <div className="max-w-lg space-y-2">
                 <Progress value={progress} className="h-2 w-full bg-muted/50" />
@@ -127,17 +110,6 @@ export function BackendHealthCheck({
                   <span>{Math.round(progress)}%</span>
                 </div>
               </div>
-
-              <Button
-                size="lg"
-                onClick={() => {
-                  setProgress(0);
-                  refetch();
-                }}
-                className="min-w-[160px] cursor-pointer rounded-full shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl"
-              >
-                Reload Resources
-              </Button>
             </motion.div>
           </div>
         </motion.div>
