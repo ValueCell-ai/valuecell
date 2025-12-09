@@ -181,6 +181,12 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                       value={field.state.value}
                       onChange={(e) => field.handleChange(e.target.value)}
                       onBlur={() => configForm.handleSubmit()}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          e.currentTarget.blur();
+                        }
+                      }}
                     />
                     <InputGroupAddon align="inline-end">
                       <InputGroupButton
@@ -228,6 +234,12 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
                     onBlur={() => configForm.handleSubmit()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        e.currentTarget.blur();
+                      }
+                    }}
                   />
                   <FieldError errors={field.state.meta.errors} />
                 </Field>
