@@ -1,22 +1,21 @@
 from __future__ import annotations
 
-from typing import Any
 import uuid
+from typing import Any
 
 from .nodes.critic import critic_node
 from .nodes.executor import executor_node
 from .nodes.inquirer import inquirer_node
 from .nodes.planner import planner_node
-from .nodes.scheduler import scheduler_node
 from .state import AgentState
 
 
-def _route_after_scheduler(state: AgentState):
-    """Route after scheduler node based on _schedule_status.
+def _route_after_planner(state: AgentState):
+    """Route after planner based on is_final flag.
 
-    - Returns list[Send("executor", {"task": t})] when runnable tasks exist.
-    - Returns "critic" when plan is complete or deadlocked.
-    - Returns END when waiting for dispatched tasks.
+    - If is_final=True: Route to critic for verification.
+    - If plan has tasks: Route to executor via Send.
+    - Otherwise: Route to critic as safety fallback.
     """
     try:
         from langgraph.types import Send  # type: ignore
@@ -25,16 +24,18 @@ def _route_after_scheduler(state: AgentState):
             "LangGraph is required for the orchestrator. Install 'langgraph'."
         ) from exc
 
-    status = state.get("_schedule_status")
-    if status == "runnable":
-        runnable = state.get("_runnable") or []
-        if runnable:
-            return [Send("executor", {"task": t}) for t in runnable]
-    if status == "waiting":
-        # Tasks are dispatched but not completed; return empty to no-op
-        return []
-    if status in {"complete", "deadlock"}:
+    is_final = state.get("is_final", False)
+    plan = state.get("plan") or []
+
+    # If planner claims done, verify with critic
+    if is_final:
         return "critic"
+
+    # If planner produced tasks, execute them in parallel
+    if plan:
+        return [Send("executor", {"task": t}) for t in plan]
+
+    # Safety fallback: no tasks and not final -> go to critic
     return "critic"
 
 
@@ -59,7 +60,6 @@ def build_app() -> Any:
 
     graph.add_node("inquirer", inquirer_node)
     graph.add_node("planner", planner_node)
-    graph.add_node("scheduler", scheduler_node)
     graph.add_node("executor", _executor_entry)
     graph.add_node("critic", critic_node)
 
@@ -71,26 +71,20 @@ def build_app() -> Any:
     graph.add_conditional_edges(
         "inquirer", _route_after_inquirer, {"plan": "planner", "wait": END}
     )
-    
-    # After planning, go to scheduler
-    graph.add_edge("planner", "scheduler")
-    
-    # After executor completion, go back to scheduler to check for next wave
-    graph.add_edge("executor", "scheduler")
-    
-    # After scheduler node, route based on status
-    graph.add_conditional_edges("scheduler", _route_after_scheduler, {"critic": "critic"})
+
+    # After planning, route based on is_final and plan content
+    graph.add_conditional_edges("planner", _route_after_planner, {"critic": "critic"})
+
+    # After executor completion, go back to planner for next iteration
+    graph.add_edge("executor", "planner")
 
     def _route_after_critic(st: AgentState) -> str:
         na = st.get("next_action")
         val = getattr(na, "value", na)
         v = str(val).lower() if val is not None else "exit"
         if v == "replan":
-            # Clear plan/schedule to allow fresh planning cycle
-            st.pop("plan", None)
-            st.pop("_schedule_status", None)
-            st.pop("_runnable", None)
-            st.pop("_dispatched", None)  # Clear dispatch tracking for fresh plan
+            # Clear is_final flag to allow fresh planning cycle
+            st["is_final"] = False
             return "replan"
         return "end"
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from operator import ior
-from typing import Any, Annotated, TypedDict
+from typing import Annotated, Any, TypedDict
 
 
 class AgentState(TypedDict, total=False):
@@ -10,19 +10,21 @@ class AgentState(TypedDict, total=False):
     user_profile: dict[str, Any] | None
     inquirer_turns: int
 
-    # Planning
-    plan: list[dict[str, Any]] | None
-    plan_logic: str | None
+    # Planning (iterative batch planning)
+    plan: list[dict[str, Any]] | None  # Current batch of tasks
+    plan_logic: str | None  # Deprecated: replaced by strategy_update
 
     # Execution results (merged across parallel executors)
     completed_tasks: Annotated[dict[str, Any], ior]
-    
-    # Track dispatched tasks to prevent duplicate scheduling (merged across routing passes)
-    _dispatched: Annotated[dict[str, bool], ior]
 
-    # Scheduler internal fields
-    _schedule_status: str | None
-    _runnable: list[dict[str, Any]] | None
+    # Iterative planning: growing list of execution summaries
+    execution_history: Annotated[list[str], list.__add__]
+
+    # Feedback from Critic to guide next planning iteration
+    critique_feedback: str | None
+
+    # Flag to signal Planner believes goal is complete
+    is_final: bool
 
     # Critic decision
     next_action: Any | None

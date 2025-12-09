@@ -1,42 +1,22 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List
+from typing import Any
 
 from agno.agent import Agent
 from agno.models.openrouter import OpenRouter
 from loguru import logger
-from pydantic import BaseModel, Field
 
-from ..models import FinancialIntent, Task
+from ..models import ExecutionPlan, FinancialIntent, PlannedTask, Task
 from ..tool_registry import registry
-
-ARG_VAL_TYPES = str | float | int
-
-
-class PlannedTask(BaseModel):
-    id: str = Field(description="Unique task identifier, e.g., 't1'")
-    tool_id: str = Field(description="The EXACT tool_id from the available tool list")
-    tool_args: Dict[str, ARG_VAL_TYPES | list[ARG_VAL_TYPES]] = Field(
-        default_factory=dict,
-        description="The arguments to pass to the tool. "
-        "MUST strictly match the 'Arguments' list in the tool definition. "
-        "DO NOT leave empty if the tool requires parameters. "
-        "Example: {'symbol': 'AAPL', 'period': '1y'}",
-    )
-    dependencies: List[str] = Field(
-        default_factory=list,
-        description="Task IDs that must complete BEFORE this task starts",
-    )
-    description: str = Field(description="Short description for logs")
-
-
-class ExecutionPlan(BaseModel):
-    logic: str = Field(description="Reasoning behind the plan")
-    tasks: List[PlannedTask] = Field(description="Directed acyclic graph of tasks")
 
 
 async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
+    """Iterative batch planner: generates the IMMEDIATE next batch of tasks.
+
+    Looks at execution_history to understand what has been done,
+    and critique_feedback to fix any issues from previous iteration.
+    """
     profile_dict = state.get("user_profile") or {}
     profile = (
         FinancialIntent.model_validate(profile_dict)
@@ -44,35 +24,46 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
         else FinancialIntent()
     )
 
-    logger.info("Planner start: profile={p}", p=profile.model_dump())
+    execution_history = state.get("execution_history") or []
+    critique_feedback = state.get("critique_feedback")
 
-    # Build prompt for Agno Agent planning
+    logger.info(
+        "Planner start: profile={p}, history_len={h}",
+        p=profile.model_dump(),
+        h=len(execution_history),
+    )
+
+    # Build iterative planning prompt
     tool_context = registry.get_prompt_context()
+
+    history_text = (
+        "\n".join(execution_history) if execution_history else "(No history yet)"
+    )
+    feedback_text = (
+        f"\n\n**Critic Feedback**: {critique_feedback}" if critique_feedback else ""
+    )
+
     system_prompt_text = (
-        "You are a Financial Systems Architect. Break down the user's financial request into a specific execution plan.\n\n"
-        "Use ONLY these available tools:\n" + tool_context + "\n\n"
-        "Planning Rules:\n"
-        "1. Dependency Management:\n"
-        "   - If a task needs data from a previous task, add the previous task's ID to dependencies.\n"
-        "   - If tasks are independent, keep dependencies empty for parallel execution.\n"
-        "2. Argument Precision:\n"
-        "   - Ensure tool_args strictly match in the tool list.\n"
-        "   - Do not invent arguments.\n"
-        "3. Logical Flow:\n"
-        "   - Typically: Fetch Data -> Analyze -> Summarize.\n"
-        "4. Output Constraint:\n"
-        "   - tool_args must contain only literal values or values from the user profile.\n"
-        "   - Do not reference other task outputs (e.g., 't2.output...') inside tool_args.\n"
-        "   - Use dependencies to express ordering; do not encode dataflow by string placeholders.\n"
+        "You are an iterative financial planning agent.\n\n"
+        "**Your Role**: Look at the Execution History below and decide the **IMMEDIATE next batch** of tasks.\n\n"
+        f"**Available Tools**:\n{tool_context}\n\n"
+        "**Planning Rules**:\n"
+        "1. **Iterative Planning**: Plan only the next step(s), not the entire workflow.\n"
+        "2. **Context Awareness**: Read the Execution History carefully. Don't repeat completed work.\n"
+        "3. **Concrete Arguments**: tool_args must contain only literal values (no placeholders like '$t1.output').\n"
+        "4. **Parallel Execution**: Tasks in the same batch run concurrently.\n"
+        "5. **Completion Signal**: If the goal is fully satisfied, return `tasks=[]` and `is_final=True`.\n"
+        "6. **Critique Integration**: If Critic Feedback is present, address the issues mentioned.\n\n"
+        f"**Execution History**:\n{history_text}{feedback_text}\n"
     )
 
     user_profile_json = json.dumps(profile.model_dump(), ensure_ascii=False)
     user_msg = f"User Request Context: {user_profile_json}"
 
-    planned_tasks = []
-    plan_logic = ""
+    is_final = False
+    strategy_update = ""
+    planned_tasks: list[PlannedTask] = []
 
-    # TODO: add retry with backoff
     try:
         agent = Agent(
             model=OpenRouter(id="google/gemini-2.5-flash"),
@@ -85,19 +76,20 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
         plan_obj: ExecutionPlan = response.content
 
         planned_tasks = plan_obj.tasks
-        plan_logic = plan_obj.logic
+        strategy_update = plan_obj.strategy_update
+        is_final = plan_obj.is_final
+
         logger.info(
-            "Planner Agno produced {} tasks, reason: `{}`, all: {}",
+            "Planner produced {} tasks, is_final={}, strategy: {}",
             len(planned_tasks),
-            plan_logic,
-            planned_tasks,
+            is_final,
+            strategy_update,
         )
     except Exception as exc:
         logger.warning("Planner Agno error: {err}", err=str(exc))
-        # Do not fall back to a deterministic plan here; return an empty plan
-        # so higher-level orchestration can decide how to proceed.
         planned_tasks = []
-        plan_logic = "No plan produced due to Agno/LLM error."
+        strategy_update = "No plan produced due to Agno/LLM error."
+        is_final = False
 
     # Validate tool registration and convert to internal Task models
     tasks: list[Task] = []
@@ -109,28 +101,26 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
         tasks.append(
             Task(
                 id=pt.id,
-                tool_name=pt.tool_id,  # our Task's tool_name equals registry tool_id
+                tool_name=pt.tool_id,
                 tool_args=pt.tool_args,
-                dependencies=pt.dependencies,
             )
         )
 
     _validate_plan(tasks)
 
-    state["plan"] = [t.model_dump() for t in tasks]
-    state["plan_logic"] = plan_logic
-    logger.info("Planner completed: {n} tasks", n=len(tasks))
-    return state
+    # Clear critique_feedback after consuming it
+    return {
+        "plan": [t.model_dump() for t in tasks],
+        "plan_logic": strategy_update,  # For backwards compatibility
+        "is_final": is_final,
+        "critique_feedback": None,  # Clear after consuming
+    }
 
 
 def _validate_plan(tasks: list[Task]) -> None:
+    """Basic validation: check for duplicate task IDs."""
     ids = set()
     for t in tasks:
         if t.id in ids:
             raise ValueError(f"Duplicate task id: {t.id}")
         ids.add(t.id)
-    valid_ids = ids.copy()
-    for t in tasks:
-        for dep in t.dependencies:
-            if dep not in valid_ids:
-                raise ValueError(f"Missing dependency '{dep}' for task '{t.id}'")

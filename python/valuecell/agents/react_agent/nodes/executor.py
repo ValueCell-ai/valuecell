@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 from typing import Any, Callable
-from ..state import AgentState
 
 from langchain_core.callbacks import adispatch_custom_event
 from loguru import logger
 from pydantic import BaseModel
 
 from ..models import ExecutorResult
+from ..state import AgentState
 from ..tool_registry import registry
-
 
 _TOOLS_REGISTERED = False
 
@@ -46,10 +45,11 @@ def _register_tool(
 
 
 async def executor_node(state: AgentState, task: dict[str, Any]) -> dict[str, Any]:
-    """Execute a single task in a stateless manner.
+    """Execute a single task and return execution summary for history.
 
-    Selects the tool by `task["tool_name"]` and returns updated state with
-    `completed_tasks[task_id]`. Artifacts are not persisted in state at this layer.
+    Returns:
+    - completed_tasks: {task_id: ExecutorResult}
+    - execution_history: [concise summary string]
     """
     task_id = task.get("id") or ""
     tool = task.get("tool_name") or ""
@@ -68,15 +68,19 @@ async def executor_node(state: AgentState, task: dict[str, Any]) -> dict[str, An
         runtime_args = {"state": state}
         result = await registry.execute(tool, args, runtime_args=runtime_args)
         exec_res = ExecutorResult(task_id=task_id, ok=True, result=result)
+
+        # Generate concise summary for execution history
+        summary = _generate_summary(task_id, tool, args, result)
     except Exception as exc:
         logger.warning("Executor error: {err}", err=str(exc))
         exec_res = ExecutorResult(
             task_id=task_id, ok=False, error=str(exc), error_code="ERR_EXEC"
         )
+        summary = f"Task {task_id} ({tool}) failed: {str(exc)[:50]}"
 
     await _emit_progress(95, "Finishing")
 
-    # Return only the delta for completed_tasks to enable safe parallel merging
+    # Return delta for completed_tasks and execution_history
     completed_delta = {task_id: exec_res.model_dump()}
 
     # Emit a task-done event so the LangGraph event stream clearly shows completion
@@ -89,7 +93,10 @@ async def executor_node(state: AgentState, task: dict[str, Any]) -> dict[str, An
         pass
 
     await _emit_progress(100, "Done")
-    return {"completed_tasks": completed_delta}
+    return {
+        "completed_tasks": completed_delta,
+        "execution_history": [summary],
+    }
 
 
 async def _emit_progress(percent: int, msg: str) -> None:
@@ -103,6 +110,28 @@ async def _emit_progress(percent: int, msg: str) -> None:
     except Exception:
         # progress emission is non-critical
         pass
+
+
+def _generate_summary(task_id: str, tool: str, args: dict, result: Any) -> str:
+    """Generate a concise summary for execution_history (token-efficient).
+
+    Example: "Task t1 (market_data): Fetched 3 symbols"
+    """
+    # Extract key info based on tool type
+    if tool == "market_data":
+        symbols = args.get("symbols") or result.get("symbols", [])
+        return f"Task {task_id} (market_data): Fetched {len(symbols)} symbols"
+    elif tool == "screen":
+        risk = args.get("risk") or result.get("risk", "Unknown")
+        count = len(result.get("table", [])) if isinstance(result, dict) else 0
+        return f"Task {task_id} (screen): Risk={risk}, {count} candidates"
+    elif tool == "backtest":
+        symbols = args.get("symbols") or result.get("symbols", [])
+        ret_pct = result.get("return_pct", 0) if isinstance(result, dict) else 0
+        return f"Task {task_id} (backtest): {len(symbols)} symbols, return={ret_pct}%"
+    else:
+        # Generic fallback
+        return f"Task {task_id} ({tool}): completed"
 
 
 async def _tool_market_data(symbols: list[str] | None = None) -> dict[str, Any]:

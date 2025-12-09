@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import Any
 import json
+from enum import Enum
+from typing import Any
 
 from agno.agent import Agent
 from agno.models.openrouter import OpenRouter
 from loguru import logger
 from pydantic import BaseModel, Field
-from enum import Enum
 
 
 class NextAction(str, Enum):
@@ -16,45 +16,54 @@ class NextAction(str, Enum):
 
 
 class CriticDecision(BaseModel):
-    next_action: NextAction = Field(description="Either 'exit' or 'replan'")
+    """Gatekeeper decision for iterative batch planning."""
+
+    approved: bool = Field(
+        description="True if goal is fully satisfied, False otherwise"
+    )
     reason: str = Field(description="Short rationale for the decision")
+    feedback: str | None = Field(
+        default=None,
+        description="Specific feedback for Planner if rejected (what is missing)",
+    )
 
 
 async def critic_node(state: dict[str, Any]) -> dict[str, Any]:
-    """Use an Agno agent to decide whether to exit or trigger replanning."""
-    completed = state.get("completed_tasks") or {}
+    """Gatekeeper: Verify if user's goal is fully satisfied.
 
-    # Prepare concise context for the agent
-    ok = {tid: res.get("result") for tid, res in completed.items() if res.get("ok")}
-    errors = {
-        tid: {"error": res.get("error"), "code": res.get("error_code")}
-        for tid, res in completed.items()
-        if not res.get("ok")
-    }
+    Only runs when Planner sets is_final=True.
+    - If approved: Return next_action="exit"
+    - If rejected: Return critique_feedback and next_action="replan"
+    """
+    user_profile = state.get("user_profile") or {}
+    execution_history = state.get("execution_history") or []
+    is_final = state.get("is_final", False)
 
-    context = {
-        "plan_logic": state.get("plan_logic"),
-        "plan": state.get("plan"),
-        "ok_results": ok,
-        "errors": errors,
-    }
+    # Safety check: Critic should only run when planner claims done
+    if not is_final:
+        logger.warning("Critic invoked but is_final=False; defaulting to replan")
+        return {
+            "next_action": NextAction.REPLAN,
+            "critique_feedback": "Planner has not completed the workflow.",
+        }
 
-    # If nothing ran, default to replan to let planner try again
-    if not completed:
-        logger.warning("Critic: no completed tasks; defaulting to replan")
-        state["_critic_summary"] = {"status": "empty"}
-        state["next_action"] = "replan"
-        state["next_action_reason"] = (
-            "No tasks executed; require planner to produce a plan."
-        )
-        return state
+    history_text = "\n".join(execution_history) if execution_history else "(Empty)"
 
     system_prompt = (
-        "You are a critical reviewer for an execution graph in a financial agent. "
-        "Review the completed tasks and errors. Decide whether the current results "
-        "are sufficient to exit, or whether the planner should continue with additional "
-        "planning to achieve the user's goal. Respond strictly in JSON per the schema."
+        "You are a gatekeeper critic for an iterative financial planning system.\n\n"
+        "**Your Role**: Compare the User's Request with the Execution History.\n"
+        "- If the goal is fully satisfied, approve (approved=True).\n"
+        "- If something is missing or incomplete, reject (approved=False) and provide specific feedback.\n\n"
+        "**Decision Criteria**:\n"
+        "1. All requested tasks completed successfully.\n"
+        "2. No critical errors that prevent goal satisfaction.\n"
+        "3. Results align with user's intent.\n"
     )
+
+    context = {
+        "user_request": user_profile,
+        "execution_history": history_text,
+    }
     user_msg = json.dumps(context, ensure_ascii=False)
 
     try:
@@ -67,24 +76,26 @@ async def critic_node(state: dict[str, Any]) -> dict[str, Any]:
         )
         response = await agent.arun(user_msg)
         decision: CriticDecision = response.content
-        state["_critic_summary"] = {
-            "ok_count": len(ok),
-            "error_count": len(errors),
-            "errors": errors,
-        }
-        action = decision.next_action
-        state["next_action"] = action
-        state["next_action_reason"] = decision.reason
-        logger.info("Critic decided: {a} - {r}", a=action.value, r=decision.reason)
-        return state
+
+        if decision.approved:
+            logger.info("Critic APPROVED: {r}", r=decision.reason)
+            return {
+                "next_action": NextAction.EXIT,
+                "_critic_summary": {"approved": True, "reason": decision.reason},
+            }
+        else:
+            logger.info("Critic REJECTED: {r}", r=decision.reason)
+            return {
+                "next_action": NextAction.REPLAN,
+                "critique_feedback": decision.feedback or decision.reason,
+                "is_final": False,  # Reset is_final to allow re-planning
+                "_critic_summary": {"approved": False, "reason": decision.reason},
+            }
     except Exception as exc:
         logger.warning("Critic agent error: {err}", err=str(exc))
-        # On error, default to replan to allow recovery
-        state["_critic_summary"] = {
-            "ok_count": len(ok),
-            "error_count": len(errors),
-            "errors": errors,
+        # On error, default to replan for safety
+        return {
+            "next_action": NextAction.REPLAN,
+            "critique_feedback": f"Critic error: {str(exc)[:100]}",
+            "is_final": False,
         }
-        state["next_action"] = NextAction.REPLAN
-        state["next_action_reason"] = "Critic error; safe default is to replan."
-        return state

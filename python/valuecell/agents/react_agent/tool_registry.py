@@ -7,7 +7,6 @@ from typing import Any, Optional, Type
 from loguru import logger
 from pydantic import BaseModel, create_model
 
-
 CallableType = Callable[..., Any]
 
 
@@ -180,7 +179,9 @@ class ToolRegistry:
         return validated.model_dump()
 
     @staticmethod
-    def _filter_runtime_args(func: CallableType, runtime_args: dict[str, Any]) -> dict[str, Any]:
+    def _filter_runtime_args(
+        func: CallableType, runtime_args: dict[str, Any]
+    ) -> dict[str, Any]:
         try:
             signature = inspect.signature(func)
         except (TypeError, ValueError):
@@ -220,7 +221,10 @@ class ToolRegistry:
         for name, param in signature.parameters.items():
             if name in {"self", "cls"}:
                 continue
-            if param.kind in {inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD}:
+            if param.kind in {
+                inspect.Parameter.VAR_POSITIONAL,
+                inspect.Parameter.VAR_KEYWORD,
+            }:
                 return None
             annotation = (
                 param.annotation
@@ -228,9 +232,7 @@ class ToolRegistry:
                 else Any
             )
             default = (
-                param.default
-                if param.default is not inspect.Signature.empty
-                else ...
+                param.default if param.default is not inspect.Signature.empty else ...
             )
             fields[name] = (annotation, default)
 

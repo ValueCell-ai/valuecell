@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal, Optional
+from typing import Any, Dict, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -9,7 +9,6 @@ class Task(BaseModel):
     id: str
     tool_name: str
     tool_args: dict[str, Any] = Field(default_factory=dict)
-    dependencies: list[str] = Field(default_factory=list)
 
 
 class FinancialIntent(BaseModel):
@@ -43,6 +42,37 @@ class ExecutorResult(BaseModel):
     result: Any | None = None
     error: Optional[str] = None
     error_code: Optional[str] = None  # e.g., ERR_NETWORK, ERR_INPUT
+
+
+ARG_VAL_TYPES = str | int | float | bool
+
+
+class PlannedTask(BaseModel):
+    id: str = Field(description="Unique task identifier, e.g., 't1'")
+    tool_id: str = Field(description="The EXACT tool_id from the available tool list")
+    tool_args: Dict[str, ARG_VAL_TYPES | list[ARG_VAL_TYPES]] = Field(
+        default_factory=dict,
+        description="The arguments to pass to the tool. "
+        "MUST strictly match the 'Arguments' list in the tool definition. "
+        "DO NOT leave empty if the tool requires parameters. "
+        "Example: {'symbol': 'AAPL', 'period': '1y'}",
+    )
+    description: str = Field(description="Short description for logs")
+
+
+class ExecutionPlan(BaseModel):
+    """Output from the Planner for iterative batch planning."""
+
+    tasks: list[PlannedTask] = Field(
+        description="List of tasks to execute concurrently in this batch."
+    )
+    strategy_update: str = Field(
+        description="Brief reasoning about what has been done and what is left."
+    )
+    is_final: bool = Field(
+        default=False,
+        description="Set to True ONLY if the user's goal is fully satisfied.",
+    )
 
 
 class InquirerDecision(BaseModel):
