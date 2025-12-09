@@ -1,3 +1,6 @@
+import { downloadDir, join } from "@tauri-apps/api/path";
+import { save } from "@tauri-apps/plugin-dialog";
+import { openPath } from "@tauri-apps/plugin-opener";
 import { snapdom } from "@zumer/snapdom";
 import { Download } from "lucide-react";
 import {
@@ -56,15 +59,43 @@ const SharePortfolioModal: FC<{
         backgroundColor: "#ffffff",
       });
 
-      await capture.download({
-        filename: `valuecell-${Date.now()}`,
-        type: "png",
+      const arrayBuffer = await (
+        await capture.toBlob({
+          type: "png",
+        })
+      ).arrayBuffer();
+
+      const filename = `valuecell-${Date.now()}.png`;
+      const downloadPath = await downloadDir();
+      const defaultPath = await join(downloadPath, filename);
+      const path = await save({
+        defaultPath,
+        filters: [
+          {
+            name: "Image",
+            extensions: ["png"],
+          },
+        ],
       });
 
+      if (!path) return;
+
+      const { writeFile } = await import("@tauri-apps/plugin-fs");
+      await writeFile(path, new Uint8Array(arrayBuffer));
+
       setOpen(false);
-      toast.success("Image downloaded in your Downloads folder");
+      toast.success("Image downloaded successfully", {
+        action: {
+          label: "open file",
+          onClick: async () => {
+            return await openPath(path);
+          },
+        },
+      });
     } catch (err) {
-      toast.error(`Failed to download image: ${JSON.stringify(err)}`);
+      toast.error(`Failed to download image: ${JSON.stringify(err)}`, {
+        duration: 6 * 1000,
+      });
     } finally {
       setIsDownloading(false);
     }
