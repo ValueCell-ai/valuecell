@@ -240,6 +240,115 @@ def test_preload_handles_failed_import(tmp_path: Path, monkeypatch: pytest.Monke
     assert ctx.agent_instance_class is None
 
 
+def test_preload_with_names_loads_only_specified(tmp_path: Path):
+    """When a `names` filter is provided, only those agents are preloaded."""
+    dir_path = tmp_path / "agent_cards"
+    dir_path.mkdir(parents=True)
+
+    card1 = make_card_dict(
+        "AgentOne", "http://127.0.0.1:9001", push_notifications=False
+    )
+    card1["metadata"] = {
+        "local_agent_class": "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
+    }
+    card2 = make_card_dict(
+        "AgentTwo", "http://127.0.0.1:9002", push_notifications=False
+    )
+    card2["metadata"] = {
+        "local_agent_class": "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
+    }
+
+    with open(dir_path / "AgentOne.json", "w", encoding="utf-8") as f:
+        json.dump(card1, f)
+    with open(dir_path / "AgentTwo.json", "w", encoding="utf-8") as f:
+        json.dump(card2, f)
+
+    rc = RemoteConnections()
+    rc.load_from_dir(str(dir_path))
+
+    # Only preload AgentOne
+    rc.preload_local_agent_classes(names=["AgentOne"])
+
+    assert rc._contexts["AgentOne"].agent_instance_class is not None
+    assert rc._contexts["AgentTwo"].agent_instance_class is None
+
+
+def test_preload_with_names_not_present_skips_all(tmp_path: Path):
+    """Providing names that don't match any context should skip preloading."""
+    dir_path = tmp_path / "agent_cards"
+    dir_path.mkdir(parents=True)
+
+    card = make_card_dict(
+        "OnlyAgent", "http://127.0.0.1:9003", push_notifications=False
+    )
+    card["metadata"] = {
+        "local_agent_class": "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
+    }
+    with open(dir_path / "OnlyAgent.json", "w", encoding="utf-8") as f:
+        json.dump(card, f)
+
+    rc = RemoteConnections()
+    rc.load_from_dir(str(dir_path))
+
+    # Provide a names list that does not include 'OnlyAgent'
+    rc.preload_local_agent_classes(names=["NoSuchAgent"])
+
+    assert rc._contexts["OnlyAgent"].agent_instance_class is None
+
+
+def test_preload_with_names_empty_list_skips_all(tmp_path: Path):
+    """Providing an empty `names` list should skip preloading all agents."""
+    dir_path = tmp_path / "agent_cards"
+    dir_path.mkdir(parents=True)
+
+    card = make_card_dict(
+        "SomeAgent", "http://127.0.0.1:9004", push_notifications=False
+    )
+    card["metadata"] = {
+        "local_agent_class": "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
+    }
+    with open(dir_path / "SomeAgent.json", "w", encoding="utf-8") as f:
+        json.dump(card, f)
+
+    rc = RemoteConnections()
+    rc.load_from_dir(str(dir_path))
+
+    # Provide empty list -> nothing should be preloaded
+    rc.preload_local_agent_classes(names=[])
+
+    assert rc._contexts["SomeAgent"].agent_instance_class is None
+
+
+def test_preload_with_names_includes_agent_without_spec(tmp_path: Path):
+    """When `names` includes an agent that lacks a class spec, it should be skipped without error."""
+    dir_path = tmp_path / "agent_cards"
+    dir_path.mkdir(parents=True)
+
+    card_spec = make_card_dict(
+        "WithSpec", "http://127.0.0.1:9005", push_notifications=False
+    )
+    card_spec["metadata"] = {
+        "local_agent_class": "valuecell.agents.prompt_strategy_agent.core:PromptBasedStrategyAgent"
+    }
+    card_nospec = make_card_dict(
+        "NoSpec", "http://127.0.0.1:9006", push_notifications=False
+    )
+
+    with open(dir_path / "WithSpec.json", "w", encoding="utf-8") as f:
+        json.dump(card_spec, f)
+    with open(dir_path / "NoSpec.json", "w", encoding="utf-8") as f:
+        json.dump(card_nospec, f)
+
+    rc = RemoteConnections()
+    rc.load_from_dir(str(dir_path))
+
+    # Request preload for both; only WithSpec should be loaded
+    rc.preload_local_agent_classes(names=["WithSpec", "NoSpec"])
+
+    assert rc._contexts["WithSpec"].agent_instance_class is not None
+    assert rc._contexts["NoSpec"].agent_instance_class is None
+
+
 @pytest.mark.asyncio
 async def test_start_agent_without_listener(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch

@@ -33,7 +33,9 @@ def _preload_agent_classes_once() -> None:
     try:
         logger.info("Preloading local agent classes...")
         rc = RemoteConnections()
-        rc.preload_local_agent_classes()
+        rc.preload_local_agent_classes(
+            names=["GridStrategyAgent", "PromptBasedStrategyAgent"]
+        )
         logger.info("✓ Local agent classes preloaded")
     except Exception as e:
         logger.warning(f"✗ Failed to preload local agent classes: {e}")

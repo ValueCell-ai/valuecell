@@ -286,8 +286,12 @@ class RemoteConnections:
         if not self._remote_contexts_loaded:
             self._load_remote_contexts()
 
-    def preload_local_agent_classes(self) -> None:
+    def preload_local_agent_classes(self, names: list[str] | None = None) -> None:
         """Preload all local agent classes synchronously at startup.
+
+        If `names` is provided (a list of agent names), only agents whose
+        names appear in the list will be considered for preload; others are
+        skipped. This preserves the original behavior when `names` is None.
 
         This method should be called during application startup (before the
         event loop processes requests) to avoid import deadlocks on Windows.
@@ -298,6 +302,12 @@ class RemoteConnections:
         self._ensure_remote_contexts_loaded()
         preloaded_count = 0
         for name, ctx in self._contexts.items():
+            # If caller passed a filter list, skip contexts not in that list
+            if names is not None and name not in names:
+                logger.debug(
+                    "Skipping preload for '{}': not in provided names list", name
+                )
+                continue
             if not ctx.agent_class_spec:
                 logger.debug("Skipping preload for '{}': no agent_class_spec", name)
                 continue
