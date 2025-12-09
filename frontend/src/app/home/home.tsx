@@ -21,7 +21,9 @@ function Home() {
   const [inputValue, setInputValue] = useState<string>("");
 
   const { data: allPollTaskList } = useAllPollTaskList();
-  const hasNewsTickerTape = allPollTaskList?.some((item) => item.agent_name === "NewsAgent");
+  const hasNewsTickerTape = allPollTaskList?.some(
+    (item) => item.agent_name === "NewsAgent",
+  );
 
   const handleAgentClick = (agentId: string) => {
     navigate(`/agent/${agentId}`);
