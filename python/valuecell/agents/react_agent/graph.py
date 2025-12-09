@@ -11,7 +11,7 @@ from .nodes.scheduler import scheduler_node
 from .state import AgentState
 
 
-def _route_after_scheduler(state: dict[str, Any]):
+def _route_after_scheduler(state: AgentState):
     """Route after scheduler node based on _schedule_status.
 
     - Returns list[Send("executor", {"task": t})] when runnable tasks exist.
@@ -38,7 +38,7 @@ def _route_after_scheduler(state: dict[str, Any]):
     return "critic"
 
 
-async def _executor_entry(state: dict[str, Any]) -> dict[str, Any]:
+async def _executor_entry(state: AgentState) -> dict[str, Any]:
     """Entry adapter for executor: expects a `task` injected via Send()."""
     task = state.get("task") or {}
     return await executor_node(state, task)
@@ -65,7 +65,7 @@ def build_app() -> Any:
 
     graph.add_edge(START, "inquirer")
 
-    def _route_after_inquirer(st: dict[str, Any]) -> str:
+    def _route_after_inquirer(st: AgentState) -> str:
         return "plan" if st.get("user_profile") else "wait"
 
     graph.add_conditional_edges(
@@ -81,7 +81,7 @@ def build_app() -> Any:
     # After scheduler node, route based on status
     graph.add_conditional_edges("scheduler", _route_after_scheduler, {"critic": "critic"})
 
-    def _route_after_critic(st: dict[str, Any]) -> str:
+    def _route_after_critic(st: AgentState) -> str:
         na = st.get("next_action")
         val = getattr(na, "value", na)
         v = str(val).lower() if val is not None else "exit"
