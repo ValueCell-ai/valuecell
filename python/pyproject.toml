@@ -31,6 +31,8 @@ dependencies = [
     "ccxt>=4.5.15",
     "baostock>=0.8.9",
     "func-timeout>=4.3.5",
+    "langchain-openai>=1.1.1",
+    "langgraph>=1.0.4",
 ]
 
 [project.optional-dependencies]
