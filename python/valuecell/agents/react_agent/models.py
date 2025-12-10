@@ -94,3 +94,8 @@ class InquirerDecision(BaseModel):
         description="True if user is starting a NEW task (e.g., changing stocks). "
         "False if asking follow-up questions about existing analysis.",
     )
+    focus_topic: str | None = Field(
+        default=None,
+        description="Specific sub-topic or question the user is asking about (e.g., 'iPhone 17 sales forecasts', 'dividend history'). "
+        "Extract this for FOLLOW-UP questions to guide the Planner.",
+    )

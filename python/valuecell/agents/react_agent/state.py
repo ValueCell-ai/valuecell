@@ -9,6 +9,7 @@ class AgentState(TypedDict, total=False):
     messages: list[Any]
     user_profile: dict[str, Any] | None
     inquirer_turns: int
+    focus_topic: str | None  # Specific user question/topic for current turn (e.g., 'iPhone 17 sales')
 
     # Planning (iterative batch planning)
     plan: list[dict[str, Any]] | None  # Current batch of tasks

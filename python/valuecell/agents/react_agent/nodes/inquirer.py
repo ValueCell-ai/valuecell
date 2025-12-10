@@ -71,8 +71,10 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
         "set status='CHAT' and provide a polite response in `response_to_user`. Set intent=None.\n\n"
         "2. **NEW TASK**: If user is starting a NEW analysis (e.g., 'Analyze MSFT', 'Switch to Gold'), "
         "set status='COMPLETE', extract the new intent, and set `should_clear_history=True` to reset old data.\n\n"
-        "3. **FOLLOW-UP**: If user is asking about EXISTING results (e.g., 'Why is the return low?', 'Show more details'), "
-        "set status='COMPLETE', keep the current intent (or update if refined), and set `should_clear_history=False`.\n\n"
+        "3. **FOLLOW-UP**: If user is asking about EXISTING results (e.g., 'Why is the return low?', 'Tell me about iPhone 17 sales'), "
+        "set status='COMPLETE', keep the current intent (or update if refined), set `should_clear_history=False`, "
+        "and **CRITICALLY**: extract the specific `focus_topic` the user is asking about (e.g., 'iPhone 17 sales forecasts', 'dividend policy', 'ESG rating'). "
+        "This helps the Planner determine if new research is needed for that specific topic.\n\n"
         "4. **INCOMPLETE**: If essential info (risk preference) is MISSING on a NEW task, "
         "set status='INCOMPLETE' and ask a follow-up question in `response_to_user`.\n\n"
         "# REQUIRED INFO FOR COMPLETE:\n"
@@ -161,10 +163,19 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
             updates["execution_history"] = []
             updates["is_final"] = False
             updates["critique_feedback"] = None
+            updates["focus_topic"] = None  # Clear old focus
             updates["messages"] = [
                 SystemMessage(content="User started a new task. Previous context cleared.")
             ]
-        # Otherwise, keep history intact for follow-up questions
+        else:
+            # Follow-up: Keep history but reset is_final and set focus_topic
+            # This forces Planner to re-evaluate whether new data is needed
+            logger.info(
+                "Inquirer: FOLLOW-UP detected, focus_topic={topic}",
+                topic=decision.focus_topic,
+            )
+            updates["is_final"] = False  # Force replanning
+            updates["focus_topic"] = decision.focus_topic or None
 
         updates["inquirer_turns"] = 0  # Reset turn counter after completion
         return updates
