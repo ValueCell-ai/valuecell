@@ -10,6 +10,62 @@ from loguru import logger
 from ..models import FinancialIntent, InquirerDecision
 
 
+def _merge_profiles(old: dict | None, delta: dict | None) -> dict:
+    """Merge new intent delta into existing profile (set union for assets).
+
+    Args:
+        old: Existing user_profile dict or None
+        delta: New intent delta dict from LLM or None
+
+    Returns:
+        Merged profile dict
+
+    Examples:
+        old={'asset_symbols': ['AAPL']}, delta={'asset_symbols': ['MSFT']}
+        -> {'asset_symbols': ['AAPL', 'MSFT']}
+    """
+    if not old:
+        return delta or {}
+    if not delta:
+        return old
+
+    merged = old.copy()
+
+    # 1. Merge asset lists (Set union for deduplication)
+    old_assets = set(old.get("asset_symbols") or [])
+    new_assets = set(delta.get("asset_symbols") or [])
+    if new_assets:
+        merged["asset_symbols"] = list(old_assets | new_assets)
+
+    # 2. Update risk preference (overwrite if new one provided)
+    if delta.get("risk"):
+        merged["risk"] = delta["risk"]
+
+    return merged
+
+
+def _compress_history(history: list[str]) -> str:
+    """Compress long execution history to prevent token explosion.
+
+    Args:
+        history: List of execution history strings
+
+    Returns:
+        Single compressed summary string
+    """
+    # Simple compression: Keep first 3 and last 3 entries
+    if len(history) <= 6:
+        return "\n".join(history)
+
+    compressed = [
+        "[Execution History - Compressed]",
+        *history[:3],
+        f"... ({len(history) - 6} steps omitted) ...",
+        *history[-3:],
+    ]
+    return "\n".join(compressed)
+
+
 def _trim_messages(messages: list, max_messages: int = 10) -> list:
     """Keep only the last N messages to prevent token overflow.
 
@@ -56,34 +112,39 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
 
     is_final_turn = turns >= 2
 
-    # Build context-aware system prompt
     system_prompt = (
-        "You are a Financial Advisor Assistant's State Manager.\n\n"
-        "# YOUR ROLE:\n"
-        "Analyze the user's latest message in the context of previous conversation and execution state.\n"
-        "Decide what to do with the agent's state.\n\n"
-        f"# CURRENT CONTEXT:\n"
-        f"- Known Profile: {current_profile or 'None (First interaction)'}\n"
-        f"- Completed Tasks: {len(execution_history)} execution steps\n"
-        f"- Interaction Turn: {turns} (Max: 2)\n\n"
-        "# DECISION LOGIC:\n"
-        "1. **CHAT**: If user is just chatting (e.g., 'Thanks', 'OK', casual reply), "
-        "set status='CHAT' and provide a polite response in `response_to_user`. Set intent=None.\n\n"
-        "2. **NEW TASK**: If user is starting a NEW analysis (e.g., 'Analyze MSFT', 'Switch to Gold'), "
-        "set status='COMPLETE', extract the new intent, and set `should_clear_history=True` to reset old data.\n\n"
-        "3. **FOLLOW-UP**: If user is asking about EXISTING results (e.g., 'Why is the return low?', 'Tell me about iPhone 17 sales'), "
-        "set status='COMPLETE', keep the current intent (or update if refined), set `should_clear_history=False`, "
-        "and **CRITICALLY**: extract the specific `focus_topic` the user is asking about (e.g., 'iPhone 17 sales forecasts', 'dividend policy', 'ESG rating'). "
-        "This helps the Planner determine if new research is needed for that specific topic.\n\n"
-        "4. **INCOMPLETE**: If essential info (risk preference) is MISSING on a NEW task, "
-        "set status='INCOMPLETE' and ask a follow-up question in `response_to_user`.\n\n"
-        "# REQUIRED INFO FOR COMPLETE:\n"
-        "- Asset/Target: What to analyze (stock, sector, etc.)\n"
-        "- Risk Tolerance: Low, Medium, or High (can infer from keywords)\n\n"
-        "# INFERENCE RULES:\n"
-        "- 'safe', 'stable', 'conservative' -> Risk='Low'\n"
-        "- 'growth', 'aggressive', 'dynamic' -> Risk='High'\n"
-        "- 'balanced', unspecified -> Risk='Medium'\n\n"
+        "You are the **State Manager** for a Financial Advisor Assistant.\n"
+        "Your role: Extract ONLY the NEW information (delta) from each user message.\n\n"
+        f"# CURRENT STATE (Context Only - DO NOT Output):\n"
+        f"- **Active Profile**: {current_profile or 'None (Empty)'}\n"
+        f"- **Execution History**: {len(execution_history)} tasks completed\n\n"
+        "# CORE PRINCIPLE: **State Accumulation**\n"
+        "- Extract DELTA only (new information from THIS message)\n"
+        "- Do NOT merge with existing state (merging happens automatically)\n"
+        "- Default behavior: APPEND to existing context (never clear)\n"
+        "- Only set `is_hard_switch=True` for EXPLICIT resets\n\n"
+        "# DECISION LOGIC:\n\n"
+        "1. **CHAT / ACKNOWLEDGEMENT**\n"
+        "   - Pattern: 'Thanks', 'Okay', 'Got it'\n"
+        "   - Output: status='CHAT', intent_delta=None, response_to_user=[polite reply]\n\n"
+        "2. **EXPLICIT RESET (Rare)**\n"
+        "   - Pattern: 'Start over', 'Forget that', 'Clear everything', 'Switch to Crypto'\n"
+        "   - Output: status='COMPLETE', is_hard_switch=True, intent_delta=[NEW intent from scratch]\n"
+        "   - **CRITICAL**: DO NOT trigger for comparisons like 'Compare with MSFT'\n\n"
+        "3. **INCREMENTAL ADDITION**\n"
+        "   - Pattern: 'Compare with MSFT', 'Add TSLA', 'What about Gold?'\n"
+        "   - Output: status='COMPLETE', is_hard_switch=False, intent_delta={'asset_symbols': ['MSFT']}\n"
+        "   - **ONLY include the NEW asset**, not the old ones (e.g., if context has AAPL, just output ['MSFT'])\n\n"
+        "4. **IMPLICIT REFERENCE (Follow-up)**\n"
+        "   - Pattern: 'Which is better?', 'Why did it drop?', 'Tell me more about iPhone 17'\n"
+        "   - **Context Check**: If Active Profile exists, assume user refers to it\n"
+        "   - Output: status='COMPLETE', is_hard_switch=False, intent_delta=None\n"
+        "   - **DO NOT** mark as INCOMPLETE if context is sufficient\n\n"
+        "5. **INCOMPLETE (Vague Start)**\n"
+        "   - Pattern: 'I want to invest', 'Recommend something' (AND Active Profile is None)\n"
+        "   - Output: status='INCOMPLETE', ask user for specifics\n\n"
+        "# RISK INFERENCE:\n"
+        "- 'Safe/Retirement' -> Low | 'Aggressive/Growth' -> High | Default -> Medium\n"
     )
 
     if is_final_turn:
@@ -113,13 +174,13 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
         decision: InquirerDecision = response.content
 
         logger.info(
-            "Inquirer decision: status={s}, clear_history={c}, reason={r}",
+            "Inquirer decision: status={s}, hard_switch={h}, reason={r}",
             s=decision.status,
-            c=decision.should_clear_history,
+            h=decision.is_hard_switch,
             r=decision.reasoning,
         )
 
-        # --- State Update Logic (Core Context Switching) ---
+        # --- State Update Logic: Append-Only with Explicit Resets ---
 
         updates: dict[str, Any] = {}
 
@@ -139,45 +200,72 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
             updates["messages"] = [
                 AIMessage(
                     content=decision.response_to_user
-                    or "Could you tell me your risk preference (Low, Medium, High)?"
+                    or "Could you tell me your preference?"
                 )
             ]
             return updates
 
-        # CASE 3: COMPLETE - Ready for planning
-        # Update profile (use new intent or keep current)
-        if decision.intent:
-            updates["user_profile"] = decision.intent.model_dump()
-        elif current_profile:
-            # Follow-up without changing intent: keep existing profile
-            updates["user_profile"] = current_profile
-        else:
-            # Fallback: no intent provided, default to Medium risk
-            updates["user_profile"] = FinancialIntent(risk="Medium").model_dump()
+        # CASE 3: COMPLETE - Ready for planning (with state accumulation)
 
-        # Context Switch: Clear history if starting new task
-        if decision.should_clear_history:
-            logger.info("Inquirer: Clearing history for NEW TASK")
+        # Branch A: HARD RESET (rare - explicit user command)
+        if decision.is_hard_switch:
+            logger.info(
+                "Inquirer: HARD RESET - User explicitly requested context clear"
+            )
+            # Extract fresh intent from delta
+            new_profile = (
+                decision.intent_delta.model_dump()
+                if decision.intent_delta
+                else FinancialIntent().model_dump()
+            )
+            updates["user_profile"] = new_profile
+            # Clear all accumulated state
             updates["plan"] = []
             updates["completed_tasks"] = {}
             updates["execution_history"] = []
             updates["is_final"] = False
             updates["critique_feedback"] = None
-            updates["focus_topic"] = None  # Clear old focus
             updates["messages"] = [
-                SystemMessage(content="User started a new task. Previous context cleared.")
+                SystemMessage(content="Context reset. Starting fresh analysis.")
             ]
-        else:
-            # Follow-up: Keep history but reset is_final and set focus_topic
-            # This forces Planner to re-evaluate whether new data is needed
-            logger.info(
-                "Inquirer: FOLLOW-UP detected, focus_topic={topic}",
-                topic=decision.focus_topic,
-            )
-            updates["is_final"] = False  # Force replanning
-            updates["focus_topic"] = decision.focus_topic or None
 
-        updates["inquirer_turns"] = 0  # Reset turn counter after completion
+        # Branch B: DEFAULT ACCUMULATION (90% of cases)
+        else:
+            # Merge delta into existing profile
+            if decision.intent_delta:
+                merged_profile = _merge_profiles(
+                    current_profile, decision.intent_delta.model_dump()
+                )
+                updates["user_profile"] = merged_profile
+                logger.info(
+                    "Inquirer: DELTA MERGE - Old: {old}, Delta: {delta}, Merged: {merged}",
+                    old=current_profile,
+                    delta=decision.intent_delta.model_dump(),
+                    merged=merged_profile,
+                )
+            elif current_profile:
+                # Follow-up without new intent: keep existing profile
+                updates["user_profile"] = current_profile
+                logger.info("Inquirer: FOLLOW-UP - No delta, preserving profile")
+            else:
+                # Fallback: no delta and no existing profile
+                updates["user_profile"] = FinancialIntent().model_dump()
+                logger.info("Inquirer: DEFAULT PROFILE - No context, using Medium risk")
+
+            # Always reset is_final to trigger replanning (Planner decides what to reuse)
+            updates["is_final"] = False
+
+        # History Compression (Garbage Collection)
+        current_history = state.get("execution_history") or []
+        if len(current_history) > 20:
+            logger.warning(
+                "Execution history too long ({n} entries), compressing...",
+                n=len(current_history),
+            )
+            compressed = _compress_history(current_history)
+            updates["execution_history"] = [compressed]
+
+        updates["inquirer_turns"] = 0  # Reset turn counter
         return updates
 
     except Exception as exc:
@@ -187,8 +275,7 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
         if is_final_turn or current_profile:
             # If we have a profile, assume user wants to continue
             return {
-                "user_profile": current_profile
-                or FinancialIntent(risk="Medium").model_dump(),
+                "user_profile": current_profile or FinancialIntent().model_dump(),
                 "inquirer_turns": 0,
             }
         else:

@@ -9,7 +9,6 @@ from pydantic import BaseModel
 from ..models import ExecutorResult
 from ..state import AgentState
 from ..tool_registry import registry
-
 from ..tools.research import (
     research,
     search_crypto_people,

@@ -14,9 +14,8 @@ from ..tool_registry import registry
 async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
     """Iterative batch planner: generates the IMMEDIATE next batch of tasks.
 
-    Looks at execution_history to understand what has been done,
-    critique_feedback to fix any issues from previous iteration,
-    and focus_topic to prioritize specific user questions.
+    Looks at execution_history to understand what has been done
+    and critique_feedback to fix any issues from previous iteration.
     """
     profile_dict = state.get("user_profile") or {}
     profile = (
@@ -27,13 +26,11 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
 
     execution_history = state.get("execution_history") or []
     critique_feedback = state.get("critique_feedback")
-    focus_topic = state.get("focus_topic")
 
     logger.info(
-        "Planner start: profile={p}, history_len={h}, focus={f}",
+        "Planner start: profile={p}, history_len={h}",
         p=profile.model_dump(),
         h=len(execution_history),
-        f=focus_topic or "General",
     )
 
     # Build iterative planning prompt
@@ -45,14 +42,6 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
     feedback_text = (
         f"\n\n**Critic Feedback**: {critique_feedback}" if critique_feedback else ""
     )
-    focus_text = (
-        f"\n\n**Current Focus Topic**: {focus_topic}\n"
-        f"(User is specifically asking about this. Verify if the Execution History already covers this specific topic. "
-        f"If the history only has general data but NOT this specific topic, you MUST generate new research tasks.)"
-        if focus_topic
-        else ""
-    )
-
     system_prompt_text = (
         "You are an iterative financial planning agent.\n\n"
         "**Your Role**: Look at the Execution History below and decide the **IMMEDIATE next batch** of tasks.\n\n"
@@ -60,13 +49,13 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
         "**Planning Rules**:\n"
         "1. **Iterative Planning**: Plan only the next step(s), not the entire workflow.\n"
         "2. **Context Awareness**: Read the Execution History carefully. Don't repeat completed work.\n"
-        "3. **Focus Topic Priority**: If a `Current Focus Topic` is specified, CHECK if the Execution History contains data specifically about that topic.\n"
+        "3. **Reuse vs New Research**: Prefer reusing existing Execution History when it already covers the user's request.\n"
         "4. **Concrete Arguments**: tool_args must contain only literal values (no placeholders like '$t1.output').\n"
         "5. **Parallel Execution**: Tasks in the same batch run concurrently.\n"
-        "6. **Completion Signal**: If the goal is fully satisfied AND the Focus Topic (if any) is addressed, "
+        "6. **Completion Signal**: If the goal is fully satisfied and the user's latest request is addressed, "
         "return `tasks=[]` and `is_final=True`.\n"
         "7. **Critique Integration**: If Critic Feedback is present, address the issues mentioned.\n\n"
-        f"**Execution History**:\n{history_text}{feedback_text}{focus_text}\n"
+        f"**Execution History**:\n{history_text}{feedback_text}\n"
     )
 
     user_profile_json = json.dumps(profile.model_dump(), ensure_ascii=False)
@@ -120,13 +109,12 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
 
     _validate_plan(tasks)
 
-    # Clear critique_feedback and focus_topic after consuming them
+    # Clear critique_feedback after consuming it
     return {
         "plan": [t.model_dump() for t in tasks],
         "plan_logic": strategy_update,  # For backwards compatibility
         "is_final": is_final,
         "critique_feedback": None,  # Clear after consuming
-        "focus_topic": None,  # Clear after consuming
     }
 
 

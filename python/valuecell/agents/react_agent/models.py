@@ -13,7 +13,6 @@ class Task(BaseModel):
 
 class FinancialIntent(BaseModel):
     asset_symbols: Optional[list[str]] = None
-    risk: Optional[Literal["Low", "Medium", "High"]] = None
 
     @field_validator("asset_symbols", mode="before")
     def _coerce_asset_symbols(cls, v):
@@ -76,10 +75,12 @@ class ExecutionPlan(BaseModel):
 
 
 class InquirerDecision(BaseModel):
-    """The decision output from the LLM-driven Inquirer Agent with context-switching."""
+    """The decision output from the LLM-driven Inquirer Agent with state accumulation."""
 
-    intent: FinancialIntent | None = Field(
-        default=None, description="Extracted financial intent from conversation"
+    intent_delta: FinancialIntent | None = Field(
+        default=None,
+        description="The NEW information extracted from this message only (delta, not full state). "
+        "For 'Compare with MSFT', this should only contain ['MSFT'], not ['AAPL', 'MSFT'].",
     )
     status: Literal["COMPLETE", "INCOMPLETE", "CHAT"] = Field(
         description="COMPLETE: Ready for planning. INCOMPLETE: Need more info. CHAT: Casual conversation/follow-up."
@@ -89,13 +90,9 @@ class InquirerDecision(BaseModel):
         default=None,
         description="Direct response to user (for INCOMPLETE questions or CHAT replies).",
     )
-    should_clear_history: bool = Field(
+    is_hard_switch: bool = Field(
         default=False,
-        description="True if user is starting a NEW task (e.g., changing stocks). "
-        "False if asking follow-up questions about existing analysis.",
-    )
-    focus_topic: str | None = Field(
-        default=None,
-        description="Specific sub-topic or question the user is asking about (e.g., 'iPhone 17 sales forecasts', 'dividend history'). "
-        "Extract this for FOLLOW-UP questions to guide the Planner.",
+        description="True ONLY if user explicitly asks to ignore previous context or switch domains completely. "
+        "Examples: 'Start over', 'Forget that', 'Clear everything', domain change (Stocks -> Crypto). "
+        "DO NOT set to True for comparisons like 'Compare with MSFT'.",
     )
