@@ -7,6 +7,7 @@ from .nodes.critic import critic_node
 from .nodes.executor import executor_node
 from .nodes.inquirer import inquirer_node
 from .nodes.planner import planner_node
+from .nodes.summarizer import summarizer_node
 from .state import AgentState
 
 
@@ -62,6 +63,7 @@ def build_app() -> Any:
     graph.add_node("planner", planner_node)
     graph.add_node("executor", _executor_entry)
     graph.add_node("critic", critic_node)
+    graph.add_node("summarizer", summarizer_node)
 
     graph.add_edge(START, "inquirer")
 
@@ -86,11 +88,15 @@ def build_app() -> Any:
             # Clear is_final flag to allow fresh planning cycle
             st["is_final"] = False
             return "replan"
-        return "end"
+        # Critic approved: route to summarizer for final report
+        return "summarize"
 
     graph.add_conditional_edges(
-        "critic", _route_after_critic, {"replan": "planner", "end": END}
+        "critic", _route_after_critic, {"replan": "planner", "summarize": "summarizer"}
     )
+
+    # Summarizer generates final report, then END
+    graph.add_edge("summarizer", END)
 
     memory = MemorySaver()
     app = graph.compile(checkpointer=memory)
