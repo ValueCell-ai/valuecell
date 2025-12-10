@@ -50,7 +50,7 @@ def build_research_agent() -> Agent:
         search_knowledge=knowledge is not None,
         add_datetime_to_context=True,
         # configuration
-        debug_mode=agent_debug_mode_enabled(),
+        # debug_mode=agent_debug_mode_enabled(),
     )
 
 

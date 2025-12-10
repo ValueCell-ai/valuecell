@@ -6,16 +6,16 @@ from langchain_core.callbacks import adispatch_custom_event
 from loguru import logger
 from pydantic import BaseModel
 
-from ..models import ExecutorResult
-from ..state import AgentState
-from ..tool_registry import registry
-from ..tools.research import (
-    research,
+from ...research_agent.sources import (
     search_crypto_people,
     search_crypto_projects,
     search_crypto_vcs,
     web_search,
 )
+from ..models import ExecutorResult
+from ..state import AgentState
+from ..tool_registry import registry
+from ..tools.research import research
 
 _TOOLS_REGISTERED = False
 
