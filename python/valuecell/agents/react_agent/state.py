@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import operator
 from operator import ior
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, Any, List, TypedDict
+
+from langchain_core.messages import BaseMessage
 
 
 class AgentState(TypedDict, total=False):
     # Conversation and intent
-    messages: list[Any]
+    messages: Annotated[List[BaseMessage], operator.add]
     user_profile: dict[str, Any] | None
     inquirer_turns: int
 
