@@ -128,7 +128,7 @@ export const ExchangeForm = withForm({
       } catch (_error) {
         setTestStatus({
           success: false,
-          message: "Failed, please check your API key",
+          message: "Connection failed. Please check your API Key, Secret Key, or Passphrase.",
         });
       }
     };
