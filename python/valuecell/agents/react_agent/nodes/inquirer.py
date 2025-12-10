@@ -244,7 +244,7 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
             updates["is_final"] = False
             updates["critique_feedback"] = None
             updates["messages"] = [
-                SystemMessage(content="Context reset. Starting fresh analysis.")
+                AIMessage(content="Context reset. Starting fresh analysis.")
             ]
 
         # Branch B: DEFAULT ACCUMULATION (90% of cases)
@@ -268,7 +268,9 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
             else:
                 # Fallback: no delta and no existing profile
                 updates["user_profile"] = FinancialIntent().model_dump()
-                logger.info("Inquirer: DEFAULT PROFILE - No context, using Medium risk")
+                logger.info(
+                    "Inquirer: DEFAULT PROFILE - No context, using default profile"
+                )
 
             # Always reset is_final to trigger replanning (Planner decides what to reuse)
             updates["is_final"] = False
