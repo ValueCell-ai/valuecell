@@ -52,18 +52,21 @@ def _trim_messages(messages: list, max_messages: int = 10) -> list:
 
 
 async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
-    """Smart Inquirer: Extracts intent, detects context switches, handles follow-ups.
+    """Smart Inquirer: Extracts natural language intent from conversation.
+
+    Produces a single comprehensive sentence describing user's immediate goal.
+    Resolves pronouns and context using conversation and execution history.
 
     Multi-turn conversation logic:
-    1. **New Task**: User changes target (e.g., "Check MSFT") -> Clear history
-    2. **Follow-up**: User asks about results (e.g., "Why risk high?") -> Keep history
+    1. **New Task**: User starts new analysis -> Generate clear intent
+    2. **Follow-up**: User asks about prior results -> Resolve references and generate focused intent
     3. **Chat**: User casual talk (e.g., "Thanks") -> Direct response, no planning
 
-    Inputs: state["messages"], state["user_profile"], state["execution_history"].
-    Outputs: Updated state with user_profile, history reset if needed, or chat response.
+    Inputs: state["messages"], state["current_intent"], state["execution_history"].
+    Outputs: Updated state with current_intent (natural language string) or chat response.
     """
     messages = state.get("messages") or []
-    current_profile = state.get("user_profile")
+    current_intent = state.get("current_intent")
     execution_history = state.get("execution_history") or []
     turns = int(state.get("inquirer_turns") or 0)
 
@@ -71,9 +74,9 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
     trimmed_messages = _trim_messages(messages, max_messages=10)
 
     logger.info(
-        "Inquirer start: turns={t}, current_profile={p}, history_len={h}",
+        "Inquirer start: turns={t}, current_intent={i}, history_len={h}",
         t=turns,
-        p=current_profile,
+        i=current_intent or "None",
         h=len(execution_history),
     )
 
@@ -84,49 +87,62 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
     )
 
     system_prompt = (
-        "You are the **State Manager** for a Financial Advisor Assistant.\n"
-        "Your job is to produce the NEXT STATE based on current context and user input.\n\n"
-        f"# CURRENT STATE:\n"
-        f"- **Active Profile**: {current_profile or 'None (Empty)'}\n"
+        "You are the **Intent Interpreter** for a Financial Advisor Assistant.\n"
+        "Your job is to produce a single, comprehensive natural language sentence describing the user's IMMEDIATE goal.\n\n"
+        f"# CURRENT CONTEXT:\n"
+        f"- **Active Intent**: {current_intent or 'None (Empty)'}\n"
         f"- **Recent Execution Summary**:\n{history_context}\n\n"
-        "# YOUR TASK: Output the COMPLETE, UPDATED state\n\n"
+        "# YOUR TASK: Output the user's current goal as a natural language instruction\n\n"
         "# DECISION LOGIC:\n\n"
         "## 1. CHAT (Greeting/Acknowledgement)\n"
         "- Pattern: 'Thanks', 'Hello', 'Got it'\n"
         "- Output: status='CHAT', response_to_user=[polite reply]\n\n"
         "## 2. RESET (Explicit Command)\n"
         "- Pattern: 'Start over', 'Reset', 'Clear everything', 'Forget that'\n"
-        "- Output: status='RESET', updated_profile=None\n\n"
+        "- Output: status='RESET', current_intent=None\n\n"
         "## 3. PLAN (Task Execution Needed)\n"
-        "### 3a. Adding Assets\n"
-        "- Pattern: 'Compare with MSFT' (when context has ['AAPL'])\n"
-        "- Output: status='PLAN', updated_profile={assets: ['AAPL', 'MSFT']}\n"
-        "- **CRITICAL**: Output the MERGED list, not just the new asset!\n\n"
-        "### 3b. Switching Assets\n"
-        "- Pattern: 'Check TSLA instead' (when context has ['AAPL'])\n"
-        "- Output: status='PLAN', updated_profile={assets: ['TSLA']}\n"
-        "- **CRITICAL**: Only output the new asset when user explicitly switches!\n\n"
-        "### 3c. Follow-up Questions\n"
-        "- Pattern: 'Why did it drop?', 'Tell me about iPhone sales'\n"
-        "- Output: status='PLAN', updated_profile={assets: ['AAPL']} (same as current), focus_topic='price drop reasons'\n"
-        "- **CRITICAL**: Keep profile unchanged, extract the specific question in focus_topic!\n\n"
-        "### 3d. New Analysis Request\n"
+        "### 3a. New Analysis Request\n"
         "- Pattern: 'Analyze Apple'\n"
-        "- Output: status='PLAN', updated_profile={assets: ['AAPL']}\n\n"
+        "- Output: status='PLAN', current_intent='Analyze Apple stock price and fundamentals'\n\n"
+        "### 3b. Comparison Request\n"
+        "- Pattern: 'Compare Apple and Tesla'\n"
+        "- Output: status='PLAN', current_intent='Compare Apple and Tesla 2024 financial performance'\n\n"
+        "### 3c. Adding to Comparison (Context-Aware)\n"
+        "- Current Intent: 'Analyze Apple stock'\n"
+        "- User: 'Compare with Microsoft'\n"
+        "- Output: status='PLAN', current_intent='Compare Apple and Microsoft stock performance'\n"
+        "- **CRITICAL**: Merge context! Don't just output 'Microsoft'.\n\n"
+        "### 3d. Follow-up Questions (Reference Resolution)\n"
+        "- Current Intent: 'Analyze Apple stock'\n"
+        "- Recent Execution: 'AAPL price $150, down 5%'\n"
+        "- User: 'Why did it drop?'\n"
+        "- Output: status='PLAN', current_intent='Find reasons for Apple stock price drop'\n"
+        "- **CRITICAL**: Resolve pronouns using context! 'it' → 'Apple stock'.\n\n"
+        "### 3e. Specific Follow-up (Drill-Down)\n"
+        "- Current Intent: 'Analyze Apple stock'\n"
+        "- Assistant mentioned: 'consistent revenue growth'\n"
+        "- User: 'Tell me more about the revenue growth'\n"
+        "- Output: status='PLAN', current_intent='Analyze Apple revenue growth trends and details'\n"
+        "- **CRITICAL**: Extract the specific phrase and make it explicit!\n\n"
+        "### 3f. Switching Assets\n"
+        "- Current Intent: 'Analyze Apple stock'\n"
+        "- User: 'Forget Apple, look at Tesla'\n"
+        "- Output: status='RESET', current_intent='Analyze Tesla stock'\n\n"
         "# EXAMPLES:\n\n"
         "**Example 1: Adding Asset**\n"
-        "Current: {assets: ['AAPL']}\n"
+        "Current: 'Analyze Apple stock'\n"
         "User: 'Compare with Microsoft'\n"
-        "→ {status: 'PLAN', updated_profile: {asset_symbols: ['AAPL', 'MSFT']}, focus_topic: null}\n\n"
-        "**Example 2: Follow-up**\n"
-        "Current: {assets: ['AAPL']}\n"
-        "Recent: 'Task completed: AAPL price $150, down 5%'\n"
+        "→ {status: 'PLAN', current_intent: 'Compare Apple and Microsoft stock performance'}\n\n"
+        "**Example 2: Reference Resolution**\n"
+        "Current: 'Analyze Apple stock'\n"
+        "Recent: 'AAPL down 5%'\n"
         "User: 'Why did it drop?'\n"
-        "→ {status: 'PLAN', updated_profile: {asset_symbols: ['AAPL']}, focus_topic: 'price drop reasons'}\n\n"
-        "**Example 3: Switch**\n"
-        "Current: {assets: ['AAPL']}\n"
-        "User: 'Forget Apple, look at Tesla'\n"
-        "→ {status: 'RESET', updated_profile: {asset_symbols: ['TSLA']}}\n\n"
+        "→ {status: 'PLAN', current_intent: 'Find reasons for Apple stock price drop'}\n\n"
+        "**Example 3: Drill-Down**\n"
+        "Current: 'Analyze Apple stock'\n"
+        "Assistant: 'strong revenue growth'\n"
+        "User: 'Tell me more about revenue growth'\n"
+        "→ {status: 'PLAN', current_intent: 'Analyze Apple revenue growth details'}\n\n"
         "**Example 4: Greeting**\n"
         "User: 'Thanks!'\n"
         "→ {status: 'CHAT', response_to_user: 'You're welcome!'}\n"
@@ -162,10 +178,9 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
         decision: InquirerDecision = response.content
 
         logger.info(
-            "Inquirer decision: status={s}, profile={p}, focus={f}, reason={r}",
+            "Inquirer decision: status={s}, intent={i}, reason={r}",
             s=decision.status,
-            p=decision.updated_profile,
-            f=decision.focus_topic,
+            i=decision.current_intent,
             r=decision.reasoning,
         )
 
@@ -178,26 +193,20 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
                 "messages": [
                     AIMessage(content=decision.response_to_user or "Understood.")
                 ],
-                "user_profile": None,  # Signal to route to END
+                "current_intent": None,  # Signal to route to END
                 "inquirer_turns": 0,
             }
 
         # CASE 2: RESET - Clear everything and start fresh
         if decision.status == "RESET":
             logger.info("Inquirer: RESET - Clearing all context")
-            new_profile = (
-                decision.updated_profile.model_dump()
-                if decision.updated_profile
-                else None
-            )
             return {
-                "user_profile": new_profile,
+                "current_intent": decision.current_intent,
                 "plan": [],
                 "completed_tasks": {},
                 "execution_history": [],
                 "is_final": False,
                 "critique_feedback": None,
-                "focus_topic": None,
                 "messages": [
                     AIMessage(
                         content="Starting fresh session. What would you like to analyze?"
@@ -206,24 +215,29 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
                 "inquirer_turns": 0,
             }
 
-        # CASE 3: PLAN - Apply the updated profile directly (trust the LLM)
-        if decision.updated_profile:
-            updates["user_profile"] = decision.updated_profile.model_dump()
+        # CASE 3: PLAN - Apply the current intent directly
+        if decision.current_intent:
+            updates["current_intent"] = decision.current_intent
             logger.info(
-                "Inquirer: PLAN - Profile updated to {p}",
-                p=decision.updated_profile.model_dump(),
+                "Inquirer: PLAN - Intent set to: {i}",
+                i=decision.current_intent,
             )
-        elif current_profile:
-            # Fallback: LLM didn't return profile but we have existing context
-            updates["user_profile"] = current_profile
-            logger.info("Inquirer: PLAN - Preserving existing profile")
+        elif current_intent:
+            # Fallback: LLM didn't return intent but we have existing context
+            updates["current_intent"] = current_intent
+            logger.info("Inquirer: PLAN - Preserving existing intent")
         else:
-            # No profile at all - shouldn't happen in PLAN status, but handle gracefully
-            updates["user_profile"] = FinancialIntent().model_dump()
-            logger.warning("Inquirer: PLAN with no profile - using empty default")
-
-        # Update focus topic (critical for follow-up questions)
-        updates["focus_topic"] = decision.focus_topic
+            # No intent at all - shouldn't happen in PLAN status
+            logger.warning("Inquirer: PLAN with no intent - asking for clarification")
+            return {
+                "current_intent": None,
+                "inquirer_turns": 0,
+                "messages": [
+                    AIMessage(
+                        content="I didn't quite understand. What would you like to analyze?"
+                    )
+                ],
+            }
 
         # Force replanning
         updates["is_final"] = False
@@ -245,10 +259,10 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
         logger.exception("Inquirer LLM error: {err}", err=str(exc))
 
         # Graceful fallback
-        if current_profile:
-            # If we have a profile, assume user wants to continue
+        if current_intent:
+            # If we have an intent, assume user wants to continue
             return {
-                "user_profile": current_profile,
+                "current_intent": current_intent,
                 "inquirer_turns": 0,
                 "is_final": False,
             }
@@ -256,7 +270,7 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
             # Ask user to retry
             return {
                 "inquirer_turns": 0,
-                "user_profile": None,
+                "current_intent": None,
                 "messages": [
                     AIMessage(
                         content="I didn't quite understand. Could you tell me what you'd like to analyze?"

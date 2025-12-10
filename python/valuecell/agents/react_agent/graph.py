@@ -68,7 +68,9 @@ def build_app() -> Any:
     graph.add_edge(START, "inquirer")
 
     def _route_after_inquirer(st: AgentState) -> str:
-        return "plan" if st.get("user_profile") else "wait"
+        # After refactor: Inquirer now writes `current_intent` (natural language string)
+        # Route to planner when an intent is present, otherwise wait/end.
+        return "plan" if st.get("current_intent") else "wait"
 
     graph.add_conditional_edges(
         "inquirer", _route_after_inquirer, {"plan": "planner", "wait": END}

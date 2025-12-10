@@ -75,20 +75,15 @@ class ExecutionPlan(BaseModel):
 
 
 class InquirerDecision(BaseModel):
-    """Simplified decision model: Direct full-state output."""
+    """Simplified decision model: Natural language intent output."""
 
-    updated_profile: FinancialIntent | None = Field(
+    current_intent: str | None = Field(
         default=None,
-        description="The FULL, UPDATED user profile after processing this message. "
-        "If user adds assets (e.g., 'Compare with MSFT' when context has ['AAPL']), "
-        "output the MERGED list: ['AAPL', 'MSFT']. "
-        "If user switches targets, output only new ones. "
-        "If follow-up question with no profile change, output the same profile.",
-    )
-    focus_topic: str | None = Field(
-        default=None,
-        description="Specific sub-topic or question user is asking about (e.g., 'iPhone 17 sales', 'dividend history'). "
-        "Extract this for follow-up questions to guide Planner's research focus.",
+        description="A single, comprehensive natural language sentence describing the user's immediate goal. "
+        "Resolve all context and pronouns from conversation history. "
+        "Examples: 'Analyze Apple stock price and fundamentals', 'Compare Apple and Tesla 2024 performance', "
+        "'Find reasons for Apple's recent stock price drop'. "
+        "Be explicit and complete - this is the primary instruction for task planning.",
     )
     status: Literal["PLAN", "CHAT", "RESET"] = Field(
         description="PLAN: Ready for task execution. CHAT: Casual conversation/greeting. RESET: Explicit command to start over."

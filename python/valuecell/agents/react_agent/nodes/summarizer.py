@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 from typing import Any
 
@@ -16,56 +15,38 @@ async def summarizer_node(state: AgentState) -> dict[str, Any]:
     """
     Generate a polished final report using LangChain native model for streaming.
 
-    Respects focus_topic: if set, only addresses that specific question.
-    Otherwise, provides comprehensive overview of all requested assets.
+    Uses natural language current_intent to understand user's goal.
     """
-    user_profile = state.get("user_profile") or {}
+    current_intent = state.get("current_intent") or "General financial analysis"
     execution_history = state.get("execution_history") or []
     completed_tasks = state.get("completed_tasks") or {}
-    focus_topic = state.get("focus_topic")
 
     logger.info(
-        "Summarizer start: history_len={h}, tasks={t}, focus={f}",
+        "Summarizer start: intent='{i}', history_len={h}, tasks={t}",
+        i=current_intent,
         h=len(execution_history),
         t=len(completed_tasks),
-        f=focus_topic or "General",
     )
 
     # 1. Extract context
     data_summary = _extract_key_results(completed_tasks)
 
-    # 2. Build focus-aware prompt
-    # Avoid interpolating `user_profile` (a dict) directly into the template string
-    # because its braces (e.g. "{'asset_symbols': ...}") are picked up by
-    # ChatPromptTemplate as template variables. Instead use placeholders
-    # and pass `user_profile` as a variable when invoking the chain.
-    immediate_task_section = (
-        f'**IMMEDIATE TASK**: Answer ONLY this specific question: "{focus_topic}"\n'
-        "**INSTRUCTION**: Scan the 'Key Data' below to find evidence supporting this topic. "
-        "Synthesize the existing data to answer the question directly. Do not just summarize everything."
-        if focus_topic
-        else ""
-    )
-
-    system_template = f"""
+    # 2. Build prompt with current_intent
+    system_template = """
 You are a concise Financial Assistant for beginner investors.
 Your goal is to synthesize the execution results into a short, actionable insight card.
 
-**User Request**:
-{{user_profile}}
-
-{immediate_task_section}
+**User's Goal**:
+{current_intent}
 
 **Key Data extracted from tools**:
-{{data_summary}}
+{data_summary}
 
 **Strict Constraints**:
 1. **Length Limit**: Keep the total response under 400 words. Be ruthless with cutting fluff.
-2. **Relevance Check**: 
-   - If focus_topic is set, ONLY answer that question. Ignore unrelated data.
-   - If focus_topic is not set, ensure you address every asset requested.
+2. **Relevance Check**: Ensure you address the user's stated goal.
 3. **Completeness Check**: You MUST surface data errors explicitly.
-   - If data is missing or mismatched
+   - If data is missing or mismatched (e.g. "content seems to be AMD" when user asked for "AAPL"), 
      you MUST write: "⚠️ Data Retrieval Issue: [Details]"
 4. **No Generic Intros**: Start directly with the answer.
 5. **Structure**: Use the format below.
@@ -105,7 +86,7 @@ Your goal is to synthesize the execution results into a short, actionable insigh
         # LangGraph automatically captures 'on_chat_model_stream' events here
         response = await chain.ainvoke(
             {
-                "user_profile": json.dumps(user_profile, ensure_ascii=False),
+                "current_intent": current_intent,
                 "data_summary": data_summary,
             }
         )

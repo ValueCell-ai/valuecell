@@ -10,9 +10,8 @@ from langchain_core.messages import BaseMessage
 class AgentState(TypedDict, total=False):
     # Conversation and intent
     messages: Annotated[List[BaseMessage], operator.add]
-    user_profile: dict[str, Any] | None
+    current_intent: str | None  # Natural language description of user's immediate goal
     inquirer_turns: int
-    focus_topic: str | None  # Specific user question/topic for Planner focus
 
     # Planning (iterative batch planning)
     plan: list[dict[str, Any]] | None  # Current batch of tasks

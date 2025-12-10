@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from typing import Any
 
 from agno.agent import Agent
@@ -8,36 +7,25 @@ from agno.models.openrouter import OpenRouter
 from langchain_core.messages import AIMessage, HumanMessage
 from loguru import logger
 
-from ..models import ExecutionPlan, FinancialIntent, PlannedTask, Task
+from ..models import ExecutionPlan, PlannedTask, Task
 from ..tool_registry import registry
 
 
 async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
     """Iterative batch planner: generates the IMMEDIATE next batch of tasks.
 
+    Uses natural language current_intent as the primary instruction.
     Looks at execution_history to understand what has been done,
-    critique_feedback to fix any issues, and focus_topic to prioritize research focus.
-
-    Two Modes:
-    - General Scan: Profile fully explored (focus_topic=None) -> Research all assets
-    - Surgical: Specific question (focus_topic=set) -> Research only relevant topics, ignore unrelated assets
+    and critique_feedback to fix any issues.
     """
-    profile_dict = state.get("user_profile") or {}
-    profile = (
-        FinancialIntent.model_validate(profile_dict)
-        if profile_dict
-        else FinancialIntent()
-    )
-
+    current_intent = state.get("current_intent") or "General financial analysis"
     execution_history = state.get("execution_history") or []
     critique_feedback = state.get("critique_feedback")
-    focus_topic = state.get("focus_topic")
 
     logger.info(
-        "Planner start: profile={p}, history_len={h}, focus={f}",
-        p=profile.model_dump(),
+        "Planner start: intent='{i}', history_len={h}",
+        i=current_intent,
         h=len(execution_history),
-        f=focus_topic or "General",
     )
 
     # Build iterative planning prompt
@@ -67,31 +55,10 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
     else:
         recent_context_text = ""
 
-    # Dynamic mode instruction based on focus_topic
-    if focus_topic:
-        mode_instruction = (
-            f"🎯 **SURGICAL MODE** 🎯\n"
-            f'**Current User Question**: "{focus_topic}"\n'
-            "**Strategy**:\n"
-            "1. **FOCUS ONLY**: Research ONLY what's needed to answer this question.\n"
-            "2. **IGNORE IRRELEVANT ASSETS**: If the user has [AAPL, MSFT] but asks 'Tell me about MSFT earnings', "
-            "do NOT also fetch AAPL data.\n"
-            "3. **VERIFY FRESHNESS**: Check if the Execution History has *recent, specific* data for this question. "
-            "If the history only has generic data or is from a previous turn, GENERATE NEW TASKS.\n"
-            "4. **Be Surgical**: Don't over-fetch. Narrow your scope to the exact question.\n"
-        )
-    else:
-        mode_instruction = (
-            "🌍 **GENERAL SCAN MODE** 🌍\n"
-            "**Strategy**:\n"
-            "1. **COMPREHENSIVE**: Ensure ALL assets in the User Profile are researched.\n"
-            "2. **BALANCED**: Generate tasks that cover all dimensions (price, news, fundamentals) for each asset.\n"
-        )
-
     system_prompt_text = (
         "You are an iterative financial planning agent.\n\n"
-        f"{mode_instruction}\n\n"
-        "**Your Role**: Decide the **IMMEDIATE next batch** of tasks.\n\n"
+        f"**CURRENT GOAL**: {current_intent}\n\n"
+        "**Your Role**: Decide the **IMMEDIATE next batch** of tasks to achieve this goal.\n\n"
         f"**Available Tools**:\n{tool_context}\n\n"
         "**Planning Rules**:\n"
         "1. **Iterative Planning**: Plan only the next step(s), not the entire workflow.\n"
@@ -107,8 +74,7 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
         f"{recent_context_text}**Execution History**:\n{history_text}{feedback_text}\n"
     )
 
-    user_profile_json = json.dumps(profile.model_dump(), ensure_ascii=False)
-    user_msg = f"User Request Context: {user_profile_json}"
+    user_msg = f"Current Goal: {current_intent}"
 
     is_final = False
     strategy_update = ""
