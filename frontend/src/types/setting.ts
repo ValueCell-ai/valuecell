@@ -20,3 +20,18 @@ export type ProviderDetail = {
   default_model_id: string;
   models: ProviderModelInfo[];
 };
+
+// --- Model availability check ---
+export type CheckModelRequest = {
+  provider?: string;
+  model_id?: string;
+  api_key?: string;
+};
+
+export type CheckModelResult = {
+  ok: boolean;
+  provider: string;
+  model_id: string;
+  status?: string;
+  error?: string;
+};
