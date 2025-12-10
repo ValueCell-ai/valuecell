@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 from typing import Any
 
-from agno.agent import Agent
-from agno.models.openrouter import OpenRouter
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
 from loguru import logger
 
 from ..state import AgentState
@@ -13,20 +14,7 @@ from ..state import AgentState
 
 async def summarizer_node(state: AgentState) -> dict[str, Any]:
     """
-    Generate a polished final report from raw execution history.
-
-    This node is the final step in the workflow. It transforms the technical
-    execution log into a user-friendly financial analysis report suitable for
-    beginner investors.
-
-    Takes:
-    - user_profile: Original user request
-    - execution_history: Raw task completion summaries
-    - completed_tasks: Actual data results
-
-    Returns:
-    - messages: Final AIMessage with formatted report
-    - is_final: True (confirm completion)
+    Generate a polished final report using LangChain native model for streaming.
     """
     user_profile = state.get("user_profile") or {}
     execution_history = state.get("execution_history") or []
@@ -38,74 +26,91 @@ async def summarizer_node(state: AgentState) -> dict[str, Any]:
         t=len(completed_tasks),
     )
 
-    # Build context for the summarizer
-    # Extract key data points from completed_tasks for evidence
+    # 1. Extract context
     data_summary = _extract_key_results(completed_tasks)
 
-    system_prompt = (
-        "You are a concise Financial Assistant for beginner investors.\n"
-        "Your goal is to synthesize the execution results into a short, actionable insight card.\n\n"
-        "**User Request**:\n"
-        f"{json.dumps(user_profile, ensure_ascii=False)}\n\n"
-        "**Key Data**:\n"
-        f"{data_summary}\n\n"
-        "**Strict Constraints**:\n"
-        "1. **Length Limit**: Keep the total response under 400 words. Be ruthless with cutting fluff.\n"
-        "2. **No Generic Intros**: DELETE sections like 'Company Overview' or 'What they do'.\n"
-        "3. **Focus on NOW**: Only mention historical data if it directly explains a current trend.\n\n"
-        "**Required Structure**:\n"
-        "(1-2 sentences direct answer to user's question)\n\n"
-        "## Key Findings\n"
-        "- **Metric 1**: Value (Interpretation)\n"
-        "- **Metric 2**: Value (Interpretation)\n"
-        "(Only include the top 3 most relevant numbers)\n\n"
-        "## Analysis\n"
-        "(One short paragraph explaining WHY. Use the 'Recent Developments' here)\n\n"
-        "## Risk Note\n"
-        "(One sentence on the specific risk found in the data, e.g., 'High volatility detected.')"
+    # 2. Build Prompt (Optimized for transparency and brevity)
+    system_template = """
+You are a concise Financial Assistant for beginner investors.
+Your goal is to synthesize the execution results into a short, actionable insight card.
+
+**User Request**:
+{user_profile}
+
+**Key Data extracted from tools**:
+{data_summary}
+
+**Strict Constraints**:
+1. **Length Limit**: Keep the total response under 400 words. Be ruthless with cutting fluff.
+2. **Completeness Check**: You MUST address every asset requested. 
+   - If the data contains errors (e.g. "content seems to be AMD" when user asked for "AAPL"), you MUST explicitly write: "⚠️ Data Error: Failed to retrieve data for [Asset]."
+   - Do NOT ignore missing data.
+3. **No Generic Intros**: Start directly with the answer.
+4. **Structure**: Use the format below.
+
+**Required Structure**:
+(1-2 sentences direct answer to user's question)
+
+## Key Findings
+- **[Metric Name]**: Value (Interpretation)
+(List top 3 metrics. If data is missing/error, state it here)
+
+## Analysise
+(One short paragraph synthesizing the "Why". Connect the dots.)
+
+## Risk Note
+(One specific risk factor found in the data)
+"""
+
+    prompt = ChatPromptTemplate.from_messages(
+        [("system", system_template), ("human", "Please generate the final report.")]
     )
 
-    user_msg = "Please generate the final financial analysis report."
+    # 3. Initialize LangChain Model (Native Streaming Support)
+    # Using ChatOpenAI to connect to OpenRouter (compatible API)
+    llm = ChatOpenAI(
+        model="google/gemini-2.5-flash",
+        openai_api_base="https://openrouter.ai/api/v1",
+        openai_api_key=os.getenv("OPENROUTER_API_KEY"),  # Ensure ENV is set
+        temperature=0,
+        streaming=True,  # Crucial for astream_events
+    )
+
+    chain = prompt | llm
 
     try:
-        agent = Agent(
-            model=OpenRouter(id="google/gemini-2.5-flash"),
-            instructions=[system_prompt],
-            markdown=True,  # Enable markdown in response
-            debug_mode=True,
+        # 4. Invoke Chain
+        # LangGraph automatically captures 'on_chat_model_stream' events here
+        response = await chain.ainvoke(
+            {
+                "user_profile": json.dumps(user_profile, ensure_ascii=False),
+                "data_summary": data_summary,
+            }
         )
-        response = await agent.arun(user_msg)
+
         report_content = response.content
+        logger.info("Summarizer completed: len={l}", l=len(report_content))
 
-        logger.info("Summarizer completed: report_len={l}", l=len(report_content))
-
-        # Return as AIMessage for conversation history
         return {
             "messages": [AIMessage(content=report_content)],
             "is_final": True,
             "_summarizer_complete": True,
         }
+
     except Exception as exc:
         logger.exception("Summarizer error: {err}", err=str(exc))
-        # Fallback: return a basic summary
-        fallback = (
-            "## Analysis Complete\n\n"
-            f"Completed {len(completed_tasks)} tasks based on your request. "
-            "Please review the execution history for details."
-        )
         return {
-            "messages": [AIMessage(content=fallback)],
+            "messages": [
+                AIMessage(
+                    content="I encountered an error generating the report. Please check the execution logs."
+                )
+            ],
             "is_final": True,
-            "_summarizer_error": str(exc),
         }
 
 
 def _extract_key_results(completed_tasks: dict[str, Any]) -> str:
-    """Extract and format key data points from completed tasks for LLM context.
-
-    This reduces token usage by summarizing only the most important results
-    instead of dumping entire task outputs.
-    """
+    """Extract results with Error Highlighting."""
     if not completed_tasks:
         return "(No results available)"
 
@@ -115,38 +120,19 @@ def _extract_key_results(completed_tasks: dict[str, Any]) -> str:
             continue
 
         result = task_data.get("result")
+
+        # Handle errors reported by Executor
+        if task_data.get("error"):
+            lines.append(f"- Task {task_id} [FAILED]: {task_data['error']}")
+            continue
+
         if not result:
             continue
 
-        # Extract different types of results
-        if isinstance(result, dict):
-            # Market data
-            if "symbols" in result:
-                symbols = result.get("symbols", [])
-                lines.append(
-                    f"- Task {task_id}: Market data for {len(symbols)} symbols"
-                )
+        preview = str(result)
+        if len(preview) > 500:
+            preview = preview[:500] + "... (truncated)"
 
-            # Screen results
-            if "table" in result:
-                count = len(result.get("table", []))
-                risk = result.get("risk", "Unknown")
-                lines.append(
-                    f"- Task {task_id}: Screened {count} candidates (Risk: {risk})"
-                )
+        lines.append(f"- Task {task_id}: {preview}")
 
-            # Backtest results
-            if "return_pct" in result:
-                ret = result.get("return_pct", 0)
-                sharpe = result.get("sharpe_ratio", 0)
-                lines.append(
-                    f"- Task {task_id}: Backtest return={ret:.2f}%, Sharpe={sharpe:.2f}"
-                )
-
-        elif isinstance(result, str):
-            # Research/text results - truncate to avoid token overflow
-            # preview = result[:150] + "..." if len(result) > 150 else result
-            preview = result
-            lines.append(f"- Task {task_id}: {preview}")
-
-    return "\n".join(lines) if lines else "(No extractable data)"
+    return "\n".join(lines)
