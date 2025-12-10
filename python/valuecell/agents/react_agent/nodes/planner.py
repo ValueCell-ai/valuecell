@@ -5,6 +5,7 @@ from typing import Any
 
 from agno.agent import Agent
 from agno.models.openrouter import OpenRouter
+from langchain_core.messages import AIMessage, HumanMessage
 from loguru import logger
 
 from ..models import ExecutionPlan, FinancialIntent, PlannedTask, Task
@@ -49,6 +50,23 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
         f"\n\n**Critic Feedback**: {critique_feedback}" if critique_feedback else ""
     )
 
+    # 1. Extract recent conversation (last Assistant + User messages)
+    messages_list = state.get("messages", []) or []
+    recent_msgs: list[tuple[str, str]] = []
+    for m in messages_list:
+        # support both Message objects and plain dicts
+        if isinstance(m, (HumanMessage, AIMessage)):
+            role = "User" if isinstance(m, HumanMessage) else "Assistant"
+            recent_msgs.append((role, m.content))
+
+    # Keep only the last 3 relevant messages (AI/User pairs preferred)
+    recent_msgs = recent_msgs[-3:]
+    if recent_msgs:
+        context_str = "\n\n".join(f"{r}: {c}" for r, c in recent_msgs)
+        recent_context_text = f"**RECENT CONVERSATION**:\n{context_str}\n(Use this context to resolve references. If user asks about a phrase mentioned by the Assistant, target your research to verify or expand on that claim.)\n\n"
+    else:
+        recent_context_text = ""
+
     # Dynamic mode instruction based on focus_topic
     if focus_topic:
         mode_instruction = (
@@ -86,7 +104,7 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
         "5. **Parallel Execution**: Tasks in the same batch run concurrently.\n"
         "6. **Completion Signal**: Return `tasks=[]` and `is_final=True` only when the goal is fully satisfied.\n"
         "7. **Critique Integration**: If Critic Feedback is present, address the issues mentioned.\n\n"
-        f"**Execution History**:\n{history_text}{feedback_text}\n"
+        f"{recent_context_text}**Execution History**:\n{history_text}{feedback_text}\n"
     )
 
     user_profile_json = json.dumps(profile.model_dump(), ensure_ascii=False)
