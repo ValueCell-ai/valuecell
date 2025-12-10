@@ -76,15 +76,21 @@ class ExecutionPlan(BaseModel):
 
 
 class InquirerDecision(BaseModel):
-    """The decision output from the LLM-driven Inquirer Agent."""
+    """The decision output from the LLM-driven Inquirer Agent with context-switching."""
 
-    intent: FinancialIntent = Field(
-        description="Extracted financial intent from conversation"
+    intent: FinancialIntent | None = Field(
+        default=None, description="Extracted financial intent from conversation"
     )
-    status: Literal["COMPLETE", "INCOMPLETE"] = Field(
-        description="Set to COMPLETE if essential info (risk) is present OR if max turns reached."
+    status: Literal["COMPLETE", "INCOMPLETE", "CHAT"] = Field(
+        description="COMPLETE: Ready for planning. INCOMPLETE: Need more info. CHAT: Casual conversation/follow-up."
     )
     reasoning: str = Field(description="Brief thought process explaining the decision")
-    response_to_user: str = Field(
-        description="If INCOMPLETE: A follow-up question. If COMPLETE: A confirmation message."
+    response_to_user: str | None = Field(
+        default=None,
+        description="Direct response to user (for INCOMPLETE questions or CHAT replies).",
+    )
+    should_clear_history: bool = Field(
+        default=False,
+        description="True if user is starting a NEW task (e.g., changing stocks). "
+        "False if asking follow-up questions about existing analysis.",
     )
