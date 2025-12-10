@@ -123,25 +123,10 @@ async def _emit_progress(percent: int, msg: str) -> None:
 
 
 def _generate_summary(task_id: str, tool: str, args: dict, result: Any) -> str:
-    """Generate a concise summary for execution_history (token-efficient).
-
-    Example: "Task t1 (market_data): Fetched 3 symbols"
-    """
-    # Extract key info based on tool type
-    if tool == "market_data":
-        symbols = args.get("symbols") or result.get("symbols", [])
-        return f"Task {task_id} (market_data): Fetched {len(symbols)} symbols"
-    elif tool == "screen":
-        risk = args.get("risk") or result.get("risk", "Unknown")
-        count = len(result.get("table", [])) if isinstance(result, dict) else 0
-        return f"Task {task_id} (screen): Risk={risk}, {count} candidates"
-    elif tool == "backtest":
-        symbols = args.get("symbols") or result.get("symbols", [])
-        ret_pct = result.get("return_pct", 0) if isinstance(result, dict) else 0
-        return f"Task {task_id} (backtest): {len(symbols)} symbols, return={ret_pct}%"
-    else:
-        # Generic fallback
-        return f"Task {task_id} ({tool}): completed"
+    result_preview = str(result)
+    if len(result_preview) > 100:
+        result_preview = result_preview[:100] + "..."
+    return f"Task {task_id} ({tool} with args {args}): completed. Result preview: {result_preview}"
 
 
 ensure_default_tools_registered()
