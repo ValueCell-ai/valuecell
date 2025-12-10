@@ -71,7 +71,7 @@ async def executor_node(state: AgentState, task: dict[str, Any]) -> dict[str, An
     if task_id and task_id in completed_snapshot:
         logger.info("Executor skip (already completed): task_id={tid}", tid=task_id)
         return {}
-    await _emit_progress(5, "Starting")
+    await _emit_progress(5, f"Starting with {task_id=}, {tool=}")
 
     try:
         runtime_args = {"state": state}
@@ -87,7 +87,7 @@ async def executor_node(state: AgentState, task: dict[str, Any]) -> dict[str, An
         )
         summary = f"Task {task_id} ({tool}) failed: {str(exc)[:50]}"
 
-    await _emit_progress(95, "Finishing")
+    await _emit_progress(95, f"Finishing with {task_id=}, {tool=}")
 
     # Return delta for completed_tasks and execution_history
     completed_delta = {task_id: exec_res.model_dump()}
@@ -101,7 +101,7 @@ async def executor_node(state: AgentState, task: dict[str, Any]) -> dict[str, An
     except Exception:
         pass
 
-    await _emit_progress(100, "Done")
+    await _emit_progress(100, f"Done with {task_id=}, {tool=}")
     return {
         "completed_tasks": completed_delta,
         "execution_history": [summary],
