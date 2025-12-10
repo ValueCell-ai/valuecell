@@ -10,6 +10,14 @@ from ..models import ExecutorResult
 from ..state import AgentState
 from ..tool_registry import registry
 
+from ..tools.research import (
+    research,
+    search_crypto_people,
+    search_crypto_projects,
+    search_crypto_vcs,
+    web_search,
+)
+
 _TOOLS_REGISTERED = False
 
 
@@ -18,9 +26,11 @@ def ensure_default_tools_registered() -> None:
     if _TOOLS_REGISTERED:
         return
 
-    _register_tool("market_data", _tool_market_data)
-    _register_tool("screen", _tool_screen)
-    _register_tool("backtest", _tool_backtest)
+    _register_tool("research", research)
+    _register_tool("search_crypto_people", search_crypto_people)
+    _register_tool("search_crypto_projects", search_crypto_projects)
+    _register_tool("search_crypto_vcs", search_crypto_vcs)
+    _register_tool("web_search", web_search)
 
     _TOOLS_REGISTERED = True
 
@@ -132,42 +142,6 @@ def _generate_summary(task_id: str, tool: str, args: dict, result: Any) -> str:
     else:
         # Generic fallback
         return f"Task {task_id} ({tool}): completed"
-
-
-async def _tool_market_data(symbols: list[str] | None = None) -> dict[str, Any]:
-    await _emit_progress(15, "Fetching market data")
-    symbols = symbols or ["AAPL", "MSFT", "GOOGL"]
-    # Placeholder: return mock stats; real integration later
-    data = {"symbols": symbols, "stats": {"count": len(symbols)}}
-    await _emit_progress(40, "Market data fetched")
-    return data
-
-
-async def _tool_screen(risk: str | None = None) -> dict[str, Any]:
-    await _emit_progress(50, "Screening candidates")
-    risk = risk or "Medium"
-    table = (
-        [{"symbol": "AAPL", "score": 0.8}, {"symbol": "MSFT", "score": 0.78}]
-        if risk != "High"
-        else [{"symbol": "TSLA", "score": 0.82}]
-    )
-    await _emit_progress(70, "Screening done")
-    return {"risk": risk, "table": table}
-
-
-async def _tool_backtest(
-    symbols: list[str] | None = None, horizon_days: int = 90
-) -> dict[str, Any]:
-    await _emit_progress(75, "Backtesting")
-    horizon = int(horizon_days or 90)
-    # Placeholder: simple buy-hold mock result
-    result = {
-        "symbols": symbols or [],
-        "horizon_days": horizon,
-        "return_pct": 5.2,
-    }
-    await _emit_progress(85, "Backtest done")
-    return result
 
 
 ensure_default_tools_registered()
