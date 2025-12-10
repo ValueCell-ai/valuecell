@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React Agent - Financial Assistant</title>
+    <!-- Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Scrollbar for the dark panel */
+        .logs::-webkit-scrollbar { width: 6px; }
+        .logs::-webkit-scrollbar-track { background: #0f172a; }
+        .logs::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        .logs::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Message Animations */
+        @keyframes slideIn { 
+            from { opacity: 0; transform: translateY(8px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .message-bubble { animation: slideIn 0.3s ease-out forwards; }
+
+        /* Log Entry Styling */
+        .log-entry { 
+            border-left-width: 3px; 
+            transition: background-color 0.2s;
+        }
+        .log-entry:hover { background-color: rgba(255,255,255,0.03); }
+
+        /* Status Colors */
+        .status-planner { border-color: #a855f7; }   /* Purple */
+        .status-executor { border-color: #eab308; }  /* Yellow */
+        .status-critic { border-color: #ec4899; }    /* Pink */
+        .status-success { border-color: #22c55e; }   /* Green */
+        .status-error { border-color: #ef4444; }     /* Red */
+        .status-info { border-color: #3b82f6; }      /* Blue */
+
+        /* Markdown Styles in Chat */
+        .prose p { margin-bottom: 0.5em; }
+        .prose ul { list-style-type: disc; padding-left: 1.2em; margin-bottom: 0.5em; }
+        .prose h2 { font-weight: bold; font-size: 1.1em; margin-top: 1em; margin-bottom: 0.5em; color: #1e293b; }
+        .prose strong { color: #2563eb; }
+    </style>
+</head>
+<body class="bg-gray-100 h-screen overflow-hidden font-sans text-slate-800">
+
+    <div class="flex h-full max-w-[1800px] mx-auto shadow-2xl bg-white">
+        
+        <!-- LEFT PANEL: Chat Interface -->
+        <div class="flex-1 flex flex-col min-w-0 border-r border-gray-200">
+            <!-- Header -->
+            <div class="bg-white border-b border-gray-200 p-5 flex items-center justify-between z-10">
+                <div>
+                    <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <span class="text-2xl">🤖</span> Financial Agent
+                    </h1>
+                    <p class="text-xs text-slate-500 mt-1">Powered by LangGraph & Agno</p>
+                </div>
+                <div class="text-xs font-mono bg-slate-100 px-3 py-1 rounded-full text-slate-500" id="threadIdDisplay">
+                    Session: ...
+                </div>
+            </div>
+
+            <!-- Messages Area -->
+            <div id="messages" class="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50">
+                <!-- Welcome Message -->
+                <div class="flex justify-start message-bubble">
+                    <div class="bg-white border border-gray-200 text-slate-700 rounded-2xl rounded-tl-none py-4 px-6 shadow-sm max-w-2xl">
+                        <div class="prose prose-sm">
+                            <p>👋 <strong>Hello!</strong> I'm your AI financial analyst.</p>
+                            <p>I can help you with deeper market research. Try asking:</p>
+                            <ul>
+                                <li>"Analyze AAPL's recent earnings"</li>
+                                <li>"Compare Microsoft and Google cloud growth"</li>
+                                <li>"Why is Tesla stock volatile?"</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="p-5 bg-white border-t border-gray-200">
+                <div class="flex gap-3 max-w-4xl mx-auto">
+                    <input 
+                        type="text" 
+                        id="userInput" 
+                        class="flex-1 px-5 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-sm placeholder:text-slate-400"
+                        placeholder="Ask a financial question..."
+                        autocomplete="off"
+                    >
+                    <button id="sendBtn" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold rounded-xl transition-colors shadow-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span>Send</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+                    </button>
+                </div>
+                <div class="text-center mt-2 h-4">
+                    <span id="thinkingIndicator" class="text-xs text-blue-500 font-medium opacity-0 transition-opacity animate-pulse">
+                        Thinking & Researching...
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: Observability Console -->
+        <div class="w-[480px] bg-[#0f172a] text-slate-300 flex flex-col border-l border-gray-800 shrink-0">
+            <!-- Console Header -->
+            <div class="p-4 bg-[#1e293b] border-b border-gray-700 flex justify-between items-center shadow-lg">
+                <h2 class="font-mono text-xs font-bold text-blue-400 tracking-widest flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></span>
+                    SYSTEM LOGS
+                </h2>
+                <div id="currentPhaseBadge" class="px-2 py-1 rounded bg-slate-800 border border-slate-600 text-[10px] font-mono text-slate-400 font-bold">
+                    IDLE
+                </div>
+            </div>
+
+            <!-- Logs Container -->
+            <div id="logs" class="flex-1 overflow-y-auto p-4 font-mono text-[11px] leading-relaxed space-y-3">
+                <div class="text-center text-slate-600 italic py-20 empty-logs">
+                    Waiting for events...
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <script>
+        // --- Configuration & State ---
+        const threadId = 'session_' + Math.random().toString(36).substr(2, 9);
+        // 显示 Session ID 方便 Debug
+        document.querySelector('.text-xs.font-mono.bg-slate-100').innerText = `ID: ${threadId}`;
+        
+        let isProcessing = false;
+        let currentAssistantMessageDiv = null;
+        let rawMarkdownBuffer = "";
+
+        // --- DOM Elements ---
+        const els = {
+            messages: document.getElementById('messages'),
+            logs: document.getElementById('logs'),
+            input: document.getElementById('userInput'),
+            btn: document.getElementById('sendBtn'),
+            phase: document.getElementById('currentPhaseBadge'),
+            indicator: document.getElementById('thinkingIndicator')
+        };
+
+        // --- Helper Functions ---
+        const scrollChat = () => els.messages.scrollTop = els.messages.scrollHeight;
+        const scrollLogs = () => els.logs.scrollTop = els.logs.scrollHeight;
+
+        function appendUserMessage(text) {
+            const div = document.createElement('div');
+            div.className = 'flex justify-end message-bubble';
+            div.innerHTML = `
+                <div class="bg-blue-600 text-white rounded-2xl rounded-tr-none py-3 px-5 shadow-md max-w-2xl text-sm">
+                    ${text}
+                </div>
+            `;
+            els.messages.appendChild(div);
+            scrollChat();
+        }
+
+        function createAssistantMessage() {
+            const div = document.createElement('div');
+            div.className = 'flex justify-start message-bubble';
+            div.innerHTML = `
+                <div class="bg-white border border-gray-200 text-slate-800 rounded-2xl rounded-tl-none py-4 px-6 shadow-sm max-w-2xl prose prose-sm assistant-content">
+                    <span class="inline-block w-2 h-2 rounded-full bg-slate-400 animate-bounce"></span>
+                </div>
+            `;
+            els.messages.appendChild(div);
+            scrollChat();
+            return div.querySelector('.assistant-content');
+        }
+
+        function addLog(type, title, details = null) {
+            const empty = els.logs.querySelector('.empty-logs');
+            if (empty) empty.remove();
+
+            const entry = document.createElement('div');
+            entry.className = `log-entry p-3 rounded bg-[#1e293b] border-l-4 text-xs font-mono mb-2 shadow-sm`;
+
+            const styles = {
+                planner:  { color: 'status-planner',  icon: '📅', text: 'text-purple-400' },
+                executor: { color: 'status-executor', icon: '⚡', text: 'text-yellow-400' },
+                critic:   { color: 'status-critic',   icon: '⚖️', text: 'text-pink-400' },
+                success:  { color: 'status-success',  icon: '✅', text: 'text-green-400' },
+                error:    { color: 'status-error',    icon: '❌', text: 'text-red-400' },
+                info:     { color: 'status-info',     icon: 'ℹ️', text: 'text-blue-400' }
+            };
+
+            const style = styles[type] || styles.info;
+            entry.classList.add(style.color);
+
+            let html = `
+                <div class="flex gap-3">
+                    <div class="mt-0.5 select-none text-base">${style.icon}</div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-baseline mb-1">
+                            <span class="${style.text} font-bold uppercase tracking-wider text-[10px]">${type}</span>
+                            <span class="text-slate-600 text-[9px]">${new Date().toLocaleTimeString().split(' ')[0]}</span>
+                        </div>
+                        <div class="text-slate-300 break-words leading-relaxed">${title}</div>
+                    </div>
+                </div>
+            `;
+
+            if (details) {
+                html += `
+                    <div class="mt-2 pl-7">
+                        <details class="group">
+                            <summary class="cursor-pointer text-[10px] ${style.text} hover:opacity-80 transition-opacity flex items-center gap-1 list-none outline-none">
+                                <span class="group-open:rotate-90 transition-transform">▶</span>
+                                <span>View Output</span>
+                            </summary>
+                            <div class="mt-2 p-3 bg-black/40 rounded border border-white/5 max-h-60 overflow-y-auto whitespace-pre-wrap text-slate-400 select-text">
+                                ${details}
+                            </div>
+                        </details>
+                    </div>
+                `;
+            }
+
+            entry.innerHTML = html;
+            els.logs.appendChild(entry);
+            scrollLogs();
+        }
+
+        // --- SSE Event Handler (Fixed) ---
+        function handleServerEvent(event) {
+            switch (event.type) {
+                case 'content_token':
+                    if (!currentAssistantMessageDiv) {
+                        currentAssistantMessageDiv = createAssistantMessage();
+                    }
+                    rawMarkdownBuffer += event.data.delta;
+                    currentAssistantMessageDiv.innerHTML = marked.parse(rawMarkdownBuffer);
+                    scrollChat();
+                    break;
+
+                case 'step_change':
+                    const stepName = event.data.step.toUpperCase();
+                    els.phase.textContent = stepName;
+                    els.phase.className = `px-2 py-1 rounded text-[10px] font-mono font-bold border ${
+                        event.data.status === 'started' 
+                        ? 'bg-blue-900/50 border-blue-500 text-blue-300 animate-pulse' 
+                        : 'bg-slate-800 border-slate-600 text-slate-400'
+                    }`;
+                    break;
+
+                // [FIXED] Planner Update
+                case 'planner_update':
+                    const plan = event.data.plan || [];
+                    const reasoning = event.data.reasoning || "Generating plan...";
+                    
+                    let planHtml = `<ul class="space-y-2">`;
+                    plan.forEach(task => {
+                        // 兼容 tool_name 或 tool_id
+                        const toolName = task.tool_name || task.tool_id || "unknown_tool";
+                        const desc = task.description || task.desc || "No description";
+                        
+                        planHtml += `
+                            <li class="flex flex-col gap-1 border-l-2 border-purple-500/30 pl-2">
+                                <div class="flex justify-between">
+                                    <span class="text-purple-400 font-bold text-[10px]">[${task.id}]</span>
+                                    <span class="text-[9px] text-slate-500 bg-slate-800 px-1 rounded">${toolName}</span>
+                                </div>
+                                <span class="text-slate-300">${desc}</span>
+                            </li>
+                        `;
+                    });
+                    planHtml += `</ul>`;
+                    
+                    addLog('planner', reasoning, planHtml);
+                    break;
+
+                // [FIXED] Executor Result
+                case 'task_result':
+                    const { task_id, status, result } = event.data;
+                    const isOk = status === 'success';
+                    // Convert result to string safely
+                    const resultText = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+                    const preview = resultText.slice(0, 100).replace(/\n/g, ' ') + (resultText.length > 100 ? '...' : '');
+                    
+                    addLog(
+                        isOk ? 'success' : 'error', 
+                        `Task ${task_id} Completed: ${preview}`, 
+                        resultText 
+                    );
+                    break;
+
+                // [FIXED] Critic Decision
+                case 'critic_decision':
+                    const { approved, reason, feedback } = event.data;
+                    // 如果拒绝，优先显示 feedback，没有 feedback 再显示 reason
+                    const rejectMsg = feedback || reason || "No feedback provided";
+                    
+                    if (approved) {
+                        addLog('critic', `Plan Verified: ${reason}`);
+                    } else {
+                        addLog('critic', `Plan Rejected: ${rejectMsg}`, "Routing back to planner for new tasks...");
+                    }
+                    break;
+
+                case 'done':
+                    els.phase.textContent = "IDLE";
+                    els.phase.className = "px-2 py-1 rounded bg-slate-800 border border-slate-600 text-[10px] font-mono text-slate-400 font-bold";
+                    els.indicator.classList.add('opacity-0');
+                    els.btn.disabled = false;
+                    isProcessing = false;
+                    currentAssistantMessageDiv = null;
+                    break;
+
+                case 'error':
+                    addLog('error', event.data.message);
+                    els.btn.disabled = false;
+                    break;
+            }
+        }
+
+        // --- Logic & Network ---
+        async function sendMessage() {
+            const text = els.input.value.trim();
+            if (!text || isProcessing) return;
+
+            isProcessing = true;
+            els.input.value = '';
+            els.btn.disabled = true;
+            els.indicator.classList.remove('opacity-0');
+            
+            appendUserMessage(text);
+            rawMarkdownBuffer = "";
+
+            try {
+                const response = await fetch('http://localhost:8009/chat/stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text, thread_id: threadId })
+                });
+
+                if (!response.ok) throw new Error("API Error");
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const event = JSON.parse(line.slice(6));
+                                handleServerEvent(event);
+                            } catch (e) {
+                                console.warn('SSE Parse Error', e);
+                            }
+                        }
+                    }
+                }
+
+            } catch (error) {
+                console.error(error);
+                addLog('error', 'Connection failed. Ensure backend is running.');
+                els.btn.disabled = false;
+                els.indicator.classList.add('opacity-0');
+                isProcessing = false;
+            }
+        }
+
+        // --- Init ---
+        els.btn.addEventListener('click', sendMessage);
+        els.input.addEventListener('keypress', e => e.key === 'Enter' && sendMessage());
+        addLog('info', `Session ready. Thread ID: ${threadId}`);
+
+    </script>
+
+</body>
+</html>
