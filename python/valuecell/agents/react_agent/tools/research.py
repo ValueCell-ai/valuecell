@@ -13,10 +13,6 @@ from valuecell.agents.research_agent.sources import (
     fetch_ashare_filings,
     fetch_event_sec_filings,
     fetch_periodic_sec_filings,
-    search_crypto_people,
-    search_crypto_projects,
-    search_crypto_vcs,
-    web_search,
 )
 from valuecell.utils.env import agent_debug_mode_enabled
 
@@ -31,10 +27,6 @@ def build_research_agent() -> Agent:
         fetch_periodic_sec_filings,
         fetch_event_sec_filings,
         fetch_ashare_filings,
-        web_search,
-        search_crypto_projects,
-        search_crypto_vcs,
-        search_crypto_people,
     ]
     # Configure EDGAR identity only when SEC_EMAIL is present
     sec_email = os.getenv("SEC_EMAIL")
