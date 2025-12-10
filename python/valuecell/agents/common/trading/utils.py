@@ -31,7 +31,10 @@ async def fetch_free_cash_from_gateway(
     logger.info("Fetching exchange balance for LIVE trading mode")
     try:
         if not hasattr(execution_gateway, "fetch_balance"):
-            return 0.0, 0.0
+            raise AttributeError(
+                f"Execution gateway {execution_gateway.__class__.__name__} "
+                "does not implement the required 'fetch_balance' method."
+            )
         balance = await execution_gateway.fetch_balance()
     except Exception as e:
         if retry_cnt < max_retries:
@@ -44,11 +47,12 @@ async def fetch_free_cash_from_gateway(
             return await fetch_free_cash_from_gateway(
                 execution_gateway, symbols, retry_cnt + 1, max_retries
             )
+        # Propagate after exhausting retries so upstream can keep cached portfolio
         logger.error(
-            f"Failed to fetch free cash from exchange after {max_retries} retries, returning 0.0",
+            f"Failed to fetch free cash from exchange after {max_retries} retries.",
             exception=e,
         )
-        return 0.0, 0.0
+        raise
 
     logger.info(f"Raw balance response: {balance}")
     free_map: dict[str, float] = {}
@@ -69,6 +73,10 @@ async def fetch_free_cash_from_gateway(
                     free_map[str(k).upper()] = float(v.get("free") or 0.0)
                 except Exception:
                     continue
+
+    # If balance structure is unrecognized, avoid returning zeros silently
+    if not isinstance(balance, dict) or (not free_map and free_section is None):
+        raise ValueError("Unrecognized balance response shape from exchange")
 
     logger.info(f"Parsed free balance map: {free_map}")
     # Derive quote currencies from symbols, fallback to common USD-stable quotes
