@@ -282,7 +282,11 @@ def create_strategy_agent_router() -> APIRouter:
                     # But SuccessResponse implies 200.
                     # If I raise HTTPException it shows as error.
                     raise HTTPException(
-                        status_code=400, detail="Failed, please check your API key"
+                        status_code=400,
+                        detail=(
+                            "Connection failed. Please check your API Key, "
+                            "Secret Key, or Passphrase."
+                        ),
                     )
             finally:
                 await gateway.close()
@@ -291,7 +295,11 @@ def create_strategy_agent_router() -> APIRouter:
             # If create_ccxt_gateway fails or other error, avoid logging sensitive info
             logger.warning("Connection test failed")
             raise HTTPException(
-                status_code=400, detail="Failed, please check your API key"
+                status_code=400,
+                detail=(
+                    "Connection failed. Please check your API Key, "
+                    "Secret Key, or Passphrase."
+                ),
             )
 
     @router.delete("/delete")
