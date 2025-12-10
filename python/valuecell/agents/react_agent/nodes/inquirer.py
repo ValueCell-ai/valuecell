@@ -37,13 +37,10 @@ def _merge_profiles(old: dict | None, delta: dict | None) -> dict:
     if new_assets:
         merged["asset_symbols"] = list(old_assets | new_assets)
 
-    # 2. Update risk preference (overwrite if new one provided)
-    if delta.get("risk"):
-        merged["risk"] = delta["risk"]
-
     return merged
 
 
+# TODO: summarize with LLM
 def _compress_history(history: list[str]) -> str:
     """Compress long execution history to prevent token explosion.
 
@@ -114,37 +111,42 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
 
     system_prompt = (
         "You are the **State Manager** for a Financial Advisor Assistant.\n"
-        "Your role: Extract ONLY the NEW information (delta) from each user message.\n\n"
-        f"# CURRENT STATE (Context Only - DO NOT Output):\n"
+        "Your PRIMARY GOAL is to extract **only the new information (delta)** from the user's latest message.\n\n"
+        f"# CURRENT STATE (Context):\n"
         f"- **Active Profile**: {current_profile or 'None (Empty)'}\n"
-        f"- **Execution History**: {len(execution_history)} tasks completed\n\n"
-        "# CORE PRINCIPLE: **State Accumulation**\n"
-        "- Extract DELTA only (new information from THIS message)\n"
-        "- Do NOT merge with existing state (merging happens automatically)\n"
-        "- Default behavior: APPEND to existing context (never clear)\n"
-        "- Only set `is_hard_switch=True` for EXPLICIT resets\n\n"
-        "# DECISION LOGIC:\n\n"
-        "1. **CHAT / ACKNOWLEDGEMENT**\n"
-        "   - Pattern: 'Thanks', 'Okay', 'Got it'\n"
-        "   - Output: status='CHAT', intent_delta=None, response_to_user=[polite reply]\n\n"
-        "2. **EXPLICIT RESET (Rare)**\n"
-        "   - Pattern: 'Start over', 'Forget that', 'Clear everything', 'Switch to Crypto'\n"
-        "   - Output: status='COMPLETE', is_hard_switch=True, intent_delta=[NEW intent from scratch]\n"
-        "   - **CRITICAL**: DO NOT trigger for comparisons like 'Compare with MSFT'\n\n"
-        "3. **INCREMENTAL ADDITION**\n"
-        "   - Pattern: 'Compare with MSFT', 'Add TSLA', 'What about Gold?'\n"
-        "   - Output: status='COMPLETE', is_hard_switch=False, intent_delta={'asset_symbols': ['MSFT']}\n"
-        "   - **ONLY include the NEW asset**, not the old ones (e.g., if context has AAPL, just output ['MSFT'])\n\n"
-        "4. **IMPLICIT REFERENCE (Follow-up)**\n"
-        "   - Pattern: 'Which is better?', 'Why did it drop?', 'Tell me more about iPhone 17'\n"
-        "   - **Context Check**: If Active Profile exists, assume user refers to it\n"
-        "   - Output: status='COMPLETE', is_hard_switch=False, intent_delta=None\n"
-        "   - **DO NOT** mark as INCOMPLETE if context is sufficient\n\n"
-        "5. **INCOMPLETE (Vague Start)**\n"
-        "   - Pattern: 'I want to invest', 'Recommend something' (AND Active Profile is None)\n"
-        "   - Output: status='INCOMPLETE', ask user for specifics\n\n"
-        "# RISK INFERENCE:\n"
-        "- 'Safe/Retirement' -> Low | 'Aggressive/Growth' -> High | Default -> Medium\n"
+        f"- **History Length**: {len(execution_history)} items\n\n"
+        "# OUTPUT INSTRUCTIONS:\n"
+        "1. **intent_delta**: Return ONLY the new fields found in the latest message. Do NOT repeat old info.\n"
+        "2. **HARD RESET (System Command)**\n"
+        "   - Trigger ONLY if user says: 'Start over', 'Reset', 'Clear history', 'New session'.\n"
+        "   - Output: status='COMPLETE', is_hard_switch=True.\n"
+        "3. **focus_topic**: If the user asks a specific question (e.g. 'Why did it drop?'), extract the topic string.\n\n"
+        "# EXAMPLES (Few-Shot):\n\n"
+        "**Scenario 1: Incremental Addition**\n"
+        "Context: {assets: ['AAPL']}\n"
+        "User: 'Compare with MSFT'\n"
+        "Output: {intent_delta: {asset_symbols: ['MSFT']}, status: 'COMPLETE', is_hard_switch: False}\n"
+        "(Note: Only output MSFT. The system will merge it to get [AAPL, MSFT])\n\n"
+        "**Scenario 2: Parameter Refinement**\n"
+        "Context: {assets: ['AAPL'], risk: 'Medium'}\n"
+        "User: 'Actually, I want low risk'\n"
+        "Output: {intent_delta: {risk: 'Low'}, status: 'COMPLETE', is_hard_switch: False}\n\n"
+        "**Scenario 3: Implicit Follow-up**\n"
+        "Context: {assets: ['AAPL']}\n"
+        "User: 'Why are sales down?'\n"
+        "Output: {intent_delta: null, focus_topic: 'sales drop reasons', status: 'COMPLETE', is_hard_switch: False}\n"
+        "(Note: Context has assets, so we don't need to ask 'what asset?'. Just extract the topic.)\n\n"
+        "**Scenario 4: Hard Switch**\n"
+        "Context: {assets: ['AAPL']}\n"
+        "User: 'Forget that. Let's look at Bitcoin.'\n"
+        "Output: {intent_delta: {asset_symbols: ['BTC']}, status: 'COMPLETE', is_hard_switch: True}\n\n"
+        "**Scenario 5: Incomplete Start**\n"
+        "Context: None\n"
+        "User: 'I want to invest'\n"
+        "Output: {status: 'INCOMPLETE', response: 'What assets are you interested in?'}\n\n"
+        "# INFERENCE RULES:\n"
+        "- Risk: 'Safe/Retirement' -> Low | 'Aggressive/Growth' -> High\n"
+        "- Default behavior: Assume the user is building on the previous conversation."
     )
 
     if is_final_turn:
