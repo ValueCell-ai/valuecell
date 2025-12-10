@@ -58,6 +58,9 @@ async def critic_node(state: dict[str, Any]) -> dict[str, Any]:
         "1. All requested tasks completed successfully.\n"
         "2. No critical errors that prevent goal satisfaction.\n"
         "3. Results align with user's intent.\n"
+        "4. **Synthesis Phase**: If sufficient research/data-gathering tasks are complete to answer the user's request, "
+        "APPROVE the plan. The system will synthesize the final response from the execution history. "
+        "Do NOT demand an explicit 'generate_report' or 'create_plan' task when the necessary data is already available.\n"
     )
 
     context = {
