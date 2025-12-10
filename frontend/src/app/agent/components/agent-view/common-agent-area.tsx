@@ -9,7 +9,6 @@ import {
 import { toast } from "sonner";
 import { useGetAgentInfo } from "@/api/agent";
 import { useGetConversationHistory, usePollTaskList } from "@/api/conversation";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { API_QUERY_KEYS } from "@/constants/api";
 import useSSE from "@/hooks/use-sse";
 import { getServerUrl } from "@/lib/api-client";
@@ -264,7 +263,7 @@ const CommonAgentAreaContent: FC<CommonAgentAreaProps> = ({ agentName }) => {
       {/* Multi-section detail view */}
       {currentSection && (
         <section className="flex flex-1 flex-col py-4">
-          <ScrollContainer>
+          <div className="scroll-container">
             <ChatMultiSectionComponent
               componentType={
                 // only the component_type is the same as the MultiSectionComponentType
@@ -272,7 +271,7 @@ const CommonAgentAreaContent: FC<CommonAgentAreaProps> = ({ agentName }) => {
               }
               content={currentSection.payload.content}
             />
-          </ScrollContainer>
+          </div>
         </section>
       )}
     </div>

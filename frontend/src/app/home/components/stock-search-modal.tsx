@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { useDebounce } from "@/hooks/use-debounce";
 import type { Stock, Watchlist } from "@/types/stock";
 
@@ -112,7 +111,7 @@ export default function StockSearchModal({ children }: StockSearchModalProps) {
         </div>
 
         {/* Search Results */}
-        <ScrollContainer>
+        <div className="scroll-container">
           {isLoading ? (
             <p className="p-4 text-center text-neutral-400 text-sm">
               Searching...
@@ -133,7 +132,7 @@ export default function StockSearchModal({ children }: StockSearchModalProps) {
               </p>
             )
           )}
-        </ScrollContainer>
+        </div>
       </DialogContent>
     </Dialog>
   );

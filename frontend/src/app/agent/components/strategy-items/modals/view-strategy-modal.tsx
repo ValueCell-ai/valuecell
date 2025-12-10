@@ -7,7 +7,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import CloseButton from "@/components/valuecell/button/close-button";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import type { StrategyPrompt } from "@/types/strategy";
 
 interface ViewStrategyModalProps {
@@ -36,11 +35,9 @@ const ViewStrategyModal: FC<ViewStrategyModalProps> = ({
           </DialogClose>
         </DialogTitle>
 
-        <ScrollContainer>
-          <p className="whitespace-pre-line font-normal text-base text-gray-950 leading-relaxed tracking-wide">
-            {prompt.content}
-          </p>
-        </ScrollContainer>
+        <p className="scroll-container whitespace-pre-line font-normal text-base text-gray-950 leading-relaxed tracking-wide">
+          {prompt.content}
+        </p>
       </DialogContent>
     </Dialog>
   );

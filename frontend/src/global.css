@@ -40,6 +40,11 @@
 }
 
 :root {
+  --scrollbar-color-thumb: oklch(0.86 0 0);
+  --scrollbar-color-thumb-hover: oklch(0.7 0 0);
+  --scrollbar-color-track: transparent;
+  --scrollbar-width: 8px;
+
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -70,6 +75,9 @@
 }
 
 .dark {
+  --scrollbar-color-thumb: oklch(0.4 0 0);
+  --scrollbar-color-thumb-hover: oklch(0.5 0 0);
+
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
@@ -146,11 +154,40 @@
       border-color: transparent;
     }
   }
-}
 
-/* OverlayScrollbars custom styles */
-.os-theme-dark {
-  --os-handle-bg: var(--color-neutral-200);
-  --os-handle-bg-hover: var(--color-neutral-300);
-  --os-handle-bg-active: var(--color-neutral-400);
+  .scroll-container {
+    overflow-x: clip;
+    overflow-y: hidden;
+    scrollbar-gutter: stable both-edges;
+
+
+    @supports (scrollbar-width: auto) {
+      scrollbar-color: var(--scrollbar-color-thumb) var(--scrollbar-color-track);
+      scrollbar-width: thin;
+    }
+
+    @supports selector(::-webkit-scrollbar) {
+      &::-webkit-scrollbar {
+        width: var(--scrollbar-width);
+      }
+
+      &::-webkit-scrollbar-track {
+        background: var(--scrollbar-color-track);
+        border-radius: calc(var(--scrollbar-width) * 2);
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-color-thumb);
+        border-radius: calc(var(--scrollbar-width) * 2);
+      }
+
+      &::-webkit-scrollbar-thumb:hover {
+        background: var(--scrollbar-color-thumb-hover);
+      }
+    }
+
+    &:is(:hover, :focus, :active) {
+      overflow-y: auto;
+    }
+  }
 }

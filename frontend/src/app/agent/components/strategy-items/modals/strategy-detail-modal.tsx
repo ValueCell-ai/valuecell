@@ -20,7 +20,6 @@ import {
 import CopyStrategyModal, {
   type CopyStrategyModelRef,
 } from "@/components/valuecell/modal/copy-strategy-modal";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { getChangeType, numberFixed } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
 import { useIsLoggedIn, useSystemInfo } from "@/store/system-store";
@@ -67,7 +66,7 @@ const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
         <DialogHeader>
           <DialogTitle>Strategy Details</DialogTitle>
         </DialogHeader>
-        <ScrollContainer>
+        <div className="scroll-container">
           {isLoadingStrategyDetail || !strategyDetail ? (
             <div className="py-8 text-center">Loading details...</div>
           ) : (
@@ -129,9 +128,9 @@ const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
               </div>
             </div>
           )}
-        </ScrollContainer>
+        </div>
 
-        <DialogFooter>
+        <DialogFooter className="mt-auto">
           <Button
             className="w-full"
             onClick={async () => {

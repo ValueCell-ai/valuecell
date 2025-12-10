@@ -1,6 +1,5 @@
 import { Link } from "react-router";
 import { useGetAgentList } from "@/api/agent";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { AgentMarketSkeleton } from "@/components/valuecell/skeleton";
 import { AgentCard } from "./components/agent-card";
 
@@ -19,17 +18,15 @@ export default function AgentMarket() {
       </h1>
 
       {/* Agent Cards Grid */}
-      <ScrollContainer>
-        <div className="mx-auto grid w-3/4 grid-cols-3 gap-4 space-y-4 pb-8">
-          {agents.map((agent) => (
-            <div key={agent.agent_name} className="break-inside-avoid">
-              <Link to={`/agent/${agent.agent_name}/config`}>
-                <AgentCard agent={agent} />
-              </Link>
-            </div>
-          ))}
-        </div>
-      </ScrollContainer>
+      <div className="scroll-container mx-auto grid w-3/4 grid-cols-3 gap-4 space-y-4 pb-8">
+        {agents.map((agent) => (
+          <div key={agent.agent_name} className="break-inside-avoid">
+            <Link to={`/agent/${agent.agent_name}/config`}>
+              <AgentCard agent={agent} />
+            </Link>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

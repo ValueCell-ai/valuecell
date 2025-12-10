@@ -123,7 +123,7 @@ class StreamController:
                     self.strategy_id,
                 )
 
-            # When running in LIVE mode, update DB config.initial_capital to exchange available balance
+            # When running in LIVE mode, update DB config.initial_free_cash to exchange available balance
             # and record initial capital into strategy metadata for fast access by APIs.
             # Only perform this on the first snapshot to avoid overwriting user edits or restarts.
             try:
@@ -132,51 +132,54 @@ class StreamController:
                 )
                 is_live = trading_mode == agent_models.TradingMode.LIVE
                 if is_live and is_first_snapshot:
-                    initial_cash = getattr(initial_portfolio, "free_cash", None)
-                    if initial_cash is None:
-                        initial_cash = getattr(
-                            initial_portfolio, "account_balance", None
+                    initial_free_cash = (
+                        initial_portfolio.free_cash
+                        or initial_portfolio.account_balance
+                        or runtime.request.trading_config.initial_free_cash
+                    )
+                    initial_total_cash = (
+                        initial_portfolio.total_value
+                        - initial_portfolio.total_unrealized_pnl
+                        if (
+                            initial_portfolio.total_value is not None
+                            and initial_portfolio.total_unrealized_pnl is not None
                         )
-                    if initial_cash is None:
-                        initial_cash = getattr(
-                            runtime.request.trading_config, "initial_capital", None
-                        )
-
-                    if initial_cash is not None:
+                        else runtime.request.trading_config.initial_free_cash
+                    )
+                    if initial_free_cash is not None:
                         if strategy_persistence.update_initial_capital(
-                            self.strategy_id, float(initial_cash)
+                            self.strategy_id,
+                            float(initial_free_cash),
+                            float(initial_total_cash),
                         ):
-                            logger.info(
-                                "Updated DB initial_capital to {} for strategy={} (LIVE mode)",
-                                initial_cash,
-                                self.strategy_id,
-                            )
                             try:
                                 # Also persist metadata for initial capital to avoid repeated first-snapshot queries
                                 strategy_persistence.set_initial_capital_metadata(
                                     strategy_id=self.strategy_id,
-                                    initial_capital=float(initial_cash),
+                                    initial_free_cash=float(initial_free_cash),
+                                    initial_total_cash=float(initial_total_cash),
                                     source="live_snapshot_cash",
                                     ts_ms=timestamp_ms,
                                 )
                                 logger.info(
-                                    "Recorded initial_capital_live={} (source=live_snapshot_cash) in metadata for strategy={}",
-                                    initial_cash,
+                                    "Recorded initial_free_cash={} initial_total_cash={} (source=live_snapshot_cash) in metadata for strategy={}",
+                                    initial_free_cash,
+                                    initial_total_cash,
                                     self.strategy_id,
                                 )
                             except Exception:
                                 logger.exception(
-                                    "Failed to set initial_capital metadata for {}",
+                                    "Failed to set initial capital metadata for {}",
                                     self.strategy_id,
                                 )
                         else:
                             logger.warning(
-                                "Failed to update DB initial_capital for strategy={} (LIVE mode)",
+                                "Failed to update DB initial capital for strategy={} (LIVE mode)",
                                 self.strategy_id,
                             )
             except Exception:
                 logger.exception(
-                    "Error while updating DB initial_capital from live balance for {}",
+                    "Error while updating DB initial capital from live balance for {}",
                     self.strategy_id,
                 )
         except Exception:

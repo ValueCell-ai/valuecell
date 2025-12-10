@@ -1,5 +1,6 @@
 import asyncio
 import json
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from importlib import import_module
 from pathlib import Path
@@ -70,34 +71,77 @@ class AgentContext:
 
 _LOCAL_AGENT_CLASS_CACHE: Dict[str, Type[Any]] = {}
 
+# Global thread pool for offloading imports. Using a fixed executor allows
+# better control and avoids unbounded thread creation when many imports are
+# requested concurrently.
+executor = ThreadPoolExecutor(max_workers=4)
 
-def _resolve_local_agent_class(spec: str) -> Optional[Type[Any]]:
-    """Resolve a `module:Class` spec to a Python class.
 
-    This function is synchronous and performs a normal import. Callers that
-    need to avoid blocking the event loop should invoke this via
-    `asyncio.to_thread(_resolve_local_agent_class, spec)`.
+def _resolve_local_agent_class_sync(spec: str) -> Optional[Type[Any]]:
+    """Synchronous resolver used for fallback and direct calls.
 
-    Results are cached in `_LOCAL_AGENT_CLASS_CACHE` to avoid repeated
-    imports/attribute lookups.
+    Keeps the original import behavior but is extracted so it can be invoked
+    from a thread pool via `run_in_executor`.
     """
-
     if not spec:
         return None
 
     cached = _LOCAL_AGENT_CLASS_CACHE.get(spec)
     if cached is not None:
+        logger.debug("_resolve_local_agent_class_sync: cache hit for '{}'", spec)
         return cached
 
     try:
         module_path, class_name = spec.split(":", 1)
+        logger.info(
+            "_resolve_local_agent_class_sync: importing module '{}' for class '{}'",
+            module_path,
+            class_name,
+        )
         module = import_module(module_path)
+        logger.info("_resolve_local_agent_class_sync: module imported, getting class")
         agent_cls = getattr(module, class_name)
+        logger.info("_resolve_local_agent_class_sync: class '{}' resolved", class_name)
     except (ValueError, AttributeError, ImportError) as exc:
         logger.error("Failed to import agent class '{}': {}", spec, exc)
         return None
 
     _LOCAL_AGENT_CLASS_CACHE[spec] = agent_cls
+    return agent_cls
+
+
+async def _resolve_local_agent_class(spec: str) -> Optional[Type[Any]]:
+    """Asynchronously resolve a `module:Class` spec to a Python class.
+
+    The actual import is executed in a thread pool via `loop.run_in_executor`
+    to avoid blocking the event loop. Results are cached in
+    `_LOCAL_AGENT_CLASS_CACHE` to avoid repeated imports.
+    """
+    if not spec:
+        return None
+
+    # Fast path: cache hit
+    cached = _LOCAL_AGENT_CLASS_CACHE.get(spec)
+    if cached is not None:
+        logger.info("_resolve_local_agent_class: cache hit for '{}'", spec)
+        return cached
+
+    logger.info(
+        "_resolve_local_agent_class: cache miss for '{}', delegating to executor", spec
+    )
+
+    loop = asyncio.get_running_loop()
+    # Delegate the synchronous import to the thread pool
+    try:
+        agent_cls = await loop.run_in_executor(
+            executor, _resolve_local_agent_class_sync, spec
+        )
+    except Exception as exc:
+        logger.error(
+            "_resolve_local_agent_class: threaded import failed for '{}': {}", spec, exc
+        )
+        return None
+
     return agent_cls
 
 
@@ -109,8 +153,9 @@ async def _build_local_agent(ctx: AgentContext):
     - If `agent_instance_class` is already present, use it.
     - Otherwise, if `agent_class_spec` is provided, resolve it off the
       event loop (`asyncio.to_thread`) so imports don't block the loop.
-    - If resolution fails, log a warning and return `None` (caller will
-      treat missing factory as "no local agent available").
+      A timeout is applied to prevent hangs on Windows where import lock
+      contention between threads and the event loop can cause deadlocks.
+    - If resolution fails or times out, fall back to synchronous import.
     - The actual wrapping call (`create_wrapped_agent`) is performed on
       the event loop; this preserves any asyncio-related initialization
       semantics required by the wrapper (if it needs loop context).
@@ -118,10 +163,24 @@ async def _build_local_agent(ctx: AgentContext):
 
     agent_cls = ctx.agent_instance_class
     if agent_cls is None and ctx.agent_class_spec:
-        # Resolve the import in a worker thread to avoid blocking the loop.
-        agent_cls = await asyncio.to_thread(
-            _resolve_local_agent_class, ctx.agent_class_spec
-        )
+        # Try resolving the import in a worker thread with a timeout.
+        # Use the async resolver which delegates to a thread pool. If the
+        # operation times out, attempt a direct import in the executor as a
+        # final fallback.
+        try:
+            agent_cls = await asyncio.wait_for(
+                _resolve_local_agent_class(ctx.agent_class_spec), timeout=5.0
+            )
+        except asyncio.TimeoutError:
+            logger.warning(
+                "Threaded import timed out for '{}', falling back to executor sync import",
+                ctx.agent_class_spec,
+            )
+            loop = asyncio.get_running_loop()
+            agent_cls = await loop.run_in_executor(
+                executor, _resolve_local_agent_class_sync, ctx.agent_class_spec
+            )
+
         ctx.agent_instance_class = agent_cls
         if agent_cls is None:
             logger.warning(
@@ -185,6 +244,7 @@ class RemoteConnections:
             )
             return
 
+        logger.info(f"Loading agent cards from {agent_card_dir}")
         for json_file in agent_card_dir.glob("*.json"):
             try:
                 # Read name minimally to resolve via helper
@@ -217,11 +277,68 @@ class RemoteConnections:
                     f"Failed to load agent card from {json_file}; skipping: {e}"
                 )
                 continue
+        logger.info(
+            f"Loaded {len(self._contexts)} agent card(s) from {agent_card_dir}: {list(self._contexts.keys())}"
+        )
         self._remote_contexts_loaded = True
 
     def _ensure_remote_contexts_loaded(self) -> None:
         if not self._remote_contexts_loaded:
             self._load_remote_contexts()
+
+    def preload_local_agent_classes(self, names: list[str] | None = None) -> None:
+        """Preload all local agent classes synchronously at startup.
+
+        If `names` is provided (a list of agent names), only agents whose
+        names appear in the list will be considered for preload; others are
+        skipped. This preserves the original behavior when `names` is None.
+
+        This method should be called during application startup (before the
+        event loop processes requests) to avoid import deadlocks on Windows.
+        Importing Python modules in a worker thread while the main thread holds
+        the import lock can cause hangs. By importing everything upfront in
+        the main thread, we sidestep this issue entirely.
+        """
+        self._ensure_remote_contexts_loaded()
+        preloaded_count = 0
+        for name, ctx in self._contexts.items():
+            # If caller passed a filter list, skip contexts not in that list
+            if names is not None and name not in names:
+                logger.debug(
+                    "Skipping preload for '{}': not in provided names list", name
+                )
+                continue
+            if not ctx.agent_class_spec:
+                logger.debug("Skipping preload for '{}': no agent_class_spec", name)
+                continue
+            if ctx.agent_instance_class is not None:
+                logger.debug("Skipping preload for '{}': class already loaded", name)
+                continue
+            logger.info(
+                "Preloading agent class for '{}' (spec='{}')",
+                name,
+                ctx.agent_class_spec,
+            )
+            cls = _resolve_local_agent_class_sync(ctx.agent_class_spec)
+            ctx.agent_instance_class = cls
+            if cls is None:
+                logger.warning(
+                    "Failed to preload agent class '{}' for '{}'",
+                    ctx.agent_class_spec,
+                    name,
+                )
+            else:
+                preloaded_count += 1
+                logger.info(
+                    "Successfully preloaded class '{}' for '{}'",
+                    cls.__name__,
+                    name,
+                )
+        logger.info(
+            "Preload complete: {}/{} agent classes loaded",
+            preloaded_count,
+            len(self._contexts),
+        )
 
     # Public helper primarily for tests or tooling to load from a custom dir
     def load_from_dir(self, config_dir: str) -> None:
@@ -242,6 +359,9 @@ class RemoteConnections:
         """
         # Use agent-specific lock to prevent concurrent starts of the same agent
         agent_lock = self._get_agent_lock(agent_name)
+        logger.info(
+            f"Request to start agent '{agent_name}' (with_listener={with_listener})"
+        )
         async with agent_lock:
             ctx = await self._get_or_create_context(agent_name)
 
@@ -297,6 +417,9 @@ class RemoteConnections:
         if not url:
             raise ValueError(f"Unable to determine URL for agent '{ctx.name}'")
         # Initialize a temporary client; only assign to context on success
+        logger.info(
+            f"Initializing client for '{ctx.name}' at {url} (listener_url={ctx.listener_url})"
+        )
         tmp_client = AgentClient(url, push_notification_url=ctx.listener_url)
         try:
             await self._initialize_client(tmp_client, ctx)
@@ -341,6 +464,7 @@ class RemoteConnections:
             logger.info(f"Launching in-process agent '{ctx.name}'")
 
         if ctx.agent_task is None:
+            logger.info(f"Creating task to run in-process agent '{ctx.name}'")
             ctx.agent_task = asyncio.create_task(ctx.agent_instance.serve())
             # Give the event loop a chance to schedule startup work
             await asyncio.sleep(0)
@@ -359,9 +483,15 @@ class RemoteConnections:
         """Initialize client with retry for local agents."""
         retries = 3 if ctx.agent_task else 1
         delay = 0.2
+        logger.info(
+            f"_initialize_client: initializing client for '{ctx.name}' (retries={retries})"
+        )
         for attempt in range(retries):
             try:
                 await client.ensure_initialized()
+                logger.info(
+                    f"Client initialized for '{ctx.name}' on attempt {attempt + 1}"
+                )
                 return
             except Exception as exc:
                 if attempt >= retries - 1:

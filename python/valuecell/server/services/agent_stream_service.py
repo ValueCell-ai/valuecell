@@ -7,6 +7,7 @@ from typing import AsyncGenerator, Optional
 
 from loguru import logger
 
+from valuecell.core.agent.connect import RemoteConnections
 from valuecell.core.coordinate.orchestrator import AgentOrchestrator
 from valuecell.core.task.executor import TaskExecutor
 from valuecell.core.task.locator import get_task_service
@@ -15,6 +16,29 @@ from valuecell.core.types import UserInput, UserInputMetadata
 from valuecell.utils.uuid import generate_conversation_id
 
 _TASK_AUTORESTART_STARTED = False
+_AGENT_CLASSES_PRELOADED = False
+
+
+def _preload_agent_classes_once() -> None:
+    """Preload local agent classes once to avoid Windows import lock deadlocks.
+
+    This must run in the main thread before any async operations that might
+    trigger imports in worker threads. Safe to call multiple times.
+    """
+    global _AGENT_CLASSES_PRELOADED
+    if _AGENT_CLASSES_PRELOADED:
+        return
+    _AGENT_CLASSES_PRELOADED = True
+
+    try:
+        logger.info("Preloading local agent classes...")
+        rc = RemoteConnections()
+        rc.preload_local_agent_classes(
+            names=["GridStrategyAgent", "PromptBasedStrategyAgent"]
+        )
+        logger.info("✓ Local agent classes preloaded")
+    except Exception as e:
+        logger.warning(f"✗ Failed to preload local agent classes: {e}")
 
 
 class AgentStreamService:
@@ -22,6 +46,10 @@ class AgentStreamService:
 
     def __init__(self):
         """Initialize the agent stream service."""
+        # Preload agent classes before creating orchestrator to avoid
+        # Windows import lock deadlocks when using thread pools
+        _preload_agent_classes_once()
+
         self.orchestrator = AgentOrchestrator()
         logger.info("Agent stream service initialized")
 

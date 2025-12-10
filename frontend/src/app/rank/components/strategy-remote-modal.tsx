@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useNavigate } from "react-router";
 import { useGetStrategyDetail } from "@/api/system";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,6 @@ import {
 import CopyStrategyModal, {
   type CopyStrategyModelRef,
 } from "@/components/valuecell/modal/copy-strategy-modal";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { getChangeType, numberFixed } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
 export interface StrategyRemoteModalRef {
@@ -31,6 +31,8 @@ interface StrategyRemoteModalProps {
 
 const StrategyRemoteModal: FC<StrategyRemoteModalProps> = ({ ref }) => {
   const stockColors = useStockColors();
+  const navigate = useNavigate();
+
   const [open, setOpen] = useState(false);
   const [strategyId, setStrategyId] = useState<number | null>(null);
   const copyStrategyModalRef = useRef<CopyStrategyModelRef>(null);
@@ -53,7 +55,7 @@ const StrategyRemoteModal: FC<StrategyRemoteModalProps> = ({ ref }) => {
         <DialogHeader>
           <DialogTitle>Strategy Details</DialogTitle>
         </DialogHeader>
-        <ScrollContainer>
+        <div className="scroll-container">
           {isLoadingStrategyDetail || !strategyDetail ? (
             <div className="py-8 text-center">Loading details...</div>
           ) : (
@@ -113,9 +115,9 @@ const StrategyRemoteModal: FC<StrategyRemoteModalProps> = ({ ref }) => {
               </div>
             </div>
           )}
-        </ScrollContainer>
+        </div>
 
-        <DialogFooter>
+        <DialogFooter className="mt-auto">
           <Button
             className="w-full"
             onClick={() =>
@@ -126,7 +128,10 @@ const StrategyRemoteModal: FC<StrategyRemoteModalProps> = ({ ref }) => {
                   api_key: "",
                 },
                 exchange_config: {
-                  exchange_id: strategyDetail?.exchange_id || "",
+                  exchange_id:
+                    strategyDetail?.exchange_id !== "virtual"
+                      ? (strategyDetail?.exchange_id ?? "")
+                      : "",
                   trading_mode: strategyDetail?.trading_mode || "virtual",
                   api_key: "",
                   secret_key: "",
@@ -153,7 +158,10 @@ const StrategyRemoteModal: FC<StrategyRemoteModalProps> = ({ ref }) => {
         </DialogFooter>
       </DialogContent>
 
-      <CopyStrategyModal ref={copyStrategyModalRef} />
+      <CopyStrategyModal
+        ref={copyStrategyModalRef}
+        callback={() => navigate(`/agent/StrategyAgent`)}
+      />
     </Dialog>
   );
 };

@@ -29,7 +29,6 @@ import SvgIcon from "@/components/valuecell/icon/svg-icon";
 import CopyStrategyModal, {
   type CopyStrategyModelRef,
 } from "@/components/valuecell/modal/copy-strategy-modal";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import { formatChange, getChangeType } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
@@ -267,22 +266,20 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
   return (
     <>
       {hasStrategies ? (
-        <ScrollContainer className="flex-1">
-          <div className="flex flex-col gap-3">
-            {strategies.map((strategy) => (
-              <TradeStrategyCard
-                key={strategy.strategy_id}
-                strategy={strategy}
-                isSelected={
-                  selectedStrategy?.strategy_id === strategy.strategy_id
-                }
-                onClick={() => onStrategySelect?.(strategy)}
-                onStop={() => onStrategyStop?.(strategy.strategy_id)}
-                onDelete={() => onStrategyDelete?.(strategy.strategy_id)}
-              />
-            ))}
-          </div>
-        </ScrollContainer>
+        <div className="scroll-container flex flex-1 flex-col gap-3">
+          {strategies.map((strategy) => (
+            <TradeStrategyCard
+              key={strategy.strategy_id}
+              strategy={strategy}
+              isSelected={
+                selectedStrategy?.strategy_id === strategy.strategy_id
+              }
+              onClick={() => onStrategySelect?.(strategy)}
+              onStop={() => onStrategyStop?.(strategy.strategy_id)}
+              onDelete={() => onStrategyDelete?.(strategy.strategy_id)}
+            />
+          ))}
+        </div>
       ) : (
         <div className="flex w-80 items-center justify-center rounded-xl border-2 border-gray-200 border-dashed bg-gray-50/50">
           <div className="flex flex-col items-center gap-4 px-6 py-12 text-center">

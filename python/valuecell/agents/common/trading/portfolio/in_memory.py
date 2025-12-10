@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from valuecell.agents.common.trading.models import (
     Constraints,
@@ -36,7 +36,9 @@ class InMemoryPortfolioService(BasePortfolioService):
 
     def __init__(
         self,
-        initial_capital: float,
+        free_cash: float,
+        total_cash: float,
+        initial_positions: Dict[str, PositionSnapshot],
         trading_mode: TradingMode,
         market_type: MarketType,
         constraints: Optional[Constraints] = None,
@@ -45,19 +47,34 @@ class InMemoryPortfolioService(BasePortfolioService):
         # Store owning strategy id on the view so downstream components
         # always see which strategy this portfolio belongs to.
         self._strategy_id = strategy_id
+        net_exposure = sum(
+            value.notional
+            for value in initial_positions.values()
+            if value.notional is not None
+        )
+        gross_exposure = sum(
+            abs(value.notional)
+            for value in initial_positions.values()
+            if value.notional is not None
+        )
+        total_unrealized_pnl = sum(
+            value.unrealized_pnl
+            for value in initial_positions.values()
+            if value.unrealized_pnl is not None
+        )
         self._view = PortfolioView(
             strategy_id=strategy_id,
             ts=int(datetime.now(timezone.utc).timestamp() * 1000),
-            account_balance=initial_capital,
-            positions={},
-            gross_exposure=0.0,
-            net_exposure=0.0,
+            account_balance=free_cash,
+            positions=initial_positions,
+            gross_exposure=gross_exposure,
+            net_exposure=net_exposure,
             constraints=constraints or None,
-            total_value=initial_capital,
-            total_unrealized_pnl=0.0,
+            total_value=total_cash + total_unrealized_pnl,
+            total_unrealized_pnl=total_unrealized_pnl,
             total_realized_pnl=0.0,
-            buying_power=initial_capital,
-            free_cash=initial_capital,
+            buying_power=free_cash,
+            free_cash=free_cash,
         )
         self._trading_mode = trading_mode
         self._market_type = market_type

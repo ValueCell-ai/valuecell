@@ -35,7 +35,6 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Switch } from "@/components/ui/switch";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { useTauriInfo } from "@/hooks/use-tauri-info";
 
 const configSchema = z.object({
@@ -147,7 +146,7 @@ export function ModelDetail({ provider }: ModelDetailProps) {
   }
 
   return (
-    <ScrollContainer className="flex flex-1 flex-col px-8">
+    <div className="scroll-container flex flex-1 flex-col px-8">
       <div className="mb-4 flex items-center justify-between">
         <p className="font-semibold text-gray-950 text-lg">{provider}</p>
         <div className="flex items-center gap-2">
@@ -182,6 +181,12 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                       value={field.state.value}
                       onChange={(e) => field.handleChange(e.target.value)}
                       onBlur={() => configForm.handleSubmit()}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          e.currentTarget.blur();
+                        }
+                      }}
                     />
                     <InputGroupAddon align="inline-end">
                       <InputGroupButton
@@ -229,6 +234,12 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
                     onBlur={() => configForm.handleSubmit()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        e.currentTarget.blur();
+                      }
+                    }}
                   />
                   <FieldError errors={field.state.meta.errors} />
                 </Field>
@@ -369,6 +380,6 @@ export function ModelDetail({ provider }: ModelDetailProps) {
           </div>
         </div>
       </form>
-    </ScrollContainer>
+    </div>
   );
 }

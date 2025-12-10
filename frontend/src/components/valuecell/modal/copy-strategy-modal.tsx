@@ -24,7 +24,6 @@ import {
   EXCHANGE_OPTIONS,
   ExchangeForm,
 } from "@/components/valuecell/form/exchange-form";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 import { StepIndicator } from "@/components/valuecell/step-indicator";
 import { TRADING_SYMBOLS } from "@/constants/agent";
 import {
@@ -43,6 +42,7 @@ export interface CopyStrategyModelRef {
 interface CopyStrategyModalProps {
   children?: React.ReactNode;
   ref?: RefObject<CopyStrategyModelRef | null>;
+  callback?: () => void;
 }
 
 const STEPS = [
@@ -51,7 +51,11 @@ const STEPS = [
   { step: 3, title: "Trading strategy" },
 ];
 
-const CopyStrategyModal: FC<CopyStrategyModalProps> = ({ ref, children }) => {
+const CopyStrategyModal: FC<CopyStrategyModalProps> = ({
+  ref,
+  children,
+  callback,
+}) => {
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [defaultValues, setDefaultValues] = useState<CopyStrategy>();
@@ -159,6 +163,7 @@ const CopyStrategyModal: FC<CopyStrategyModalProps> = ({ ref, children }) => {
 
       tracker.send("use", { agent_name: "StrategyAgent" });
       resetAll();
+      callback?.();
     },
   });
 
@@ -205,7 +210,7 @@ const CopyStrategyModal: FC<CopyStrategyModalProps> = ({ ref, children }) => {
         </DialogTitle>
 
         {/* Form content with scroll */}
-        <ScrollContainer className="px-1 py-2">
+        <div className="scroll-container px-1 py-2">
           {/* Step 1: AI Models */}
           {currentStep === 1 && <AIModelForm form={form1} />}
 
@@ -219,9 +224,9 @@ const CopyStrategyModal: FC<CopyStrategyModalProps> = ({ ref, children }) => {
               tradingMode={form2.state.values.trading_mode}
             />
           )}
-        </ScrollContainer>
+        </div>
 
-        <DialogFooter className="flex flex-col! gap-2">
+        <DialogFooter className="mt-auto flex flex-col! gap-2">
           {error && (
             <Alert variant="destructive">
               <AlertCircleIcon />

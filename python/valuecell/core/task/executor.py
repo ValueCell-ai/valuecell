@@ -343,7 +343,17 @@ class TaskExecutor:
             )
         )
 
+        logger.info(
+            "_execute_single_task_run: acquiring client for agent {} (task={})",
+            agent_name,
+            task.task_id,
+        )
         client = await self._agent_connections.get_client(agent_name)
+        logger.info(
+            "_execute_single_task_run: acquired client for agent {} (task={})",
+            agent_name,
+            task.task_id,
+        )
         if not client:
             # Emit a TOOL_CALL_COMPLETED with a failure message (no client)
             yield await self._event_service.emit(
@@ -372,6 +382,11 @@ class TaskExecutor:
             )
         )
 
+        logger.info(
+            "_execute_single_task_run: sending message to agent {} (task={})",
+            agent_name,
+            task.task_id,
+        )
         remote_response = await client.send_message(
             task.query,
             conversation_id=task.conversation_id,
@@ -415,7 +430,7 @@ class TaskExecutor:
 
             if isinstance(event, TaskArtifactUpdateEvent):
                 logger.info(
-                    "Received unexpected artifact update for task %s: %s",
+                    "Received unexpected artifact update for task {}: {}",
                     task.task_id,
                     event,
                 )

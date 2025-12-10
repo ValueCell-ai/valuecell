@@ -14,6 +14,7 @@ from valuecell.agents.common.trading.models import (
     StrategyStatus,
     StrategyStatusContent,
     StrategyType,
+    TradingMode,
     UserRequest,
 )
 from valuecell.config.loader import get_config_loader
@@ -68,6 +69,20 @@ def create_strategy_agent_router() -> APIRouter:
                     }
                 )
 
+            # Assign initial_capital value to initial_free_cash.
+            # Only used for paper tradings, the system would use account portfolio data for LIVE tradings.
+            request.trading_config.initial_free_cash = (
+                request.trading_config.initial_capital
+            )
+            if (
+                request.exchange_config.trading_mode == TradingMode.VIRTUAL
+                and request.exchange_config.exchange_id not in {None, ""}
+            ):
+                logger.warning(
+                    "Virtual trading requested on non-default exchange_id '{}'. Ensure this is intended.",
+                    request.exchange_config.exchange_id,
+                )
+                request.exchange_config.exchange_id = None
             # Ensure we only serialize the core UserRequest fields, excluding conversation_id
             user_request = UserRequest(
                 llm_model_config=request.llm_model_config,

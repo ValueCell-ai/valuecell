@@ -19,7 +19,7 @@ export const useGetStrategyList = () => {
         ApiResponse<{
           strategies: Strategy[];
         }>
-      >("/strategies"),
+      >("/strategies/"),
     select: (data) => data.data.strategies,
     refetchInterval: 5 * 1000,
   });
@@ -155,6 +155,22 @@ export const useCreateStrategyPrompt = () => {
         "/strategies/prompts/create",
         data,
       ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: API_QUERY_KEYS.STRATEGY.strategyPrompts,
+      });
+    },
+  });
+};
+
+export const useDeleteStrategyPrompt = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (promptId: string) =>
+      apiClient.delete<
+        ApiResponse<{ deleted: boolean; prompt_id: string; message: string }>
+      >(`/strategies/prompts/${promptId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: API_QUERY_KEYS.STRATEGY.strategyPrompts,

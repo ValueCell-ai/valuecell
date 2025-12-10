@@ -31,6 +31,8 @@ tauri-plugin-deep-link = "2"
 reqwest = { version = "0.12", features = ["blocking", "json"] }
 tauri-plugin-os = "2"
 uuid = { version = "1", features = ["v7"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-process = "2"

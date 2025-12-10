@@ -19,7 +19,6 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import CloseButton from "@/components/valuecell/button/close-button";
-import ScrollContainer from "@/components/valuecell/scroll/scroll-container";
 
 interface NewPromptModalProps {
   onSave: (value: { name: string; content: string }) => void;
@@ -71,48 +70,46 @@ const NewPromptModal: FC<NewPromptModalProps> = ({ onSave, children }) => {
           <CloseButton onClick={handleCancel} />
         </DialogTitle>
 
-        <ScrollContainer>
-          <form>
-            <FieldGroup className="gap-6 py-2">
-              {/* Prompt Name */}
-              <form.Field name="name">
-                {(field) => (
-                  <Field>
-                    <FieldLabel className="font-medium text-base text-gray-950">
-                      Prompt Name
-                    </FieldLabel>
-                    <Input
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      onBlur={field.handleBlur}
-                      placeholder="Enter prompt name..."
-                    />
-                    <FieldError errors={field.state.meta.errors} />
-                  </Field>
-                )}
-              </form.Field>
+        <form className="scroll-container">
+          <FieldGroup className="gap-6 py-2">
+            {/* Prompt Name */}
+            <form.Field name="name">
+              {(field) => (
+                <Field>
+                  <FieldLabel className="font-medium text-base text-gray-950">
+                    Prompt Name
+                  </FieldLabel>
+                  <Input
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    placeholder="Enter prompt name..."
+                  />
+                  <FieldError errors={field.state.meta.errors} />
+                </Field>
+              )}
+            </form.Field>
 
-              {/* Prompt Content */}
-              <form.Field name="content">
-                {(field) => (
-                  <Field>
-                    <FieldLabel className="font-medium text-base text-gray-950">
-                      Prompt Template
-                    </FieldLabel>
-                    <Textarea
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      onBlur={field.handleBlur}
-                      placeholder="Enter your prompt template..."
-                      className="min-h-[300px]"
-                    />
-                    <FieldError errors={field.state.meta.errors} />
-                  </Field>
-                )}
-              </form.Field>
-            </FieldGroup>
-          </form>
-        </ScrollContainer>
+            {/* Prompt Content */}
+            <form.Field name="content">
+              {(field) => (
+                <Field>
+                  <FieldLabel className="font-medium text-base text-gray-950">
+                    Prompt Template
+                  </FieldLabel>
+                  <Textarea
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    placeholder="Enter your prompt template..."
+                    className="min-h-[300px]"
+                  />
+                  <FieldError errors={field.state.meta.errors} />
+                </Field>
+              )}
+            </form.Field>
+          </FieldGroup>
+        </form>
         {/* Footer */}
         <div className="mt-auto flex gap-3">
           <Button
