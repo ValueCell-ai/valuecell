@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from loguru import logger
 from pydantic import BaseModel
 
