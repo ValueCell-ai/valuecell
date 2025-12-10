@@ -75,24 +75,26 @@ class ExecutionPlan(BaseModel):
 
 
 class InquirerDecision(BaseModel):
-    """The decision output from the LLM-driven Inquirer Agent with state accumulation."""
+    """Simplified decision model: Direct full-state output."""
 
-    intent_delta: FinancialIntent | None = Field(
+    updated_profile: FinancialIntent | None = Field(
         default=None,
-        description="The NEW information extracted from this message only (delta, not full state). "
-        "For 'Compare with MSFT', this should only contain ['MSFT'], not ['AAPL', 'MSFT'].",
+        description="The FULL, UPDATED user profile after processing this message. "
+        "If user adds assets (e.g., 'Compare with MSFT' when context has ['AAPL']), "
+        "output the MERGED list: ['AAPL', 'MSFT']. "
+        "If user switches targets, output only new ones. "
+        "If follow-up question with no profile change, output the same profile.",
     )
-    status: Literal["COMPLETE", "INCOMPLETE", "CHAT"] = Field(
-        description="COMPLETE: Ready for planning. INCOMPLETE: Need more info. CHAT: Casual conversation/follow-up."
+    focus_topic: str | None = Field(
+        default=None,
+        description="Specific sub-topic or question user is asking about (e.g., 'iPhone 17 sales', 'dividend history'). "
+        "Extract this for follow-up questions to guide Planner's research focus.",
+    )
+    status: Literal["PLAN", "CHAT", "RESET"] = Field(
+        description="PLAN: Ready for task execution. CHAT: Casual conversation/greeting. RESET: Explicit command to start over."
     )
     reasoning: str = Field(description="Brief thought process explaining the decision")
     response_to_user: str | None = Field(
         default=None,
-        description="Direct response to user (for INCOMPLETE questions or CHAT replies).",
-    )
-    is_hard_switch: bool = Field(
-        default=False,
-        description="True ONLY if user explicitly asks to ignore previous context or switch domains completely. "
-        "Examples: 'Start over', 'Forget that', 'Clear everything', domain change (Stocks -> Crypto). "
-        "DO NOT set to True for comparisons like 'Compare with MSFT'.",
+        description="Direct response to user (for CHAT replies or clarifications).",
     )

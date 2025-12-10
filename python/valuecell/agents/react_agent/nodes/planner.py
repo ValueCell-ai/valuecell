@@ -14,8 +14,12 @@ from ..tool_registry import registry
 async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
     """Iterative batch planner: generates the IMMEDIATE next batch of tasks.
 
-    Looks at execution_history to understand what has been done
-    and critique_feedback to fix any issues from previous iteration.
+    Looks at execution_history to understand what has been done,
+    critique_feedback to fix any issues, and focus_topic to prioritize research focus.
+
+    Two Modes:
+    - General Scan: Profile fully explored (focus_topic=None) -> Research all assets
+    - Surgical: Specific question (focus_topic=set) -> Research only relevant topics, ignore unrelated assets
     """
     profile_dict = state.get("user_profile") or {}
     profile = (
@@ -26,11 +30,13 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
 
     execution_history = state.get("execution_history") or []
     critique_feedback = state.get("critique_feedback")
+    focus_topic = state.get("focus_topic")
 
     logger.info(
-        "Planner start: profile={p}, history_len={h}",
+        "Planner start: profile={p}, history_len={h}, focus={f}",
         p=profile.model_dump(),
         h=len(execution_history),
+        f=focus_topic or "General",
     )
 
     # Build iterative planning prompt
@@ -42,18 +48,43 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
     feedback_text = (
         f"\n\n**Critic Feedback**: {critique_feedback}" if critique_feedback else ""
     )
+
+    # Dynamic mode instruction based on focus_topic
+    if focus_topic:
+        mode_instruction = (
+            f"🎯 **SURGICAL MODE** 🎯\n"
+            f'**Current User Question**: "{focus_topic}"\n'
+            "**Strategy**:\n"
+            "1. **FOCUS ONLY**: Research ONLY what's needed to answer this question.\n"
+            "2. **IGNORE IRRELEVANT ASSETS**: If the user has [AAPL, MSFT] but asks 'Tell me about MSFT earnings', "
+            "do NOT also fetch AAPL data.\n"
+            "3. **VERIFY FRESHNESS**: Check if the Execution History has *recent, specific* data for this question. "
+            "If the history only has generic data or is from a previous turn, GENERATE NEW TASKS.\n"
+            "4. **Be Surgical**: Don't over-fetch. Narrow your scope to the exact question.\n"
+        )
+    else:
+        mode_instruction = (
+            "🌍 **GENERAL SCAN MODE** 🌍\n"
+            "**Strategy**:\n"
+            "1. **COMPREHENSIVE**: Ensure ALL assets in the User Profile are researched.\n"
+            "2. **BALANCED**: Generate tasks that cover all dimensions (price, news, fundamentals) for each asset.\n"
+        )
+
     system_prompt_text = (
         "You are an iterative financial planning agent.\n\n"
-        "**Your Role**: Look at the Execution History below and decide the **IMMEDIATE next batch** of tasks.\n\n"
+        f"{mode_instruction}\n\n"
+        "**Your Role**: Decide the **IMMEDIATE next batch** of tasks.\n\n"
         f"**Available Tools**:\n{tool_context}\n\n"
         "**Planning Rules**:\n"
         "1. **Iterative Planning**: Plan only the next step(s), not the entire workflow.\n"
         "2. **Context Awareness**: Read the Execution History carefully. Don't repeat completed work.\n"
-        "3. **Reuse vs New Research**: Prefer reusing existing Execution History when it already covers the user's request.\n"
-        "4. **Concrete Arguments**: tool_args must contain only literal values (no placeholders like '$t1.output').\n"
+        "3. **Relevance & Freshness**:\n"
+        "   - If user asks 'latest', 'today', or 'recent news' -> Check if history data is fresh (from current turn).\n"
+        "   - If history only has old/generic data from previous turns, GENERATE NEW TASKS.\n"
+        "   - Be skeptical of old data. When in doubt, fetch fresh data rather than stale data.\n"
+        "4. **Concrete Arguments**: tool_args must contain only literal values (no placeholders).\n"
         "5. **Parallel Execution**: Tasks in the same batch run concurrently.\n"
-        "6. **Completion Signal**: If the goal is fully satisfied and the user's latest request is addressed, "
-        "return `tasks=[]` and `is_final=True`.\n"
+        "6. **Completion Signal**: Return `tasks=[]` and `is_final=True` only when the goal is fully satisfied.\n"
         "7. **Critique Integration**: If Critic Feedback is present, address the issues mentioned.\n\n"
         f"**Execution History**:\n{history_text}{feedback_text}\n"
     )

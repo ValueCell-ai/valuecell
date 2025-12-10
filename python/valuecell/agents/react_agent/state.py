@@ -12,6 +12,7 @@ class AgentState(TypedDict, total=False):
     messages: Annotated[List[BaseMessage], operator.add]
     user_profile: dict[str, Any] | None
     inquirer_turns: int
+    focus_topic: str | None  # Specific user question/topic for Planner focus
 
     # Planning (iterative batch planning)
     plan: list[dict[str, Any]] | None  # Current batch of tasks

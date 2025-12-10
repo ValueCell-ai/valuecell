@@ -4,7 +4,7 @@ import json
 import os
 from typing import Any
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from loguru import logger
@@ -15,38 +15,60 @@ from ..state import AgentState
 async def summarizer_node(state: AgentState) -> dict[str, Any]:
     """
     Generate a polished final report using LangChain native model for streaming.
+
+    Respects focus_topic: if set, only addresses that specific question.
+    Otherwise, provides comprehensive overview of all requested assets.
     """
     user_profile = state.get("user_profile") or {}
     execution_history = state.get("execution_history") or []
     completed_tasks = state.get("completed_tasks") or {}
+    focus_topic = state.get("focus_topic")
 
     logger.info(
-        "Summarizer start: history_len={h}, tasks={t}",
+        "Summarizer start: history_len={h}, tasks={t}, focus={f}",
         h=len(execution_history),
         t=len(completed_tasks),
+        f=focus_topic or "General",
     )
 
     # 1. Extract context
     data_summary = _extract_key_results(completed_tasks)
 
-    # 2. Build Prompt (Optimized for transparency and brevity)
-    system_template = """
+    # 2. Build focus-aware prompt
+    # Avoid interpolating `user_profile` (a dict) directly into the template string
+    # because its braces (e.g. "{'asset_symbols': ...}") are picked up by
+    # ChatPromptTemplate as template variables. Instead use placeholders
+    # and pass `user_profile` as a variable when invoking the chain.
+    immediate_task_section = (
+        f'**IMMEDIATE TASK**: Answer ONLY this specific question: "{focus_topic}"\n'
+        "**INSTRUCTION**: Scan the 'Key Data' below to find evidence supporting this topic. "
+        "Synthesize the existing data to answer the question directly. Do not just summarize everything."
+        if focus_topic
+        else ""
+    )
+
+    system_template = f"""
 You are a concise Financial Assistant for beginner investors.
 Your goal is to synthesize the execution results into a short, actionable insight card.
 
 **User Request**:
-{user_profile}
+{{user_profile}}
+
+{immediate_task_section}
 
 **Key Data extracted from tools**:
-{data_summary}
+{{data_summary}}
 
 **Strict Constraints**:
 1. **Length Limit**: Keep the total response under 400 words. Be ruthless with cutting fluff.
-2. **Completeness Check**: You MUST address every asset requested. 
-   - If the data contains errors (e.g. "content seems to be AMD" when user asked for "AAPL"), you MUST explicitly write: "⚠️ Data Error: Failed to retrieve data for [Asset]."
-   - Do NOT ignore missing data.
-3. **No Generic Intros**: Start directly with the answer.
-4. **Structure**: Use the format below.
+2. **Relevance Check**: 
+   - If focus_topic is set, ONLY answer that question. Ignore unrelated data.
+   - If focus_topic is not set, ensure you address every asset requested.
+3. **Completeness Check**: You MUST surface data errors explicitly.
+   - If data is missing or mismatched
+     you MUST write: "⚠️ Data Retrieval Issue: [Details]"
+4. **No Generic Intros**: Start directly with the answer.
+5. **Structure**: Use the format below.
 
 **Required Structure**:
 (1-2 sentences direct answer to user's question)
@@ -55,7 +77,7 @@ Your goal is to synthesize the execution results into a short, actionable insigh
 - **[Metric Name]**: Value (Interpretation)
 (List top 3 metrics. If data is missing/error, state it here)
 
-## Analysise
+## Analysis
 (One short paragraph synthesizing the "Why". Connect the dots.)
 
 ## Risk Note
@@ -70,8 +92,8 @@ Your goal is to synthesize the execution results into a short, actionable insigh
     # Using ChatOpenAI to connect to OpenRouter (compatible API)
     llm = ChatOpenAI(
         model="google/gemini-2.5-flash",
-        openai_api_base="https://openrouter.ai/api/v1",
-        openai_api_key=os.getenv("OPENROUTER_API_KEY"),  # Ensure ENV is set
+        base_url="https://openrouter.ai/api/v1",
+        api_key=os.getenv("OPENROUTER_API_KEY"),  # Ensure ENV is set
         temperature=0,
         streaming=True,  # Crucial for astream_events
     )

@@ -10,36 +10,6 @@ from loguru import logger
 from ..models import FinancialIntent, InquirerDecision
 
 
-def _merge_profiles(old: dict | None, delta: dict | None) -> dict:
-    """Merge new intent delta into existing profile (set union for assets).
-
-    Args:
-        old: Existing user_profile dict or None
-        delta: New intent delta dict from LLM or None
-
-    Returns:
-        Merged profile dict
-
-    Examples:
-        old={'asset_symbols': ['AAPL']}, delta={'asset_symbols': ['MSFT']}
-        -> {'asset_symbols': ['AAPL', 'MSFT']}
-    """
-    if not old:
-        return delta or {}
-    if not delta:
-        return old
-
-    merged = old.copy()
-
-    # 1. Merge asset lists (Set union for deduplication)
-    old_assets = set(old.get("asset_symbols") or [])
-    new_assets = set(delta.get("asset_symbols") or [])
-    if new_assets:
-        merged["asset_symbols"] = list(old_assets | new_assets)
-
-    return merged
-
-
 # TODO: summarize with LLM
 def _compress_history(history: list[str]) -> str:
     """Compress long execution history to prevent token explosion.
@@ -107,8 +77,6 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
         h=len(execution_history),
     )
 
-    is_final_turn = turns >= 2
-
     # Extract recent execution history for context (last 3 items)
     recent_history = execution_history[-3:] if execution_history else []
     history_context = (
@@ -117,50 +85,52 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
 
     system_prompt = (
         "You are the **State Manager** for a Financial Advisor Assistant.\n"
-        "Your PRIMARY GOAL is to extract **only the new information (delta)** from the user's latest message.\n\n"
-        f"# CURRENT STATE (Context):\n"
+        "Your job is to produce the NEXT STATE based on current context and user input.\n\n"
+        f"# CURRENT STATE:\n"
         f"- **Active Profile**: {current_profile or 'None (Empty)'}\n"
         f"- **Recent Execution Summary**:\n{history_context}\n\n"
-        "# OUTPUT INSTRUCTIONS:\n"
-        "1. **intent_delta**: Return ONLY the new fields found in the latest message. Do NOT repeat old info.\n"
-        "2. **HARD RESET (System Command)**\n"
-        "   - Trigger ONLY if user says: 'Start over', 'Reset', 'Clear history', 'New session'.\n"
-        "   - Output: status='COMPLETE', is_hard_switch=True.\n"
-        "3. **Implicit Reference**: If user refers to a previous asset or topic (e.g., 'Why did it drop?'), assume they refer to the Active Profile. Use the Recent Execution Summary to understand context.\n\n"
-        "# EXAMPLES (Few-Shot):\n\n"
-        "**Scenario 1: Incremental Addition**\n"
-        "Context: {assets: ['AAPL']}\n"
-        "User: 'Compare with MSFT'\n"
-        "Output: {intent_delta: {asset_symbols: ['MSFT']}, status: 'COMPLETE', is_hard_switch: False}\n"
-        "(Note: Only output MSFT. The system will merge it to get [AAPL, MSFT])\n\n"
-        "**Scenario 2: Parameter Refinement**\n"
-        "Context: {assets: ['AAPL'], risk: 'Medium'}\n"
-        "User: 'Actually, I want low risk'\n"
-        "Output: {intent_delta: {risk: 'Low'}, status: 'COMPLETE', is_hard_switch: False}\n\n"
-        "**Scenario 3: Implicit Follow-up**\n"
-        "Context: {assets: ['AAPL']}\n"
-        "Execution: Task result shows 'Sales down 10% YoY'\n"
-        "User: 'Why are sales down?'\n"
-        "Output: {intent_delta: null, status: 'COMPLETE', is_hard_switch: false}\n"
-        "(Note: Context has assets and execution history shows sales trend. Inquirer extracts the topic implicitly; Planner generates deep-dive tasks.)\n\n"
-        "**Scenario 4: Hard Switch**\n"
-        "Context: {assets: ['AAPL']}\n"
-        "User: 'Forget that. Let's look at Bitcoin.'\n"
-        "Output: {intent_delta: {asset_symbols: ['BTC']}, status: 'COMPLETE', is_hard_switch: True}\n\n"
-        "**Scenario 5: Incomplete Start**\n"
-        "Context: None\n"
-        "User: 'I want to invest'\n"
-        "Output: {status: 'INCOMPLETE', response: 'What assets are you interested in?'}\n\n"
-        "# INFERENCE RULES:\n"
-        "- Risk: 'Safe/Retirement' -> Low | 'Aggressive/Growth' -> High\n"
-        "- Default behavior: Assume the user is building on the previous conversation."
+        "# YOUR TASK: Output the COMPLETE, UPDATED state\n\n"
+        "# DECISION LOGIC:\n\n"
+        "## 1. CHAT (Greeting/Acknowledgement)\n"
+        "- Pattern: 'Thanks', 'Hello', 'Got it'\n"
+        "- Output: status='CHAT', response_to_user=[polite reply]\n\n"
+        "## 2. RESET (Explicit Command)\n"
+        "- Pattern: 'Start over', 'Reset', 'Clear everything', 'Forget that'\n"
+        "- Output: status='RESET', updated_profile=None\n\n"
+        "## 3. PLAN (Task Execution Needed)\n"
+        "### 3a. Adding Assets\n"
+        "- Pattern: 'Compare with MSFT' (when context has ['AAPL'])\n"
+        "- Output: status='PLAN', updated_profile={assets: ['AAPL', 'MSFT']}\n"
+        "- **CRITICAL**: Output the MERGED list, not just the new asset!\n\n"
+        "### 3b. Switching Assets\n"
+        "- Pattern: 'Check TSLA instead' (when context has ['AAPL'])\n"
+        "- Output: status='PLAN', updated_profile={assets: ['TSLA']}\n"
+        "- **CRITICAL**: Only output the new asset when user explicitly switches!\n\n"
+        "### 3c. Follow-up Questions\n"
+        "- Pattern: 'Why did it drop?', 'Tell me about iPhone sales'\n"
+        "- Output: status='PLAN', updated_profile={assets: ['AAPL']} (same as current), focus_topic='price drop reasons'\n"
+        "- **CRITICAL**: Keep profile unchanged, extract the specific question in focus_topic!\n\n"
+        "### 3d. New Analysis Request\n"
+        "- Pattern: 'Analyze Apple'\n"
+        "- Output: status='PLAN', updated_profile={assets: ['AAPL']}\n\n"
+        "# EXAMPLES:\n\n"
+        "**Example 1: Adding Asset**\n"
+        "Current: {assets: ['AAPL']}\n"
+        "User: 'Compare with Microsoft'\n"
+        "→ {status: 'PLAN', updated_profile: {asset_symbols: ['AAPL', 'MSFT']}, focus_topic: null}\n\n"
+        "**Example 2: Follow-up**\n"
+        "Current: {assets: ['AAPL']}\n"
+        "Recent: 'Task completed: AAPL price $150, down 5%'\n"
+        "User: 'Why did it drop?'\n"
+        "→ {status: 'PLAN', updated_profile: {asset_symbols: ['AAPL']}, focus_topic: 'price drop reasons'}\n\n"
+        "**Example 3: Switch**\n"
+        "Current: {assets: ['AAPL']}\n"
+        "User: 'Forget Apple, look at Tesla'\n"
+        "→ {status: 'RESET', updated_profile: {asset_symbols: ['TSLA']}}\n\n"
+        "**Example 4: Greeting**\n"
+        "User: 'Thanks!'\n"
+        "→ {status: 'CHAT', response_to_user: 'You're welcome!'}\n"
     )
-
-    if is_final_turn:
-        system_prompt += (
-            "# CRITICAL: MAX TURNS REACHED\n"
-            "Do NOT set status='INCOMPLETE'. Infer reasonable defaults (Risk='Medium') and proceed.\n"
-        )
 
     # Build user message from conversation history
     message_strs = []
@@ -192,88 +162,71 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
         decision: InquirerDecision = response.content
 
         logger.info(
-            "Inquirer decision: status={s}, hard_switch={h}, reason={r}",
+            "Inquirer decision: status={s}, profile={p}, focus={f}, reason={r}",
             s=decision.status,
-            h=decision.is_hard_switch,
+            p=decision.updated_profile,
+            f=decision.focus_topic,
             r=decision.reasoning,
         )
 
-        # --- State Update Logic: Append-Only with Explicit Resets ---
-
+        # --- Simplified State Update Logic: Direct Application ---
         updates: dict[str, Any] = {}
 
         # CASE 1: CHAT - Direct response, no planning
         if decision.status == "CHAT":
-            updates["messages"] = [
-                AIMessage(content=decision.response_to_user or "Understood.")
-            ]
-            updates["user_profile"] = None  # Signal to route to END
-            updates["inquirer_turns"] = 0
-            return updates
+            return {
+                "messages": [
+                    AIMessage(content=decision.response_to_user or "Understood.")
+                ],
+                "user_profile": None,  # Signal to route to END
+                "inquirer_turns": 0,
+            }
 
-        # CASE 2: INCOMPLETE - Ask follow-up question
-        if decision.status == "INCOMPLETE" and not is_final_turn:
-            updates["inquirer_turns"] = turns + 1
-            updates["user_profile"] = None  # Signal to route to END (wait for user)
-            updates["messages"] = [
-                AIMessage(
-                    content=decision.response_to_user
-                    or "Could you tell me your preference?"
-                )
-            ]
-            return updates
-
-        # CASE 3: COMPLETE - Ready for planning (with state accumulation)
-
-        # Branch A: HARD RESET (rare - explicit user command)
-        if decision.is_hard_switch:
-            logger.info(
-                "Inquirer: HARD RESET - User explicitly requested context clear"
-            )
-            # Extract fresh intent from delta
+        # CASE 2: RESET - Clear everything and start fresh
+        if decision.status == "RESET":
+            logger.info("Inquirer: RESET - Clearing all context")
             new_profile = (
-                decision.intent_delta.model_dump()
-                if decision.intent_delta
-                else FinancialIntent().model_dump()
+                decision.updated_profile.model_dump()
+                if decision.updated_profile
+                else None
             )
-            updates["user_profile"] = new_profile
-            # Clear all accumulated state
-            updates["plan"] = []
-            updates["completed_tasks"] = {}
-            updates["execution_history"] = []
-            updates["is_final"] = False
-            updates["critique_feedback"] = None
-            updates["messages"] = [
-                AIMessage(content="Context reset. Starting fresh analysis.")
-            ]
+            return {
+                "user_profile": new_profile,
+                "plan": [],
+                "completed_tasks": {},
+                "execution_history": [],
+                "is_final": False,
+                "critique_feedback": None,
+                "focus_topic": None,
+                "messages": [
+                    AIMessage(
+                        content="Starting fresh session. What would you like to analyze?"
+                    )
+                ],
+                "inquirer_turns": 0,
+            }
 
-        # Branch B: DEFAULT ACCUMULATION (90% of cases)
+        # CASE 3: PLAN - Apply the updated profile directly (trust the LLM)
+        if decision.updated_profile:
+            updates["user_profile"] = decision.updated_profile.model_dump()
+            logger.info(
+                "Inquirer: PLAN - Profile updated to {p}",
+                p=decision.updated_profile.model_dump(),
+            )
+        elif current_profile:
+            # Fallback: LLM didn't return profile but we have existing context
+            updates["user_profile"] = current_profile
+            logger.info("Inquirer: PLAN - Preserving existing profile")
         else:
-            # Merge delta into existing profile
-            if decision.intent_delta:
-                merged_profile = _merge_profiles(
-                    current_profile, decision.intent_delta.model_dump()
-                )
-                updates["user_profile"] = merged_profile
-                logger.info(
-                    "Inquirer: DELTA MERGE - Old: {old}, Delta: {delta}, Merged: {merged}",
-                    old=current_profile,
-                    delta=decision.intent_delta.model_dump(),
-                    merged=merged_profile,
-                )
-            elif current_profile:
-                # Follow-up without new intent: keep existing profile
-                updates["user_profile"] = current_profile
-                logger.info("Inquirer: FOLLOW-UP - No delta, preserving profile")
-            else:
-                # Fallback: no delta and no existing profile
-                updates["user_profile"] = FinancialIntent().model_dump()
-                logger.info(
-                    "Inquirer: DEFAULT PROFILE - No context, using default profile"
-                )
+            # No profile at all - shouldn't happen in PLAN status, but handle gracefully
+            updates["user_profile"] = FinancialIntent().model_dump()
+            logger.warning("Inquirer: PLAN with no profile - using empty default")
 
-            # Always reset is_final to trigger replanning (Planner decides what to reuse)
-            updates["is_final"] = False
+        # Update focus topic (critical for follow-up questions)
+        updates["focus_topic"] = decision.focus_topic
+
+        # Force replanning
+        updates["is_final"] = False
 
         # History Compression (Garbage Collection)
         current_history = state.get("execution_history") or []
@@ -292,16 +245,17 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
         logger.exception("Inquirer LLM error: {err}", err=str(exc))
 
         # Graceful fallback
-        if is_final_turn or current_profile:
+        if current_profile:
             # If we have a profile, assume user wants to continue
             return {
-                "user_profile": current_profile or FinancialIntent().model_dump(),
+                "user_profile": current_profile,
                 "inquirer_turns": 0,
+                "is_final": False,
             }
         else:
             # Ask user to retry
             return {
-                "inquirer_turns": turns + 1,
+                "inquirer_turns": 0,
                 "user_profile": None,
                 "messages": [
                     AIMessage(
