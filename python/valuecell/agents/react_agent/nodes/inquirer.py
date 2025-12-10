@@ -109,18 +109,24 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
 
     is_final_turn = turns >= 2
 
+    # Extract recent execution history for context (last 3 items)
+    recent_history = execution_history[-3:] if execution_history else []
+    history_context = (
+        "\n".join(recent_history) if recent_history else "(No execution history yet)"
+    )
+
     system_prompt = (
         "You are the **State Manager** for a Financial Advisor Assistant.\n"
         "Your PRIMARY GOAL is to extract **only the new information (delta)** from the user's latest message.\n\n"
         f"# CURRENT STATE (Context):\n"
         f"- **Active Profile**: {current_profile or 'None (Empty)'}\n"
-        f"- **History Length**: {len(execution_history)} items\n\n"
+        f"- **Recent Execution Summary**:\n{history_context}\n\n"
         "# OUTPUT INSTRUCTIONS:\n"
         "1. **intent_delta**: Return ONLY the new fields found in the latest message. Do NOT repeat old info.\n"
         "2. **HARD RESET (System Command)**\n"
         "   - Trigger ONLY if user says: 'Start over', 'Reset', 'Clear history', 'New session'.\n"
         "   - Output: status='COMPLETE', is_hard_switch=True.\n"
-        "3. **focus_topic**: If the user asks a specific question (e.g. 'Why did it drop?'), extract the topic string.\n\n"
+        "3. **Implicit Reference**: If user refers to a previous asset or topic (e.g., 'Why did it drop?'), assume they refer to the Active Profile. Use the Recent Execution Summary to understand context.\n\n"
         "# EXAMPLES (Few-Shot):\n\n"
         "**Scenario 1: Incremental Addition**\n"
         "Context: {assets: ['AAPL']}\n"
@@ -133,9 +139,10 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
         "Output: {intent_delta: {risk: 'Low'}, status: 'COMPLETE', is_hard_switch: False}\n\n"
         "**Scenario 3: Implicit Follow-up**\n"
         "Context: {assets: ['AAPL']}\n"
+        "Execution: Task result shows 'Sales down 10% YoY'\n"
         "User: 'Why are sales down?'\n"
-        "Output: {intent_delta: null, focus_topic: 'sales drop reasons', status: 'COMPLETE', is_hard_switch: False}\n"
-        "(Note: Context has assets, so we don't need to ask 'what asset?'. Just extract the topic.)\n\n"
+        "Output: {intent_delta: null, status: 'COMPLETE', is_hard_switch: false}\n"
+        "(Note: Context has assets and execution history shows sales trend. Inquirer extracts the topic implicitly; Planner generates deep-dive tasks.)\n\n"
         "**Scenario 4: Hard Switch**\n"
         "Context: {assets: ['AAPL']}\n"
         "User: 'Forget that. Let's look at Bitcoin.'\n"
@@ -162,7 +169,16 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
         content = getattr(m, "content", str(m))
         message_strs.append(f"[{role}]: {content}")
 
-    user_msg = "# Conversation History:\n" + "\n".join(message_strs)
+    conversation_text = (
+        "\n".join(message_strs) if message_strs else "(No conversation yet)"
+    )
+    user_msg = (
+        "# Conversation History:\n"
+        f"{conversation_text}\n\n"
+        "# Execution Context:\n"
+        f"Recent execution summary is already injected in CURRENT STATE above. "
+        f"Use it to understand what data/analysis has already been completed."
+    )
 
     try:
         agent = Agent(

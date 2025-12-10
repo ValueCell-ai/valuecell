@@ -37,7 +37,7 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
     tool_context = registry.get_prompt_context()
 
     history_text = (
-        "\n".join(execution_history) if execution_history else "(No history yet)"
+        "\n\n".join(execution_history) if execution_history else "(No history yet)"
     )
     feedback_text = (
         f"\n\n**Critic Feedback**: {critique_feedback}" if critique_feedback else ""
@@ -63,6 +63,7 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
 
     is_final = False
     strategy_update = ""
+    # TODO: organize plan like a TODO list
     planned_tasks: list[PlannedTask] = []
 
     try:
