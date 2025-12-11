@@ -1,11 +1,7 @@
 import BackButton from "@valuecell/button/back-button";
-import { memo, useMemo } from "react";
+import { memo } from "react";
 import { useNavigate, useParams } from "react-router";
-import {
-  useGetStockDetail,
-  useGetStockPrice,
-  useRemoveStockFromWatchlist,
-} from "@/api/stock";
+import { useGetStockDetail, useRemoveStockFromWatchlist } from "@/api/stock";
 import TradingViewAdvancedChart from "@/components/tradingview/tradingview-advanced-chart";
 import { Button } from "@/components/ui/button";
 import type { Route } from "./+types/stock";
@@ -16,15 +12,6 @@ function Stock() {
   // Use stockId as ticker to fetch real data from API
   const ticker = stockId || "";
 
-  // Fetch current stock price data
-  const {
-    data: stockPriceData,
-    isLoading: isPriceLoading,
-    error: priceError,
-  } = useGetStockPrice({
-    ticker,
-  });
-
   // Fetch stock detail data
   const {
     data: stockDetailData,
@@ -34,36 +21,20 @@ function Stock() {
     ticker,
   });
 
-  const removeStockMutation = useRemoveStockFromWatchlist();
+  const { mutateAsync: removeStockMutation, isPending: isRemovingStock } =
+    useRemoveStockFromWatchlist();
 
   const handleRemoveStock = async () => {
     try {
-      await removeStockMutation.mutateAsync(ticker);
+      await removeStockMutation(ticker);
       navigate(-1);
     } catch (error) {
       console.error("Failed to remove stock from watchlist:", error);
     }
   };
 
-  // Create stock info from API data
-  const stockInfo = useMemo(() => {
-    if (!stockPriceData) return null;
-
-    // Use display name from detail data if available, otherwise use ticker
-    const companyName = stockDetailData?.display_name || ticker;
-
-    return {
-      symbol: ticker,
-      companyName,
-      price: stockPriceData.price_formatted,
-      changePercent: stockPriceData.change_percent,
-      currency: stockPriceData.currency,
-      changeAmount: stockPriceData.change,
-    };
-  }, [stockPriceData, stockDetailData, ticker]);
-
   // Handle loading states
-  if (isPriceLoading || isDetailLoading) {
+  if (isDetailLoading) {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="text-gray-500 text-lg">Loading stock data...</div>
@@ -72,22 +43,12 @@ function Stock() {
   }
 
   // Handle error states
-  if (priceError || detailError) {
+  if (detailError) {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="text-lg text-red-500">
-          Error loading stock data:{" "}
-          {priceError?.message || detailError?.message}
+          Error loading stock data: {detailError?.message}
         </div>
-      </div>
-    );
-  }
-
-  // Handle no data found
-  if (!stockInfo || !stockPriceData) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <div className="text-gray-500 text-lg">Stock {stockId} not found</div>
       </div>
     );
   }
@@ -97,14 +58,16 @@ function Stock() {
       <div className="flex flex-col gap-4">
         <BackButton />
         <div className="flex items-center gap-2">
-          <span className="font-bold text-lg">{stockInfo.companyName}</span>
+          <span className="font-bold text-lg">
+            {stockDetailData?.display_name ?? ticker}
+          </span>
           <Button
             variant="secondary"
             className="ml-auto text-neutral-400"
             onClick={handleRemoveStock}
-            disabled={removeStockMutation.isPending}
+            disabled={isRemovingStock}
           >
-            {removeStockMutation.isPending ? "Removing..." : "Remove"}
+            {isRemovingStock ? "Removing..." : "Remove"}
           </Button>
         </div>
       </div>

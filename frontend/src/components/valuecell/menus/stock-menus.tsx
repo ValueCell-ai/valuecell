@@ -1,13 +1,10 @@
 import { Link, type LinkProps } from "react-router";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn, formatChange, getChangeType } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
-import type { StockCurrency } from "@/types/stock";
 
 interface Stock {
   symbol: string;
   companyName: string;
-  currency: StockCurrency;
   price: string;
   changePercent?: number;
   icon?: string;
@@ -35,10 +32,6 @@ interface StockMenuGroupProps extends React.HTMLAttributes<HTMLDivElement> {
 interface StockMenuGroupHeaderProps
   extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
-}
-
-interface StockIconProps extends React.HTMLAttributes<HTMLDivElement> {
-  stock: Stock;
 }
 
 interface StockMenuListItemProps extends LinkProps {
@@ -96,25 +89,6 @@ function StockMenuGroupHeader({
   );
 }
 
-function StockIcon({ className, stock, ...props }: StockIconProps) {
-  return (
-    <div
-      className={cn(
-        "flex size-10 items-center justify-center rounded-full",
-        className,
-      )}
-      {...props}
-    >
-      <Avatar className="size-full">
-        <AvatarImage src={stock.icon} alt={stock.symbol} />
-        <AvatarFallback className="font-medium text-muted-foreground text-xs">
-          {stock.symbol.slice(0, 2)}
-        </AvatarFallback>
-      </Avatar>
-    </div>
-  );
-}
-
 function StockMenuListItem({
   className,
   stock,
@@ -136,9 +110,6 @@ function StockMenuListItem({
       {...props}
     >
       <div className="flex flex-1 items-center gap-2.5 truncate">
-        {/* icon */}
-        {/* <StockIcon stock={stock} /> */}
-
         {/* stock info */}
         <div className="flex flex-col items-start gap-1">
           <p className="font-semibold text-foreground text-sm leading-tight">
@@ -172,5 +143,4 @@ export {
   StockMenuGroup,
   StockMenuGroupHeader,
   StockMenuListItem,
-  StockIcon,
 };

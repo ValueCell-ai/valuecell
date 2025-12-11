@@ -44,22 +44,12 @@ export type StockInterval =
   | "1mo"; // 1 month
 
 export interface StockHistory {
-  ticker: string;
-  interval: StockInterval;
-  prices: {
-    ticker: string;
-    price: number;
-    timestamp: string;
-    open_price: number;
-    high_price: number;
-    low_price: number;
-    close_price: number;
-    volume: number;
-    change: number;
-    change_percent?: number;
-    currency: StockCurrency;
-    source: string;
-  }[];
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
 }
 
 export interface StockDetail {

@@ -13,8 +13,7 @@ function StockList() {
   const { data: stockList } = useGetWatchlist();
 
   const stockData = useMemo(() => {
-    const allStocks = stockList?.flatMap((group) => group.items) ?? [];
-    return allStocks;
+    return stockList?.flatMap((group) => group.items) ?? [];
   }, [stockList]);
 
   // Extract stock symbol (e.g., AAPL) from path like /stock/AAPL
@@ -30,8 +29,6 @@ function StockList() {
         symbol: stock.symbol,
         companyName: stock.display_name,
         price: stockPrice?.price_formatted ?? "N/A",
-        currency: stockPrice?.currency ?? "USD",
-        changeAmount: stockPrice?.change ?? 0,
         changePercent: stockPrice?.change_percent,
       }),
       [stock, stockPrice],
