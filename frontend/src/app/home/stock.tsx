@@ -5,13 +5,17 @@ import { useGetStockDetail, useRemoveStockFromWatchlist } from "@/api/stock";
 import TradingViewAdvancedChart from "@/components/tradingview/tradingview-advanced-chart";
 import { Button } from "@/components/ui/button";
 import LinkButton from "@/components/valuecell/button/link-button";
+import { useIsLoggedIn } from "@/store/system-store";
 import type { Route } from "./+types/stock";
+import { StockHistoryChart } from "./components/stock-history-chart";
 
 function Stock() {
   const { stockId } = useParams<Route.LoaderArgs["params"]>();
   const navigate = useNavigate();
   // Use stockId as ticker to fetch real data from API
   const ticker = stockId || "";
+
+  const isLoggedIn = useIsLoggedIn();
 
   // Fetch stock detail data
   const {
@@ -73,22 +77,28 @@ function Stock() {
         </div>
       </div>
       <div className="w-full">
-        <TradingViewAdvancedChart
-          ticker={ticker}
-          interval="D"
-          minHeight={420}
-          theme="light"
-          locale="en"
-          timezone="UTC"
-        />
+        {isLoggedIn ? (
+          <StockHistoryChart ticker={ticker} />
+        ) : (
+          <TradingViewAdvancedChart
+            ticker={ticker}
+            interval="D"
+            minHeight={420}
+            theme="light"
+            locale="en"
+            timezone="UTC"
+          />
+        )}
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
         <h2 className="font-bold text-lg">About</h2>
 
-        <p className="line-clamp-4 text-neutral-500 text-sm leading-6">
-          {stockDetailData?.properties?.business_summary}
-        </p>
+        {stockDetailData?.properties.business_summary && (
+          <p className="line-clamp-4 text-neutral-500 text-sm leading-6">
+            {stockDetailData?.properties?.business_summary}
+          </p>
+        )}
 
         {stockDetailData?.properties && (
           <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
