@@ -5,12 +5,12 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import {
   useAddProviderModel,
+  useCheckModelAvailability,
   useDeleteProviderModel,
   useGetModelProviderDetail,
   useSetDefaultProvider,
   useSetDefaultProviderModel,
   useUpdateProviderConfig,
-  useCheckModelAvailability,
 } from "@/api/setting";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,18 +66,15 @@ export function ModelDetail({ provider }: ModelDetailProps) {
     useSetDefaultProviderModel();
   const { mutate: setDefaultProvider, isPending: settingDefaultProvider } =
     useSetDefaultProvider();
-  const { mutateAsync: checkAvailability, isPending: checkingAvailability } =
-    useCheckModelAvailability();
+  const {
+    data: checkResult,
+    mutateAsync: checkAvailability,
+    isPending: checkingAvailability,
+    reset: resetCheckResult,
+  } = useCheckModelAvailability();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
-  const [checkResult, setCheckResult] = useState<{
-    ok: boolean;
-    provider: string;
-    model_id: string;
-    status?: string;
-    error?: string;
-  } | null>(null);
 
   const configForm = useForm({
     defaultValues: {
@@ -105,8 +102,11 @@ export function ModelDetail({ provider }: ModelDetailProps) {
   }, [providerDetail, configForm.setFieldValue]);
 
   useEffect(() => {
-    if (provider) setShowApiKey(false);
-  }, [provider]);
+    if (provider) {
+      setShowApiKey(false);
+      resetCheckResult();
+    }
+  }, [provider, resetCheckResult]);
 
   const addModelForm = useForm({
     defaultValues: {
@@ -232,37 +232,35 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                       className="h-8"
                       disabled={isBusy}
                       onClick={async () => {
-                        setCheckResult(null);
-                        try {
-                          const resp = await checkAvailability({
-                            provider,
-                            model_id: providerDetail.default_model_id,
-                          });
-                          setCheckResult(resp.data);
-                        } catch (e) {
-                          setCheckResult({
-                            ok: false,
-                            provider,
-                            model_id: providerDetail.default_model_id,
-                            status: "request_failed",
-                            error: String(e),
-                          });
-                        }
+                        await checkAvailability({
+                          provider,
+                          model_id: providerDetail.default_model_id,
+                        });
                       }}
                     >
-                      {checkingAvailability ? "Checking..." : "Check Availability"}
+                      {checkingAvailability
+                        ? "Checking..."
+                        : "Check Availability"}
                     </Button>
                   </div>
-                  {checkResult && (
+                  {checkResult?.data && (
                     <div className="mt-2 text-sm">
-                      {checkResult.ok ? (
+                      {checkResult.data.ok ? (
                         <span className="text-green-600">
-                          Available{checkResult.status ? ` (${checkResult.status})` : ""}
+                          Available
+                          {checkResult.data.status
+                            ? ` (${checkResult.data.status})`
+                            : ""}
                         </span>
                       ) : (
                         <span className="text-red-600">
-                          Unavailable{checkResult.status ? ` (${checkResult.status})` : ""}
-                          {checkResult.error ? `: ${checkResult.error}` : ""}
+                          Unavailable
+                          {checkResult.data.status
+                            ? ` (${checkResult.data.status})`
+                            : ""}
+                          {checkResult.data.error
+                            ? `: ${checkResult.data.error}`
+                            : ""}
                         </span>
                       )}
                     </div>

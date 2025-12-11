@@ -8,10 +8,10 @@ import { API_QUERY_KEYS } from "@/constants/api";
 import type { ApiResponse } from "@/lib/api-client";
 import { apiClient } from "@/lib/api-client";
 import type {
-  MemoryItem,
-  ModelProvider,
   CheckModelRequest,
   CheckModelResult,
+  MemoryItem,
+  ModelProvider,
   ProviderDetail,
   ProviderModelInfo,
 } from "@/types/setting";
