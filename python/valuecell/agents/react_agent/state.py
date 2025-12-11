@@ -32,7 +32,3 @@ class AgentState(TypedDict, total=False):
     # Critic decision
     next_action: Any | None
     _critic_summary: Any | None
-
-    # Misc
-    missing_info_field: str | None
-    user_supplement_info: Any | None
