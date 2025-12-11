@@ -19,17 +19,11 @@ async def summarizer_node(state: AgentState) -> dict[str, Any]:
     Uses natural language current_intent to understand user's goal.
     """
     current_intent = state.get("current_intent") or "General financial analysis"
-    # TODO: provide relevant recent messages as context if needed
-    execution_history = state.get("execution_history") or []
-    execution_history_str = (
-        "\n".join(execution_history) if execution_history else "(No history yet)"
-    )
     completed_tasks = state.get("completed_tasks") or {}
 
     logger.info(
-        "Summarizer start: intent='{i}', history_len={h}, tasks={t}",
+        "Summarizer start: intent='{i}', tasks={t}",
         i=current_intent,
-        h=len(execution_history),
         t=len(completed_tasks),
     )
 
@@ -41,21 +35,16 @@ async def summarizer_node(state: AgentState) -> dict[str, Any]:
     # to select conditional structure; for now provide flexible formatting guidelines
     system_template = """
 You are a concise Financial Assistant for beginner investors.
-Your goal is to synthesize execution results and historical context to answer the user's specific goal.
+Your goal is to synthesize execution results to answer the user's specific goal.
 
 **User's Current Goal**:
 {current_intent}
 
-**Data Sources**:
-
-**1. Aggregated Results** (Completed tasks — includes current round and previously merged results):
+**Available Data** (Execution Results):
 {data_summary}
 
-**2. Context History** (Previous findings and conclusions):
-{execution_history}
-
 **Strict Constraints**:
-1. **Multi-Source Synthesis**: Combine Aggregated Results AND Context History.
+1. **Source of Truth**: Use the data provided in "Available Data" above as your single source.
 2. **Length Limit**: Keep the total response under 400 words. Be ruthless with cutting fluff.
 3. **Relevance Check**: Ensure you address the user's stated goal completely.
 4. **Completeness Check**: You MUST surface data errors explicitly.
@@ -77,7 +66,7 @@ Your goal is to synthesize execution results and historical context to answer th
     # 3. Initialize LangChain Model (Native Streaming Support)
     # Using ChatOpenAI to connect to OpenRouter (compatible API)
     llm = ChatOpenAI(
-        model="google/gemini-2.5-flash",
+        model="google/gemini-2.5-pro",
         base_url="https://openrouter.ai/api/v1",
         api_key=os.getenv("OPENROUTER_API_KEY"),  # Ensure ENV is set
         temperature=0,
@@ -93,7 +82,6 @@ Your goal is to synthesize execution results and historical context to answer th
             {
                 "current_intent": current_intent,
                 "data_summary": data_summary,
-                "execution_history": execution_history_str,
             }
         )
 
@@ -137,7 +125,12 @@ def _extract_key_results(completed_tasks: dict[str, Any]) -> str:
 
         # Handle errors reported by Executor
         if task_data.get("error"):
-            lines.append(f"- Task {task_id} [FAILED]: {task_data['error']}")
+            error_msg = task_data["error"]
+            error_code = task_data.get("error_code", "")
+            error_info = f"**Error**: {error_msg}"
+            if error_code:
+                error_info += f" (Code: {error_code})"
+            lines.append(f"### Task {task_id} [FAILED]\n{error_info}")
             continue
 
         if not result:
@@ -156,10 +149,11 @@ def _extract_key_results(completed_tasks: dict[str, Any]) -> str:
         if len(preview) > 1000:
             preview = preview[:1000] + "\n... (truncated)"
 
-        # Include description if available for better context in the summary
+        # Build header with description (critical for Summarizer to understand task purpose)
+        header = f"### Task {task_id}"
         if desc:
-            lines.append(f"### Task {task_id}: {desc}\n{preview}")
-        else:
-            lines.append(f"### Task {task_id}\n{preview}")
+            header += f": {desc}"
+
+        lines.append(f"{header}\n{preview}")
 
     return "\n\n".join(lines)
