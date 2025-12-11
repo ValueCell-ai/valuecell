@@ -16,7 +16,13 @@ from ...research_agent.sources import (
 from ..models import ExecutorResult
 from ..state import AgentState
 from ..tool_registry import registry
-from ..tools.research import research
+from ..tools.alphavantage import (
+    get_financial_metrics,
+    get_market_sentiment,
+    get_stock_profile,
+)
+
+# from ..tools.research import research
 
 _TOOLS_REGISTERED = False
 
@@ -26,11 +32,14 @@ def ensure_default_tools_registered() -> None:
     if _TOOLS_REGISTERED:
         return
 
-    _register_tool("research", research)
+    # _register_tool("research", research)
     _register_tool("search_crypto_people", search_crypto_people)
     _register_tool("search_crypto_projects", search_crypto_projects)
     _register_tool("search_crypto_vcs", search_crypto_vcs)
     _register_tool("web_search", web_search)
+    _register_tool("get_financial_metrics", get_financial_metrics)
+    _register_tool("get_stock_profile", get_stock_profile)
+    _register_tool("get_market_sentiment", get_market_sentiment)
 
     _TOOLS_REGISTERED = True
 
