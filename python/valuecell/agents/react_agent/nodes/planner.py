@@ -7,10 +7,11 @@ from agno.models.openrouter import OpenRouter
 from langchain_core.messages import AIMessage, HumanMessage
 from loguru import logger
 
-from ..models import ExecutionPlan, PlannedTask, Task
+from ..models import ExecutionPlan, Task
 from ..tool_registry import registry
 
 
+# TODO: route human-in-the-loop feedback to user
 async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
     """Iterative batch planner: generates the IMMEDIATE next batch of tasks.
 

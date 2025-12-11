@@ -134,6 +134,7 @@ class AgentOrchestrator:
             "language": i18n_utils.get_current_language(),
             "timezone": i18n_utils.get_current_timezone(),
         }
+        # TODO: append previous conversation history after restart
         inputs = {
             "messages": [HumanMessage(content=user_input.query)],
             "user_context": user_context,
