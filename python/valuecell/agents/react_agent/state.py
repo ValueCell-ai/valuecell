@@ -15,7 +15,7 @@ class AgentState(TypedDict, total=False):
 
     # Planning (iterative batch planning)
     plan: list[dict[str, Any]] | None  # Current batch of tasks
-    plan_logic: str | None  # Deprecated: replaced by strategy_update
+    strategy_update: str | None  # Latest planner reasoning summary
 
     # Execution results (merged across parallel executors)
     completed_tasks: Annotated[dict[str, Any], ior]

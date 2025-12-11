@@ -61,15 +61,19 @@ async def executor_node(state: AgentState, task: dict[str, Any]) -> dict[str, An
     - execution_history: [concise summary string]
     """
     task_id = task.get("id") or ""
+    task_description = task.get("description") or ""
     tool = task.get("tool_name") or ""
     args = task.get("tool_args") or {}
+    task_brief = f"Task {task_description} (id={task_id}, tool={tool}, args={args})"
 
-    logger.info("Executor start: task_id={tid} tool={tool}", tid=task_id, tool=tool)
+    logger.info("Executor start: {task_brief}", task_brief=task_brief)
 
     # Idempotency guard: if this task is already completed, no-op
     completed_snapshot = (state.get("completed_tasks") or {}).keys()
     if task_id and task_id in completed_snapshot:
-        logger.info("Executor skip (already completed): task_id={tid}", tid=task_id)
+        logger.info(
+            "Executor skip (already completed): {task_brief}", task_brief=task_brief
+        )
         return {}
     await _emit_progress(5, f"Starting with {task_id=}, {tool=}")
 
@@ -79,13 +83,16 @@ async def executor_node(state: AgentState, task: dict[str, Any]) -> dict[str, An
         exec_res = ExecutorResult(task_id=task_id, ok=True, result=result)
 
         # Generate concise summary for execution history
-        summary = _generate_summary(task_id, tool, args, result)
+        result_preview = str(result)
+        if len(result_preview) > 100:
+            result_preview = result_preview[:100] + "..."
+        summary = f"{task_brief} completed. Result preview: {result_preview}"
     except Exception as exc:
         logger.warning("Executor error: {err}", err=str(exc))
         exec_res = ExecutorResult(
             task_id=task_id, ok=False, error=str(exc), error_code="ERR_EXEC"
         )
-        summary = f"Task {task_id} ({tool}) failed: {str(exc)[:50]}"
+        summary = f"{task_brief} failed: {str(exc)[:50]}"
 
     await _emit_progress(95, f"Finishing with {task_id=}, {tool=}")
 
@@ -119,13 +126,6 @@ async def _emit_progress(percent: int, msg: str) -> None:
     except Exception:
         # progress emission is non-critical
         pass
-
-
-def _generate_summary(task_id: str, tool: str, args: dict, result: Any) -> str:
-    result_preview = str(result)
-    if len(result_preview) > 100:
-        result_preview = result_preview[:100] + "..."
-    return f"Task {task_id} ({tool} with args {args}): completed. Result preview: {result_preview}"
 
 
 ensure_default_tools_registered()

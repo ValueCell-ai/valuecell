@@ -129,7 +129,7 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
     # Clear critique_feedback after consuming it
     return {
         "plan": [t.model_dump() for t in tasks],
-        "plan_logic": strategy_update,  # For backwards compatibility
+        "strategy_update": strategy_update,
         "is_final": is_final,
         "critique_feedback": None,  # Clear after consuming
     }

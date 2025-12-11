@@ -9,11 +9,7 @@ from valuecell.core.conversation import ConversationService, ConversationStatus
 from valuecell.core.event import EventResponseService
 from valuecell.core.plan import PlanService
 from valuecell.core.plan.models import ExecutionPlan
-from valuecell.core.super_agent import (
-    SuperAgentDecision,
-    SuperAgentOutcome,
-    SuperAgentService,
-)
+from valuecell.core.super_agent import SuperAgentService
 from valuecell.core.task import TaskExecutor
 from valuecell.core.types import (
     BaseResponse,
@@ -160,11 +156,7 @@ class AgentOrchestrator:
                         output = data.get("output", {})
                         if isinstance(output, dict) and "plan" in output:
                             plan = output.get("plan", [])
-                            reasoning = (
-                                output.get("plan_logic")
-                                or output.get("strategy_update")
-                                or ""
-                            )
+                            reasoning = output.get("strategy_update") or "..."
 
                             # Format plan as markdown
                             plan_md = f"\n\n**📅 Plan Updated:**\n*{reasoning}*\n"

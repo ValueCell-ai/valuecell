@@ -81,8 +81,7 @@ async def event_stream_generator(user_input: str, thread_id: str):
                             "planner_update",
                             {
                                 "plan": output.get("plan"),
-                                "reasoning": output.get("plan_logic")
-                                or output.get("strategy_update"),
+                                "reasoning": output.get("strategy_update"),
                             },
                         )
 
