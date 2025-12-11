@@ -9,6 +9,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from loguru import logger
 
+from valuecell.utils import i18n_utils
+
 from ..state import AgentState
 
 
@@ -20,6 +22,8 @@ async def summarizer_node(state: AgentState) -> dict[str, Any]:
     """
     current_intent = state.get("current_intent") or "General financial analysis"
     completed_tasks = state.get("completed_tasks") or {}
+    user_context = state.get("user_context") or {}
+    current_datetime = i18n_utils.format_utc_datetime(i18n_utils.get_utc_now())
 
     logger.info(
         "Summarizer start: intent='{i}', tasks={t}",
@@ -39,6 +43,11 @@ Your goal is to synthesize execution results to answer the user's specific goal.
 
 **User's Current Goal**:
 {current_intent}
+
+**User Context**:
+{user_context}
+
+**Current Date and Time**: {current_datetime}
 
 **Available Data** (Execution Results):
 {data_summary}
@@ -66,7 +75,7 @@ Your goal is to synthesize execution results to answer the user's specific goal.
     # 3. Initialize LangChain Model (Native Streaming Support)
     # Using ChatOpenAI to connect to OpenRouter (compatible API)
     llm = ChatOpenAI(
-        model="google/gemini-2.5-pro",
+        model="google/gemini-2.5-flash",
         base_url="https://openrouter.ai/api/v1",
         api_key=os.getenv("OPENROUTER_API_KEY"),  # Ensure ENV is set
         temperature=0,
@@ -82,6 +91,8 @@ Your goal is to synthesize execution results to answer the user's specific goal.
             {
                 "current_intent": current_intent,
                 "data_summary": data_summary,
+                "user_context": user_context,
+                "current_datetime": current_datetime,
             }
         )
 

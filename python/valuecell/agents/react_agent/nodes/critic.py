@@ -80,6 +80,7 @@ Check if the "ACTUAL EXECUTION LOG" provides enough evidence to fulfill the "TAR
             markdown=False,
             output_schema=CriticDecision,
             debug_mode=True,
+            add_datetime_to_context=True,
         )
         response = await agent.arun(user_msg)
         decision: CriticDecision = response.content

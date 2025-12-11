@@ -173,6 +173,7 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
             markdown=False,
             output_schema=InquirerDecision,
             debug_mode=True,
+            add_datetime_to_context=True,
         )
         response = await agent.arun(user_msg)
         decision: InquirerDecision = response.content

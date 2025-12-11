@@ -6,6 +6,8 @@ from typing import Annotated, Any, List, TypedDict
 
 from langchain_core.messages import BaseMessage
 
+from .models import ARG_VAL_TYPES
+
 
 class AgentState(TypedDict, total=False):
     # Conversation and intent
@@ -32,3 +34,6 @@ class AgentState(TypedDict, total=False):
     # Critic decision
     next_action: Any | None
     _critic_summary: Any | None
+
+    # User context / preferences (optional)
+    user_context: dict[str, ARG_VAL_TYPES] | None

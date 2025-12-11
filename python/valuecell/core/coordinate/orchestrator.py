@@ -16,6 +16,7 @@ from valuecell.core.types import (
     StreamResponseEvent,
     UserInput,
 )
+from valuecell.utils import i18n_utils
 from valuecell.utils.uuid import generate_task_id, generate_thread_id, generate_uuid
 
 from .services import AgentServiceBundle
@@ -129,7 +130,14 @@ class AgentOrchestrator:
         )
 
         graph = get_app()
-        inputs = {"messages": [HumanMessage(content=user_input.query)]}
+        user_context = {
+            "language": i18n_utils.get_current_language(),
+            "timezone": i18n_utils.get_current_timezone(),
+        }
+        inputs = {
+            "messages": [HumanMessage(content=user_input.query)],
+            "user_context": user_context,
+        }
         config = {"configurable": {"thread_id": graph_thread_id}}
 
         # Note: executor task pairing will read tool info from executor output.

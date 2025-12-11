@@ -84,6 +84,7 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
             markdown=False,
             output_schema=ExecutionPlan,
             debug_mode=True,
+            add_datetime_to_context=True,
         )
         response = await agent.arun(user_msg)
         plan_obj: ExecutionPlan = response.content
