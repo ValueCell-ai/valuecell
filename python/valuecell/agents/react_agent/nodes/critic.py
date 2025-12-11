@@ -35,8 +35,8 @@ async def critic_node(state: dict[str, Any]) -> dict[str, Any]:
     - If approved: Return next_action="exit"
     - If rejected: Return critique_feedback and next_action="replan"
     """
-    user_profile = state.get("user_profile") or {}
     execution_history = state.get("execution_history") or []
+    current_intent = state.get("current_intent") or ""
     is_final = state.get("is_final", False)
 
     # Safety check: Critic should only run when planner claims done
@@ -47,27 +47,31 @@ async def critic_node(state: dict[str, Any]) -> dict[str, Any]:
             "critique_feedback": "Planner has not completed the workflow.",
         }
 
-    history_text = "\n".join(execution_history) if execution_history else "(Empty)"
+    history_text = "\n\n".join(execution_history) if execution_history else "(Empty)"
 
     system_prompt = (
         "You are a gatekeeper critic for an iterative financial planning system.\n\n"
-        "**Your Role**: Compare the User's Request with the Execution History.\n"
+        "**Your Role**: Compare the User's Request (current_intent) with the Execution History.\n"
         "- If the goal is fully satisfied, approve (approved=True).\n"
         "- If something is missing or incomplete, reject (approved=False) and provide specific feedback.\n\n"
         "**Decision Criteria**:\n"
         "1. All requested tasks completed successfully.\n"
         "2. No critical errors that prevent goal satisfaction.\n"
-        "3. Results align with user's intent.\n"
+        "3. Results align with user's intent (current_intent).\n"
         "4. **Synthesis Phase**: If sufficient research/data-gathering tasks are complete to answer the user's request, "
         "APPROVE the plan. The system will synthesize the final response from the execution history. "
         "Do NOT demand an explicit 'generate_report' or 'create_plan' task when the necessary data is already available.\n"
     )
 
-    context = {
-        "user_request": user_profile,
-        "execution_history": history_text,
-    }
-    user_msg = json.dumps(context, ensure_ascii=False)
+    user_msg = f"""# TARGET GOAL (User Intent):
+"{current_intent}"
+
+# ACTUAL EXECUTION LOG:
+{history_text}
+
+# INSTRUCTION:
+Check if the "ACTUAL EXECUTION LOG" provides enough evidence to fulfill the "TARGET GOAL"
+"""
 
     try:
         agent = Agent(
