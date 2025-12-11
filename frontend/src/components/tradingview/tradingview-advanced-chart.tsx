@@ -11,23 +11,6 @@ interface TradingViewAdvancedChartProps {
   timezone?: string;
 }
 
-interface TradingViewWindow extends Window {
-  TradingView?: {
-    widget: new (
-      config: Record<string, unknown>,
-    ) => {
-      remove?: () => void;
-    };
-  };
-  __tvScriptPromise?: Promise<void>;
-}
-
-interface TradingViewContainer extends HTMLDivElement {
-  __tv_widget__?: {
-    remove?: () => void;
-  } | null;
-}
-
 function TradingViewAdvancedChart({
   ticker,
   mappingUrl,
@@ -40,6 +23,8 @@ function TradingViewAdvancedChart({
   const symbolMapRef = useRef<Record<string, string>>(
     defaultMap as Record<string, string>,
   );
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const scriptRef = useRef<HTMLScriptElement | null>(null);
 
   useEffect(() => {
     if (!mappingUrl) return;
@@ -74,81 +59,80 @@ function TradingViewAdvancedChart({
     return t;
   }, [ticker]);
 
-  const containerId = useMemo(
-    () => `tv_${tvSymbol.replace(/[^A-Za-z0-9_]/g, "_")}_${interval}`,
-    [tvSymbol, interval],
-  );
-
-  const containerRef = useRef<TradingViewContainer | null>(null);
-
-  const loadTradingView = () => {
-    const w = window as TradingViewWindow;
-    if (w.TradingView) return Promise.resolve();
-    if (w.__tvScriptPromise) return w.__tvScriptPromise;
-    w.__tvScriptPromise = new Promise<void>((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = "https://s3.tradingview.com/tv.js";
-      script.async = true;
-      script.onload = () => resolve();
-      script.onerror = reject;
-      document.head.appendChild(script);
-    });
-    return w.__tvScriptPromise;
-  };
-
   useEffect(() => {
-    let cancelled = false;
+    if (!containerRef.current || !tvSymbol) return;
 
-    const cleanup = () => {
-      const current = containerRef.current;
-      const widget = current?.__tv_widget__;
-      if (widget && typeof widget.remove === "function") {
-        try {
-          widget.remove();
-        } catch {}
+    if (scriptRef.current && containerRef.current.contains(scriptRef.current)) {
+      containerRef.current.removeChild(scriptRef.current);
+      scriptRef.current = null;
+    }
+    containerRef.current.innerHTML = "";
+
+    const script = document.createElement("script");
+    script.type = "text/javascript";
+    script.async = true;
+    script.src =
+      "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+    script.innerHTML = JSON.stringify({
+      allow_symbol_change: true,
+      calendar: false,
+      details: false,
+      hide_side_toolbar: true,
+      hide_top_toolbar: false,
+      hide_legend: false,
+      hide_volume: false,
+      hotlist: false,
+      interval,
+      locale,
+      save_image: true,
+      style: "1",
+      symbol: tvSymbol,
+      theme,
+      timezone,
+      backgroundColor: theme === "light" ? "#ffffff" : "#131722",
+      gridColor: "rgba(46, 46, 46, 0.06)",
+      watchlist: [],
+      withdateranges: false,
+      compareSymbols: [],
+      studies: [],
+      autosize: true,
+    });
+
+    containerRef.current.appendChild(script);
+    scriptRef.current = script;
+
+    return () => {
+      if (
+        scriptRef.current &&
+        containerRef.current &&
+        containerRef.current.contains(scriptRef.current)
+      ) {
+        containerRef.current.removeChild(scriptRef.current);
+        scriptRef.current = null;
       }
       if (containerRef.current) {
-        containerRef.current.__tv_widget__ = null;
         containerRef.current.innerHTML = "";
       }
     };
-
-    cleanup();
-    if (!tvSymbol) return;
-
-    loadTradingView().then(() => {
-      const w = window as TradingViewWindow;
-      if (cancelled || !containerRef.current || !w.TradingView) return;
-
-      const widget = new w.TradingView.widget({
-        container_id: containerId,
-        symbol: tvSymbol,
-        interval,
-        timezone,
-        theme,
-        locale,
-        autosize: true,
-        hide_top_toolbar: false,
-        hide_side_toolbar: false,
-        hide_bottom_toolbar: false,
-        allow_symbol_change: false,
-        details: true,
-      });
-
-      const current = containerRef.current;
-      if (current) current.__tv_widget__ = widget;
-    });
-
-    return () => {
-      cancelled = true;
-      cleanup();
-    };
-  }, [tvSymbol, interval, theme, locale, timezone, containerId]);
+  }, [tvSymbol, interval, theme, locale, timezone]);
 
   return (
-    <div className="w-full" style={{ height: minHeight }}>
-      <div id={containerId} ref={containerRef} className="h-full" />
-    </div>
+    <section aria-label="Trading chart" className="w-full" style={{ height: minHeight }}>
+      <div ref={containerRef} className="h-full" />
+      <div className="tradingview-widget-copyright">
+        <a
+          href={`https://www.tradingview.com/symbols/${String(tvSymbol).replace(":", "-")}/`}
+          rel="noopener noreferrer nofollow"
+          target="_blank"
+          aria-label="Open symbol on TradingView"
+        >
+          <span className="blue-text">
+            {String(tvSymbol).replace(":", "/")} chart
+          </span>
+        </a>
+        <span className="trademark"> by TradingView</span>
+      </div>
+    </section>
   );
 }
 
