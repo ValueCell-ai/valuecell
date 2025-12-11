@@ -117,7 +117,11 @@ function TradingViewAdvancedChart({
   }, [tvSymbol, interval, theme, locale, timezone]);
 
   return (
-    <section aria-label="Trading chart" className="w-full" style={{ height: minHeight }}>
+    <section
+      aria-label="Trading chart"
+      className="w-full"
+      style={{ height: minHeight }}
+    >
       <div ref={containerRef} className="h-full" />
       <div className="tradingview-widget-copyright">
         <a
