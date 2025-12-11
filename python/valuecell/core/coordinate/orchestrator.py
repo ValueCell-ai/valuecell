@@ -1,6 +1,7 @@
 import asyncio
 from typing import AsyncGenerator, Dict, Optional
 
+from langchain_core.messages import AIMessage, HumanMessage
 from loguru import logger
 
 from valuecell.core.constants import ORIGINAL_USER_INPUT, PLANNING_TASK
@@ -92,6 +93,244 @@ class AgentOrchestrator:
 
         # Execution contexts keep track of paused planner runs.
         self._execution_contexts: Dict[str, ExecutionContext] = {}
+
+    # ==================== Public API Methods ====================
+
+    async def stream_react_agent(
+        self, user_input: UserInput, _response_thread_id: str
+    ) -> AsyncGenerator[BaseResponse, None]:
+        """
+        Stream React Agent (LangGraph) execution as standardized protocol events.
+
+        This function orchestrates the React Agent's multi-node graph execution
+        and converts internal LangGraph events into the frontend event protocol.
+
+        Event Mappings:
+        - Planner output -> MESSAGE_CHUNK (TODO: Consider REASONING)
+        - Executor tasks -> TOOL_CALL_STARTED/COMPLETED (paired with consistent IDs)
+        - Critic feedback -> MESSAGE_CHUNK (TODO: Consider REASONING)
+        - Summarizer/Inquirer text -> MESSAGE_CHUNK
+
+        Args:
+            user_input: User input containing query and conversation context
+
+        Yields:
+            BaseResponse: Standardized protocol events for frontend consumption
+        """
+        from valuecell.agents.react_agent.graph import get_app
+
+        conversation_id = user_input.meta.conversation_id
+
+        # ID Mapping:
+        # - LangGraph thread_id = conversation_id (for persistence)
+        # - EventService thread_id = freshly generated (transient stream session)
+        graph_thread_id = conversation_id
+        root_task_id = generate_task_id()
+
+        logger.info(
+            "stream_react_agent: starting React Agent stream for conversation {}",
+            conversation_id,
+        )
+
+        graph = get_app()
+        inputs = {"messages": [HumanMessage(content=user_input.query)]}
+        config = {"configurable": {"thread_id": graph_thread_id}}
+
+        # Track executor task IDs to pair STARTED/COMPLETED events
+        executor_tasks: Dict[str, str] = {}  # task_id -> tool_name
+
+        def is_real_node_output(d: dict) -> bool:
+            """Filter out router string outputs (e.g., 'wait', 'plan')."""
+            output = d.get("output")
+            return not isinstance(output, str)
+
+        try:
+            async for event in graph.astream_events(
+                inputs, config=config, version="v2"
+            ):
+                kind = event.get("event", "")
+                node = event.get("metadata", {}).get("langgraph_node", "")
+                data = event.get("data") or {}
+
+                # =================================================================
+                # 1. PLANNER -> MESSAGE_CHUNK (TODO: Consider REASONING)
+                # =================================================================
+                if kind == "on_chain_end" and node == "planner":
+                    if is_real_node_output(data):
+                        output = data.get("output", {})
+                        if isinstance(output, dict) and "plan" in output:
+                            plan = output.get("plan", [])
+                            reasoning = (
+                                output.get("plan_logic")
+                                or output.get("strategy_update")
+                                or ""
+                            )
+
+                            # Format plan as markdown
+                            plan_md = f"\n\n**📅 Plan Updated:**\n*{reasoning}*\n"
+                            for task in plan:
+                                task_id = task.get("id", "?")
+                                desc = task.get("description", "No description")
+                                plan_md += f"- `[{task_id}]` {desc}\n"
+
+                            # TODO: Consider switching to event_service.reasoning()
+                            yield await self.event_service.emit(
+                                self.event_service.factory.message_response_general(
+                                    event=StreamResponseEvent.MESSAGE_CHUNK,
+                                    conversation_id=conversation_id,
+                                    thread_id=_response_thread_id,
+                                    task_id=root_task_id,
+                                    content=plan_md,
+                                    agent_name="Planner",
+                                )
+                            )
+
+                # =================================================================
+                # 2. EXECUTOR -> TOOL_CALL (STARTED & COMPLETED)
+                # =================================================================
+
+                # Executor STARTED: Extract task metadata from input
+                elif kind == "on_chain_start" and node == "executor":
+                    task_data = data.get("input", {}).get("task", {})
+                    task_id = task_data.get("id")
+                    tool_name = task_data.get("tool_name", "unknown_tool")
+
+                    if task_id:
+                        # Store for pairing with COMPLETED event
+                        executor_tasks[task_id] = tool_name
+
+                        yield await self.event_service.emit(
+                            self.event_service.factory.tool_call(
+                                conversation_id=conversation_id,
+                                thread_id=_response_thread_id,
+                                task_id=root_task_id,
+                                event=StreamResponseEvent.TOOL_CALL_STARTED,
+                                tool_call_id=task_id,
+                                tool_name=tool_name,
+                                agent_name="Executor",
+                            )
+                        )
+
+                # Executor COMPLETED: Extract results from output
+                elif kind == "on_chain_end" and node == "executor":
+                    if is_real_node_output(data):
+                        output = data.get("output", {})
+                        if isinstance(output, dict) and "completed_tasks" in output:
+                            for task_id_key, res in output["completed_tasks"].items():
+                                # Extract result (could be dict or direct value)
+                                if isinstance(res, dict):
+                                    raw_result = res.get("result", "")
+                                else:
+                                    raw_result = str(res)
+
+                                # Retrieve tool name from STARTED event (fallback if missing)
+                                tool_name = executor_tasks.get(
+                                    task_id_key, "completed_tool"
+                                )
+
+                                yield await self.event_service.emit(
+                                    self.event_service.factory.tool_call(
+                                        conversation_id=conversation_id,
+                                        thread_id=_response_thread_id,
+                                        task_id=root_task_id,
+                                        event=StreamResponseEvent.TOOL_CALL_COMPLETED,
+                                        tool_call_id=task_id_key,
+                                        tool_name=tool_name,
+                                        tool_result=raw_result,
+                                        agent_name="Executor",
+                                    )
+                                )
+
+                # =================================================================
+                # 3. CRITIC -> MESSAGE_CHUNK (TODO: Consider REASONING)
+                # =================================================================
+                elif kind == "on_chain_end" and node == "critic":
+                    if is_real_node_output(data):
+                        output = data.get("output", {})
+                        if isinstance(output, dict):
+                            summary = output.get("_critic_summary")
+                            if summary:
+                                approved = summary.get("approved", False)
+                                icon = "✅" if approved else "🚧"
+                                reason = summary.get("reason") or summary.get(
+                                    "feedback", ""
+                                )
+
+                                critic_md = (
+                                    f"\n\n**{icon} Critic Decision:** {reason}\n\n"
+                                )
+
+                                # TODO: Consider switching to event_service.reasoning()
+                                yield await self.event_service.emit(
+                                    self.event_service.factory.message_response_general(
+                                        event=StreamResponseEvent.MESSAGE_CHUNK,
+                                        conversation_id=conversation_id,
+                                        thread_id=_response_thread_id,
+                                        task_id=root_task_id,
+                                        content=critic_md,
+                                        agent_name="Critic",
+                                    )
+                                )
+
+                # =================================================================
+                # 4. SUMMARIZER / INQUIRER -> MESSAGE_CHUNK
+                # =================================================================
+
+                # Summarizer: Streaming content
+                elif kind == "on_chat_model_stream" and node == "summarizer":
+                    chunk = data.get("chunk")
+                    text = chunk.content if chunk else None
+                    if text:
+                        yield await self.event_service.emit(
+                            self.event_service.factory.message_response_general(
+                                event=StreamResponseEvent.MESSAGE_CHUNK,
+                                conversation_id=conversation_id,
+                                thread_id=_response_thread_id,
+                                task_id=root_task_id,
+                                content=text,
+                                agent_name="Summarizer",
+                            )
+                        )
+
+                # Inquirer: Static content (full message at end)
+                elif kind == "on_chain_end" and node == "inquirer":
+                    if is_real_node_output(data):
+                        output = data.get("output", {})
+                        msgs = output.get("messages", [])
+                        if msgs and isinstance(msgs, list):
+                            last_msg = msgs[-1]
+                            if isinstance(last_msg, AIMessage) and last_msg.content:
+                                yield await self.event_service.emit(
+                                    self.event_service.factory.message_response_general(
+                                        event=StreamResponseEvent.MESSAGE_CHUNK,
+                                        conversation_id=conversation_id,
+                                        thread_id=_response_thread_id,
+                                        task_id=root_task_id,
+                                        content=last_msg.content,
+                                        agent_name="Inquirer",
+                                    )
+                                )
+
+            logger.info(
+                "stream_react_agent: completed React Agent stream for conversation {}",
+                conversation_id,
+            )
+
+        except Exception as exc:
+            logger.exception(
+                f"stream_react_agent: execution failed for conversation {conversation_id}: {exc}"
+            )
+            # Emit error message
+            yield await self.event_service.emit(
+                self.event_service.factory.message_response_general(
+                    event=StreamResponseEvent.MESSAGE_CHUNK,
+                    conversation_id=conversation_id,
+                    thread_id=_response_thread_id,
+                    task_id=root_task_id,
+                    content=f"⚠️ System Error: {str(exc)}",
+                    agent_name="System",
+                )
+            )
 
     # ==================== Public API Methods ====================
 
@@ -308,76 +547,10 @@ class AgentOrchestrator:
 
         # 1) Super Agent triage phase (pre-planning) - skip if target agent is specified
         if user_input.target_agent_name == self.super_agent_service.name:
-            # Emit reasoning_started before streaming reasoning content
-            sa_task_id = generate_task_id()
-            sa_reasoning_item_id = generate_uuid("reasoning")
-            yield await self.event_service.emit(
-                self.event_service.factory.reasoning(
-                    conversation_id,
-                    thread_id,
-                    task_id=sa_task_id,
-                    event=StreamResponseEvent.REASONING_STARTED,
-                    agent_name=self.super_agent_service.name,
-                    item_id=sa_reasoning_item_id,
-                ),
-            )
+            async for response in self.stream_react_agent(user_input, thread_id):
+                yield response
 
-            # Stream reasoning content and collect final outcome
-            super_outcome: SuperAgentOutcome | None = None
-            async for item in self.super_agent_service.run(user_input):
-                if isinstance(item, str):
-                    # Yield reasoning chunk
-                    yield await self.event_service.emit(
-                        self.event_service.factory.reasoning(
-                            conversation_id,
-                            thread_id,
-                            task_id=sa_task_id,
-                            event=StreamResponseEvent.REASONING,
-                            content=item,
-                            agent_name=self.super_agent_service.name,
-                            item_id=sa_reasoning_item_id,
-                        ),
-                    )
-                else:
-                    # SuperAgentOutcome received
-                    super_outcome = item
-
-            # Emit reasoning_completed
-            yield await self.event_service.emit(
-                self.event_service.factory.reasoning(
-                    conversation_id,
-                    thread_id,
-                    task_id=sa_task_id,
-                    event=StreamResponseEvent.REASONING_COMPLETED,
-                    agent_name=self.super_agent_service.name,
-                    item_id=sa_reasoning_item_id,
-                ),
-            )
-
-            # Fallback if no outcome was received
-            if super_outcome is None:
-                super_outcome = SuperAgentOutcome(
-                    decision=SuperAgentDecision.HANDOFF_TO_PLANNER,
-                    enriched_query=user_input.query,
-                    reason="No outcome received from SuperAgent",
-                )
-
-            if super_outcome.answer_content:
-                ans = self.event_service.factory.message_response_general(
-                    StreamResponseEvent.MESSAGE_CHUNK,
-                    conversation_id,
-                    thread_id,
-                    task_id=generate_task_id(),
-                    content=super_outcome.answer_content,
-                    agent_name=self.super_agent_service.name,
-                )
-                yield await self.event_service.emit(ans)
-            if super_outcome.decision == SuperAgentDecision.ANSWER:
-                return
-
-            if super_outcome.decision == SuperAgentDecision.HANDOFF_TO_PLANNER:
-                user_input.target_agent_name = ""
-                user_input.query = super_outcome.enriched_query
+            return
 
         # 2) Planner phase (existing logic)
         # Create planning task with user input callback
