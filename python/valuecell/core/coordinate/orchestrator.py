@@ -132,8 +132,8 @@ class AgentOrchestrator:
         inputs = {"messages": [HumanMessage(content=user_input.query)]}
         config = {"configurable": {"thread_id": graph_thread_id}}
 
-        # Track executor task IDs to pair STARTED/COMPLETED events
-        executor_tasks: Dict[str, str] = {}  # task_id -> tool_name
+        # Note: executor task pairing will read tool info from executor output.
+        # No STARTED->COMPLETED mapping stored here (executor provides `tool`/`tool_name`).
 
         def is_real_node_output(d: dict) -> bool:
             """Filter out router string outputs (e.g., 'wait', 'plan')."""
@@ -181,16 +181,29 @@ class AgentOrchestrator:
                 # 2. EXECUTOR -> TOOL_CALL (STARTED & COMPLETED)
                 # =================================================================
 
-                # Executor STARTED: Extract task metadata from input
+                # ---------------------------------------------------------
+                # Case A: Executor STARTED
+                # ---------------------------------------------------------
                 elif kind == "on_chain_start" and node == "executor":
                     task_data = data.get("input", {}).get("task", {})
                     task_id = task_data.get("id")
-                    tool_name = task_data.get("tool_name", "unknown_tool")
+                    raw_tool_name = task_data.get("tool_name", "unknown_tool")
+                    task_description = task_data.get("description", "")
+
+                    # [Optimization] Combine description and tool name for UI
+                    # Format: "Get Stock Price (web_search)"
+                    if task_description:
+                        # Optional: Truncate description if it's too long for a header
+                        short_desc = (
+                            (task_description[:60] + "...")
+                            if len(task_description) > 60
+                            else task_description
+                        )
+                        display_tool_name = f"{short_desc} ({raw_tool_name})"
+                    else:
+                        display_tool_name = raw_tool_name
 
                     if task_id:
-                        # Store for pairing with COMPLETED event
-                        executor_tasks[task_id] = tool_name
-
                         yield await self.event_service.emit(
                             self.event_service.factory.tool_call(
                                 conversation_id=conversation_id,
@@ -198,27 +211,47 @@ class AgentOrchestrator:
                                 task_id=root_task_id,
                                 event=StreamResponseEvent.TOOL_CALL_STARTED,
                                 tool_call_id=task_id,
-                                tool_name=tool_name,
+                                tool_name=display_tool_name,
                                 agent_name="Executor",
                             )
                         )
 
-                # Executor COMPLETED: Extract results from output
+                # ---------------------------------------------------------
+                # Case B: Executor COMPLETED
+                # ---------------------------------------------------------
                 elif kind == "on_chain_end" and node == "executor":
                     if is_real_node_output(data):
                         output = data.get("output", {})
                         if isinstance(output, dict) and "completed_tasks" in output:
                             for task_id_key, res in output["completed_tasks"].items():
-                                # Extract result (could be dict or direct value)
+                                # 1. Extract Result
                                 if isinstance(res, dict):
-                                    raw_result = res.get("result", "")
+                                    # Try to get 'result' field, fallback to full dict dump
+                                    raw_result = res.get("result") or str(res)
+
+                                    # Try to retrieve metadata preserved by executor
+                                    res_tool_name = (
+                                        res.get("tool_name") or "completed_tool"
+                                    )
+                                    res_description = res.get("description")
                                 else:
                                     raw_result = str(res)
+                                    res_tool_name = "completed_tool"
+                                    res_description = None
 
-                                # Retrieve tool name from STARTED event (fallback if missing)
-                                tool_name = executor_tasks.get(
-                                    task_id_key, "completed_tool"
-                                )
+                                # 2. Re-construct the display name to match STARTED event
+                                # This ensures the UI updates the correct item instead of creating a new one
+                                if res_description:
+                                    short_desc = (
+                                        (res_description[:60] + "...")
+                                        if len(res_description) > 60
+                                        else res_description
+                                    )
+                                    display_tool_name = (
+                                        f"{short_desc} ({res_tool_name})"
+                                    )
+                                else:
+                                    display_tool_name = res_tool_name
 
                                 yield await self.event_service.emit(
                                     self.event_service.factory.tool_call(
@@ -227,7 +260,7 @@ class AgentOrchestrator:
                                         task_id=root_task_id,
                                         event=StreamResponseEvent.TOOL_CALL_COMPLETED,
                                         tool_call_id=task_id_key,
-                                        tool_name=tool_name,
+                                        tool_name=display_tool_name,
                                         tool_result=raw_result,
                                         agent_name="Executor",
                                     )

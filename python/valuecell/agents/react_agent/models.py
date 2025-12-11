@@ -43,6 +43,7 @@ class ExecutorResult(BaseModel):
     task_id: str
     ok: bool = True
     result: Any | None = None
+    tool_name: str | None = None
     description: str = Field(
         default="",
         description="Human-friendly description of the task that produced this result",

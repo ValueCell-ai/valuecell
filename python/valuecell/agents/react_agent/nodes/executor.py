@@ -62,9 +62,11 @@ async def executor_node(state: AgentState, task: dict[str, Any]) -> dict[str, An
     """
     task_id = task.get("id") or ""
     task_description = task.get("description") or ""
-    tool = task.get("tool_name") or ""
-    args = task.get("tool_args") or {}
-    task_brief = f"Task {task_description} (id={task_id}, tool={tool}, args={args})"
+    tool_name = task.get("tool_name") or ""
+    tool_args = task.get("tool_args") or {}
+    task_brief = (
+        f"Task {task_description} (id={task_id}, tool={tool_name}, args={tool_args})"
+    )
 
     logger.info("Executor start: {task_brief}", task_brief=task_brief)
 
@@ -75,13 +77,16 @@ async def executor_node(state: AgentState, task: dict[str, Any]) -> dict[str, An
             "Executor skip (already completed): {task_brief}", task_brief=task_brief
         )
         return {}
-    await _emit_progress(5, f"Starting with {task_id=}, {tool=}")
 
     try:
         runtime_args = {"state": state}
-        result = await registry.execute(tool, args, runtime_args=runtime_args)
+        result = await registry.execute(tool_name, tool_args, runtime_args=runtime_args)
         exec_res = ExecutorResult(
-            task_id=task_id, ok=True, result=result, description=task_description
+            task_id=task_id,
+            ok=True,
+            result=result,
+            tool_name=tool_name,
+            description=task_description,
         )
 
         # Generate concise summary for execution history
@@ -96,11 +101,10 @@ async def executor_node(state: AgentState, task: dict[str, Any]) -> dict[str, An
             ok=False,
             error=str(exc),
             error_code="ERR_EXEC",
+            tool_name=tool_name,
             description=task_description,
         )
         summary = f"{task_brief} failed: {str(exc)[:50]}"
-
-    await _emit_progress(95, f"Finishing with {task_id=}, {tool=}")
 
     # Return delta for completed_tasks and execution_history
     completed_delta = {task_id: exec_res.model_dump()}
@@ -114,13 +118,13 @@ async def executor_node(state: AgentState, task: dict[str, Any]) -> dict[str, An
     except Exception:
         pass
 
-    await _emit_progress(100, f"Done with {task_id=}, {tool=}")
     return {
         "completed_tasks": completed_delta,
         "execution_history": [summary],
     }
 
 
+# TODO: display progress updates from within execution
 async def _emit_progress(percent: int, msg: str) -> None:
     try:
         payload = {
