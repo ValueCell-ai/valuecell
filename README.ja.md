@@ -265,7 +265,7 @@ bash start.sh
 ValueCell は外部サービスを統合し、サードパーティ製ウィジェットを埋め込みます。これらの利用は Apache 2.0 の対象外であり、その規約遵守はユーザー／開発者の責任です。
 
 | コンポーネント | タイプ | ライセンス / 利用規約 |
-|---------|------|-----------------|----------------------|
+|---------|------|-----------------|
 | **TradingView Advanced Chart** | 埋め込み iframe ウィジェット | [Free Advanced Charts Agreement](https://www.tradingview.com/chart-embedding/)（プロプライエタリ） |
 | **取引所 API**（Binance、OKX、Hyperliquid など） | REST/WebSocket エンドポイント | 各取引所の利用規約（例: [Binance API 規約](https://www.binance.com/en/terms)） |
 | **LLM プロバイダー**（OpenAI、Azure、Google、DeepSeek など） | 推論 API | プロバイダー固有の利用規約（例: [OpenAI 利用規約](https://openai.com/policies/terms-of-use)） |

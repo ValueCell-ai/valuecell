@@ -265,7 +265,7 @@ bash start.sh
 ValueCell 整合外部服務並嵌入第三方掛件。其使用不受 Apache 2.0 覆蓋，遵循其服務條款的合規責任由使用者／開發者自行承擔。
 
 | 元件 | 類型 | 授權 / 條款 |
-|---------|------|-----------------|----------------------|
+|---------|------|-----------------|
 | **TradingView Advanced Chart** | 嵌入式 iframe 掛件 | [Free Advanced Charts Agreement](https://www.tradingview.com/chart-embedding/)（專有） |
 | **交易所 API**（Binance、OKX、Hyperliquid 等） | REST/WebSocket 端點 | 各交易所的服務條款（例如 [Binance API 條款](https://www.binance.com/en/terms)） |
 | **LLM 供應商**（OpenAI、Azure、Google、DeepSeek 等） | 推論 API | 供應商特定的使用條款（例如 [OpenAI 使用條款](https://openai.com/policies/terms-of-use)） |

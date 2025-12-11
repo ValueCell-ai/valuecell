@@ -264,7 +264,7 @@ This project is licensed under the **Apache License 2.0** — see the [LICENSE](
 ValueCell integrates external services and embeds third-party widgets. Their usage is **not covered by Apache 2.0**, and compliance with their terms is your responsibility as a user/developer.
 
 | Component | Type | License / Terms |
-|---------|------|-----------------|----------------------|
+|---------|------|-----------------|
 | **TradingView Advanced Chart** | Embedded iframe widget | [Free Advanced Charts Agreement](https://www.tradingview.com/chart-embedding/) (proprietary) |
 | **Exchange APIs** (Binance, OKX, Hyperliquid, etc.) | REST/WebSocket endpoints | Each exchange’s ToS (e.g., [Binance API Terms](https://www.binance.com/en/terms)) |
 | **LLM Providers** (OpenAI, Azure, Google, DeepSeek, etc.) | Inference APIs | Provider-specific ToS (e.g., [OpenAI ToS](https://openai.com/policies/terms-of-use)) |
