@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router";
 import { useGetStockDetail, useRemoveStockFromWatchlist } from "@/api/stock";
 import TradingViewAdvancedChart from "@/components/tradingview/tradingview-advanced-chart";
 import { Button } from "@/components/ui/button";
+import LinkButton from "@/components/valuecell/button/link-button";
 import type { Route } from "./+types/stock";
 
 function Stock() {
@@ -82,12 +83,6 @@ function Stock() {
         />
       </div>
 
-      {/* <div className="flex flex-col gap-4">
-        <h2 className="font-bold text-lg">Details</h2>
-
-        <StockDetailsList data={detailsData} />
-      </div> */}
-
       <div className="flex flex-col gap-4">
         <h2 className="font-bold text-lg">About</h2>
 
@@ -112,14 +107,12 @@ function Stock() {
             {stockDetailData.properties.website && (
               <div className="col-span-2">
                 <span className="text-muted-foreground">Website:</span>
-                <a
-                  href={stockDetailData.properties.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ml-2 text-blue-600 hover:underline"
+                <LinkButton
+                  url={stockDetailData.properties.website}
+                  className="ml-2 text-blue-600"
                 >
                   {stockDetailData.properties.website}
-                </a>
+                </LinkButton>
               </div>
             )}
           </div>

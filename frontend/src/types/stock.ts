@@ -53,26 +53,7 @@ export interface StockHistory {
 }
 
 export interface StockDetail {
-  ticker: string;
-  asset_type: "stock" | "etf" | "index" | "crypto";
-  asset_type_display: string;
-  names: {
-    "en-US": string;
-    "en-GB": string;
-    "zh-Hans": string;
-    "zh-Hant": string;
-  };
   display_name: string;
-  descriptions: Record<string, string>;
-  market_info: {
-    exchange: string;
-    country: string;
-    currency: StockCurrency;
-    timezone: string;
-    trading_hours: string | null;
-    market_status: string;
-  };
-  source_mappings: Record<string, string>;
   properties: {
     sector: string;
     industry: string;
@@ -83,7 +64,4 @@ export interface StockDetail {
     website: string;
     business_summary: string;
   };
-  created_at: string;
-  updated_at: string;
-  is_active: boolean;
 }
