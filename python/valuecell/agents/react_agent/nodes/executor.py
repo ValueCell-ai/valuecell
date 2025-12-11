@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any, Callable
 
 from langchain_core.callbacks import adispatch_custom_event
@@ -65,7 +66,7 @@ async def executor_node(state: AgentState, task: dict[str, Any]) -> dict[str, An
     tool_name = task.get("tool_name") or ""
     tool_args = task.get("tool_args") or {}
     task_brief = (
-        f"Task {task_description} (id={task_id}, tool={tool_name}, args={tool_args})"
+        f"Task `{task_description}` (id={task_id}, tool={tool_name}, args={tool_args})"
     )
 
     logger.info("Executor start: {task_brief}", task_brief=task_brief)
@@ -89,11 +90,24 @@ async def executor_node(state: AgentState, task: dict[str, Any]) -> dict[str, An
             description=task_description,
         )
 
-        # Generate concise summary for execution history
-        result_preview = str(result)
-        if len(result_preview) > 100:
-            result_preview = result_preview[:100] + "..."
-        summary = f"{task_brief} completed. Result preview: {result_preview}"
+        if isinstance(result, (dict, list)):
+            result_str = json.dumps(result, ensure_ascii=False)
+        else:
+            result_str = str(result)
+
+        if len(result_str) > 800:
+            result_preview = result_str[:800] + "... (truncated)"
+        else:
+            result_preview = result_str
+
+        summary = f"""<task id="{task_id}">
+  <description>{task_description}</description>
+  <status>{"SUCCESS" if exec_res.ok else "FAILURE"}</status>
+  <result>
+{result_preview}
+  </result>
+</task>
+"""
     except Exception as exc:
         logger.warning("Executor error: {err}", err=str(exc))
         exec_res = ExecutorResult(
