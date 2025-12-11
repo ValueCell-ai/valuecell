@@ -80,7 +80,9 @@ async def executor_node(state: AgentState, task: dict[str, Any]) -> dict[str, An
     try:
         runtime_args = {"state": state}
         result = await registry.execute(tool, args, runtime_args=runtime_args)
-        exec_res = ExecutorResult(task_id=task_id, ok=True, result=result)
+        exec_res = ExecutorResult(
+            task_id=task_id, ok=True, result=result, description=task_description
+        )
 
         # Generate concise summary for execution history
         result_preview = str(result)
@@ -90,7 +92,11 @@ async def executor_node(state: AgentState, task: dict[str, Any]) -> dict[str, An
     except Exception as exc:
         logger.warning("Executor error: {err}", err=str(exc))
         exec_res = ExecutorResult(
-            task_id=task_id, ok=False, error=str(exc), error_code="ERR_EXEC"
+            task_id=task_id,
+            ok=False,
+            error=str(exc),
+            error_code="ERR_EXEC",
+            description=task_description,
         )
         summary = f"{task_brief} failed: {str(exc)[:50]}"
 

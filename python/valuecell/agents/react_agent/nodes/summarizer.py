@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from typing import Any
 
@@ -18,7 +19,11 @@ async def summarizer_node(state: AgentState) -> dict[str, Any]:
     Uses natural language current_intent to understand user's goal.
     """
     current_intent = state.get("current_intent") or "General financial analysis"
+    # TODO: provide relevant recent messages as context if needed
     execution_history = state.get("execution_history") or []
+    execution_history_str = (
+        "\n".join(execution_history) if execution_history else "(No history yet)"
+    )
     completed_tasks = state.get("completed_tasks") or {}
 
     logger.info(
@@ -31,38 +36,38 @@ async def summarizer_node(state: AgentState) -> dict[str, Any]:
     # 1. Extract context
     data_summary = _extract_key_results(completed_tasks)
 
-    # 2. Build prompt with current_intent
+    # 2. Build prompt with current_intent and adaptive formatting
+    # Note: intent analysis (is_comparison, is_question) can be used in future
+    # to select conditional structure; for now provide flexible formatting guidelines
     system_template = """
 You are a concise Financial Assistant for beginner investors.
-Your goal is to synthesize the execution results into a short, actionable insight card.
+Your goal is to synthesize execution results and historical context to answer the user's specific goal.
 
-**User's Goal**:
+**User's Current Goal**:
 {current_intent}
 
-**Key Data extracted from tools**:
+**Data Sources**:
+
+**1. Aggregated Results** (Completed tasks — includes current round and previously merged results):
 {data_summary}
 
+**2. Context History** (Previous findings and conclusions):
+{execution_history}
+
 **Strict Constraints**:
-1. **Length Limit**: Keep the total response under 400 words. Be ruthless with cutting fluff.
-2. **Relevance Check**: Ensure you address the user's stated goal.
-3. **Completeness Check**: You MUST surface data errors explicitly.
+1. **Multi-Source Synthesis**: Combine Aggregated Results AND Context History.
+2. **Length Limit**: Keep the total response under 400 words. Be ruthless with cutting fluff.
+3. **Relevance Check**: Ensure you address the user's stated goal completely.
+4. **Completeness Check**: You MUST surface data errors explicitly.
    - If data is missing or mismatched (e.g. "content seems to be AMD" when user asked for "AAPL"), 
      you MUST write: "⚠️ Data Retrieval Issue: [Details]"
-4. **No Generic Intros**: Start directly with the answer.
-5. **Structure**: Use the format below.
-
-**Required Structure**:
-(1-2 sentences direct answer to user's question)
-
-## Key Findings
-- **[Metric Name]**: Value (Interpretation)
-(List top 3 metrics. If data is missing/error, state it here)
-
-## Analysis
-(One short paragraph synthesizing the "Why". Connect the dots.)
-
-## Risk Note
-(One specific risk factor found in the data)
+5. **No Generic Intros**: Start directly with the answer.
+6. **Adaptive Structure**:
+   - **General Analysis**: Use "Key Findings → Analysis → Risk Note" structure.
+   - **Comparison**: Use "Side-by-Side" approach. Highlight key differences and similarities.
+   - **Specific Question**: Answer DIRECTLY. No forced headers if not relevant.
+7. **Markdown**: Always use Markdown. Bold all numbers and key metrics.
+8. **Truthfulness**: If data is missing, state it explicitly: "Data not available for [X]".
 """
 
     prompt = ChatPromptTemplate.from_messages(
@@ -88,6 +93,7 @@ Your goal is to synthesize the execution results into a short, actionable insigh
             {
                 "current_intent": current_intent,
                 "data_summary": data_summary,
+                "execution_history": execution_history_str,
             }
         )
 
@@ -113,7 +119,11 @@ Your goal is to synthesize the execution results into a short, actionable insigh
 
 
 def _extract_key_results(completed_tasks: dict[str, Any]) -> str:
-    """Extract results with Error Highlighting."""
+    """Extract results with JSON formatting and error highlighting.
+
+    Prefers JSON for structured data (dicts/lists) for better LLM comprehension.
+    Falls back to string representation for simple values.
+    """
     if not completed_tasks:
         return "(No results available)"
 
@@ -123,6 +133,7 @@ def _extract_key_results(completed_tasks: dict[str, Any]) -> str:
             continue
 
         result = task_data.get("result")
+        desc = task_data.get("description") or ""
 
         # Handle errors reported by Executor
         if task_data.get("error"):
@@ -132,10 +143,23 @@ def _extract_key_results(completed_tasks: dict[str, Any]) -> str:
         if not result:
             continue
 
-        preview = str(result)
-        if len(preview) > 500:
-            preview = preview[:500] + "... (truncated)"
+        # Prefer JSON formatting for structured data; fallback to str() for simple values
+        if isinstance(result, (dict, list)):
+            try:
+                preview = json.dumps(result, ensure_ascii=False, indent=2)
+            except (TypeError, ValueError):
+                preview = str(result)
+        else:
+            preview = str(result)
 
-        lines.append(f"- Task {task_id}: {preview}")
+        # Slightly higher truncation limit to preserve structured data context
+        if len(preview) > 1000:
+            preview = preview[:1000] + "\n... (truncated)"
 
-    return "\n".join(lines)
+        # Include description if available for better context in the summary
+        if desc:
+            lines.append(f"### Task {task_id}: {desc}\n{preview}")
+        else:
+            lines.append(f"### Task {task_id}\n{preview}")
+
+    return "\n\n".join(lines)

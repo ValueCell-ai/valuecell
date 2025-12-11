@@ -43,6 +43,10 @@ class ExecutorResult(BaseModel):
     task_id: str
     ok: bool = True
     result: Any | None = None
+    description: str = Field(
+        default="",
+        description="Human-friendly description of the task that produced this result",
+    )
     error: Optional[str] = None
     error_code: Optional[str] = None  # e.g., ERR_NETWORK, ERR_INPUT
 
