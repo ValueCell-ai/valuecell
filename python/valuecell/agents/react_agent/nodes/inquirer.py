@@ -156,7 +156,7 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
         message_strs.append(f"[{role}]: {content}")
 
     conversation_text = (
-        "\n".join(message_strs) if message_strs else "(No conversation yet)"
+        "\n\n".join(message_strs) if message_strs else "(No conversation yet)"
     )
     user_msg = (
         "# Conversation History:\n"
