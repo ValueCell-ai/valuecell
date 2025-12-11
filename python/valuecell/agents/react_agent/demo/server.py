@@ -128,7 +128,6 @@ async def event_stream_generator(user_input: str, thread_id: str):
                 text = chunk.content if chunk else None
                 if text:
                     yield format_sse("content_token", {"delta": text})
-                    last_emitted_text = text  # Track to avoid duplicates if mixed
 
             # STATIC CONTENT (Inquirer / Fallback)
             # Inquirer returns a full AIMessage at the end, not streamed

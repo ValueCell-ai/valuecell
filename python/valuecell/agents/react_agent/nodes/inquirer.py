@@ -7,7 +7,7 @@ from agno.models.openrouter import OpenRouter
 from langchain_core.messages import AIMessage, SystemMessage
 from loguru import logger
 
-from ..models import FinancialIntent, InquirerDecision
+from ..models import InquirerDecision
 
 
 # TODO: summarize with LLM
