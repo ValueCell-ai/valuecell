@@ -66,7 +66,7 @@ Your goal is to synthesize execution results and historical context to answer th
    - **General Analysis**: Use "Key Findings → Analysis → Risk Note" structure.
    - **Comparison**: Use "Side-by-Side" approach. Highlight key differences and similarities.
    - **Specific Question**: Answer DIRECTLY. No forced headers if not relevant.
-7. **Markdown**: Always use Markdown. Bold all numbers and key metrics.
+7. **Markdown**: Always use Markdown. Bold key metrics or information.
 8. **Truthfulness**: If data is missing, state it explicitly: "Data not available for [X]".
 """
 
