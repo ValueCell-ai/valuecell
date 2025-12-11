@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useAllPollTaskList } from "@/api/conversation";
+import TradingViewTickerTape from "@/components/tradingview/tradingview-ticker-tape";
 import { agentSuggestions } from "@/mock/agent-data";
 import ChatInputArea from "../agent/components/chat-conversation/chat-input-area";
 import { AgentSuggestionsList, AgentTaskCards } from "./components";
-import TradingViewTickerTape from "./components/tradingview-ticker-tape";
 
 const INDEX_SYMBOLS = [
   "FOREXCOM:SPXUSD",

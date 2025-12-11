@@ -1,16 +1,32 @@
 import { memo, useEffect, useMemo, useRef } from "react";
 import defaultMap from "./tv-symbol-map.json";
 
-type Props = {
+interface TradingViewAdvancedChartProps {
   ticker: string;
   mappingUrl?: string;
   interval?: string;
   minHeight?: number;
   theme?: "light" | "dark";
-  colors?: { upColor: string; downColor: string };
   locale?: string;
   timezone?: string;
-};
+}
+
+interface TradingViewWindow extends Window {
+  TradingView?: {
+    widget: new (
+      config: Record<string, unknown>,
+    ) => {
+      remove?: () => void;
+    };
+  };
+  __tvScriptPromise?: Promise<void>;
+}
+
+interface TradingViewContainer extends HTMLDivElement {
+  __tv_widget__?: {
+    remove?: () => void;
+  } | null;
+}
 
 function TradingViewAdvancedChart({
   ticker,
@@ -18,11 +34,10 @@ function TradingViewAdvancedChart({
   interval = "D",
   minHeight = 420,
   theme = "light",
-  colors,
   locale = "en",
   timezone = "UTC",
-}: Props) {
-  const symbolMapRef = useRef<Record<string, string> | null>(
+}: TradingViewAdvancedChartProps) {
+  const symbolMapRef = useRef<Record<string, string>>(
     defaultMap as Record<string, string>,
   );
 
@@ -57,17 +72,17 @@ function TradingViewAdvancedChart({
       if (typeof v === "string" && v.length > 0) return v;
     }
     return t;
-  }, [ticker, mappingUrl]);
+  }, [ticker]);
 
   const containerId = useMemo(
     () => `tv_${tvSymbol.replace(/[^A-Za-z0-9_]/g, "_")}_${interval}`,
     [tvSymbol, interval],
   );
 
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<TradingViewContainer | null>(null);
 
   const loadTradingView = () => {
-    const w = window as any;
+    const w = window as TradingViewWindow;
     if (w.TradingView) return Promise.resolve();
     if (w.__tvScriptPromise) return w.__tvScriptPromise;
     w.__tvScriptPromise = new Promise<void>((resolve, reject) => {
@@ -85,7 +100,7 @@ function TradingViewAdvancedChart({
     let cancelled = false;
 
     const cleanup = () => {
-      const current = containerRef.current as any;
+      const current = containerRef.current;
       const widget = current?.__tv_widget__;
       if (widget && typeof widget.remove === "function") {
         try {
@@ -93,7 +108,7 @@ function TradingViewAdvancedChart({
         } catch {}
       }
       if (containerRef.current) {
-        (containerRef.current as any).__tv_widget__ = null;
+        containerRef.current.__tv_widget__ = null;
         containerRef.current.innerHTML = "";
       }
     };
@@ -102,25 +117,8 @@ function TradingViewAdvancedChart({
     if (!tvSymbol) return;
 
     loadTradingView().then(() => {
-      const w = window as any;
+      const w = window as TradingViewWindow;
       if (cancelled || !containerRef.current || !w.TradingView) return;
-
-      const overrides = colors
-        ? {
-            "mainSeriesProperties.candleStyle.upColor": colors.upColor,
-            "mainSeriesProperties.candleStyle.downColor": colors.downColor,
-            "mainSeriesProperties.candleStyle.borderUpColor": colors.upColor,
-            "mainSeriesProperties.candleStyle.borderDownColor":
-              colors.downColor,
-            "mainSeriesProperties.candleStyle.wickUpColor": colors.upColor,
-            "mainSeriesProperties.candleStyle.wickDownColor": colors.downColor,
-            "mainSeriesProperties.candleStyle.drawWick": true,
-            "mainSeriesProperties.candleStyle.drawBorder": true,
-          }
-        : {
-            "mainSeriesProperties.candleStyle.drawWick": true,
-            "mainSeriesProperties.candleStyle.drawBorder": true,
-          };
 
       const widget = new w.TradingView.widget({
         container_id: containerId,
@@ -135,10 +133,9 @@ function TradingViewAdvancedChart({
         hide_bottom_toolbar: false,
         allow_symbol_change: false,
         details: true,
-        overrides,
       });
 
-      const current = containerRef.current as any;
+      const current = containerRef.current;
       if (current) current.__tv_widget__ = widget;
     });
 
@@ -146,7 +143,7 @@ function TradingViewAdvancedChart({
       cancelled = true;
       cleanup();
     };
-  }, [tvSymbol, interval, theme, colors, locale, timezone]);
+  }, [tvSymbol, interval, theme, locale, timezone, containerId]);
 
   return (
     <div className="w-full" style={{ height: minHeight }}>

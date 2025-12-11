@@ -6,17 +6,15 @@ import {
   useGetStockPrice,
   useRemoveStockFromWatchlist,
 } from "@/api/stock";
+import TradingViewAdvancedChart from "@/components/tradingview/tradingview-advanced-chart";
 import { Button } from "@/components/ui/button";
-import { useStockColors } from "@/store/settings-store";
 import type { Route } from "./+types/stock";
-import TradingViewAdvancedChart from "./components/tradingview-advanced-chart";
 
 function Stock() {
   const { stockId } = useParams<Route.LoaderArgs["params"]>();
   const navigate = useNavigate();
   // Use stockId as ticker to fetch real data from API
   const ticker = stockId || "";
-  const stockColors = useStockColors();
 
   // Fetch current stock price data
   const {
@@ -116,10 +114,6 @@ function Stock() {
           interval="D"
           minHeight={420}
           theme="light"
-          colors={{
-            upColor: stockColors.positive,
-            downColor: stockColors.negative,
-          }}
           locale="en"
           timezone="UTC"
         />

@@ -1,16 +1,16 @@
-import { useEffect, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 
-type Props = {
-  symbols: readonly string[];
+interface TradingViewTickerTapeProps {
+  symbols: string[];
   theme?: "light" | "dark";
   locale?: string;
-};
+}
 
 function TradingViewTickerTape({
   symbols,
   theme = "light",
   locale = "en",
-}: Props) {
+}: TradingViewTickerTapeProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const scriptRef = useRef<HTMLScriptElement | null>(null);
 
@@ -68,4 +68,4 @@ function TradingViewTickerTape({
   );
 }
 
-export default TradingViewTickerTape;
+export default memo(TradingViewTickerTape);
