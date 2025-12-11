@@ -9,6 +9,10 @@ class Task(BaseModel):
     id: str
     tool_name: str
     tool_args: dict[str, Any] = Field(default_factory=dict)
+    description: str = Field(
+        default="",
+        description="Optional human-friendly task description (from planner).",
+    )
 
 
 class FinancialIntent(BaseModel):

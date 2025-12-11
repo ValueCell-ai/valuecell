@@ -120,6 +120,7 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
                 id=pt.id,
                 tool_name=pt.tool_id,
                 tool_args=pt.tool_args,
+                description=pt.description or "No description provided by planner",
             )
         )
 
