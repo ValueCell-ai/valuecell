@@ -76,11 +76,7 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
 
     user_msg = f"Current Goal: {current_intent}"
 
-    is_final = False
-    strategy_update = ""
     # TODO: organize plan like a TODO list
-    planned_tasks: list[PlannedTask] = []
-
     try:
         agent = Agent(
             model=OpenRouter(id="google/gemini-2.5-flash"),
