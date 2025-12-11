@@ -52,7 +52,6 @@ async def event_stream_generator(user_input: str, thread_id: str):
         config = {"configurable": {"thread_id": thread_id}}
 
         logger.info(f"Stream start: {thread_id}")
-        last_emitted_text: str | None = None
 
         async for event in graph.astream_events(inputs, config=config, version="v2"):
             kind = event.get("event", "")
