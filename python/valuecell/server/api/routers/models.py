@@ -511,6 +511,7 @@ def create_models_router() -> APIRouter:
                     status_code=400,
                     detail="Model id not specified and provider has no default",
                 )
+
             # Perform a minimal live request (ping) without configuration validation
             result = CheckModelResponse(
                 ok=False,
@@ -521,7 +522,6 @@ def create_models_router() -> APIRouter:
             )
             try:
                 import asyncio
-                from time import perf_counter
 
                 import httpx
             except Exception as e:
@@ -535,9 +535,9 @@ def create_models_router() -> APIRouter:
             api_key = (payload.api_key or cfg.api_key or "").strip()
             base_url = (getattr(cfg, "base_url", None) or "").strip()
             # Use direct request timeout only (no agent fallback)
-            direct_timeout_s = 3.0
+            direct_timeout_s = 5.0
             if provider == "google":
-                direct_timeout_s = 3.0
+                direct_timeout_s = 30.0
 
             def _normalize_model_id_for_provider(provider_name: str, mid: str) -> str:
                 """Normalize model id for specific providers to avoid 404s.
@@ -624,6 +624,7 @@ def create_models_router() -> APIRouter:
                         params={"key": api_key} if api_key else None,
                         json=json_body,
                     )
+
                 if resp.status_code in (401, 403):
                     try:
                         err_json = resp.json()
@@ -674,37 +675,75 @@ def create_models_router() -> APIRouter:
                 # Host-driven detection
                 if bu:
                     lower = bu.lower()
-                    if "generativelanguage.googleapis.com" in lower or "googleapis.com" in lower:
+                    if (
+                        "generativelanguage.googleapis.com" in lower
+                        or "googleapis.com" in lower
+                    ):
                         # Construct Google endpoint for fast direct ping
+                        # Handle cases where base_url already includes '/models' or full ':generateContent' path
+                        if ":generatecontent" in lower:
+                            # Treat as full endpoint
+                            return bu, "google"
+                        if "/models/" in lower:
+                            # If base_url already includes '/models', avoid duplicating
+                            if lower.endswith("/models"):
+                                endpoint = f"{bu}/{normalized_model_id}:generateContent"
+                            else:
+                                # base_url might be '/models/{model}', append ':generateContent' if missing
+                                endpoint = (
+                                    f"{bu}:generateContent"
+                                    if not lower.endswith(":generatecontent")
+                                    else bu
+                                )
+                            return endpoint, "google"
                         # If base_url already includes version segment, do not repeat it
                         if lower.endswith("/v1beta") or "/v1beta/" in lower:
-                            endpoint = f"{bu}/models/{normalized_model_id}:generateContent"
+                            endpoint = (
+                                f"{bu}/models/{normalized_model_id}:generateContent"
+                            )
                         elif lower.endswith("/v1") or "/v1/" in lower:
-                            endpoint = f"{bu}/models/{normalized_model_id}:generateContent"
+                            endpoint = (
+                                f"{bu}/models/{normalized_model_id}:generateContent"
+                            )
                         else:
                             endpoint = f"{bu}/v1beta/models/{normalized_model_id}:generateContent"
                         return endpoint, "google"
                     if "openai.azure.com" in lower or "/openai/deployments" in lower:
                         # If user pasted a deployments URL, keep it; otherwise construct from base_url
                         # Azure requires api_version
-                        api_version = getattr(cfg, "extra_config", {}).get("api_version") if hasattr(cfg, "extra_config") else None
+                        api_version = (
+                            getattr(cfg, "extra_config", {}).get("api_version")
+                            if hasattr(cfg, "extra_config")
+                            else None
+                        )
                         if not api_version:
                             return None, "azure"
                         endpoint = f"{bu}/openai/deployments/{model_id}/chat/completions?api-version={api_version}"
                         return endpoint, "azure"
                     if "openrouter.ai" in lower:
-                        return f"{bu}/api/v1/chat/completions" if not lower.endswith("/api/v1") else f"{bu}/chat/completions", "openai_like"
+                        return f"{bu}/api/v1/chat/completions" if not lower.endswith(
+                            "/api/v1"
+                        ) else f"{bu}/chat/completions", "openai_like"
                     if "openai.com" in lower:
-                        return f"{bu}/v1/chat/completions" if not lower.endswith("/v1") else f"{bu}/chat/completions", "openai_like"
+                        return f"{bu}/v1/chat/completions" if not lower.endswith(
+                            "/v1"
+                        ) else f"{bu}/chat/completions", "openai_like"
                     if "deepseek.com" in lower:
-                        return f"{bu}/v1/chat/completions" if not lower.endswith("/v1") else f"{bu}/chat/completions", "openai_like"
+                        return f"{bu}/v1/chat/completions" if not lower.endswith(
+                            "/v1"
+                        ) else f"{bu}/chat/completions", "openai_like"
                     if "siliconflow" in lower:
-                        return f"{bu}/v1/chat/completions" if not lower.endswith("/v1") else f"{bu}/chat/completions", "openai_like"
+                        return f"{bu}/v1/chat/completions" if not lower.endswith(
+                            "/v1"
+                        ) else f"{bu}/chat/completions", "openai_like"
                     if "dashscope.aliyuncs.com" in lower or "dashscope.com" in lower:
                         # DashScope OpenAI-compatible endpoint lives under compatible-mode
                         if lower.endswith("/compatible-mode/v1"):
                             return f"{bu}/chat/completions", "openai_like"
-                        return f"{bu}/compatible-mode/v1/chat/completions", "openai_like"
+                        return (
+                            f"{bu}/compatible-mode/v1/chat/completions",
+                            "openai_like",
+                        )
                     # If base_url provided but host is unrecognized:
                     # - For openai-compatible, treat as generic OpenAI-like
                     # - For Google/Azure, ignore base_url and fall through to provider fallback
@@ -715,9 +754,16 @@ def create_models_router() -> APIRouter:
                 # Provider-driven fallback
                 if provider == "google":
                     # Official Google endpoint for direct ping (v1beta by default)
-                    return f"https://generativelanguage.googleapis.com/v1beta/models/{normalized_model_id}:generateContent", "google"
+                    return (
+                        f"https://generativelanguage.googleapis.com/v1beta/models/{normalized_model_id}:generateContent",
+                        "google",
+                    )
                 if provider == "azure":
-                    api_version = getattr(cfg, "extra_config", {}).get("api_version") if hasattr(cfg, "extra_config") else None
+                    api_version = (
+                        getattr(cfg, "extra_config", {}).get("api_version")
+                        if hasattr(cfg, "extra_config")
+                        else None
+                    )
                     if base_url and api_version:
                         endpoint = f"{base_url}/openai/deployments/{model_id}/chat/completions?api-version={api_version}"
                         return endpoint, "azure"
@@ -725,13 +771,22 @@ def create_models_router() -> APIRouter:
                 if provider == "openai":
                     return "https://api.openai.com/v1/chat/completions", "openai_like"
                 if provider == "openrouter":
-                    return "https://openrouter.ai/api/v1/chat/completions", "openai_like"
+                    return (
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        "openai_like",
+                    )
                 if provider == "deepseek":
                     return "https://api.deepseek.com/v1/chat/completions", "openai_like"
                 if provider == "siliconflow":
-                    return "https://api.siliconflow.cn/v1/chat/completions", "openai_like"
+                    return (
+                        "https://api.siliconflow.cn/v1/chat/completions",
+                        "openai_like",
+                    )
                 if provider == "dashscope":
-                    return "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", "openai_like"
+                    return (
+                        "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+                        "openai_like",
+                    )
                 if provider == "openai-compatible":
                     if base_url:
                         bu = _normalize_base_url(base_url)
@@ -745,7 +800,14 @@ def create_models_router() -> APIRouter:
             try:
                 if not api_key:
                     # Missing API key: fail fast for providers requiring auth
-                    if provider in {"openai", "openrouter", "deepseek", "siliconflow", "azure", "google"}:
+                    if provider in {
+                        "openai",
+                        "openrouter",
+                        "deepseek",
+                        "siliconflow",
+                        "azure",
+                        "google",
+                    }:
                         result.ok = False
                         result.status = "auth_failed"
                         result.error = "API key is missing"
@@ -755,11 +817,15 @@ def create_models_router() -> APIRouter:
 
                 if endpoint:
                     # Perform direct ping with timeout
-                    start = perf_counter()
                     if style == "google":
-                        completed_via_direct = await asyncio.wait_for(_direct_google_ping(endpoint), timeout=direct_timeout_s)
+                        completed_via_direct = await asyncio.wait_for(
+                            _direct_google_ping(endpoint), timeout=direct_timeout_s
+                        )
                         # If 404 from v1beta, try v1 (or vice versa)
-                        if not completed_via_direct and (result.error or "").find("404") != -1:
+                        if (
+                            not completed_via_direct
+                            and (result.error or "").find("404") != -1
+                        ):
                             alt_endpoint = None
                             if "/v1beta/" in endpoint:
                                 alt_endpoint = endpoint.replace("/v1beta/", "/v1/")
@@ -769,14 +835,22 @@ def create_models_router() -> APIRouter:
                                 # Reset status/error before retry
                                 result.status = None
                                 result.error = None
-                                completed_via_direct = await asyncio.wait_for(_direct_google_ping(alt_endpoint), timeout=direct_timeout_s)
+                                completed_via_direct = await asyncio.wait_for(
+                                    _direct_google_ping(alt_endpoint),
+                                    timeout=direct_timeout_s,
+                                )
                     else:
-                        completed_via_direct = await asyncio.wait_for(_direct_openai_like_ping(endpoint), timeout=direct_timeout_s)
+                        completed_via_direct = await asyncio.wait_for(
+                            _direct_openai_like_ping(endpoint), timeout=direct_timeout_s
+                        )
                     if completed_via_direct:
-                        return SuccessResponse.create(data=result, msg="Model reachable")
+                        return SuccessResponse.create(
+                            data=result, msg="Model reachable"
+                        )
                     else:
-                        # If direct ping determined failure, return immediately
-                        return SuccessResponse.create(data=result, msg=result.status or "Request failed")
+                        return SuccessResponse.create(
+                            data=result, msg=result.status or "Request failed"
+                        )
                 else:
                     # No endpoint available for direct probe
                     result.ok = False
