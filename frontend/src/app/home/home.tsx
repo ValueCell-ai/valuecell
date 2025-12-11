@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { useAllPollTaskList } from "@/api/conversation";
 import { agentSuggestions } from "@/mock/agent-data";
 import ChatInputArea from "../agent/components/chat-conversation/chat-input-area";
-import { AgentSuggestionItem, AgentTaskCards } from "./components";
+import { AgentSuggestionsList, AgentTaskCards } from "./components";
 import TradingViewTickerTape from "./components/tradingview-ticker-tape";
 
 const INDEX_SYMBOLS = [
@@ -21,29 +21,22 @@ function Home() {
   const [inputValue, setInputValue] = useState<string>("");
 
   const { data: allPollTaskList } = useAllPollTaskList();
-  const hasNewsTickerTape = allPollTaskList?.some(
-    (item) => item.agent_name === "NewsAgent",
-  );
 
   const handleAgentClick = (agentId: string) => {
     navigate(`/agent/${agentId}`);
   };
 
   return (
-    <div className="scroll-container flex min-h-svh min-w-[800px] flex-col gap-3 pb-4">
+    <div className="flex h-full min-w-[800px] flex-col gap-3">
       {allPollTaskList && allPollTaskList.length > 0 ? (
-        <section className="flex h-full flex-1 flex-col items-center justify-between gap-4 overflow-hidden">
-          {hasNewsTickerTape && (
-            <div className="mx-auto w-4/5 max-w-[800px] px-4">
-              <TradingViewTickerTape symbols={INDEX_SYMBOLS} />
-            </div>
-          )}
-          <div className="scroll-container w-full">
+        <section className="flex w-full flex-1 flex-col items-center justify-between gap-4">
+          <TradingViewTickerTape symbols={INDEX_SYMBOLS} />
+
+          <div className="scroll-container flex-1">
             <AgentTaskCards tasks={allPollTaskList} />
           </div>
 
           <ChatInputArea
-            className="w-full"
             value={inputValue}
             onChange={(value) => setInputValue(value)}
             onSend={() =>
@@ -56,20 +49,15 @@ function Home() {
           />
         </section>
       ) : (
-        <section className="flex h-full w-full flex-1 flex-col items-center gap-8 overflow-hidden rounded-lg bg-white pt-12">
-          <div className="mx-auto w-4/5 max-w-[800px] px-4">
-            <TradingViewTickerTape symbols={INDEX_SYMBOLS} />
-          </div>
-          <div className="mt-16 space-y-4 text-center text-gray-950">
-            <h1 className="font-medium text-3xl">👋 Hello Investor!</h1>
-          </div>
+        <section className="flex w-full flex-1 flex-col items-center gap-8 rounded-lg bg-white px-6 pt-12">
+          <TradingViewTickerTape symbols={INDEX_SYMBOLS} />
 
-          <div className="flex w-full max-w-[800px] flex-col gap-4 px-4">
-            {/* Index section redesigned to ticker tape */}
-          </div>
+          <h1 className="mt-16 font-medium text-3xl text-gray-950">
+            👋 Hello Investor!
+          </h1>
 
           <ChatInputArea
-            className="w-3/4 max-w-[800px]"
+            className="w-4/5 max-w-[800px]"
             value={inputValue}
             onChange={(value) => setInputValue(value)}
             onSend={() =>
@@ -81,17 +69,12 @@ function Home() {
             }
           />
 
-          <div className="grid w-full max-w-[800px] grid-cols-3 gap-4 px-4">
-            {agentSuggestions.map((suggestion) => (
-              <AgentSuggestionItem
-                key={suggestion.id}
-                suggestion={{
-                  ...suggestion,
-                  onClick: () => handleAgentClick(suggestion.id),
-                }}
-              />
-            ))}
-          </div>
+          <AgentSuggestionsList
+            suggestions={agentSuggestions.map((suggestion) => ({
+              ...suggestion,
+              onClick: () => handleAgentClick(suggestion.id),
+            }))}
+          />
         </section>
       )}
     </div>
