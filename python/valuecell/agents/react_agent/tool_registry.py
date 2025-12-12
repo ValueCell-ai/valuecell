@@ -219,7 +219,8 @@ class ToolRegistry:
 
         fields: dict[str, tuple[type[Any], Any]] = {}
         for name, param in signature.parameters.items():
-            if name in {"self", "cls"}:
+            # Skip self, cls and context (runtime-injected parameters)
+            if name in {"self", "cls", "context"}:
                 continue
             if param.kind in {
                 inspect.Parameter.VAR_POSITIONAL,

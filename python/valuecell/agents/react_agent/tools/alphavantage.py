@@ -1,11 +1,13 @@
 import asyncio
 import os
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 import httpx
 import pandas as pd
 from loguru import logger
+
+from ..context import TaskContext
 
 
 async def _fetch_alpha_vantage(
@@ -82,7 +84,10 @@ async def _fetch_alpha_vantage(
 
 
 async def get_financial_metrics(
-    symbol: str, period: Literal["annual", "quarterly"] = "annual", limit: int = 4
+    symbol: str,
+    period: Literal["annual", "quarterly"] = "annual",
+    limit: int = 4,
+    context: Optional[TaskContext] = None,
 ) -> str:
     """
     Retrieves detailed financial metrics for a stock symbol using AlphaVantage.
@@ -96,15 +101,31 @@ async def get_financial_metrics(
 
     # Sequentially fetch endpoints with short delays to avoid AlphaVantage "burst" rate-limiting.
     try:
+        # Emit progress event: starting income statement fetch
+        if context:
+            await context.emit_progress(
+                f"Fetching Income Statement for {symbol}...", step="fetching_income"
+            )
+
         # 1) Income Statement
         data_inc = await _fetch_alpha_vantage(
             symbol=symbol, function="INCOME_STATEMENT"
         )
         await asyncio.sleep(1.5)
 
+        # Emit progress event: starting balance sheet fetch
+        if context:
+            await context.emit_progress(
+                "Fetching Balance Sheet...", step="fetching_balance"
+            )
+
         # 2) Balance Sheet
         data_bal = await _fetch_alpha_vantage(symbol=symbol, function="BALANCE_SHEET")
         await asyncio.sleep(1.5)
+
+        # Emit progress event: starting cash flow fetch
+        if context:
+            await context.emit_progress("Fetching Cash Flow...", step="fetching_cash")
 
         # 3) Cash Flow
         data_cash = await _fetch_alpha_vantage(symbol=symbol, function="CASH_FLOW")
@@ -234,7 +255,7 @@ async def get_financial_metrics(
     )
 
 
-async def get_stock_profile(symbol: str) -> str:
+async def get_stock_profile(symbol: str, context: Optional[TaskContext] = None) -> str:
     """
     Retrieves a comprehensive profile for a stock symbol.
     Includes company description, sector, real-time price, valuation metrics (PE, Market Cap),
@@ -244,10 +265,22 @@ async def get_stock_profile(symbol: str) -> str:
 
     # Fetch sequentially with a short pause to avoid AlphaVantage burst detection
     try:
+        # Emit progress event: starting quote fetch
+        if context:
+            await context.emit_progress(
+                f"Fetching real-time quote for {symbol}...", step="fetching_quote"
+            )
+
         # 1. Global Quote
         quote_data = await _fetch_alpha_vantage(symbol=symbol, function="GLOBAL_QUOTE")
         # Pause to avoid rapid-fire requests triggering rate limits
         await asyncio.sleep(1.5)
+
+        # Emit progress event: starting overview fetch
+        if context:
+            await context.emit_progress(
+                "Fetching company overview...", step="fetching_overview"
+            )
 
         # 2. Overview
         overview_data = await _fetch_alpha_vantage(symbol=symbol, function="OVERVIEW")

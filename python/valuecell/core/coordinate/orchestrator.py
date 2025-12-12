@@ -156,6 +156,7 @@ class AgentOrchestrator:
                 kind = event.get("event", "")
                 node = event.get("metadata", {}).get("langgraph_node", "")
                 data = event.get("data") or {}
+                logger.debug(f"stream_react_agent: event received: {event}")
 
                 # =================================================================
                 # 1. PLANNER -> MESSAGE_CHUNK (TODO: Consider REASONING)
@@ -198,78 +199,101 @@ class AgentOrchestrator:
                     raw_tool_name = task_data.get("tool_name", "unknown_tool")
                     task_description = task_data.get("description", "")
 
-                    # [Optimization] Combine description and tool name for UI
-                    # Format: "Get Stock Price (web_search)"
-                    if task_description:
-                        # Optional: Truncate description if it's too long for a header
-                        short_desc = (
-                            (task_description[:60] + "...")
-                            if len(task_description) > 60
-                            else task_description
-                        )
-                        display_tool_name = f"{short_desc} ({raw_tool_name})"
-                    else:
-                        display_tool_name = raw_tool_name
-
                     if task_id:
                         yield await self.event_service.emit(
-                            self.event_service.factory.tool_call(
+                            self.event_service.factory.reasoning(
                                 conversation_id=conversation_id,
                                 thread_id=_response_thread_id,
                                 task_id=root_task_id,
-                                event=StreamResponseEvent.TOOL_CALL_STARTED,
-                                tool_call_id=task_id,
-                                tool_name=display_tool_name,
+                                event=StreamResponseEvent.REASONING_STARTED,
+                                item_id=task_id,
+                                content=None,
+                                agent_name="Executor",
+                            )
+                        )
+
+                        title_text = f"**Executing Task:** {task_description} (`{raw_tool_name}`)"
+                        yield await self.event_service.emit(
+                            self.event_service.factory.reasoning(
+                                conversation_id=conversation_id,
+                                thread_id=_response_thread_id,
+                                task_id=root_task_id,
+                                event=StreamResponseEvent.REASONING,
+                                item_id=task_id,
+                                content=title_text,
                                 agent_name="Executor",
                             )
                         )
 
                 # ---------------------------------------------------------
-                # Case B: Executor COMPLETED
+                # Case B: Intermediate Progress (Tool Events)
+                # ---------------------------------------------------------
+                elif kind == "on_custom_event" and event.get("name") == "tool_event":
+                    payload = data
+                    if payload.get("type") == "progress":
+                        progress_task_id = payload.get("task_id")
+                        msg = payload.get("msg", "")
+                        step = payload.get("step")
+
+                        # Format progress message
+                        progress_parts = []
+                        if step:
+                            progress_parts.append(f"[{step}]")
+                        progress_parts.append(msg)
+                        progress_text = f"> {' '.join(progress_parts)}\n"
+
+                        if progress_task_id:
+                            yield await self.event_service.emit(
+                                self.event_service.factory.reasoning(
+                                    conversation_id=conversation_id,
+                                    thread_id=_response_thread_id,
+                                    task_id=root_task_id,
+                                    event=StreamResponseEvent.REASONING,
+                                    item_id=progress_task_id,
+                                    content=progress_text,
+                                    agent_name="Executor",
+                                )
+                            )
+
+                # ---------------------------------------------------------
+                # Case C: Executor COMPLETED
                 # ---------------------------------------------------------
                 elif kind == "on_chain_end" and node == "executor":
                     if is_real_node_output(data):
                         output = data.get("output", {})
                         if isinstance(output, dict) and "completed_tasks" in output:
                             for task_id_key, res in output["completed_tasks"].items():
-                                # 1. Extract Result
+                                # Extract result
                                 if isinstance(res, dict):
-                                    # Try to get 'result' field, fallback to full dict dump
                                     raw_result = res.get("result") or str(res)
-
-                                    # Try to retrieve metadata preserved by executor
-                                    res_tool_name = (
-                                        res.get("tool_name") or "completed_tool"
-                                    )
-                                    res_description = res.get("description")
                                 else:
                                     raw_result = str(res)
-                                    res_tool_name = "completed_tool"
-                                    res_description = None
 
-                                # 2. Re-construct the display name to match STARTED event
-                                # This ensures the UI updates the correct item instead of creating a new one
-                                if res_description:
-                                    short_desc = (
-                                        (res_description[:60] + "...")
-                                        if len(res_description) > 60
-                                        else res_description
-                                    )
-                                    display_tool_name = (
-                                        f"{short_desc} ({res_tool_name})"
-                                    )
-                                else:
-                                    display_tool_name = res_tool_name
-
+                                # Truncate result if too long
+                                result_preview = str(raw_result)
+                                final_text = (
+                                    f"\n✅ **Result:**\n```\n{result_preview}\n```"
+                                )
                                 yield await self.event_service.emit(
-                                    self.event_service.factory.tool_call(
+                                    self.event_service.factory.reasoning(
                                         conversation_id=conversation_id,
                                         thread_id=_response_thread_id,
                                         task_id=root_task_id,
-                                        event=StreamResponseEvent.TOOL_CALL_COMPLETED,
-                                        tool_call_id=task_id_key,
-                                        tool_name=display_tool_name,
-                                        tool_result=raw_result,
+                                        event=StreamResponseEvent.REASONING,
+                                        item_id=task_id_key,
+                                        content=final_text,
+                                        agent_name="Executor",
+                                    )
+                                )
+
+                                yield await self.event_service.emit(
+                                    self.event_service.factory.reasoning(
+                                        conversation_id=conversation_id,
+                                        thread_id=_response_thread_id,
+                                        task_id=root_task_id,
+                                        event=StreamResponseEvent.REASONING_COMPLETED,
+                                        item_id=task_id_key,
+                                        content=None,
                                         agent_name="Executor",
                                     )
                                 )
@@ -293,7 +317,6 @@ class AgentOrchestrator:
                                     f"\n\n**{icon} Critic Decision:** {reason}\n\n"
                                 )
 
-                                # TODO: Consider switching to event_service.reasoning()
                                 yield await self.event_service.emit(
                                     self.event_service.factory.message_response_general(
                                         event=StreamResponseEvent.MESSAGE_CHUNK,

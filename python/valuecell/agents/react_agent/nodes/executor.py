@@ -4,6 +4,7 @@ import json
 from typing import Any, Callable
 
 from langchain_core.callbacks import adispatch_custom_event
+from langchain_core.runnables import RunnableConfig
 from loguru import logger
 from pydantic import BaseModel
 
@@ -13,6 +14,7 @@ from ...research_agent.sources import (
     search_crypto_vcs,
     web_search,
 )
+from ..context import TaskContext
 from ..models import ExecutorResult
 from ..state import AgentState
 from ..tool_registry import registry
@@ -63,8 +65,15 @@ def _register_tool(
         pass
 
 
-async def executor_node(state: AgentState, task: dict[str, Any]) -> dict[str, Any]:
+async def executor_node(
+    state: AgentState, task: dict[str, Any], config: RunnableConfig
+) -> dict[str, Any]:
     """Execute a single task and return execution summary for history.
+
+    Args:
+        state: Current agent state
+        task: Task dictionary containing id, tool_name, tool_args, description
+        config: RunnableConfig injected by LangGraph for event dispatch
 
     Returns:
     - completed_tasks: {task_id: ExecutorResult}
@@ -89,7 +98,11 @@ async def executor_node(state: AgentState, task: dict[str, Any]) -> dict[str, An
         return {}
 
     try:
-        runtime_args = {"state": state}
+        # Create task context binding task_id and config
+        ctx = TaskContext(task_id=task_id, config=config)
+
+        # Pass state and context to registry.execute
+        runtime_args = {"state": state, "context": ctx}
         result = await registry.execute(tool_name, tool_args, runtime_args=runtime_args)
         exec_res = ExecutorResult(
             task_id=task_id,

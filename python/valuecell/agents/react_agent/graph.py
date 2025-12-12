@@ -3,6 +3,8 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
+from langchain_core.runnables import RunnableConfig
+
 from .nodes.critic import critic_node
 from .nodes.executor import executor_node
 from .nodes.inquirer import inquirer_node
@@ -40,10 +42,15 @@ def _route_after_planner(state: AgentState):
     return "critic"
 
 
-async def _executor_entry(state: AgentState) -> dict[str, Any]:
-    """Entry adapter for executor: expects a `task` injected via Send()."""
+async def _executor_entry(state: AgentState, config: RunnableConfig) -> dict[str, Any]:
+    """Entry adapter for executor: expects a `task` injected via Send().
+
+    Args:
+        state: Agent state containing task data
+        config: RunnableConfig injected by LangGraph
+    """
     task = state.get("task") or {}
-    return await executor_node(state, task)
+    return await executor_node(state, task, config)
 
 
 def build_app() -> Any:
