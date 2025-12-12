@@ -168,20 +168,15 @@ const CommonAgentAreaContent: FC<CommonAgentAreaProps> = ({ agentName }) => {
     if (curConversationId !== conversationId) {
       setCurConversationId(conversationId);
     }
+  }, [setCurConversationId, curConversationId, conversationId]);
 
+  useEffect(() => {
     if (inputValueFromLocation) {
       sendMessage(inputValueFromLocation);
       // Clear the state after using it once to prevent re-triggering on page refresh
       navigate(".", { replace: true, state: {} });
     }
-  }, [
-    sendMessage,
-    setCurConversationId,
-    curConversationId,
-    navigate,
-    conversationId,
-    inputValueFromLocation,
-  ]);
+  }, [inputValueFromLocation, navigate, sendMessage]);
 
   const [inputValue, setInputValue] = useState<string>("");
   const { currentSection } = useMultiSection();
