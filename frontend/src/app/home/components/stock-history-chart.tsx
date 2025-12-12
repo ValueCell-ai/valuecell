@@ -101,7 +101,7 @@ export const StockHistoryChart = ({
         </TabsList>
       </Tabs>
       {isLoading ? (
-        <div className="flex h-[500px] items-center justify-center">
+        <div className="flex h-[300px] items-center justify-center">
           <div className="text-muted-foreground">Loading...</div>
         </div>
       ) : (

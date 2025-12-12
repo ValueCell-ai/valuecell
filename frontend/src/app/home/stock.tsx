@@ -59,7 +59,7 @@ function Stock() {
   }
 
   return (
-    <div className="flex flex-col gap-8 bg-white px-8 py-6">
+    <div className="flex h-full flex-col gap-8 bg-white px-8 py-6">
       <div className="flex flex-col gap-4">
         <BackButton />
         <div className="flex items-center gap-2">
