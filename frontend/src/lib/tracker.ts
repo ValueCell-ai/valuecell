@@ -28,7 +28,6 @@ interface TrackerConfig {
 }
 
 interface TrackingParams {
-  user_id: string;
   client_id: string;
   os: string;
   [key: string]: unknown;
@@ -41,7 +40,6 @@ class Tracker {
   constructor(config: TrackerConfig) {
     this.config = config;
     this.params = {
-      user_id: useSystemStore.getState().id,
       client_id: "",
       os: "",
     };
@@ -60,7 +58,6 @@ class Tracker {
       );
 
       this.params = {
-        ...this.params,
         client_id: clientId,
         os: systemInfo,
       };
@@ -77,6 +74,7 @@ class Tracker {
 
     const payload = {
       event,
+      user_id: useSystemStore.getState().id,
       ...this.params,
       ...params,
     };
