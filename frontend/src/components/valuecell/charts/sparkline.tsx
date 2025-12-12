@@ -78,6 +78,7 @@ function Sparkline({
         {
           type: "line",
           data: data,
+          smooth: true,
           symbol: "circle",
           symbolSize: 12,
           showSymbol: false,

@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { useGetStockHistory } from "@/api/stock";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import CandlestickChart from "@/components/valuecell/charts/candlestick-chart";
+import Sparkline from "@/components/valuecell/charts/sparkline";
 import { TimeUtils } from "@/lib/time";
 import { cn } from "@/lib/utils";
-import type { StockInterval } from "@/types/stock";
+import type { SparklineData } from "@/types/chart";
+import type { StockChangeType, StockInterval } from "@/types/stock";
 
 interface StockHistoryChartProps {
   ticker: string;
@@ -12,16 +13,16 @@ interface StockHistoryChartProps {
 }
 
 const INTERVALS: { label: string; value: StockInterval }[] = [
-  { label: "1H", value: "1h" },
-  { label: "1D", value: "1d" },
-  { label: "1W", value: "1w" },
+  { label: "24h", value: "1m" },
+  { label: "7d", value: "1h" },
+  { label: "30d", value: "1d" },
 ];
 
 export const StockHistoryChart = ({
   ticker,
   className,
 }: StockHistoryChartProps) => {
-  const [interval, setInterval] = useState<StockInterval>("1d");
+  const [interval, setInterval] = useState<StockInterval>("1h");
 
   // Calculate date range based on interval
   const { startDate, endDate } = useMemo(() => {
@@ -29,22 +30,22 @@ export const StockHistoryChart = ({
 
     let start = now;
     switch (interval) {
+      case "1m":
+        start = now.subtract(1, "day");
+        break;
       case "1h":
-        start = now.subtract(6, "month");
+        start = now.subtract(1, "week");
         break;
       case "1d":
-        start = now.subtract(3, "year");
-        break;
-      case "1w":
-        start = now.subtract(10, "year");
+        start = now.subtract(1, "month");
         break;
       default:
-        start = now.subtract(3, "year");
+        start = now.subtract(1, "week");
     }
 
     return {
-      startDate: start.format("YYYY-MM-DD"),
-      endDate: now.format("YYYY-MM-DD"),
+      startDate: start.utc().toISOString(),
+      endDate: now.utc().toISOString(),
     };
   }, [interval]);
 
@@ -55,9 +56,39 @@ export const StockHistoryChart = ({
     end_date: endDate,
   });
 
+  // Convert StockHistory[] to SparklineData format and calculate changeType
+  const { sparklineData, changeType } = useMemo(() => {
+    if (!historyData || historyData.length === 0) {
+      return {
+        sparklineData: [] as SparklineData,
+        changeType: "neutral" as StockChangeType,
+      };
+    }
+
+    // Convert to SparklineData format: [timestamp, price]
+    const data: SparklineData = historyData.map((item) => [
+      item.time,
+      item.price,
+    ]);
+
+    // Determine changeType based on first and last price
+    const firstPrice = historyData[0].price;
+    const lastPrice = historyData[historyData.length - 1].price;
+
+    let type: StockChangeType = "neutral";
+    if (lastPrice > firstPrice) {
+      type = "positive";
+    } else if (lastPrice < firstPrice) {
+      type = "negative";
+    }
+
+    return { sparklineData: data, changeType: type };
+  }, [historyData]);
+
   return (
     <div className={cn("flex flex-col gap-4", className)}>
       <Tabs
+        className="self-end"
         value={interval}
         onValueChange={(value) => setInterval(value as StockInterval)}
       >
@@ -69,12 +100,13 @@ export const StockHistoryChart = ({
           ))}
         </TabsList>
       </Tabs>
-      <CandlestickChart
-        data={historyData ?? []}
-        height={500}
-        loading={isLoading}
-        showVolume
-      />
+      {isLoading ? (
+        <div className="flex h-[500px] items-center justify-center">
+          <div className="text-muted-foreground">Loading...</div>
+        </div>
+      ) : (
+        <Sparkline data={sparklineData} changeType={changeType} height={300} />
+      )}
     </div>
   );
 };
