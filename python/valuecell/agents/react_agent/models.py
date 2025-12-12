@@ -89,15 +89,11 @@ class InquirerDecision(BaseModel):
         default=None,
         description="A single, comprehensive natural language sentence describing the user's immediate goal. "
         "Resolve all context and pronouns from conversation history. "
-        "Examples: 'Analyze Apple stock price and fundamentals', 'Compare Apple and Tesla 2024 performance', "
-        "'Find reasons for Apple's recent stock price drop'. "
-        "Be explicit and complete - this is the primary instruction for task planning.",
+        "Example: 'Compare Apple and Tesla performance'.",
     )
-    status: Literal["PLAN", "CHAT", "RESET"] = Field(
-        description="PLAN: Ready for task execution. CHAT: Casual conversation/greeting. RESET: Explicit command to start over."
+    # Only PLAN and CHAT statuses; RESET removed to simplify flow
+    status: Literal["PLAN", "CHAT"] = Field(
+        description="PLAN: Need to execute tasks. CHAT: Casual conversation/greeting."
     )
-    reasoning: str = Field(description="Brief thought process explaining the decision")
-    response_to_user: str | None = Field(
-        default=None,
-        description="Direct response to user (for CHAT replies or clarifications).",
-    )
+    reasoning: str = Field(description="Brief thought process.")
+    response_to_user: str | None = Field(description="Direct response for CHAT status.")

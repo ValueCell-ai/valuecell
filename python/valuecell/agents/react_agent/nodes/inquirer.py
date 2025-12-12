@@ -11,6 +11,7 @@ from ..models import InquirerDecision
 
 
 # TODO: summarize with LLM
+# TODO: add user memory
 def _compress_history(history: list[str]) -> str:
     """Compress long execution history to prevent token explosion.
 
@@ -88,64 +89,37 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
 
     system_prompt = (
         "You are the **Intent Interpreter** for a Financial Advisor Assistant.\n"
-        "Your job is to produce a single, comprehensive natural language sentence describing the user's IMMEDIATE goal.\n\n"
-        f"# CURRENT CONTEXT:\n"
-        f"- **Active Intent**: {current_intent or 'None (Empty)'}\n"
-        f"- **Recent Execution Summary**:\n{history_context}\n\n"
-        "# YOUR TASK: Output the user's current goal as a natural language instruction\n\n"
-        "# DECISION LOGIC:\n\n"
-        "## 1. CHAT (Greeting/Acknowledgement)\n"
-        "- Pattern: 'Thanks', 'Hello', 'Got it'\n"
-        "- Output: status='CHAT', response_to_user=[polite reply]\n\n"
-        "## 2. RESET (Explicit Command)\n"
-        "- Pattern: 'Start over', 'Reset', 'Clear everything', 'Forget that'\n"
-        "- Output: status='RESET', current_intent=None\n\n"
-        "## 3. PLAN (Task Execution Needed)\n"
-        "### 3a. New Analysis Request\n"
-        "- Pattern: 'Analyze Apple'\n"
-        "- Output: status='PLAN', current_intent='Analyze Apple stock price and fundamentals'\n\n"
-        "### 3b. Comparison Request\n"
-        "- Pattern: 'Compare Apple and Tesla'\n"
-        "- Output: status='PLAN', current_intent='Compare Apple and Tesla 2024 financial performance'\n\n"
-        "### 3c. Adding to Comparison (Context-Aware)\n"
-        "- Current Intent: 'Analyze Apple stock'\n"
-        "- User: 'Compare with Microsoft'\n"
-        "- Output: status='PLAN', current_intent='Compare Apple and Microsoft stock performance'\n"
-        "- **CRITICAL**: Merge context! Don't just output 'Microsoft'.\n\n"
-        "### 3d. Follow-up Questions (Reference Resolution)\n"
-        "- Current Intent: 'Analyze Apple stock'\n"
-        "- Recent Execution: 'AAPL price $150, down 5%'\n"
-        "- User: 'Why did it drop?'\n"
-        "- Output: status='PLAN', current_intent='Find reasons for Apple stock price drop'\n"
-        "- **CRITICAL**: Resolve pronouns using context! 'it' → 'Apple stock'.\n\n"
-        "### 3e. Specific Follow-up (Drill-Down)\n"
-        "- Current Intent: 'Analyze Apple stock'\n"
-        "- Assistant mentioned: 'consistent revenue growth'\n"
-        "- User: 'Tell me more about the revenue growth'\n"
-        "- Output: status='PLAN', current_intent='Analyze Apple revenue growth trends and details'\n"
-        "- **CRITICAL**: Extract the specific phrase and make it explicit!\n\n"
-        "### 3f. Switching Assets\n"
-        "- Current Intent: 'Analyze Apple stock'\n"
-        "- User: 'Forget Apple, look at Tesla'\n"
-        "- Output: status='RESET', current_intent='Analyze Tesla stock'\n\n"
-        "# EXAMPLES:\n\n"
-        "**Example 1: Adding Asset**\n"
-        "Current: 'Analyze Apple stock'\n"
-        "User: 'Compare with Microsoft'\n"
-        "→ {status: 'PLAN', current_intent: 'Compare Apple and Microsoft stock performance'}\n\n"
-        "**Example 2: Reference Resolution**\n"
-        "Current: 'Analyze Apple stock'\n"
-        "Recent: 'AAPL down 5%'\n"
-        "User: 'Why did it drop?'\n"
-        "→ {status: 'PLAN', current_intent: 'Find reasons for Apple stock price drop'}\n\n"
-        "**Example 3: Drill-Down**\n"
-        "Current: 'Analyze Apple stock'\n"
-        "Assistant: 'strong revenue growth'\n"
-        "User: 'Tell me more about revenue growth'\n"
-        "→ {status: 'PLAN', current_intent: 'Analyze Apple revenue growth details'}\n\n"
-        "**Example 4: Greeting**\n"
-        "User: 'Thanks!'\n"
-        "→ {status: 'CHAT', response_to_user: 'You're welcome!'}\n"
+        "Your job is to translate the conversation history into a single, unambiguous instruction for the Planner.\n\n"
+        f"# CONTEXT SNAPSHOT:\n"
+        f"- **Last Active Intent**: {current_intent or 'None'}\n"
+        f"- **Recent Actions**: {history_context}\n\n"
+        "# OUTPUT INSTRUCTIONS:\n"
+        "1. **current_intent**: A standalone natural language sentence describing exactly what to do next. MUST resolve all pronouns (it, they, that) using context.\n"
+        "2. **status**: 'PLAN' (if analysis needed) or 'CHAT' (if casual greeting).\n\n"
+        "# DECISION PATTERNS:\n\n"
+        "## 1. CHAT (No Analysis Needed)\n"
+        "- **Input**: 'Hello', 'Thanks', 'Okay'.\n"
+        "- **Output**: status='CHAT', response_to_user='[Polite Reply]'\n\n"
+        "## 2. PLAN (Analysis Needed) -> Output `current_intent`\n\n"
+        "### Case A: Starting Fresh / Switching Topic\n"
+        "- Input: 'Analyze Apple', 'Forget Apple, look at Tesla'.\n"
+        "- Action: Output the new intent directly.\n"
+        "- Example: 'Analyze Apple stock price and fundamentals'\n\n"
+        "### Case B: Refining / Comparing (Context Merging)\n"
+        "- **Context**: Analyzing Apple\n"
+        "- Input: 'Compare with Microsoft'\n"
+        "- **Rule**: Combine old + new. Do NOT drop the old asset unless told to.\n"
+        "- Example: 'Compare Apple and Microsoft stock performance'\n\n"
+        "### Case C: Follow-up Questions (Pronoun Resolution)\n"
+        "- **Context**: Analyzing Apple\n"
+        "- Input: 'Why did **it** drop?'\n"
+        "- **Rule**: Replace 'it' with the context subject.\n"
+        "- Example: 'Find reasons for Apple stock price drop'\n\n"
+        "### Case D: Deep Dive (Specifics)\n"
+        "- **Context**: Apple revenue is up 10%\n"
+        "- Input: 'Tell me more about **that revenue growth**'\n"
+        "- **Rule**: Be specific. Don't just say 'Analyze Apple'.\n"
+        "- Example: 'Analyze details and drivers of Apple's recent revenue growth'\n"
     )
 
     # Build user message from conversation history
@@ -198,23 +172,9 @@ async def inquirer_node(state: dict[str, Any]) -> dict[str, Any]:
                 "inquirer_turns": 0,
             }
 
-        # CASE 2: RESET - Clear everything and start fresh
-        if decision.status == "RESET":
-            logger.info("Inquirer: RESET - Clearing all context")
-            return {
-                "current_intent": decision.current_intent,
-                "plan": [],
-                "completed_tasks": {},
-                "execution_history": [],
-                "is_final": False,
-                "critique_feedback": None,
-                "messages": [
-                    AIMessage(
-                        content="Starting fresh session. What would you like to analyze?"
-                    )
-                ],
-                "inquirer_turns": 0,
-            }
+        # NOTE: RESET status removed. Intent switches are represented as PLAN
+        # with a new `current_intent`. The Planner will decide whether to reuse
+        # history or re-fetch data as appropriate.
 
         # CASE 3: PLAN - Apply the current intent directly
         if decision.current_intent:
