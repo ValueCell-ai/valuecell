@@ -15,6 +15,7 @@ import { CanvasRenderer } from "echarts/renderers";
 import type { EChartsOption } from "echarts/types/dist/shared";
 import { useEffect, useMemo, useRef } from "react";
 import { useChartResize } from "@/hooks/use-chart-resize";
+import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
 
@@ -46,6 +47,7 @@ interface CandlestickChartProps {
   className?: string;
   loading?: boolean;
   showVolume?: boolean;
+  dateFormat?: string;
 }
 
 function CandlestickChart({
@@ -55,6 +57,7 @@ function CandlestickChart({
   className,
   loading,
   showVolume = true,
+  dateFormat = TIME_FORMATS.DATETIME_SHORT,
 }: CandlestickChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<ECharts | null>(null);
@@ -63,7 +66,9 @@ function CandlestickChart({
   const option: EChartsOption = useMemo(() => {
     if (!data || data.length === 0) return {};
 
-    const dates = data.map((item) => item.time);
+    const dates = data.map((item) =>
+      TimeUtils.formatUTC(item.time, dateFormat),
+    );
     const ohlcData = data.map((item) => [
       item.open,
       item.close,
@@ -84,6 +89,7 @@ function CandlestickChart({
         name: "K-Line",
         type: "candlestick",
         data: ohlcData,
+        clip: true,
         itemStyle: {
           color: stockColors.positive, // up candle fill
           color0: stockColors.negative, // down candle fill
@@ -110,36 +116,21 @@ function CandlestickChart({
       });
     }
 
-    const grids: Array<{
-      left: string;
-      right: string;
-      height: string;
-      top?: string;
-    }> = [
+    const grids: EChartsOption["grid"] = [
       {
-        left: "10%",
-        right: "8%",
+        left: "4%",
+        right: "4%",
+        top: "3%",
         height: mainGridHeight,
+        containLabel: true,
       },
     ];
 
-    const xAxes: Array<{
-      type: "category";
-      data: string[];
-      boundaryGap: boolean;
-      axisLine: { onZero: boolean };
-      splitLine: { show: boolean };
-      min: string;
-      max: string;
-      axisPointer?: { z: number };
-      gridIndex?: number;
-      axisTick?: { show: boolean };
-      axisLabel?: { show: boolean };
-    }> = [
+    const xAxes: EChartsOption["xAxis"] = [
       {
-        type: "category",
+        type: "category" as const,
         data: dates,
-        boundaryGap: false,
+        boundaryGap: true,
         axisLine: { onZero: false },
         splitLine: { show: false },
         min: "dataMin",
@@ -148,16 +139,7 @@ function CandlestickChart({
       },
     ];
 
-    const yAxes: Array<{
-      scale: boolean;
-      splitArea?: { show: boolean };
-      gridIndex?: number;
-      splitNumber?: number;
-      axisLabel?: { show: boolean };
-      axisLine?: { show: boolean };
-      axisTick?: { show: boolean };
-      splitLine?: { show: boolean };
-    }> = [
+    const yAxes: EChartsOption["yAxis"] = [
       {
         scale: true,
         splitArea: { show: true },
@@ -166,17 +148,18 @@ function CandlestickChart({
 
     if (showVolume) {
       grids.push({
-        left: "10%",
-        right: "8%",
+        left: "8%",
+        right: "6%",
         top: volumeGridTop,
         height: "16%",
+        containLabel: true,
       });
 
       xAxes.push({
-        type: "category",
+        type: "category" as const,
         gridIndex: 1,
         data: dates,
-        boundaryGap: false,
+        boundaryGap: true,
         axisLine: { onZero: false },
         axisTick: { show: false },
         splitLine: { show: false },
@@ -205,17 +188,6 @@ function CandlestickChart({
         borderColor: "#ccc",
         padding: 10,
         textStyle: { color: "#000" },
-        position: (
-          pos: number[],
-          _params: unknown,
-          _el: unknown,
-          _rect: unknown,
-          size: { viewSize: number[] },
-        ) => {
-          const obj: Record<string, number> = { top: 10 };
-          obj[["left", "right"][+(pos[0] < size.viewSize[0] / 2)]] = 30;
-          return obj;
-        },
       },
       axisPointer: {
         link: [{ xAxisIndex: "all" }],
@@ -228,21 +200,17 @@ function CandlestickChart({
         {
           type: "inside",
           xAxisIndex: showVolume ? [0, 1] : [0],
-          start: 50,
-          end: 100,
         },
         {
           show: true,
           xAxisIndex: showVolume ? [0, 1] : [0],
           type: "slider",
           top: "85%",
-          start: 50,
-          end: 100,
         },
       ],
       series,
     };
-  }, [data, stockColors, showVolume]);
+  }, [data, stockColors, showVolume, dateFormat]);
 
   useChartResize(chartInstance);
 
