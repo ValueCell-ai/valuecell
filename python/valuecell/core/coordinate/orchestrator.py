@@ -159,7 +159,7 @@ class AgentOrchestrator:
                 logger.debug(f"stream_react_agent: event received: {event}")
 
                 # =================================================================
-                # 1. PLANNER -> MESSAGE_CHUNK (TODO: Consider REASONING)
+                # 1. PLANNER -> REASONING
                 # =================================================================
                 if kind == "on_chain_end" and node == "planner":
                     if is_real_node_output(data):
@@ -168,20 +168,50 @@ class AgentOrchestrator:
                             plan = output.get("plan", [])
                             reasoning = output.get("strategy_update") or "..."
 
+                            # Generate stable item_id for this planner reasoning block
+                            planner_item_id = generate_task_id()
+
+                            # REASONING_STARTED
+                            yield await self.event_service.emit(
+                                self.event_service.factory.reasoning(
+                                    conversation_id=conversation_id,
+                                    thread_id=_response_thread_id,
+                                    task_id=root_task_id,
+                                    event=StreamResponseEvent.REASONING_STARTED,
+                                    item_id=planner_item_id,
+                                    content=None,
+                                    agent_name="Planner",
+                                )
+                            )
+
                             # Format plan as markdown
                             plan_md = f"\n\n**📅 Plan Updated:**\n*{reasoning}*\n"
                             for task in plan:
                                 desc = task.get("description", "No description")
                                 plan_md += f"- {desc}\n"
 
-                            # TODO: Consider switching to event_service.reasoning()
+                            # REASONING (content)
                             yield await self.event_service.emit(
-                                self.event_service.factory.message_response_general(
-                                    event=StreamResponseEvent.MESSAGE_CHUNK,
+                                self.event_service.factory.reasoning(
                                     conversation_id=conversation_id,
                                     thread_id=_response_thread_id,
                                     task_id=root_task_id,
+                                    event=StreamResponseEvent.REASONING,
+                                    item_id=planner_item_id,
                                     content=plan_md,
+                                    agent_name="Planner",
+                                )
+                            )
+
+                            # REASONING_COMPLETED
+                            yield await self.event_service.emit(
+                                self.event_service.factory.reasoning(
+                                    conversation_id=conversation_id,
+                                    thread_id=_response_thread_id,
+                                    task_id=root_task_id,
+                                    event=StreamResponseEvent.REASONING_COMPLETED,
+                                    item_id=planner_item_id,
+                                    content=None,
                                     agent_name="Planner",
                                 )
                             )
@@ -299,7 +329,7 @@ class AgentOrchestrator:
                                 )
 
                 # =================================================================
-                # 3. CRITIC -> MESSAGE_CHUNK (TODO: Consider REASONING)
+                # 3. CRITIC -> REASONING
                 # =================================================================
                 elif kind == "on_chain_end" and node == "critic":
                     if is_real_node_output(data):
@@ -313,17 +343,48 @@ class AgentOrchestrator:
                                     "feedback", ""
                                 )
 
+                                # Generate stable item_id for this critic reasoning block
+                                critic_item_id = generate_task_id()
+
+                                # REASONING_STARTED
+                                yield await self.event_service.emit(
+                                    self.event_service.factory.reasoning(
+                                        conversation_id=conversation_id,
+                                        thread_id=_response_thread_id,
+                                        task_id=root_task_id,
+                                        event=StreamResponseEvent.REASONING_STARTED,
+                                        item_id=critic_item_id,
+                                        content=None,
+                                        agent_name="Critic",
+                                    )
+                                )
+
                                 critic_md = (
                                     f"\n\n**{icon} Critic Decision:** {reason}\n\n"
                                 )
 
+                                # REASONING (content)
                                 yield await self.event_service.emit(
-                                    self.event_service.factory.message_response_general(
-                                        event=StreamResponseEvent.MESSAGE_CHUNK,
+                                    self.event_service.factory.reasoning(
                                         conversation_id=conversation_id,
                                         thread_id=_response_thread_id,
                                         task_id=root_task_id,
+                                        event=StreamResponseEvent.REASONING,
+                                        item_id=critic_item_id,
                                         content=critic_md,
+                                        agent_name="Critic",
+                                    )
+                                )
+
+                                # REASONING_COMPLETED
+                                yield await self.event_service.emit(
+                                    self.event_service.factory.reasoning(
+                                        conversation_id=conversation_id,
+                                        thread_id=_response_thread_id,
+                                        task_id=root_task_id,
+                                        event=StreamResponseEvent.REASONING_COMPLETED,
+                                        item_id=critic_item_id,
+                                        content=None,
                                         agent_name="Critic",
                                     )
                                 )

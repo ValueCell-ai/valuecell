@@ -32,8 +32,10 @@ class SaveItem:
     metadata: Optional[ResponseMetadata] = None
 
 
-# conversation_id, thread_id, task_id, event
-BufferKey = Tuple[str, Optional[str], Optional[str], object]
+# conversation_id, thread_id, task_id, event, optional item_id (for REASONING), agent_name
+BufferKey = Tuple[
+    str, Optional[str], Optional[str], object, Optional[str], Optional[str]
+]
 
 
 class BufferEntry:
@@ -114,26 +116,34 @@ class ResponseBuffer:
 
         For REASONING events, if the caller has already set an item_id, it is
         preserved to allow correlation of reasoning_started/reasoning/reasoning_completed.
-        MESSAGE_CHUNK events always use the buffer to get a stable paragraph item_id.
+        The item_id is also included in the BufferKey to separate parallel tasks.
+        MESSAGE_CHUNK events use agent_name in the BufferKey to separate messages
+        from different agents (Planner, Critic, Summarizer, etc.).
         """
         data: UnifiedResponseData = resp.data
         ev = resp.event
         if ev in self._buffered_events:
-            # For REASONING events, trust the caller's item_id (set by orchestrator)
-            # and skip buffer-based id assignment. MESSAGE_CHUNK always uses buffer.
-            # TODO: consider when no item_id is set for REASONING, especially in remote agent calls
+            # For REASONING events with caller-provided item_id, include it in the key
+            # to ensure parallel tasks have separate buffers
+            buffer_item_id = None
             if ev == StreamResponseEvent.REASONING and data.item_id:
-                return resp
+                buffer_item_id = data.item_id
+
             key: BufferKey = (
                 data.conversation_id,
                 data.thread_id,
                 data.task_id,
                 ev,
+                buffer_item_id,
+                data.agent_name,  # Include agent_name to separate different message sources
             )
             entry = self._buffers.get(key)
             if not entry:
-                # Start a new paragraph buffer with a fresh paragraph item_id
-                entry = BufferEntry(role=data.role, agent_name=data.agent_name)
+                # Start a new paragraph buffer with caller's item_id or fresh one
+                entry_item_id = buffer_item_id if buffer_item_id else None
+                entry = BufferEntry(
+                    item_id=entry_item_id, role=data.role, agent_name=data.agent_name
+                )
                 self._buffers[key] = entry
             if entry.agent_name is None and data.agent_name:
                 entry.agent_name = data.agent_name
@@ -173,13 +183,21 @@ class ResponseBuffer:
             out.append(self._make_save_item_from_response(resp))
             return out
 
-        # Buffered: accumulate by (ctx + event)
+        # Buffered: accumulate by (ctx + event + optional item_id + agent_name)
         if ev in self._buffered_events:
-            key: BufferKey = (*ctx, ev)
+            # For REASONING events with item_id, include it in key to separate parallel tasks
+            buffer_item_id = None
+            if ev == StreamResponseEvent.REASONING and data.item_id:
+                buffer_item_id = data.item_id
+
+            key: BufferKey = (*ctx, ev, buffer_item_id, data.agent_name)
             entry = self._buffers.get(key)
             if not entry:
                 # If annotate() wasn't called, create an entry now.
-                entry = BufferEntry(role=data.role, agent_name=data.agent_name)
+                entry_item_id = buffer_item_id if buffer_item_id else None
+                entry = BufferEntry(
+                    item_id=entry_item_id, role=data.role, agent_name=data.agent_name
+                )
                 self._buffers[key] = entry
             elif entry.agent_name is None and data.agent_name:
                 entry.agent_name = data.agent_name
@@ -225,7 +243,7 @@ class ResponseBuffer:
     ) -> List[BufferKey]:
         keys: List[BufferKey] = []
         for key in list(self._buffers.keys()):
-            k_conv, k_thread, k_task, k_event = key
+            k_conv, k_thread, k_task, k_event, k_item_id, k_agent_name = key
             if (
                 k_conv == conversation_id
                 and (thread_id is None or k_thread == thread_id)
@@ -246,7 +264,7 @@ class ResponseBuffer:
                 out.append(
                     SaveItem(
                         item_id=entry.item_id,
-                        event=key[3],
+                        event=key[3],  # event is at index 3
                         conversation_id=key[0],
                         thread_id=key[1],
                         task_id=key[2],
