@@ -1,7 +1,7 @@
 import asyncio
-from typing import AsyncGenerator, Dict, Optional
+from typing import Any, AsyncGenerator, Dict, List, Optional
 
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from loguru import logger
 
 from valuecell.core.constants import ORIGINAL_USER_INPUT, PLANNING_TASK
@@ -134,9 +134,34 @@ class AgentOrchestrator:
             "language": i18n_utils.get_current_language(),
             "timezone": i18n_utils.get_current_timezone(),
         }
-        # TODO: append previous conversation history after restart
+
+        # Check if LangGraph checkpoint exists for this conversation.
+        # MemorySaver is in-memory only, so checkpoint exists only within the same
+        # application session. After restart, we need to rebuild history from database.
+        checkpoint_exists = await self._check_langgraph_checkpoint(
+            graph, graph_thread_id
+        )
+
+        if checkpoint_exists:
+            # Checkpoint exists: only pass the new user message.
+            # LangGraph will restore previous state and append the new message via operator.add
+            messages = [HumanMessage(content=user_input.query)]
+            logger.info(
+                "stream_react_agent: checkpoint exists for conversation {}, using new message only",
+                conversation_id,
+            )
+        else:
+            # No checkpoint: rebuild full message history from database.
+            # This happens after application restart when MemorySaver is empty.
+            messages = await self._load_conversation_messages(conversation_id)
+            logger.info(
+                "stream_react_agent: no checkpoint for conversation {}, loaded {} messages from database",
+                conversation_id,
+                len(messages),
+            )
+
         inputs = {
-            "messages": [HumanMessage(content=user_input.query)],
+            "messages": messages,
             "user_context": user_context,
         }
         config = {"configurable": {"thread_id": graph_thread_id}}
@@ -796,6 +821,132 @@ class AgentOrchestrator:
             await self._maybe_set_conversation_title(conversation_id, first_title)
         async for response in self.task_executor.execute_plan(plan, thread_id):
             yield response
+
+    async def _check_langgraph_checkpoint(self, graph: Any, thread_id: str) -> bool:
+        """Check if a LangGraph checkpoint exists for the given thread_id.
+
+        Args:
+            graph: The compiled LangGraph app
+            thread_id: The thread_id to check
+
+        Returns:
+            True if checkpoint exists, False otherwise
+        """
+        try:
+            # Access the checkpointer and try to get the latest checkpoint
+            checkpointer = graph.checkpointer
+            if not checkpointer:
+                return False
+
+            # Get the latest checkpoint for this thread
+            config = {"configurable": {"thread_id": thread_id}}
+            checkpoint = await checkpointer.aget(config)
+
+            # If checkpoint exists and has state, return True
+            return checkpoint is not None
+        except Exception as exc:
+            logger.warning(
+                "Failed to check LangGraph checkpoint for thread {}: {}",
+                thread_id,
+                exc,
+            )
+            # On error, assume no checkpoint exists (safe fallback: load from DB)
+            return False
+
+    async def _load_conversation_messages(
+        self, conversation_id: str
+    ) -> List[BaseMessage]:
+        """Load historical messages from database.
+
+        Since LangGraph's MemorySaver is in-memory only, we need to reconstruct
+        message history from the database when the application restarts.
+
+        Args:
+            conversation_id: The conversation ID to load messages for
+
+        Returns:
+            List of BaseMessage objects (HumanMessage, AIMessage) with current query appended
+        """
+        from valuecell.core.types import Role, StreamResponseEvent
+
+        try:
+            # Fetch all conversation items
+            items = await self.conversation_service.get_conversation_items(
+                conversation_id=conversation_id
+            )
+
+            messages: List[BaseMessage] = []
+
+            # Convert stored items to LangChain messages.
+            # Strategy:
+            # - USER messages: Load from THREAD_STARTED events (user queries)
+            # - AGENT messages: Load only from Summarizer's MESSAGE_CHUNK events
+            #   (final conversational responses, not Planner/Critic/Executor reasoning)
+
+            def _extract_content(payload) -> str | None:
+                """Normalize payload into a plain text content string.
+
+                Handles cases where `payload` is:
+                - a JSON string (extract `content` or `text`)
+                - an object with `.content` attribute
+                - None
+                - anything else (stringify as fallback)
+                """
+                if isinstance(payload, str):
+                    try:
+                        import json
+
+                        parsed = json.loads(payload)
+                        if isinstance(parsed, dict):
+                            return parsed.get("content") or parsed.get("text")
+                        return str(parsed)
+                    except Exception:
+                        return payload
+
+                if payload is None:
+                    return None
+
+                if hasattr(payload, "content"):
+                    try:
+                        return payload.content
+                    except Exception:
+                        return None
+
+                try:
+                    return str(payload)
+                except Exception:
+                    return None
+
+            for item in items:
+                if item.role == Role.USER:
+                    content = _extract_content(item.payload)
+                    if content:
+                        messages.append(HumanMessage(content=content))
+
+                elif item.role == Role.AGENT:
+                    if (
+                        item.event == StreamResponseEvent.MESSAGE_CHUNK.value
+                        and item.agent_name in {"Summarizer", "Inquirer"}
+                    ):
+                        content = _extract_content(item.payload)
+                        if content:
+                            messages.append(AIMessage(content=content))
+
+            logger.info(
+                "Loaded {} historical messages for conversation {}",
+                len(messages),
+                conversation_id,
+            )
+
+        except Exception as exc:
+            logger.warning(
+                "Failed to load conversation history for {}: {}. Starting with empty history.",
+                conversation_id,
+                exc,
+            )
+            messages = []
+
+        return messages
 
     def _validate_execution_context(
         self, context: ExecutionContext, user_id: str
