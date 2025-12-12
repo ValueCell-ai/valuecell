@@ -184,52 +184,44 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                   >
                     API key
                   </FieldLabel>
-                  <InputGroup>
-                    <InputGroupInput
-                      type={showApiKey ? "text" : "password"}
-                      id="api_key"
-                      placeholder={"Enter API key"}
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      onBlur={() => configForm.handleSubmit()}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          e.currentTarget.blur();
-                        }
-                      }}
-                    />
-                    <InputGroupAddon align="inline-end">
-                      <InputGroupButton
-                        type="button"
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => setShowApiKey(!showApiKey)}
-                        aria-label={
-                          showApiKey ? "Hide password" : "Show password"
-                        }
-                      >
-                        {showApiKey ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </InputGroupButton>
-                    </InputGroupAddon>
-                  </InputGroup>
-                  <LinkButton
-                    className="w-fit! hover:text-gray-700"
-                    url={providerDetail.api_key_url}
-                  >
-                    Click here to get the API key
-                  </LinkButton>
-                  <FieldError errors={field.state.meta.errors} />
-                  {/* Check availability controls */}
-                  <div className="mt-3 flex items-center gap-2">
+                  <div className="flex items-center gap-4">
+                    <InputGroup>
+                      <InputGroupInput
+                        type={showApiKey ? "text" : "password"}
+                        id="api_key"
+                        placeholder={"Enter API key"}
+                        value={field.state.value}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        onBlur={() => configForm.handleSubmit()}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            e.currentTarget.blur();
+                          }
+                        }}
+                      />
+                      <InputGroupAddon align="inline-end">
+                        <InputGroupButton
+                          type="button"
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={() => setShowApiKey(!showApiKey)}
+                          aria-label={
+                            showApiKey ? "Hide password" : "Show password"
+                          }
+                        >
+                          {showApiKey ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </InputGroupButton>
+                      </InputGroupAddon>
+                    </InputGroup>
+
                     <Button
                       type="button"
-                      size="sm"
-                      className="h-8"
+                      variant={"outline"}
                       disabled={isBusy}
                       onClick={async () => {
                         await checkAvailability({
@@ -239,12 +231,12 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                       }}
                     >
                       {checkingAvailability
-                        ? "Checking..."
+                        ? "Waiting for Check "
                         : "Check Availability"}
                     </Button>
                   </div>
                   {checkResult?.data && (
-                    <div className="mt-2 text-sm">
+                    <div className="text-sm">
                       {checkResult.data.ok ? (
                         <span className="text-green-600">
                           Available
@@ -265,6 +257,13 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                       )}
                     </div>
                   )}
+                  <LinkButton
+                    className="w-fit! hover:text-gray-700"
+                    url={providerDetail.api_key_url}
+                  >
+                    Click here to get the API key
+                  </LinkButton>
+                  <FieldError errors={field.state.meta.errors} />
                 </Field>
               )}
             </configForm.Field>
