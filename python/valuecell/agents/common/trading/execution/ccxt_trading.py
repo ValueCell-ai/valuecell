@@ -1329,8 +1329,10 @@ class CCXTExecutionGateway(BaseExecutionGateway):
             positions = await exchange.fetch_positions(normalized_symbols)
             return positions
         except Exception as e:
-            print(f"Warning: Could not fetch positions: {e}")
-            return []
+            # Do NOT return an empty list on network/exchange errors; propagate
+            # so upstream retry/backoff logic can kick in and avoid wiping holdings.
+            logger.warning(f"⚠️ Could not fetch positions: {e}")
+            raise
 
     async def cancel_order(self, order_id: str, symbol: str) -> Dict:
         """Cancel an open order.
