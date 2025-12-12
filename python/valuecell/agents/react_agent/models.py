@@ -56,7 +56,6 @@ ARG_VAL_TYPES = str | int | float | bool
 
 
 class PlannedTask(BaseModel):
-    id: str = Field(description="Unique task identifier, e.g., 't1'")
     tool_id: str = Field(description="The EXACT tool_id from the available tool list")
     tool_args: Dict[str, ARG_VAL_TYPES | list[ARG_VAL_TYPES]] = Field(
         default_factory=dict,

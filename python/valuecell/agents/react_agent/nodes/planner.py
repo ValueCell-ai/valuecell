@@ -7,6 +7,8 @@ from agno.models.openrouter import OpenRouter
 from langchain_core.messages import AIMessage, HumanMessage
 from loguru import logger
 
+from valuecell.utils.uuid import generate_task_id
+
 from ..models import ExecutionPlan, Task
 from ..tool_registry import registry
 
@@ -115,7 +117,7 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
 
         tasks.append(
             Task(
-                id=pt.id,
+                id=generate_task_id(),
                 tool_name=pt.tool_id,
                 tool_args=pt.tool_args,
                 description=pt.description or "No description provided by planner",

@@ -170,9 +170,8 @@ class AgentOrchestrator:
                             # Format plan as markdown
                             plan_md = f"\n\n**📅 Plan Updated:**\n*{reasoning}*\n"
                             for task in plan:
-                                task_id = task.get("id", "?")
                                 desc = task.get("description", "No description")
-                                plan_md += f"- `[{task_id}]` {desc}\n"
+                                plan_md += f"- {desc}\n"
 
                             # TODO: Consider switching to event_service.reasoning()
                             yield await self.event_service.emit(
