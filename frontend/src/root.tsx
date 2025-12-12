@@ -32,7 +32,7 @@ const queryClient = new QueryClient({
       staleTime: 5 * 60 * 1000, // Global default 5 minutes fresh time
       gcTime: 30 * 60 * 1000, // Global default 30 minutes garbage collection time
       refetchOnWindowFocus: false, // Don't refetch on window focus by default
-      retry: 2, // Default retry 2 times on failure
+      retry: 1, // Default retry 1 times on failure
     },
     mutations: {
       retry: 1, // Default retry 1 time for mutations

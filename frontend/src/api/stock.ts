@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { API_QUERY_KEYS, USER_LANGUAGE } from "@/constants/api";
+import {
+  API_QUERY_KEYS,
+  USER_LANGUAGE,
+  VALUECELL_BACKEND_URL,
+} from "@/constants/api";
 import { type ApiResponse, apiClient } from "@/lib/api-client";
+import { useSystemStore } from "@/store/system-store";
 import type {
   Stock,
   StockDetail,
@@ -64,7 +69,10 @@ export const useGetStockPrice = (params: { ticker: string }) =>
     queryKey: API_QUERY_KEYS.STOCK.stockPrice(Object.values(params)),
     queryFn: () =>
       apiClient.get<ApiResponse<StockPrice>>(
-        `watchlist/asset/${params.ticker}/price`,
+        `${useSystemStore.getState().access_token ? VALUECELL_BACKEND_URL : ""}/watchlist/asset/${params.ticker}/price`,
+        {
+          requiresAuth: !!useSystemStore.getState().access_token,
+        },
       ),
     select: (data) => data.data,
     enabled: !!params.ticker,
@@ -79,8 +87,11 @@ export const useGetStockHistory = (params: {
   useQuery({
     queryKey: API_QUERY_KEYS.STOCK.stockHistory(Object.values(params)),
     queryFn: () =>
-      apiClient.get<ApiResponse<StockHistory>>(
-        `watchlist/asset/${params.ticker}/price/historical?interval=${params.interval}&start_date=${params.start_date}&end_date=${params.end_date}`,
+      apiClient.get<ApiResponse<StockHistory[]>>(
+        `${VALUECELL_BACKEND_URL}/watchlist/asset/${params.ticker}/price/historical?interval=${params.interval}&start_date=${params.start_date}&end_date=${params.end_date}`,
+        {
+          requiresAuth: true,
+        },
       ),
     select: (data) => data.data,
     enabled: !!params.ticker,
@@ -91,7 +102,10 @@ export const useGetStockDetail = (params: { ticker: string }) =>
     queryKey: API_QUERY_KEYS.STOCK.stockDetail(Object.values(params)),
     queryFn: () =>
       apiClient.get<ApiResponse<StockDetail>>(
-        `watchlist/asset/${params.ticker}`,
+        `${useSystemStore.getState().access_token ? VALUECELL_BACKEND_URL : ""}/watchlist/asset/${params.ticker}`,
+        {
+          requiresAuth: !!useSystemStore.getState().access_token,
+        },
       ),
     select: (data) => data.data,
     enabled: !!params.ticker,

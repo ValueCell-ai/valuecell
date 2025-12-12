@@ -1,4 +1,7 @@
+import { Plus } from "lucide-react";
 import { Outlet } from "react-router";
+import { Button } from "@/components/ui/button";
+import { StockList, StockSearchModal } from "./components";
 
 export default function HomeLayout() {
   return (
@@ -6,11 +9,11 @@ export default function HomeLayout() {
       <h1 className="font-medium text-3xl">👋 Welcome to ValueCell !</h1>
 
       <div className="flex flex-1 gap-3 overflow-hidden">
-        <main className="scroll-container h-full flex-1 rounded-lg">
+        <main className="scroll-container flex-1 rounded-lg">
           <Outlet />
         </main>
 
-        {/* <aside className="flex min-w-62 max-w-80 flex-col justify-between rounded-lg bg-white">
+        <aside className="flex w-72 flex-col overflow-hidden rounded-lg bg-white">
           <StockList />
 
           <StockSearchModal>
@@ -22,7 +25,7 @@ export default function HomeLayout() {
               Add Stocks
             </Button>
           </StockSearchModal>
-        </aside> */}
+        </aside>
       </div>
     </div>
   );
