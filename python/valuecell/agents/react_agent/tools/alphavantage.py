@@ -388,7 +388,11 @@ async def get_stock_profile(symbol: str, context: Optional[TaskContext] = None) 
     return profile_md
 
 
-async def get_market_sentiment(symbol: str, limit: int = 10) -> str:
+async def get_market_sentiment(
+    symbol: str,
+    limit: int = 10,
+    context: Optional[TaskContext] = None,
+) -> str:
     """
     Retrieves and summarizes market sentiment and news for a specific stock symbol.
     Uses AlphaVantage News Sentiment API to get sentiment scores and summaries.
@@ -416,6 +420,12 @@ async def get_market_sentiment(symbol: str, limit: int = 10) -> str:
     valid_count = 0
 
     for item in feed:
+        if context:
+            await context.emit_progress(
+                f"Analyzing news: [{item.get('title', '')}]({item.get('url', '')})...",
+                step="processing_news",
+            )
+
         # Find sentiment for OUR symbol within the list of tickers mentioned in this article
         ticker_meta = next(
             (t for t in item.get("ticker_sentiment", []) if t["ticker"] == symbol), None
@@ -461,6 +471,11 @@ async def get_market_sentiment(symbol: str, limit: int = 10) -> str:
         return f"Found news, but none were highly relevant to {symbol}."
 
     # 3. Calculate Aggregated Sentiment
+    if context:
+        await context.emit_progress(
+            "Calculating aggregate market sentiment...", step="aggregating_sentiment"
+        )
+
     avg_score = total_sentiment_score / valid_count if valid_count > 0 else 0
 
     # Map score to label (based on AlphaVantage definition)

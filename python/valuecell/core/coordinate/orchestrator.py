@@ -242,7 +242,7 @@ class AgentOrchestrator:
                             )
                         )
 
-                        title_text = f"**Executing Task:** {task_description} (`{raw_tool_name}`)"
+                        title_text = f"**Executing Task:** {task_description} (`{raw_tool_name}`)\n\n"
                         yield await self.event_service.emit(
                             self.event_service.factory.reasoning(
                                 conversation_id=conversation_id,
@@ -301,9 +301,7 @@ class AgentOrchestrator:
 
                                 # Truncate result if too long
                                 result_preview = str(raw_result)
-                                final_text = (
-                                    f"\n✅ **Result:**\n```\n{result_preview}\n```"
-                                )
+                                final_text = f"\n✅ **Result:**\n\n{result_preview}\n"
                                 yield await self.event_service.emit(
                                     self.event_service.factory.reasoning(
                                         conversation_id=conversation_id,

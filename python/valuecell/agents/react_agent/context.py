@@ -1,6 +1,6 @@
 """Task execution context for tool runtime."""
 
-from typing import Any, Optional
+from typing import Optional
 
 from langchain_core.callbacks import adispatch_custom_event
 from langchain_core.runnables import RunnableConfig
@@ -52,20 +52,5 @@ class TaskContext:
             "task_id": self.task_id,
             "msg": msg,
             "step": step,
-        }
-        await adispatch_custom_event("tool_event", payload, config=self._config)
-
-    async def emit_artifact(self, artifact_type: str, content: Any) -> None:
-        """Emit an intermediate artifact (e.g., a chart or table).
-
-        Args:
-            artifact_type: Type identifier for the artifact (e.g., "chart", "table")
-            content: Artifact content (JSON-serializable)
-        """
-        payload = {
-            "type": "artifact",
-            "task_id": self.task_id,
-            "artifact_type": artifact_type,
-            "content": content,
         }
         await adispatch_custom_event("tool_event", payload, config=self._config)
