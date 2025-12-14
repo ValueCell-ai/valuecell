@@ -46,7 +46,7 @@ const ChatConversationHeader: FC<ChatConversationHeaderProps> = ({ agent }) => {
                 <MessageCircle size={16} className="text-gray-700" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>{t("agent.chat.newConversation")}</TooltipContent>
+            <TooltipContent>{t("chat.newConversation")}</TooltipContent>
           </Tooltip>
         </Link>
         <Link to="./config">
@@ -60,7 +60,7 @@ const ChatConversationHeader: FC<ChatConversationHeaderProps> = ({ agent }) => {
                 <Settings size={16} className="text-gray-700" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>{t("agent.chat.settings")}</TooltipContent>
+            <TooltipContent>{t("chat.settings")}</TooltipContent>
           </Tooltip>
         </Link>
       </div>
