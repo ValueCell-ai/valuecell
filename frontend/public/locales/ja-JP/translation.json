@@ -107,7 +107,6 @@
       "GridStrategy": "グリッド戦略"
     },
     "providers": {
-      "aliyun": "Alibaba Cloud",
       "azure": "Azure OpenAI",
       "dashscope": "Alibaba Cloud",
       "deepseek": "DeepSeek",

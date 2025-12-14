@@ -100,7 +100,6 @@
       "GridStrategy": "网格策略"
     },
     "providers": {
-      "aliyun": "阿里云",
       "azure": "Azure OpenAI",
       "dashscope": "阿里云",
       "deepseek": "深度求索",
