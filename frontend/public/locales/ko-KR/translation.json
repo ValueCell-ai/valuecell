@@ -1,103 +1,103 @@
 {
   "general": {
-    "title": "General",
-    "description": "Manage your preferences and application settings",
+    "title": "일반",
+    "description": "기본 설정 및 애플리케이션 설정을 관리하세요",
     "account": {
-      "title": "Account",
-      "signInDesc": "Sign in to get started with Valuecell AI features.",
-      "signOut": "Sign Out",
-      "signIn": "Sign In"
+      "title": "계정",
+      "signInDesc": "Valuecell AI 기능을 사용하려면 로그인하세요.",
+      "signOut": "로그아웃",
+      "signIn": "로그인"
     },
     "language": {
-      "title": "Language and Region",
-      "description": "Select your preferred language and regional format for the app."
+      "title": "언어 및 지역",
+      "description": "앱의 선호 언어 및 지역 형식을 선택하세요."
     },
     "quotesColor": {
-      "title": "Quotes Color",
-      "description": "Choose how stock quote movements are visualized across the app.",
-      "greenUpRedDown": "Green Up / Red Down",
-      "redUpGreenDown": "Red Up / Green Down"
+      "title": "시세 색상",
+      "description": "앱 전체에서 주가 변동을 시각화하는 방법을 선택하세요.",
+      "greenUpRedDown": "녹색 상승 / 적색 하락",
+      "redUpGreenDown": "적색 상승 / 녹색 하락"
     },
     "updates": {
-      "title": "App Updates",
-      "check": "Check for Update"
+      "title": "앱 업데이트",
+      "check": "업데이트 확인"
     }
   },
   "settings": {
-    "title": "Settings",
+    "title": "설정",
     "nav": {
-      "models": "Models",
-      "general": "General",
-      "memory": "Memory"
+      "models": "모델",
+      "general": "일반",
+      "memory": "메모리"
     },
     "models": {
-      "title": "Model Provider",
-      "noProviders": "No providers available.",
-      "loading": "Loading provider details...",
-      "defaultProvider": "Default Provider",
-      "apiKey": "API key",
-      "enterApiKey": "Enter API key",
-      "getApiKey": "Click here to get the API key",
-      "apiHost": "API Host",
-      "models": "Models",
-      "add": "Add",
-      "addModel": "Add Model",
-      "modelId": "Model ID",
-      "enterModelId": "Enter model ID",
-      "modelName": "Model Name",
-      "enterModelName": "Enter model name",
-      "cancel": "Cancel",
-      "confirm": "Confirm",
-      "noModels": "No models configured for this provider."
+      "title": "모델 제공자",
+      "noProviders": "사용 가능한 제공자가 없습니다.",
+      "loading": "제공자 세부 정보를 로드하는 중...",
+      "defaultProvider": "기본 제공자",
+      "apiKey": "API 키",
+      "enterApiKey": "API 키 입력",
+      "getApiKey": "API 키를 받으려면 여기를 클릭하세요",
+      "apiHost": "API 호스트",
+      "models": "모델",
+      "add": "추가",
+      "addModel": "모델 추가",
+      "modelId": "모델 ID",
+      "enterModelId": "모델 ID 입력",
+      "modelName": "모델 이름",
+      "enterModelName": "모델 이름 입력",
+      "cancel": "취소",
+      "confirm": "확인",
+      "noModels": "이 제공자에 대해 구성된 모델이 없습니다."
     },
     "memory": {
-      "title": "Preserved memories",
-      "description": "I will remember and automatically manage useful information in chats to enhance the personalization and relevance of replies",
-      "loading": "Loading...",
-      "noMemories": "No memories yet",
-      "delete": "Delete"
+      "title": "보존된 기억",
+      "description": "대화 중 유용한 정보를 기억하고 자동으로 관리하여 답변의 개인화 및 관련성을 높입니다.",
+      "loading": "로드 중...",
+      "noMemories": "아직 기억이 없습니다",
+      "delete": "삭제"
     }
   },
   "common": {
-    "back": "Back"
+    "back": "뒤로"
   },
   "market": {
-    "title": "Agent Market"
+    "title": "에이전트 마켓"
   },
   "agent": {
-    "welcome": "Welcome to {{name}}!",
-    "unknown": "Unknown Agent",
+    "welcome": "{{name}}에 오신 것을 환영합니다!",
+    "unknown": "알 수 없는 에이전트",
     "status": {
-      "running": "Running"
+      "running": "실행 중"
     },
     "action": {
-      "view": "View"
+      "view": "보기"
     },
     "config": {
-      "disable": "Disable",
-      "chat": "Chat",
-      "collectAndChat": "Collect and chat"
+      "disable": "비활성화",
+      "chat": "채팅",
+      "collectAndChat": "수집 및 채팅"
     }
   },
   "chat": {
     "input": {
-      "placeholder": "Type your message..."
+      "placeholder": "메시지를 입력하세요..."
     },
-    "newConversation": "New Conversation",
-    "settings": "Settings",
+    "newConversation": "새 대화",
+    "settings": "설정",
     "conversationList": {
-      "title": "Conversation List",
-      "loading": "Loading...",
-      "empty": "No conversation yet"
+      "title": "대화 목록",
+      "loading": "로드 중...",
+      "empty": "아직 대화가 없습니다"
     },
     "action": {
-      "delete": "Delete"
+      "delete": "삭제"
     }
   },
   "strategy": {
     "types": {
-      "PromptBasedStrategy": "Prompt Based Strategy",
-      "GridStrategy": "Grid Strategy"
+      "PromptBasedStrategy": "프롬프트 기반 전략",
+      "GridStrategy": "그리드 전략"
     },
     "providers": {
       "azure": "Azure OpenAI",
@@ -105,262 +105,262 @@
       "deepseek": "DeepSeek",
       "google": "Google Cloud",
       "openai": "OpenAI",
-      "openai-compatible": "OpenAI Compatible",
+      "openai-compatible": "OpenAI 호환",
       "openrouter": "OpenRouter",
       "siliconflow": "SiliconFlow"
     },
-    "title": "Trading Strategies",
-    "add": "Add trading strategy",
-    "noStrategies": "No trading strategies",
-    "createFirst": "Create your first strategy to start trading",
+    "title": "트레이딩 전략",
+    "add": "트레이딩 전략 추가",
+    "noStrategies": "트레이딩 전략 없음",
+    "createFirst": "첫 번째 전략을 생성하여 트레이딩을 시작하세요",
     "status": {
-      "running": "Running",
-      "stopped": "Stopped",
-      "live": "Live",
-      "virtual": "Virtual"
+      "running": "실행 중",
+      "stopped": "중지됨",
+      "live": "라이브",
+      "virtual": "가상"
     },
     "action": {
-      "stop": "Stop Trading Strategy?",
-      "stopDesc": "Stopping the strategy \"{{name}}\" will stop it immediately and trigger a forced liquidation. Do you want to proceed?",
-      "confirmStop": "Confirm Stop",
-      "delete": "Delete",
-      "deleteTitle": "Delete Strategy?",
-      "deleteDesc": "Deleting the strategy \"{{name}}\" will stop it immediately and trigger a forced liquidation. Do you want to proceed?",
-      "confirmDelete": "Confirm Delete",
-      "details": "Details",
-      "duplicate": "Duplicate",
-      "cancel": "Cancel",
-      "back": "Back",
-      "next": "Next",
-      "confirm": "Confirm",
-      "publish": "Publish",
-      "shareToSocial": "Share to Social",
-      "shareToRanking": "Share to Ranking"
+      "stop": "트레이딩 전략을 중지하시겠습니까?",
+      "stopDesc": "\"{{name}}\" 전략을 중지하면 즉시 중단되고 강제 청산이 트리거됩니다. 계속하시겠습니까?",
+      "confirmStop": "중지 확인",
+      "delete": "삭제",
+      "deleteTitle": "전략 삭제?",
+      "deleteDesc": "\"{{name}}\" 전략을 삭제하면 즉시 중단되고 강제 청산이 트리거됩니다. 계속하시겠습니까?",
+      "confirmDelete": "삭제 확인",
+      "details": "세부 정보",
+      "duplicate": "복제",
+      "cancel": "취소",
+      "back": "뒤로",
+      "next": "다음",
+      "confirm": "확인",
+      "publish": "게시",
+      "shareToSocial": "소셜에 공유",
+      "shareToRanking": "랭킹에 공유"
     },
     "portfolio": {
-      "title": "Portfolio Value History",
-      "totalEquity": "Total Equity",
-      "availableBalance": "Available Balance",
-      "totalPnl": "Total P&L",
-      "noData": "No portfolio value data",
-      "noDataDesc": "Portfolio value chart will appear once trading begins"
+      "title": "포트폴리오 가치 기록",
+      "totalEquity": "총 자본",
+      "availableBalance": "사용 가능한 잔액",
+      "totalPnl": "총 P&L",
+      "noData": "포트폴리오 가치 데이터 없음",
+      "noDataDesc": "트레이딩이 시작되면 포트폴리오 가치 차트가 나타납니다"
     },
     "positions": {
-      "title": "Positions",
-      "symbol": "Symbol",
-      "type": "Type",
-      "leverage": "Leverage",
-      "quantity": "Quantity",
+      "title": "포지션",
+      "symbol": "심볼",
+      "type": "유형",
+      "leverage": "레버리지",
+      "quantity": "수량",
       "pnl": "P&L",
-      "noOpen": "No open positions",
-      "noOpenDesc": "Positions will appear here when trades are opened"
+      "noOpen": "열린 포지션 없음",
+      "noOpenDesc": "거래가 열리면 포지션이 여기에 나타납니다"
     },
     "create": {
-      "title": "Add trading strategy",
+      "title": "트레이딩 전략 추가",
       "steps": {
-        "aiModels": "AI Models",
-        "exchanges": "Exchanges",
-        "tradingStrategy": "Trading strategy"
+        "aiModels": "AI 모델",
+        "exchanges": "거래소",
+        "tradingStrategy": "트레이딩 전략"
       },
-      "error": "Error Creating Strategy"
+      "error": "전략 생성 오류"
     },
     "form": {
       "strategyType": {
-        "label": "Strategy Type",
-        "promptBased": "Prompt Based Strategy",
-        "grid": "Grid Strategy"
+        "label": "전략 유형",
+        "promptBased": "프롬프트 기반 전략",
+        "grid": "그리드 전략"
       },
       "strategyName": {
-        "label": "Strategy Name",
-        "placeholder": "Enter strategy name"
+        "label": "전략 이름",
+        "placeholder": "전략 이름 입력"
       },
       "initialCapital": {
-        "label": "Initial Capital",
-        "placeholder": "Enter Initial Capital"
+        "label": "초기 자본",
+        "placeholder": "초기 자본 입력"
       },
       "maxLeverage": {
-        "label": "Max Leverage",
-        "placeholder": "Max Leverage"
+        "label": "최대 레버리지",
+        "placeholder": "최대 레버리지"
       },
       "decideInterval": {
-        "label": "Decision Interval (seconds)",
-        "placeholder": "e.g. 300"
+        "label": "결정 간격 (초)",
+        "placeholder": "예: 300"
       },
       "tradingSymbols": {
-        "label": "Trading Symbols",
-        "placeholder": "Select trading symbols...",
-        "searchPlaceholder": "Search or add symbols...",
-        "emptyText": "No symbols found."
+        "label": "트레이딩 심볼",
+        "placeholder": "트레이딩 심볼 선택...",
+        "searchPlaceholder": "심볼 검색 또는 추가...",
+        "emptyText": "심볼을 찾을 수 없습니다."
       },
       "promptTemplate": {
-        "label": "System Prompt Template",
-        "new": "New Prompt",
-        "view": "View Strategy"
+        "label": "시스템 프롬프트 템플릿",
+        "new": "새 프롬프트",
+        "view": "전략 보기"
       },
       "aiModels": {
-        "platform": "Model Platform",
-        "model": "Select Model",
-        "noModels": "No models available",
+        "platform": "모델 플랫폼",
+        "model": "모델 선택",
+        "noModels": "사용 가능한 모델 없음",
         "apiKey": {
-          "label": "API key",
-          "placeholder": "Enter API Key"
+          "label": "API 키",
+          "placeholder": "API 키 입력"
         }
       },
       "exchanges": {
-        "transactionType": "Transaction Type",
-        "liveTrading": "Live Trading",
-        "virtualTrading": "Virtual Trading",
-        "selectExchange": "Select Exchange",
-        "walletAddress": "Wallet Address",
-        "privateKey": "Private Key",
-        "apiKey": "API Key",
-        "secretKey": "Secret Key",
-        "passphrase": "Passphrase",
-        "testConnection": "Test Connection",
+        "transactionType": "거래 유형",
+        "liveTrading": "라이브 트레이딩",
+        "virtualTrading": "가상 트레이딩",
+        "selectExchange": "거래소 선택",
+        "walletAddress": "지갑 주소",
+        "privateKey": "개인 키",
+        "apiKey": "API 키",
+        "secretKey": "비밀 키",
+        "passphrase": "암호",
+        "testConnection": "연결 테스트",
         "test": {
-          "success": "Success!",
-          "failed": "Connection failed. Please check your API Key, Secret Key, or Passphrase."
+          "success": "성공!",
+          "failed": "연결 실패. API 키, 비밀 키 또는 암호를 확인하세요."
         },
         "placeholder": {
           "binance": {
-            "apiKey": "Enter API Key (64 characters)",
-            "secretKey": "Enter Secret Key (64 characters)"
+            "apiKey": "API 키 입력 (64자)",
+            "secretKey": "비밀 키 입력 (64자)"
           },
           "okx": {
-            "apiKey": "Enter API Key (Format: xxxxxxxx-xxxx-...)",
-            "secretKey": "Enter Secret Key (32 uppercase letters & numbers)",
-            "passphrase": "Enter Passphrase (Set during API creation)"
+            "apiKey": "API 키 입력 (형식: xxxxxxxx-xxxx-...)",
+            "secretKey": "비밀 키 입력 (32자 대문자 및 숫자)",
+            "passphrase": "암호 입력 (API 생성 시 설정)"
           },
           "gate": {
-            "apiKey": "Enter API Key (Starts with 'key_')",
-            "secretKey": "Enter Secret Key (64 characters)"
+            "apiKey": "API 키 입력 ('key_'로 시작)",
+            "secretKey": "비밀 키 입력 (64자)"
           },
           "hyperliquid": {
-            "walletAddress": "Enter Wallet Address (Starts with '0x')",
-            "privateKey": "Enter Private Key (64 characters)"
+            "walletAddress": "지갑 주소 입력 ('0x'로 시작)",
+            "privateKey": "개인 키 입력 (64자)"
           },
           "blockchain": {
-            "apiKey": "Enter API Key (Format: xxxxxxxx-xxxx-...)",
-            "secretKey": "Enter Secret Key"
+            "apiKey": "API 키 입력 (형식: xxxxxxxx-xxxx-...)",
+            "secretKey": "비밀 키 입력"
           },
           "coinbase": {
-            "apiKey": "Enter API Key (or Key Name)",
-            "secretKey": "Enter API Secret (or Private Key)",
-            "passphrase": "Enter Passphrase (Required for Legacy Pro API)"
+            "apiKey": "API 키 입력 (또는 키 이름)",
+            "secretKey": "API 비밀 입력 (또는 개인 키)",
+            "passphrase": "암호 입력 (레거시 Pro API에 필수)"
           },
           "mexc": {
-            "apiKey": "Enter Access Key (Starts with 'mx0')",
-            "secretKey": "Enter Secret Key (Usually 32 characters)"
+            "apiKey": "액세스 키 입력 ('mx0'으로 시작)",
+            "secretKey": "비밀 키 입력 (일반적으로 32자)"
           },
           "default": {
-            "apiKey": "Paste your API Key here",
-            "secretKey": "Paste your Secret Key here",
-            "passphrase": "Enter Passphrase",
-            "walletAddress": "Enter Wallet Address",
-            "privateKey": "Enter Private Key"
+            "apiKey": "여기에 API 키 붙여넣기",
+            "secretKey": "여기에 비밀 키 붙여넣기",
+            "passphrase": "암호 입력",
+            "walletAddress": "지갑 주소 입력",
+            "privateKey": "개인 키 입력"
           }
         }
-      }
-    },
-    "prompt": {
-      "delete": {
-        "title": "Delete Strategy Prompt",
-        "description": "Are you sure you want to delete this strategy prompt? This action cannot be undone and will permanently remove the prompt from the system."
-      }
-    },
-    "detail": {
-      "title": "Strategy Details",
-      "loading": "Loading details...",
-      "returnRate": "Return Rate",
-      "strategyType": "Strategy Type",
-      "modelProvider": "Model Provider",
-      "modelId": "Model ID",
-      "initialCapital": "Initial Capital",
-      "maxLeverage": "Max Leverage",
-      "tradingSymbols": "Trading Symbols",
-      "prompt": "Prompt"
-    },
-    "history": {
-      "title": "Trading History",
-      "live": "Live Trading",
-      "virtual": "Virtual Trading",
-      "cycle": "Cycle #{{index}}",
-      "aiReasoning": "AI reasoning logic",
-      "operation": "Perform operation",
-      "empty": {
-        "title": "No trade history",
-        "desc": "Your completed trades will appear here"
       },
-      "details": {
-        "time": "Time",
-        "price": "Price",
-        "quantity": "Quantity",
-        "holdingTime": "Holding time",
-        "tradingFee": "Trading Fee",
-        "reasoning": "Reasoning"
+      "prompt": {
+        "delete": {
+          "title": "전략 프롬프트 삭제",
+          "description": "이 전략 프롬프트를 삭제하시겠습니까? 이 작업은 취소할 수 없으며 시스템에서 프롬프트가 영구적으로 제거됩니다."
+        }
+      },
+      "detail": {
+        "title": "전략 세부 정보",
+        "loading": "세부 정보 로드 중...",
+        "returnRate": "수익률",
+        "strategyType": "전략 유형",
+        "modelProvider": "모델 제공자",
+        "modelId": "모델 ID",
+        "initialCapital": "초기 자본",
+        "maxLeverage": "최대 레버리지",
+        "tradingSymbols": "트레이딩 심볼",
+        "prompt": "프롬프트"
+      },
+      "history": {
+        "title": "트레이딩 기록",
+        "live": "라이브 트레이딩",
+        "virtual": "가상 트레이딩",
+        "cycle": "주기 #{{index}}",
+        "aiReasoning": "AI 추론 논리",
+        "operation": "작업 수행",
+        "empty": {
+          "title": "트레이딩 기록 없음",
+          "desc": "완료된 거래가 여기에 나타납니다"
+        },
+        "details": {
+          "time": "시간",
+          "price": "가격",
+          "quantity": "수량",
+          "holdingTime": "보유 시간",
+          "tradingFee": "거래 수수료",
+          "reasoning": "추론"
+        }
       }
     }
   },
   "rank": {
-    "title": "Profit Leaderboard",
+    "title": "수익 순위표",
     "days": {
-      "7": "7D",
-      "30": "1M"
+      "7": "7일",
+      "30": "1개월"
     },
     "table": {
-      "rank": "Rank",
-      "user": "User",
+      "rank": "순위",
+      "user": "사용자",
       "pnl": "P&L",
-      "strategy": "Strategy",
-      "exchange": "Exchange",
-      "model": "Model",
-      "details": "Details",
-      "loading": "Loading..."
+      "strategy": "전략",
+      "exchange": "거래소",
+      "model": "모델",
+      "details": "세부 정보",
+      "loading": "로드 중..."
     }
   },
   "home": {
-    "hello": "👋 Hello Investor!",
-    "welcome": "👋 Welcome to ValueCell !",
-    "watchlist": "My Watchlist",
+    "hello": "👋 안녕하세요 투자자님!",
+    "welcome": "👋 ValueCell에 오신 것을 환영합니다!",
+    "watchlist": "내 관심 목록",
     "stock": {
-      "loading": "Loading stock data...",
-      "error": "Error loading stock data: {{message}}",
-      "remove": "Remove",
-      "removing": "Removing...",
-      "add": "Add Stocks",
-      "about": "About",
-      "sector": "Sector:",
-      "industry": "Industry:",
-      "website": "Website:",
+      "loading": "주식 데이터 로드 중...",
+      "error": "주식 데이터 로드 오류: {{message}}",
+      "remove": "제거",
+      "removing": "제거 중...",
+      "add": "주식 추가",
+      "about": "정보",
+      "sector": "섹터:",
+      "industry": "산업:",
+      "website": "웹사이트:",
       "chart": {
-        "24h": "24h",
-        "7d": "7d",
-        "30d": "30d"
+        "24h": "24시간",
+        "7d": "7일",
+        "30d": "30일"
       }
     },
     "search": {
-      "title": "Stock Search",
-      "placeholder": "Search for stock name or code",
-      "searching": "Searching...",
-      "noResults": "No related stocks found",
+      "title": "주식 검색",
+      "placeholder": "주식 이름 또는 코드 검색",
+      "searching": "검색 중...",
+      "noResults": "관련 주식을 찾을 수 없습니다",
       "action": {
-        "watch": "Watchlist",
-        "watching": "Watching...",
-        "watched": "Watched"
+        "watch": "관심",
+        "watching": "관심 등록 중...",
+        "watched": "관심 등록됨"
       }
     },
     "suggestions": {
       "research": {
-        "title": "Deep Research",
-        "description": "Analyze SEC filings to generate in-depth stock interpretation reports."
+        "title": "심층 연구",
+        "description": "SEC 제출 서류를 분석하여 심층적인 주식 해석 보고서를 생성합니다."
       },
       "strategy": {
-        "title": "Automated Trading",
-        "description": "Multi-strategy smart trading, automatically execute your strategies"
+        "title": "자동 트레이딩",
+        "description": "다중 전략 스마트 트레이딩, 전략을 자동으로 실행합니다"
       },
       "news": {
-        "title": "Pushing News",
-        "description": "Personalized news updates on a custom schedule"
+        "title": "뉴스 푸시",
+        "description": "사용자 지정 일정에 따른 개인화된 뉴스 업데이트"
       }
     }
   }

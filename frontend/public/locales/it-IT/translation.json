@@ -1,103 +1,103 @@
 {
   "general": {
-    "title": "General",
-    "description": "Manage your preferences and application settings",
+    "title": "Generale",
+    "description": "Gestisci le tue preferenze e le impostazioni dell'applicazione",
     "account": {
       "title": "Account",
-      "signInDesc": "Sign in to get started with Valuecell AI features.",
-      "signOut": "Sign Out",
-      "signIn": "Sign In"
+      "signInDesc": "Accedi per iniziare con le funzionalità di Valuecell AI.",
+      "signOut": "Disconnettersi",
+      "signIn": "Accedi"
     },
     "language": {
-      "title": "Language and Region",
-      "description": "Select your preferred language and regional format for the app."
+      "title": "Lingua e Regione",
+      "description": "Seleziona la lingua preferita e il formato regionale per l'app."
     },
     "quotesColor": {
-      "title": "Quotes Color",
-      "description": "Choose how stock quote movements are visualized across the app.",
-      "greenUpRedDown": "Green Up / Red Down",
-      "redUpGreenDown": "Red Up / Green Down"
+      "title": "Colore delle Quotazioni",
+      "description": "Scegli come visualizzare i movimenti delle quotazioni azionarie nell'app.",
+      "greenUpRedDown": "Verde Su / Rosso Giù",
+      "redUpGreenDown": "Rosso Su / Verde Giù"
     },
     "updates": {
-      "title": "App Updates",
-      "check": "Check for Update"
+      "title": "Aggiornamenti App",
+      "check": "Controlla aggiornamenti"
     }
   },
   "settings": {
-    "title": "Settings",
+    "title": "Impostazioni",
     "nav": {
-      "models": "Models",
-      "general": "General",
-      "memory": "Memory"
+      "models": "Modelli",
+      "general": "Generale",
+      "memory": "Memoria"
     },
     "models": {
-      "title": "Model Provider",
-      "noProviders": "No providers available.",
-      "loading": "Loading provider details...",
-      "defaultProvider": "Default Provider",
-      "apiKey": "API key",
-      "enterApiKey": "Enter API key",
-      "getApiKey": "Click here to get the API key",
-      "apiHost": "API Host",
-      "models": "Models",
-      "add": "Add",
-      "addModel": "Add Model",
-      "modelId": "Model ID",
-      "enterModelId": "Enter model ID",
-      "modelName": "Model Name",
-      "enterModelName": "Enter model name",
-      "cancel": "Cancel",
-      "confirm": "Confirm",
-      "noModels": "No models configured for this provider."
+      "title": "Fornitore Modello",
+      "noProviders": "Nessun fornitore disponibile.",
+      "loading": "Caricamento dettagli fornitore...",
+      "defaultProvider": "Fornitore predefinito",
+      "apiKey": "Chiave API",
+      "enterApiKey": "Inserisci chiave API",
+      "getApiKey": "Clicca qui per ottenere la chiave API",
+      "apiHost": "Host API",
+      "models": "Modelli",
+      "add": "Aggiungi",
+      "addModel": "Aggiungi Modello",
+      "modelId": "ID Modello",
+      "enterModelId": "Inserisci ID modello",
+      "modelName": "Nome Modello",
+      "enterModelName": "Inserisci nome modello",
+      "cancel": "Annulla",
+      "confirm": "Conferma",
+      "noModels": "Nessun modello configurato per questo fornitore."
     },
     "memory": {
-      "title": "Preserved memories",
-      "description": "I will remember and automatically manage useful information in chats to enhance the personalization and relevance of replies",
-      "loading": "Loading...",
-      "noMemories": "No memories yet",
-      "delete": "Delete"
+      "title": "Ricordi preservati",
+      "description": "Ricorderò e gestirò automaticamente informazioni utili nelle chat per migliorare la personalizzazione e la pertinenza delle risposte",
+      "loading": "Caricamento...",
+      "noMemories": "Ancora nessun ricordo",
+      "delete": "Elimina"
     }
   },
   "common": {
-    "back": "Back"
+    "back": "Indietro"
   },
   "market": {
-    "title": "Agent Market"
+    "title": "Mercato Agenti"
   },
   "agent": {
-    "welcome": "Welcome to {{name}}!",
-    "unknown": "Unknown Agent",
+    "welcome": "Benvenuto in {{name}}!",
+    "unknown": "Agente Sconosciuto",
     "status": {
-      "running": "Running"
+      "running": "In esecuzione"
     },
     "action": {
-      "view": "View"
+      "view": "Visualizza"
     },
     "config": {
-      "disable": "Disable",
+      "disable": "Disabilita",
       "chat": "Chat",
-      "collectAndChat": "Collect and chat"
+      "collectAndChat": "Raccogli e chatta"
     }
   },
   "chat": {
     "input": {
-      "placeholder": "Type your message..."
+      "placeholder": "Scrivi il tuo messaggio..."
     },
-    "newConversation": "New Conversation",
-    "settings": "Settings",
+    "newConversation": "Nuova Conversazione",
+    "settings": "Impostazioni",
     "conversationList": {
-      "title": "Conversation List",
-      "loading": "Loading...",
-      "empty": "No conversation yet"
+      "title": "Elenco Conversazioni",
+      "loading": "Caricamento...",
+      "empty": "Ancora nessuna conversazione"
     },
     "action": {
-      "delete": "Delete"
+      "delete": "Elimina"
     }
   },
   "strategy": {
     "types": {
-      "PromptBasedStrategy": "Prompt Based Strategy",
-      "GridStrategy": "Grid Strategy"
+      "PromptBasedStrategy": "Strategia basata su Prompt",
+      "GridStrategy": "Strategia a Griglia"
     },
     "providers": {
       "azure": "Azure OpenAI",
@@ -105,262 +105,262 @@
       "deepseek": "DeepSeek",
       "google": "Google Cloud",
       "openai": "OpenAI",
-      "openai-compatible": "OpenAI Compatible",
+      "openai-compatible": "Compatibile con OpenAI",
       "openrouter": "OpenRouter",
       "siliconflow": "SiliconFlow"
     },
-    "title": "Trading Strategies",
-    "add": "Add trading strategy",
-    "noStrategies": "No trading strategies",
-    "createFirst": "Create your first strategy to start trading",
+    "title": "Strategie di Trading",
+    "add": "Aggiungi strategia di trading",
+    "noStrategies": "Nessuna strategia di trading",
+    "createFirst": "Crea la tua prima strategia per iniziare a fare trading",
     "status": {
-      "running": "Running",
-      "stopped": "Stopped",
+      "running": "In esecuzione",
+      "stopped": "Fermato",
       "live": "Live",
-      "virtual": "Virtual"
+      "virtual": "Virtuale"
     },
     "action": {
-      "stop": "Stop Trading Strategy?",
-      "stopDesc": "Stopping the strategy \"{{name}}\" will stop it immediately and trigger a forced liquidation. Do you want to proceed?",
-      "confirmStop": "Confirm Stop",
-      "delete": "Delete",
-      "deleteTitle": "Delete Strategy?",
-      "deleteDesc": "Deleting the strategy \"{{name}}\" will stop it immediately and trigger a forced liquidation. Do you want to proceed?",
-      "confirmDelete": "Confirm Delete",
-      "details": "Details",
-      "duplicate": "Duplicate",
-      "cancel": "Cancel",
-      "back": "Back",
-      "next": "Next",
-      "confirm": "Confirm",
-      "publish": "Publish",
-      "shareToSocial": "Share to Social",
-      "shareToRanking": "Share to Ranking"
+      "stop": "Fermare la Strategia di Trading?",
+      "stopDesc": "Fermare la strategia \"{{name}}\" la fermerà immediatamente e attiverà una liquidazione forzata. Vuoi procedere?",
+      "confirmStop": "Conferma Stop",
+      "delete": "Elimina",
+      "deleteTitle": "Eliminare Strategia?",
+      "deleteDesc": "Eliminare la strategia \"{{name}}\" la fermerà immediatamente e attiverà una liquidazione forzata. Vuoi procedere?",
+      "confirmDelete": "Conferma Eliminazione",
+      "details": "Dettagli",
+      "duplicate": "Duplica",
+      "cancel": "Annulla",
+      "back": "Indietro",
+      "next": "Avanti",
+      "confirm": "Conferma",
+      "publish": "Pubblica",
+      "shareToSocial": "Condividi sui social",
+      "shareToRanking": "Condividi nella classifica"
     },
     "portfolio": {
-      "title": "Portfolio Value History",
-      "totalEquity": "Total Equity",
-      "availableBalance": "Available Balance",
-      "totalPnl": "Total P&L",
-      "noData": "No portfolio value data",
-      "noDataDesc": "Portfolio value chart will appear once trading begins"
+      "title": "Storico Valore Portafoglio",
+      "totalEquity": "Patrimonio Totale",
+      "availableBalance": "Saldo Disponibile",
+      "totalPnl": "P&L Totale",
+      "noData": "Nessun dato valore portafoglio",
+      "noDataDesc": "Il grafico del valore del portafoglio apparirà una volta iniziato il trading"
     },
     "positions": {
-      "title": "Positions",
-      "symbol": "Symbol",
-      "type": "Type",
-      "leverage": "Leverage",
-      "quantity": "Quantity",
+      "title": "Posizioni",
+      "symbol": "Simbolo",
+      "type": "Tipo",
+      "leverage": "Leva",
+      "quantity": "Quantità",
       "pnl": "P&L",
-      "noOpen": "No open positions",
-      "noOpenDesc": "Positions will appear here when trades are opened"
+      "noOpen": "Nessuna posizione aperta",
+      "noOpenDesc": "Le posizioni appariranno qui quando verranno aperti i trade"
     },
     "create": {
-      "title": "Add trading strategy",
+      "title": "Aggiungi strategia di trading",
       "steps": {
-        "aiModels": "AI Models",
-        "exchanges": "Exchanges",
-        "tradingStrategy": "Trading strategy"
+        "aiModels": "Modelli IA",
+        "exchanges": "Borse",
+        "tradingStrategy": "Strategia di trading"
       },
-      "error": "Error Creating Strategy"
+      "error": "Errore creazione strategia"
     },
     "form": {
       "strategyType": {
-        "label": "Strategy Type",
-        "promptBased": "Prompt Based Strategy",
-        "grid": "Grid Strategy"
+        "label": "Tipo Strategia",
+        "promptBased": "Strategia basata su Prompt",
+        "grid": "Strategia a Griglia"
       },
       "strategyName": {
-        "label": "Strategy Name",
-        "placeholder": "Enter strategy name"
+        "label": "Nome Strategia",
+        "placeholder": "Inserisci nome strategia"
       },
       "initialCapital": {
-        "label": "Initial Capital",
-        "placeholder": "Enter Initial Capital"
+        "label": "Capitale Iniziale",
+        "placeholder": "Inserisci Capitale Iniziale"
       },
       "maxLeverage": {
-        "label": "Max Leverage",
-        "placeholder": "Max Leverage"
+        "label": "Leva Massima",
+        "placeholder": "Leva Massima"
       },
       "decideInterval": {
-        "label": "Decision Interval (seconds)",
-        "placeholder": "e.g. 300"
+        "label": "Intervallo Decisionale (secondi)",
+        "placeholder": "es: 300"
       },
       "tradingSymbols": {
-        "label": "Trading Symbols",
-        "placeholder": "Select trading symbols...",
-        "searchPlaceholder": "Search or add symbols...",
-        "emptyText": "No symbols found."
+        "label": "Simboli di Trading",
+        "placeholder": "Seleziona simboli di trading...",
+        "searchPlaceholder": "Cerca o aggiungi simboli...",
+        "emptyText": "Nessun simbolo trovato."
       },
       "promptTemplate": {
-        "label": "System Prompt Template",
-        "new": "New Prompt",
-        "view": "View Strategy"
+        "label": "Modello Prompt di Sistema",
+        "new": "Nuovo Prompt",
+        "view": "Vedi Strategia"
       },
       "aiModels": {
-        "platform": "Model Platform",
-        "model": "Select Model",
-        "noModels": "No models available",
+        "platform": "Piattaforma Modello",
+        "model": "Seleziona Modello",
+        "noModels": "Nessun modello disponibile",
         "apiKey": {
-          "label": "API key",
-          "placeholder": "Enter API Key"
+          "label": "Chiave API",
+          "placeholder": "Inserisci Chiave API"
         }
       },
       "exchanges": {
-        "transactionType": "Transaction Type",
-        "liveTrading": "Live Trading",
-        "virtualTrading": "Virtual Trading",
-        "selectExchange": "Select Exchange",
-        "walletAddress": "Wallet Address",
-        "privateKey": "Private Key",
-        "apiKey": "API Key",
-        "secretKey": "Secret Key",
+        "transactionType": "Tipo Transazione",
+        "liveTrading": "Trading Live",
+        "virtualTrading": "Trading Virtuale",
+        "selectExchange": "Seleziona Borsa",
+        "walletAddress": "Indirizzo Wallet",
+        "privateKey": "Chiave Privata",
+        "apiKey": "Chiave API",
+        "secretKey": "Chiave Segreta",
         "passphrase": "Passphrase",
-        "testConnection": "Test Connection",
+        "testConnection": "Test Connessione",
         "test": {
-          "success": "Success!",
-          "failed": "Connection failed. Please check your API Key, Secret Key, or Passphrase."
+          "success": "Successo!",
+          "failed": "Connessione fallita. Controlla la tua Chiave API, Chiave Segreta o Passphrase."
         },
         "placeholder": {
           "binance": {
-            "apiKey": "Enter API Key (64 characters)",
-            "secretKey": "Enter Secret Key (64 characters)"
+            "apiKey": "Inserisci Chiave API (64 caratteri)",
+            "secretKey": "Inserisci Chiave Segreta (64 caratteri)"
           },
           "okx": {
-            "apiKey": "Enter API Key (Format: xxxxxxxx-xxxx-...)",
-            "secretKey": "Enter Secret Key (32 uppercase letters & numbers)",
-            "passphrase": "Enter Passphrase (Set during API creation)"
+            "apiKey": "Inserisci Chiave API (Formato: xxxxxxxx-xxxx-...)",
+            "secretKey": "Inserisci Chiave Segreta (32 lettere maiuscole e numeri)",
+            "passphrase": "Inserisci Passphrase (Impostata durante creazione API)"
           },
           "gate": {
-            "apiKey": "Enter API Key (Starts with 'key_')",
-            "secretKey": "Enter Secret Key (64 characters)"
+            "apiKey": "Inserisci Chiave API (Inizia con 'key_')",
+            "secretKey": "Inserisci Chiave Segreta (64 caratteri)"
           },
           "hyperliquid": {
-            "walletAddress": "Enter Wallet Address (Starts with '0x')",
-            "privateKey": "Enter Private Key (64 characters)"
+            "walletAddress": "Inserisci Indirizzo Wallet (Inizia con '0x')",
+            "privateKey": "Inserisci Chiave Privata (64 caratteri)"
           },
           "blockchain": {
-            "apiKey": "Enter API Key (Format: xxxxxxxx-xxxx-...)",
-            "secretKey": "Enter Secret Key"
+            "apiKey": "Inserisci Chiave API (Formato: xxxxxxxx-xxxx-...)",
+            "secretKey": "Inserisci Chiave Segreta"
           },
           "coinbase": {
-            "apiKey": "Enter API Key (or Key Name)",
-            "secretKey": "Enter API Secret (or Private Key)",
-            "passphrase": "Enter Passphrase (Required for Legacy Pro API)"
+            "apiKey": "Inserisci Chiave API (o Nome Chiave)",
+            "secretKey": "Inserisci Segreto API (o Chiave Privata)",
+            "passphrase": "Inserisci Passphrase (Richiesto per Legacy Pro API)"
           },
           "mexc": {
-            "apiKey": "Enter Access Key (Starts with 'mx0')",
-            "secretKey": "Enter Secret Key (Usually 32 characters)"
+            "apiKey": "Inserisci Chiave Accesso (Inizia con 'mx0')",
+            "secretKey": "Inserisci Chiave Segreta (Solitamente 32 caratteri)"
           },
           "default": {
-            "apiKey": "Paste your API Key here",
-            "secretKey": "Paste your Secret Key here",
-            "passphrase": "Enter Passphrase",
-            "walletAddress": "Enter Wallet Address",
-            "privateKey": "Enter Private Key"
+            "apiKey": "Incolla qui la tua Chiave API",
+            "secretKey": "Incolla qui la tua Chiave Segreta",
+            "passphrase": "Inserisci Passphrase",
+            "walletAddress": "Inserisci Indirizzo Wallet",
+            "privateKey": "Inserisci Chiave Privata"
           }
         }
       }
     },
     "prompt": {
       "delete": {
-        "title": "Delete Strategy Prompt",
-        "description": "Are you sure you want to delete this strategy prompt? This action cannot be undone and will permanently remove the prompt from the system."
+        "title": "Elimina Prompt Strategia",
+        "description": "Sei sicuro di voler eliminare questo prompt di strategia? Questa azione non può essere annullata e rimuoverà permanentemente il prompt dal sistema."
       }
     },
     "detail": {
-      "title": "Strategy Details",
-      "loading": "Loading details...",
-      "returnRate": "Return Rate",
-      "strategyType": "Strategy Type",
-      "modelProvider": "Model Provider",
-      "modelId": "Model ID",
-      "initialCapital": "Initial Capital",
-      "maxLeverage": "Max Leverage",
-      "tradingSymbols": "Trading Symbols",
+      "title": "Dettagli Strategia",
+      "loading": "Caricamento dettagli...",
+      "returnRate": "Tasso di Ritorno",
+      "strategyType": "Tipo Strategia",
+      "modelProvider": "Fornitore Modello",
+      "modelId": "ID Modello",
+      "initialCapital": "Capitale Iniziale",
+      "maxLeverage": "Leva Massima",
+      "tradingSymbols": "Simboli di Trading",
       "prompt": "Prompt"
     },
     "history": {
-      "title": "Trading History",
-      "live": "Live Trading",
-      "virtual": "Virtual Trading",
-      "cycle": "Cycle #{{index}}",
-      "aiReasoning": "AI reasoning logic",
-      "operation": "Perform operation",
+      "title": "Storico Trading",
+      "live": "Trading Live",
+      "virtual": "Trading Virtuale",
+      "cycle": "Ciclo #{{index}}",
+      "aiReasoning": "Logica ragionamento IA",
+      "operation": "Esegui operazione",
       "empty": {
-        "title": "No trade history",
-        "desc": "Your completed trades will appear here"
+        "title": "Nessun storico trade",
+        "desc": "I tuoi trade completati appariranno qui"
       },
       "details": {
-        "time": "Time",
-        "price": "Price",
-        "quantity": "Quantity",
-        "holdingTime": "Holding time",
-        "tradingFee": "Trading Fee",
-        "reasoning": "Reasoning"
+        "time": "Ora",
+        "price": "Prezzo",
+        "quantity": "Quantità",
+        "holdingTime": "Tempo detenzione",
+        "tradingFee": "Commissione Trading",
+        "reasoning": "Ragionamento"
       }
     }
   },
   "rank": {
-    "title": "Profit Leaderboard",
+    "title": "Classifica Profitti",
     "days": {
-      "7": "7D",
+      "7": "7G",
       "30": "1M"
     },
     "table": {
-      "rank": "Rank",
-      "user": "User",
+      "rank": "Rango",
+      "user": "Utente",
       "pnl": "P&L",
-      "strategy": "Strategy",
-      "exchange": "Exchange",
-      "model": "Model",
-      "details": "Details",
-      "loading": "Loading..."
+      "strategy": "Strategia",
+      "exchange": "Borsa",
+      "model": "Modello",
+      "details": "Dettagli",
+      "loading": "Caricamento..."
     }
   },
   "home": {
-    "hello": "👋 Hello Investor!",
-    "welcome": "👋 Welcome to ValueCell !",
-    "watchlist": "My Watchlist",
+    "hello": "👋 Ciao Investitore!",
+    "welcome": "👋 Benvenuto in ValueCell!",
+    "watchlist": "La Mia Watchlist",
     "stock": {
-      "loading": "Loading stock data...",
-      "error": "Error loading stock data: {{message}}",
-      "remove": "Remove",
-      "removing": "Removing...",
-      "add": "Add Stocks",
-      "about": "About",
-      "sector": "Sector:",
-      "industry": "Industry:",
-      "website": "Website:",
+      "loading": "Caricamento dati borsa...",
+      "error": "Errore caricamento dati borsa: {{message}}",
+      "remove": "Rimuovi",
+      "removing": "Rimozione...",
+      "add": "Aggiungi Azioni",
+      "about": "Info",
+      "sector": "Settore:",
+      "industry": "Industria:",
+      "website": "Sito Web:",
       "chart": {
         "24h": "24h",
-        "7d": "7d",
-        "30d": "30d"
+        "7d": "7g",
+        "30d": "30g"
       }
     },
     "search": {
-      "title": "Stock Search",
-      "placeholder": "Search for stock name or code",
-      "searching": "Searching...",
-      "noResults": "No related stocks found",
+      "title": "Cerca Azioni",
+      "placeholder": "Cerca per nome azione o codice",
+      "searching": "Ricerca...",
+      "noResults": "Nessuna azione correlata trovata",
       "action": {
-        "watch": "Watchlist",
-        "watching": "Watching...",
-        "watched": "Watched"
+        "watch": "Segui",
+        "watching": "Seguendo...",
+        "watched": "Seguito"
       }
     },
     "suggestions": {
       "research": {
-        "title": "Deep Research",
-        "description": "Analyze SEC filings to generate in-depth stock interpretation reports."
+        "title": "Ricerca Approfondita",
+        "description": "Analizza i documenti SEC per generare report di interpretazione azionaria approfonditi."
       },
       "strategy": {
-        "title": "Automated Trading",
-        "description": "Multi-strategy smart trading, automatically execute your strategies"
+        "title": "Trading Automatizzato",
+        "description": "Trading intelligente multi-strategia, esegui automaticamente le tue strategie"
       },
       "news": {
-        "title": "Pushing News",
-        "description": "Personalized news updates on a custom schedule"
+        "title": "Notifiche Notizie",
+        "description": "Aggiornamenti notizie personalizzati su programma personalizzato"
       }
     }
   }
