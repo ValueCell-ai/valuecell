@@ -4,6 +4,20 @@ import "dayjs/locale/en-gb";
 import "dayjs/locale/ja";
 import "dayjs/locale/zh-cn";
 import "dayjs/locale/zh-tw";
+import "dayjs/locale/de";
+import "dayjs/locale/fr";
+import "dayjs/locale/ca";
+import "dayjs/locale/es";
+import "dayjs/locale/it";
+import "dayjs/locale/pl";
+import "dayjs/locale/tr";
+import "dayjs/locale/ru";
+import "dayjs/locale/pt";
+import "dayjs/locale/id";
+import "dayjs/locale/ms-my";
+import "dayjs/locale/th";
+import "dayjs/locale/vi";
+import "dayjs/locale/ko";
 import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import Backend from "i18next-http-backend";
@@ -43,6 +57,20 @@ i18n.on("languageChanged", (lng) => {
     "zh-Hans": "zh-cn",
     "zh-Hant": "zh-tw",
     "ja-JP": "ja",
+    "de-DE": "de_DE",
+    "fr-FR": "fr",
+    "ca-ES": "ca_ES",
+    "es-ES": "es",
+    "it-IT": "it",
+    "pl-PL": "pl",
+    "tr-TR": "tr",
+    "ru-RU": "ru",
+    "pt-PT": "br",
+    "id-ID": "id",
+    "ms-MY": "ms_MY",
+    "th-TH": "th_TH",
+    "vi-VN": "vi_VN",
+    "ko-KR": "kr",
   };
   dayjs.locale(dayjsLocaleMap[lng] || "en");
 });

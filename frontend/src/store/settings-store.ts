@@ -17,7 +17,26 @@ import type { StockChangeType } from "@/types/stock";
 
 export type StockColorMode = "GREEN_UP_RED_DOWN" | "RED_UP_GREEN_DOWN";
 
-export type LanguageCode = "en-US" | "en-GB" | "zh-Hans" | "zh-Hant" | "ja-JP";
+export type LanguageCode =
+  | "en-US"
+  | "en-GB"
+  | "zh-Hans"
+  | "zh-Hant"
+  | "ja-JP"
+  | "de-DE"
+  | "fr-FR"
+  | "ca-ES"
+  | "es-ES"
+  | "it-IT"
+  | "pl-PL"
+  | "tr-TR"
+  | "ru-RU"
+  | "pt-PT"
+  | "id-ID"
+  | "ms-MY"
+  | "th-TH"
+  | "vi-VN"
+  | "ko-KR";
 
 interface SettingsStoreState {
   stockColorMode: StockColorMode;
