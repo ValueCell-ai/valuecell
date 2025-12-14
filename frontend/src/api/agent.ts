@@ -2,11 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { VALUECELL_AGENT } from "@/constants/agent";
 import { API_QUERY_KEYS } from "@/constants/api";
 import { type ApiResponse, apiClient } from "@/lib/api-client";
+import { useLanguage } from "@/store/settings-store";
 import type { AgentInfo } from "@/types/agent";
 
 export const useGetAgentInfo = (params: { agentName: string }) => {
+  const language = useLanguage();
+
   return useQuery({
-    queryKey: API_QUERY_KEYS.AGENT.agentInfo(Object.values(params)),
+    queryKey: API_QUERY_KEYS.AGENT.agentInfo([...Object.values(params), language]),
     queryFn: async () => {
       // Return hardcoded data for ValueCellAgent
       if (params.agentName === "ValueCellAgent") {
@@ -14,7 +17,7 @@ export const useGetAgentInfo = (params: { agentName: string }) => {
       }
       // Fetch from API for other agents
       return apiClient.get<ApiResponse<AgentInfo>>(
-        `/agents/by-name/${params.agentName}`,
+        `/agents/by-name/${params.agentName}?language=${language}`,
       );
     },
     select: (data) => data.data,
@@ -24,11 +27,13 @@ export const useGetAgentInfo = (params: { agentName: string }) => {
 export const useGetAgentList = (
   params: { enabled_only: string } = { enabled_only: "false" },
 ) => {
+  const language = useLanguage();
+
   return useQuery({
-    queryKey: API_QUERY_KEYS.AGENT.agentList(Object.values(params)),
+    queryKey: API_QUERY_KEYS.AGENT.agentList([...Object.values(params), language]),
     queryFn: () =>
       apiClient.get<ApiResponse<{ agents: AgentInfo[] }>>(
-        `/agents/?enabled_only=${params.enabled_only}`,
+        `/agents/?enabled_only=${params.enabled_only}&language=${language}`,
       ),
     select: (data) => data.data.agents,
   });

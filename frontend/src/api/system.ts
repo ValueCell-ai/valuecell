@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { API_QUERY_KEYS, VALUECELL_BACKEND_URL } from "@/constants/api";
 import { type ApiResponse, apiClient } from "@/lib/api-client";
+import { useLanguage } from "@/store/settings-store";
 import { useSystemStore } from "@/store/system-store";
 import type {
   StrategyDetail,
@@ -68,22 +69,26 @@ export const useSignOut = () => {
 export const useGetStrategyList = (
   params: { limit: number; days: number } = { limit: 10, days: 7 },
 ) => {
+  const language = useLanguage();
+
   return useQuery({
-    queryKey: API_QUERY_KEYS.SYSTEM.strategyList(Object.values(params)),
+    queryKey: API_QUERY_KEYS.SYSTEM.strategyList([...Object.values(params), language]),
     queryFn: () =>
       apiClient.get<ApiResponse<StrategyRankItem[]>>(
-        `${VALUECELL_BACKEND_URL}/strategy/list?limit=${params.limit}&days=${params.days}`,
+        `${VALUECELL_BACKEND_URL}/strategy/list?limit=${params.limit}&days=${params.days}&language=${language}`,
       ),
     select: (data) => data.data,
   });
 };
 
 export const useGetStrategyDetail = (id: number | null) => {
+  const language = useLanguage();
+
   return useQuery({
-    queryKey: API_QUERY_KEYS.SYSTEM.strategyDetail([id ?? ""]),
+    queryKey: API_QUERY_KEYS.SYSTEM.strategyDetail([id ?? "", language]),
     queryFn: () =>
       apiClient.get<ApiResponse<StrategyDetail>>(
-        `${VALUECELL_BACKEND_URL}/strategy/detail/${id}`,
+        `${VALUECELL_BACKEND_URL}/strategy/detail/${id}?language=${language}`,
       ),
     select: (data) => data.data,
     enabled: !!id,
@@ -122,15 +127,21 @@ export const usePublishStrategy = () => {
  * @param region - Optional region override for testing (e.g., "cn" or "default").
  *                 In development, you can set this to test different regions.
  */
-export const useGetDefaultTickers = (region?: string) =>
-  useQuery({
-    queryKey: ["system", "default-tickers", region],
+export const useGetDefaultTickers = (region?: string) => {
+  const language = useLanguage();
+
+  return useQuery({
+    queryKey: ["system", "default-tickers", region, language],
     queryFn: () => {
-      const params = region ? `?region=${region}` : "";
+      const regionParam = region ? `region=${region}` : "";
+      const langParam = `language=${language}`;
+      const params = [regionParam, langParam].filter(Boolean).join("&");
+      
       return apiClient.get<ApiResponse<DefaultTickersResponse>>(
-        `system/default-tickers${params}`,
+        `system/default-tickers?${params}`,
       );
     },
     select: (data) => data.data,
     staleTime: 1000 * 60 * 60, // Cache for 1 hour, region doesn't change frequently
   });
+};
