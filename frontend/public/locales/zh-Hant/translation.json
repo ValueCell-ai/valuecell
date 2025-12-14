@@ -60,5 +60,102 @@
   },
   "market": {
     "title": "Agent 市場"
+  },
+  "agent": {
+    "config": {
+      "disable": "禁用",
+      "chat": "聊天",
+      "collectAndChat": "收藏並聊天"
+    },
+    "chat": {
+      "placeholder": "輸入您的訊息...",
+      "newConversation": "新對話",
+      "settings": "設置"
+    }
+  },
+  "strategy": {
+    "title": "交易策略",
+    "add": "新增交易策略",
+    "noStrategies": "暫無交易策略",
+    "createFirst": "建立您的第一個策略以開始交易",
+    "status": {
+      "running": "運行中",
+      "stopped": "已停止",
+      "live": "實盤",
+      "virtual": "虛擬"
+    },
+    "action": {
+      "stop": "停止交易策略？",
+      "stopDesc": "停止策略 \"{{name}}\" 將立即停止它並觸發強制平倉。您確定要繼續嗎？",
+      "confirmStop": "確認停止",
+      "delete": "刪除",
+      "deleteTitle": "刪除策略？",
+      "deleteDesc": "刪除策略 \"{{name}}\" 將立即停止它並觸發強制平倉。您確定要繼續嗎？",
+      "confirmDelete": "確認刪除",
+      "details": "詳情",
+      "duplicate": "複製",
+      "cancel": "取消",
+      "back": "返回",
+      "next": "下一步",
+      "confirm": "確認",
+      "publish": "發布",
+      "shareToSocial": "分享到社交媒體",
+      "shareToRanking": "分享到排行榜"
+    },
+    "portfolio": {
+      "title": "投資組合價值歷史",
+      "totalEquity": "總權益",
+      "availableBalance": "可用餘額",
+      "totalPnl": "總盈虧",
+      "noData": "暫無投資組合價值數據",
+      "noDataDesc": "交易開始後將顯示投資組合價值圖表"
+    },
+    "positions": {
+      "title": "持倉",
+      "symbol": "標的",
+      "type": "類型",
+      "leverage": "槓桿",
+      "quantity": "數量",
+      "pnl": "盈虧",
+      "noOpen": "暫無持倉",
+      "noOpenDesc": "開倉後將在此處顯示持倉"
+    },
+    "create": {
+      "steps": {
+        "aiModels": "AI 模型",
+        "exchanges": "交易所",
+        "tradingStrategy": "交易策略"
+      },
+      "error": "建立策略失敗"
+    },
+    "detail": {
+      "title": "策略詳情",
+      "loading": "載入詳情中...",
+      "returnRate": "回報率",
+      "strategyType": "策略類型",
+      "modelProvider": "模型供應商",
+      "modelId": "模型 ID",
+      "initialCapital": "初始資金",
+      "maxLeverage": "最大槓桿",
+      "tradingSymbols": "交易標的",
+      "prompt": "提示詞"
+    }
+  },
+  "rank": {
+    "title": "收益排行榜",
+    "days": {
+      "7": "7天",
+      "30": "1月"
+    },
+    "table": {
+      "rank": "排名",
+      "user": "用戶",
+      "pnl": "盈虧",
+      "strategy": "策略",
+      "exchange": "交易所",
+      "model": "模型",
+      "details": "詳情",
+      "loading": "載入中..."
+    }
   }
 }
