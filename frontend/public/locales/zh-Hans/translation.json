@@ -1,0 +1,26 @@
+{
+  "general": {
+    "title": "通用",
+    "description": "管理您的首选项和应用程序设置",
+    "account": {
+      "title": "账户",
+      "signInDesc": "登录以开始使用 Valuecell AI 功能。",
+      "signOut": "退出登录",
+      "signIn": "登录"
+    },
+    "language": {
+      "title": "语言和区域",
+      "description": "选择您喜欢的应用程序语言和区域格式。"
+    },
+    "quotesColor": {
+      "title": "行情颜色",
+      "description": "选择股票行情涨跌的显示颜色。",
+      "greenUpRedDown": "绿涨红跌",
+      "redUpGreenDown": "红涨绿跌"
+    },
+    "updates": {
+      "title": "应用更新",
+      "check": "检查更新"
+    }
+  }
+}

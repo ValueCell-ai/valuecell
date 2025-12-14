@@ -1,0 +1,26 @@
+{
+  "general": {
+    "title": "General",
+    "description": "Manage your preferences and application settings",
+    "account": {
+      "title": "Account",
+      "signInDesc": "Sign in to get started with Valuecell AI features.",
+      "signOut": "Sign Out",
+      "signIn": "Sign In"
+    },
+    "language": {
+      "title": "Language and Region",
+      "description": "Select your preferred language and regional format for the app."
+    },
+    "quotesColor": {
+      "title": "Quotes Colour",
+      "description": "Choose how stock quote movements are visualised across the app.",
+      "greenUpRedDown": "Green Up / Red Down",
+      "redUpGreenDown": "Red Up / Green Down"
+    },
+    "updates": {
+      "title": "App Updates",
+      "check": "Check for Update"
+    }
+  }
+}

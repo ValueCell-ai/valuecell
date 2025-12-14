@@ -1,0 +1,33 @@
+{
+  "general": {
+    "title": "一般",
+    "description": "設定とアプリケーションの管理",
+    "account": {
+      "title": "アカウント",
+      "signInDesc": "Valuecell AI 機能を開始するにはサインインしてください。",
+      "signOut": "サインアウト",
+      "signIn": "サインイン"
+    },
+    "language": {
+      "title": "言語と地域",
+      "description": "アプリの言語と地域形式を選択してください。",
+      "options": {
+        "en-US": "English (United States)",
+        "en-GB": "English (United Kingdom)",
+        "zh-Hans": "简体中文",
+        "zh-Hant": "繁體中文",
+        "ja-JP": "日本語"
+      }
+    },
+    "quotesColor": {
+      "title": "相場カラー",
+      "description": "株価の変動を視覚化する方法を選択してください。",
+      "greenUpRedDown": "緑上昇 / 赤下落",
+      "redUpGreenDown": "赤上昇 / 緑下落"
+    },
+    "updates": {
+      "title": "アプリアップデート",
+      "check": "アップデートを確認"
+    }
+  }
+}
