@@ -345,14 +345,16 @@ export function ModelDetail({ provider }: ModelDetailProps) {
               </div>
             ) : (
               <div className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-3">
-                {providerDetail.models.map((m) => (
-                  <div
-                    key={m.model_id}
-                    className="flex items-center justify-between"
-                  >
-                    <span className="font-normal text-gray-950 text-sm">
-                      {m.model_name}
-                    </span>
+                {[...providerDetail.models]
+                  .sort((a, b) => a.model_name.localeCompare(b.model_name))
+                  .map((m) => (
+                    <div
+                      key={m.model_id}
+                      className="flex items-center justify-between"
+                    >
+                      <span className="font-normal text-gray-950 text-sm">
+                        {m.model_name}
+                      </span>
 
                     <div className="flex items-center gap-3">
                       <Switch
