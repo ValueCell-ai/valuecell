@@ -76,7 +76,7 @@ export const AIModelForm = withForm({
                       }
                       className="size-4"
                     />
-                    {provider}
+                    {t(`strategy.providers.${provider}`) || provider}
                   </div>
                 </SelectItem>
               ))}

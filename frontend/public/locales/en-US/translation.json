@@ -95,6 +95,20 @@
     }
   },
   "strategy": {
+    "types": {
+      "PromptBasedStrategy": "Prompt Based Strategy",
+      "GridStrategy": "Grid Strategy"
+    },
+    "providers": {
+      "azure": "Azure OpenAI",
+      "dashscope": "Alibaba Cloud",
+      "deepseek": "DeepSeek",
+      "google": "Google Cloud",
+      "openai": "OpenAI",
+      "openai-compatible": "OpenAI Compatible",
+      "openrouter": "OpenRouter",
+      "siliconflow": "SiliconFlow"
+    },
     "title": "Trading Strategies",
     "add": "Add trading strategy",
     "noStrategies": "No trading strategies",
@@ -265,6 +279,26 @@
       "maxLeverage": "Max Leverage",
       "tradingSymbols": "Trading Symbols",
       "prompt": "Prompt"
+    },
+    "history": {
+      "title": "Trading History",
+      "live": "Live Trading",
+      "virtual": "Virtual Trading",
+      "cycle": "Cycle #{{index}}",
+      "aiReasoning": "AI reasoning logic",
+      "operation": "Perform operation",
+      "empty": {
+        "title": "No trade history",
+        "desc": "Your completed trades will appear here"
+      },
+      "details": {
+        "time": "Time",
+        "price": "Price",
+        "quantity": "Quantity",
+        "holdingTime": "Holding time",
+        "tradingFee": "Trading Fee",
+        "reasoning": "Reasoning"
+      }
     }
   },
   "rank": {

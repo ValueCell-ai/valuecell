@@ -95,6 +95,21 @@
     }
   },
   "strategy": {
+    "types": {
+      "PromptBasedStrategy": "Prompt 策略",
+      "GridStrategy": "网格策略"
+    },
+    "providers": {
+      "aliyun": "阿里云",
+      "azure": "Azure OpenAI",
+      "dashscope": "阿里云",
+      "deepseek": "深度求索",
+      "google": "谷歌云",
+      "openai": "OpenAI",
+      "openai-compatible": "OpenAI 兼容",
+      "openrouter": "OpenRouter",
+      "siliconflow": "硅基流动"
+    },
     "title": "交易策略",
     "add": "添加交易策略",
     "noStrategies": "暂无交易策略",
@@ -263,8 +278,28 @@
       "modelId": "模型 ID",
       "initialCapital": "初始资金",
       "maxLeverage": "最大杠杆",
-      "tradingSymbols": "交易标的",
-      "prompt": "提示词"
+      "tradingSymbols": "交易对",
+      "prompt": "Prompt"
+    },
+    "history": {
+      "title": "交易历史",
+      "live": "实盘交易",
+      "virtual": "模拟交易",
+      "cycle": "周期 #{{index}}",
+      "aiReasoning": "AI 推理逻辑",
+      "operation": "执行操作",
+      "empty": {
+        "title": "暂无交易历史",
+        "desc": "您完成的交易将显示在这里"
+      },
+      "details": {
+        "time": "时间",
+        "price": "价格",
+        "quantity": "数量",
+        "holdingTime": "持仓时间",
+        "tradingFee": "交易费用",
+        "reasoning": "推理"
+      }
     }
   },
   "rank": {

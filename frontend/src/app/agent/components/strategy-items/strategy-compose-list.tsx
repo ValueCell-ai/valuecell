@@ -1,5 +1,6 @@
 import { ChevronDown, History } from "lucide-react";
 import { type FC, memo, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ValueCellAgentPng } from "@/assets/png";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,13 +31,14 @@ interface StrategyComposeItemProps {
 }
 
 const StrategyComposeItem: FC<StrategyComposeItemProps> = ({ compose }) => {
+  const { t } = useTranslation();
   const [isReasoningOpen, setIsReasoningOpen] = useState(false);
 
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-gray-100 bg-gray-50 p-4">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-base text-gray-900">
-          {`Cycle #${compose.cycle_index}`}
+          {t("strategy.history.cycle", { index: compose.cycle_index })}
         </h3>
         <span className="text-gray-400 text-xs">
           {TimeUtils.formatUTC(compose.created_at, TIME_FORMATS.DATETIME)}
@@ -44,7 +46,7 @@ const StrategyComposeItem: FC<StrategyComposeItemProps> = ({ compose }) => {
       </div>
 
       {/* AI Reasoning Logic */}
-      <p className="text-gray-400 text-xs">AI reasoning logic</p>
+      <p className="text-gray-400 text-xs">{t("strategy.history.aiReasoning")}</p>
       <Collapsible open={isReasoningOpen} onOpenChange={setIsReasoningOpen}>
         <CollapsibleTrigger
           data-active={isReasoningOpen}
@@ -68,7 +70,7 @@ const StrategyComposeItem: FC<StrategyComposeItemProps> = ({ compose }) => {
       {/* Perform Operation */}
       {compose.actions.length > 0 && (
         <>
-          <p className="text-gray-400 text-xs">Perform operation</p>
+          <p className="text-gray-400 text-xs">{t("strategy.history.operation")}</p>
           {compose.actions.map((action) => (
             <ActionItem key={action.instruction_id} action={action} />
           ))}
@@ -79,6 +81,7 @@ const StrategyComposeItem: FC<StrategyComposeItemProps> = ({ compose }) => {
 };
 
 const ActionItem: FC<{ action: StrategyAction }> = ({ action }) => {
+  const { t } = useTranslation();
   const stockColors = useStockColors();
 
   const formatHoldingTime = (ms?: number) => {
@@ -166,7 +169,7 @@ const ActionItem: FC<{ action: StrategyAction }> = ({ action }) => {
 
         {/* Data Grid */}
         <div className="mb-4 grid grid-cols-[auto_1fr] gap-y-1 text-nowrap text-gray-500 text-xs">
-          <span>Time</span>
+          <span>{t("strategy.history.details.time")}</span>
           <span className="text-right">
             {TimeUtils.formatUTC(
               action.exit_at ?? action.entry_at,
@@ -174,24 +177,24 @@ const ActionItem: FC<{ action: StrategyAction }> = ({ action }) => {
             )}
           </span>
 
-          <span>Price</span>
+          <span>{t("strategy.history.details.price")}</span>
           <span className="text-right">{priceRange}</span>
 
-          <span>Quantity</span>
+          <span>{t("strategy.history.details.quantity")}</span>
           <span className="text-right">{action.quantity}</span>
 
-          <span>Holding time</span>
+          <span>{t("strategy.history.details.holdingTime")}</span>
           <span className="text-right">
             {formatHoldingTime(action.holding_time_ms)}
           </span>
 
-          <span>Trading Fee</span>
+          <span>{t("strategy.history.details.tradingFee")}</span>
           <span className="text-right">{-numberFixed(action.fee_cost, 4)}</span>
         </div>
 
         {/* Reasoning Box */}
         <div className="rounded-lg bg-blue-50 p-3">
-          <p className="mb-1 font-medium text-gray-900 text-xs">Reasoning</p>
+          <p className="mb-1 font-medium text-gray-900 text-xs">{t("strategy.history.details.reasoning")}</p>
           <p className="text-gray-500 text-xs leading-relaxed">
             {action.rationale}
           </p>
@@ -210,15 +213,16 @@ const StrategyComposeList: FC<StrategyComposeListProps> = ({
   composes,
   tradingMode,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="flex w-[420px] flex-col overflow-hidden border-r bg-white">
       <div className="flex items-center justify-between px-6 py-4">
         <h3 className="font-semibold text-base text-gray-950">
-          Trading History
+          {t("strategy.history.title")}
         </h3>
 
         <p className="rounded-md bg-gray-100 px-2.5 py-1 font-medium text-gray-950 text-sm">
-          {tradingMode === "live" ? "Live Trading" : "Virtual Trading"}
+          {tradingMode === "live" ? t("strategy.history.live") : t("strategy.history.virtual")}
         </p>
       </div>
 
@@ -237,10 +241,10 @@ const StrategyComposeList: FC<StrategyComposeListProps> = ({
               </div>
               <div className="flex flex-col gap-2">
                 <p className="font-semibold text-base text-gray-700">
-                  No trade history
+                  {t("strategy.history.empty.title")}
                 </p>
                 <p className="max-w-[280px] text-gray-500 text-sm leading-relaxed">
-                  Your completed trades will appear here
+                  {t("strategy.history.empty.desc")}
                 </p>
               </div>
             </div>

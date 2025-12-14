@@ -102,10 +102,10 @@ const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
 
               <div className="grid grid-cols-[auto_1fr] gap-y-2 text-nowrap text-sm [&>p]:text-gray-500 [&>span]:text-right">
                 <p>{t("strategy.detail.strategyType")}</p>
-                <span>{strategyDetail.strategy_type}</span>
+                <span>{t(`strategy.types.${strategyDetail.strategy_type}`)}</span>
 
                 <p>{t("strategy.detail.modelProvider")}</p>
-                <span>{strategyDetail.llm_provider}</span>
+                <span>{t(`strategy.providers.${strategyDetail.llm_provider}`) || strategyDetail.llm_provider}</span>
 
                 <p>{t("strategy.detail.modelId")}</p>
                 <span>{strategyDetail.llm_model_id}</span>

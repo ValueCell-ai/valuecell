@@ -102,6 +102,21 @@
     }
   },
   "strategy": {
+    "types": {
+      "PromptBasedStrategy": "プロンプトベース戦略",
+      "GridStrategy": "グリッド戦略"
+    },
+    "providers": {
+      "aliyun": "Alibaba Cloud",
+      "azure": "Azure OpenAI",
+      "dashscope": "Alibaba Cloud",
+      "deepseek": "DeepSeek",
+      "google": "Google Cloud",
+      "openai": "OpenAI",
+      "openai-compatible": "OpenAI互換",
+      "openrouter": "OpenRouter",
+      "siliconflow": "SiliconFlow"
+    },
     "title": "取引戦略",
     "add": "取引戦略を追加",
     "noStrategies": "取引戦略はありません",
@@ -270,8 +285,28 @@
       "modelId": "モデルID",
       "initialCapital": "初期資本",
       "maxLeverage": "最大レバレッジ",
-      "tradingSymbols": "取引シンボル",
+      "tradingSymbols": "取引ペア",
       "prompt": "プロンプト"
+    },
+    "history": {
+      "title": "取引履歴",
+      "live": "ライブ取引",
+      "virtual": "バーチャル取引",
+      "cycle": "サイクル #{{index}}",
+      "aiReasoning": "AI推論ロジック",
+      "operation": "操作を実行",
+      "empty": {
+        "title": "取引履歴がありません",
+        "desc": "完了した取引はここに表示されます"
+      },
+      "details": {
+        "time": "時間",
+        "price": "価格",
+        "quantity": "数量",
+        "holdingTime": "保有時間",
+        "tradingFee": "取引手数料",
+        "reasoning": "推論"
+      }
     }
   },
   "rank": {
