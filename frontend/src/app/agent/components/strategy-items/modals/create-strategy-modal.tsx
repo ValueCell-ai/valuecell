@@ -193,7 +193,9 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
       >
         <DialogTitle className="flex flex-col gap-4 px-1">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-lg">{t("strategy.create.title")}</h2>
+            <h2 className="font-semibold text-lg">
+              {t("strategy.create.title")}
+            </h2>
             <CloseButton onClick={resetAll} />
           </div>
 
@@ -234,7 +236,9 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
               onClick={currentStep === 1 ? resetAll : handleBack}
               className="border-gray-100 py-4 font-semibold text-base"
             >
-              {currentStep === 1 ? t("strategy.action.cancel") : t("strategy.action.back")}
+              {currentStep === 1
+                ? t("strategy.action.cancel")
+                : t("strategy.action.back")}
             </Button>
             <Button
               type="button"
@@ -254,7 +258,9 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
               className="relative py-4 font-semibold text-base text-white hover:bg-gray-800"
             >
               {isCreatingStrategy && <Spinner className="absolute left-4" />}
-              {currentStep === 3 ? t("strategy.action.confirm") : t("strategy.action.next")}
+              {currentStep === 3
+                ? t("strategy.action.confirm")
+                : t("strategy.action.next")}
             </Button>
           </div>
         </DialogFooter>

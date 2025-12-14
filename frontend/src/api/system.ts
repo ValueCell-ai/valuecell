@@ -72,7 +72,10 @@ export const useGetStrategyList = (
   const language = useLanguage();
 
   return useQuery({
-    queryKey: API_QUERY_KEYS.SYSTEM.strategyList([...Object.values(params), language]),
+    queryKey: API_QUERY_KEYS.SYSTEM.strategyList([
+      ...Object.values(params),
+      language,
+    ]),
     queryFn: () =>
       apiClient.get<ApiResponse<StrategyRankItem[]>>(
         `${VALUECELL_BACKEND_URL}/strategy/list?limit=${params.limit}&days=${params.days}&language=${language}`,
@@ -136,7 +139,7 @@ export const useGetDefaultTickers = (region?: string) => {
       const regionParam = region ? `region=${region}` : "";
       const langParam = `language=${language}`;
       const params = [regionParam, langParam].filter(Boolean).join("&");
-      
+
       return apiClient.get<ApiResponse<DefaultTickersResponse>>(
         `system/default-tickers?${params}`,
       );

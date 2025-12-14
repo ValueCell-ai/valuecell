@@ -55,8 +55,10 @@ const getPlaceholder = (
 ): string => {
   switch (exchangeId) {
     case "binance":
-      if (fieldType === "api_key") return t("strategy.form.exchanges.placeholder.binance.apiKey");
-      if (fieldType === "secret_key") return t("strategy.form.exchanges.placeholder.binance.secretKey");
+      if (fieldType === "api_key")
+        return t("strategy.form.exchanges.placeholder.binance.apiKey");
+      if (fieldType === "secret_key")
+        return t("strategy.form.exchanges.placeholder.binance.secretKey");
       break;
     case "okx":
       if (fieldType === "api_key")
@@ -67,22 +69,28 @@ const getPlaceholder = (
         return t("strategy.form.exchanges.placeholder.okx.passphrase");
       break;
     case "gate":
-      if (fieldType === "api_key") return t("strategy.form.exchanges.placeholder.gate.apiKey");
-      if (fieldType === "secret_key") return t("strategy.form.exchanges.placeholder.gate.secretKey");
+      if (fieldType === "api_key")
+        return t("strategy.form.exchanges.placeholder.gate.apiKey");
+      if (fieldType === "secret_key")
+        return t("strategy.form.exchanges.placeholder.gate.secretKey");
       break;
     case "hyperliquid":
       if (fieldType === "wallet_address")
-        return t("strategy.form.exchanges.placeholder.hyperliquid.walletAddress");
+        return t(
+          "strategy.form.exchanges.placeholder.hyperliquid.walletAddress",
+        );
       if (fieldType === "private_key")
         return t("strategy.form.exchanges.placeholder.hyperliquid.privateKey");
       break;
     case "blockchaincom":
       if (fieldType === "api_key")
         return t("strategy.form.exchanges.placeholder.blockchain.apiKey");
-      if (fieldType === "secret_key") return t("strategy.form.exchanges.placeholder.blockchain.secretKey");
+      if (fieldType === "secret_key")
+        return t("strategy.form.exchanges.placeholder.blockchain.secretKey");
       break;
     case "coinbaseexchange":
-      if (fieldType === "api_key") return t("strategy.form.exchanges.placeholder.coinbase.apiKey");
+      if (fieldType === "api_key")
+        return t("strategy.form.exchanges.placeholder.coinbase.apiKey");
       if (fieldType === "secret_key")
         return t("strategy.form.exchanges.placeholder.coinbase.secretKey");
       if (fieldType === "passphrase")
@@ -97,11 +105,16 @@ const getPlaceholder = (
   }
 
   // Default placeholders
-  if (fieldType === "api_key") return t("strategy.form.exchanges.placeholder.default.apiKey");
-  if (fieldType === "secret_key") return t("strategy.form.exchanges.placeholder.default.secretKey");
-  if (fieldType === "passphrase") return t("strategy.form.exchanges.placeholder.default.passphrase");
-  if (fieldType === "wallet_address") return t("strategy.form.exchanges.placeholder.default.walletAddress");
-  if (fieldType === "private_key") return t("strategy.form.exchanges.placeholder.default.privateKey");
+  if (fieldType === "api_key")
+    return t("strategy.form.exchanges.placeholder.default.apiKey");
+  if (fieldType === "secret_key")
+    return t("strategy.form.exchanges.placeholder.default.secretKey");
+  if (fieldType === "passphrase")
+    return t("strategy.form.exchanges.placeholder.default.passphrase");
+  if (fieldType === "wallet_address")
+    return t("strategy.form.exchanges.placeholder.default.walletAddress");
+  if (fieldType === "private_key")
+    return t("strategy.form.exchanges.placeholder.default.privateKey");
   return "";
 };
 
@@ -127,7 +140,10 @@ export const ExchangeForm = withForm({
       setTestStatus(null);
       try {
         await testConnection(form.state.values);
-        setTestStatus({ success: true, message: t("strategy.form.exchanges.test.success") });
+        setTestStatus({
+          success: true,
+          message: t("strategy.form.exchanges.test.success"),
+        });
       } catch (_error) {
         setTestStatus({
           success: false,
@@ -155,7 +171,9 @@ export const ExchangeForm = withForm({
           name="trading_mode"
         >
           {(field) => (
-            <field.RadioField label={t("strategy.form.exchanges.transactionType")}>
+            <field.RadioField
+              label={t("strategy.form.exchanges.transactionType")}
+            >
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="live" id="live" />
                 <Label htmlFor="live" className="text-sm">
@@ -179,7 +197,9 @@ export const ExchangeForm = withForm({
                 <>
                   <form.AppField name="exchange_id">
                     {(field) => (
-                      <field.SelectField label={t("strategy.form.exchanges.selectExchange")}>
+                      <field.SelectField
+                        label={t("strategy.form.exchanges.selectExchange")}
+                      >
                         {EXCHANGE_OPTIONS.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             <div className="flex items-center gap-2">
@@ -207,7 +227,9 @@ export const ExchangeForm = withForm({
                           <form.AppField name="wallet_address">
                             {(field) => (
                               <field.TextField
-                                label={t("strategy.form.exchanges.walletAddress")}
+                                label={t(
+                                  "strategy.form.exchanges.walletAddress",
+                                )}
                                 placeholder={getPlaceholder(
                                   exchangeId || "",
                                   "wallet_address",
@@ -261,7 +283,9 @@ export const ExchangeForm = withForm({
                             <form.AppField name="passphrase">
                               {(field) => (
                                 <field.PasswordField
-                                  label={t("strategy.form.exchanges.passphrase")}
+                                  label={t(
+                                    "strategy.form.exchanges.passphrase",
+                                  )}
                                   placeholder={getPlaceholder(
                                     exchangeId || "",
                                     "passphrase",

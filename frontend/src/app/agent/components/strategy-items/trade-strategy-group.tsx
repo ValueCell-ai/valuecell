@@ -234,7 +234,9 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
                   name={DeleteStrategy}
                   className="size-6 text-red-500"
                 />{" "}
-                <span className="text-red-500">{t("strategy.action.delete")}</span>
+                <span className="text-red-500">
+                  {t("strategy.action.delete")}
+                </span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

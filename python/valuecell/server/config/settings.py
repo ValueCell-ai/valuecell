@@ -2,7 +2,6 @@
 
 import os
 from functools import lru_cache
-from pathlib import Path
 
 from valuecell.config.constants import PROJECT_ROOT
 from valuecell.utils.env import get_system_env_dir

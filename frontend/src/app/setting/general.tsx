@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useSignOut } from "@/api/system";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,6 @@ import {
   useStockColorMode,
 } from "@/store/settings-store";
 import { useIsLoggedIn, useSystemInfo } from "@/store/system-store";
-import { useTranslation } from "react-i18next";
 
 export default function GeneralPage() {
   const { t } = useTranslation();
@@ -44,7 +44,9 @@ export default function GeneralPage() {
   return (
     <div className="flex flex-1 flex-col gap-4 p-10">
       <div className="flex flex-col gap-1.5">
-        <h1 className="font-bold text-gray-950 text-xl">{t("general.title")}</h1>
+        <h1 className="font-bold text-gray-950 text-xl">
+          {t("general.title")}
+        </h1>
         <p className="font-normal text-gray-500 text-sm">
           {t("general.description")}
         </p>
@@ -58,9 +60,7 @@ export default function GeneralPage() {
                 {t("general.account.title")}
               </FieldTitle>
               <FieldDescription>
-                {isLoggedIn
-                  ? email
-                  : t("general.account.signInDesc")}
+                {isLoggedIn ? email : t("general.account.signInDesc")}
               </FieldDescription>
             </FieldContent>
             {isLoggedIn ? (

@@ -9,7 +9,10 @@ export const useGetAgentInfo = (params: { agentName: string }) => {
   const language = useLanguage();
 
   return useQuery({
-    queryKey: API_QUERY_KEYS.AGENT.agentInfo([...Object.values(params), language]),
+    queryKey: API_QUERY_KEYS.AGENT.agentInfo([
+      ...Object.values(params),
+      language,
+    ]),
     queryFn: async () => {
       // Return hardcoded data for ValueCellAgent
       if (params.agentName === "ValueCellAgent") {
@@ -30,7 +33,10 @@ export const useGetAgentList = (
   const language = useLanguage();
 
   return useQuery({
-    queryKey: API_QUERY_KEYS.AGENT.agentList([...Object.values(params), language]),
+    queryKey: API_QUERY_KEYS.AGENT.agentList([
+      ...Object.values(params),
+      language,
+    ]),
     queryFn: () =>
       apiClient.get<ApiResponse<{ agents: AgentInfo[] }>>(
         `/agents/?enabled_only=${params.enabled_only}&language=${language}`,

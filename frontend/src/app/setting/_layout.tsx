@@ -40,7 +40,9 @@ export default function SettingLayout() {
       {/* Left navigation */}
       <aside className="flex w-52 flex-col gap-4 rounded-tl-xl rounded-bl-xl bg-white px-6 py-8">
         <div className="flex flex-col gap-4">
-          <h2 className="font-bold text-gray-950 text-xl">{t("settings.title")}</h2>
+          <h2 className="font-bold text-gray-950 text-xl">
+            {t("settings.title")}
+          </h2>
 
           <ItemGroup className="gap-1">
             {settingNavItems.map((navItem) => {
