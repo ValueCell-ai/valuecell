@@ -1,5 +1,6 @@
 import { Eye } from "lucide-react";
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useGetStrategyList } from "@/api/system";
 import { ValueCellAgentPng } from "@/assets/png";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -25,6 +26,7 @@ import StrategyRemoteModal, {
 } from "./components/strategy-remote-modal";
 
 export default function RankBoard() {
+  const { t } = useTranslation();
   const [days, setDays] = useState(7);
   const strategyRemoteModalRef = useRef<StrategyRemoteModalRef>(null);
 
@@ -51,15 +53,15 @@ export default function RankBoard() {
       <Card className="border-none p-0 shadow-none">
         <CardHeader className="flex flex-row items-center justify-between px-0">
           <CardTitle className="font-bold text-xl">
-            Profit Leaderboard
+            {t("rank.title")}
           </CardTitle>
           <Tabs
             value={String(days)}
             onValueChange={(val) => setDays(Number(val))}
           >
             <TabsList>
-              <TabsTrigger value="7">7D</TabsTrigger>
-              <TabsTrigger value="30">1M</TabsTrigger>
+              <TabsTrigger value="7">{t("rank.days.7")}</TabsTrigger>
+              <TabsTrigger value="30">{t("rank.days.30")}</TabsTrigger>
             </TabsList>
           </Tabs>
         </CardHeader>
@@ -68,20 +70,20 @@ export default function RankBoard() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-[80px]">Rank</TableHead>
-                  <TableHead>User</TableHead>
-                  <TableHead>P&L</TableHead>
-                  <TableHead>Strategy</TableHead>
-                  <TableHead>Exchange</TableHead>
-                  <TableHead>Model</TableHead>
-                  <TableHead>Details</TableHead>
+                  <TableHead className="w-[80px]">{t("rank.table.rank")}</TableHead>
+                  <TableHead>{t("rank.table.user")}</TableHead>
+                  <TableHead>{t("rank.table.pnl")}</TableHead>
+                  <TableHead>{t("rank.table.strategy")}</TableHead>
+                  <TableHead>{t("rank.table.exchange")}</TableHead>
+                  <TableHead>{t("rank.table.model")}</TableHead>
+                  <TableHead>{t("rank.table.details")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center">
-                      Loading...
+                      {t("rank.table.loading")}
                     </TableCell>
                   </TableRow>
                 ) : (

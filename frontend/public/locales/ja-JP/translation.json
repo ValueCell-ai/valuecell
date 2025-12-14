@@ -67,5 +67,102 @@
   },
   "market": {
     "title": "Agent マーケット"
+  },
+  "agent": {
+    "config": {
+      "disable": "無効にする",
+      "chat": "チャット",
+      "collectAndChat": "収集してチャット"
+    },
+    "chat": {
+      "placeholder": "メッセージを入力...",
+      "newConversation": "新しい会話",
+      "settings": "設定"
+    }
+  },
+  "strategy": {
+    "title": "取引戦略",
+    "add": "取引戦略を追加",
+    "noStrategies": "取引戦略はありません",
+    "createFirst": "最初の戦略を作成して取引を開始しましょう",
+    "status": {
+      "running": "実行中",
+      "stopped": "停止",
+      "live": "ライブ",
+      "virtual": "バーチャル"
+    },
+    "action": {
+      "stop": "取引戦略を停止しますか？",
+      "stopDesc": "戦略「{{name}}」を停止すると、即座に停止し、強制決済がトリガーされます。続行しますか？",
+      "confirmStop": "停止を確認",
+      "delete": "削除",
+      "deleteTitle": "戦略を削除しますか？",
+      "deleteDesc": "戦略「{{name}}」を削除すると、即座に停止し、強制決済がトリガーされます。続行しますか？",
+      "confirmDelete": "削除を確認",
+      "details": "詳細",
+      "duplicate": "複製",
+      "cancel": "キャンセル",
+      "back": "戻る",
+      "next": "次へ",
+      "confirm": "確認",
+      "publish": "公開",
+      "shareToSocial": "SNSでシェア",
+      "shareToRanking": "ランキングでシェア"
+    },
+    "portfolio": {
+      "title": "ポートフォリオ価値履歴",
+      "totalEquity": "総資本",
+      "availableBalance": "利用可能残高",
+      "totalPnl": "総損益",
+      "noData": "ポートフォリオ価値データなし",
+      "noDataDesc": "取引が開始されるとポートフォリオ価値チャートが表示されます"
+    },
+    "positions": {
+      "title": "ポジション",
+      "symbol": "シンボル",
+      "type": "タイプ",
+      "leverage": "レバレッジ",
+      "quantity": "数量",
+      "pnl": "損益",
+      "noOpen": "オープンポジションなし",
+      "noOpenDesc": "取引が開始されるとここにポジションが表示されます"
+    },
+    "create": {
+      "steps": {
+        "aiModels": "AIモデル",
+        "exchanges": "取引所",
+        "tradingStrategy": "取引戦略"
+      },
+      "error": "戦略作成エラー"
+    },
+    "detail": {
+      "title": "戦略詳細",
+      "loading": "詳細を読み込み中...",
+      "returnRate": "収益率",
+      "strategyType": "戦略タイプ",
+      "modelProvider": "モデルプロバイダー",
+      "modelId": "モデルID",
+      "initialCapital": "初期資本",
+      "maxLeverage": "最大レバレッジ",
+      "tradingSymbols": "取引シンボル",
+      "prompt": "プロンプト"
+    }
+  },
+  "rank": {
+    "title": "収益ランキング",
+    "days": {
+      "7": "7日",
+      "30": "1ヶ月"
+    },
+    "table": {
+      "rank": "順位",
+      "user": "ユーザー",
+      "pnl": "損益",
+      "strategy": "戦略",
+      "exchange": "取引所",
+      "model": "モデル",
+      "details": "詳細",
+      "loading": "読み込み中..."
+    }
   }
 }

@@ -60,5 +60,102 @@
   },
   "market": {
     "title": "Agent Market"
+  },
+  "agent": {
+    "config": {
+      "disable": "Disable",
+      "chat": "Chat",
+      "collectAndChat": "Collect and chat"
+    },
+    "chat": {
+      "placeholder": "Type your message...",
+      "newConversation": "New Conversation",
+      "settings": "Settings"
+    }
+  },
+  "strategy": {
+    "title": "Trading Strategies",
+    "add": "Add trading strategy",
+    "noStrategies": "No trading strategies",
+    "createFirst": "Create your first strategy to start trading",
+    "status": {
+      "running": "Running",
+      "stopped": "Stopped",
+      "live": "Live",
+      "virtual": "Virtual"
+    },
+    "action": {
+      "stop": "Stop Trading Strategy?",
+      "stopDesc": "Stopping the strategy \"{{name}}\" will stop it immediately and trigger a forced liquidation. Do you want to proceed?",
+      "confirmStop": "Confirm Stop",
+      "delete": "Delete",
+      "deleteTitle": "Delete Strategy?",
+      "deleteDesc": "Deleting the strategy \"{{name}}\" will stop it immediately and trigger a forced liquidation. Do you want to proceed?",
+      "confirmDelete": "Confirm Delete",
+      "details": "Details",
+      "duplicate": "Duplicate",
+      "cancel": "Cancel",
+      "back": "Back",
+      "next": "Next",
+      "confirm": "Confirm",
+      "publish": "Publish",
+      "shareToSocial": "Share to Social",
+      "shareToRanking": "Share to Ranking"
+    },
+    "portfolio": {
+      "title": "Portfolio Value History",
+      "totalEquity": "Total Equity",
+      "availableBalance": "Available Balance",
+      "totalPnl": "Total P&L",
+      "noData": "No portfolio value data",
+      "noDataDesc": "Portfolio value chart will appear once trading begins"
+    },
+    "positions": {
+      "title": "Positions",
+      "symbol": "Symbol",
+      "type": "Type",
+      "leverage": "Leverage",
+      "quantity": "Quantity",
+      "pnl": "P&L",
+      "noOpen": "No open positions",
+      "noOpenDesc": "Positions will appear here when trades are opened"
+    },
+    "create": {
+      "steps": {
+        "aiModels": "AI Models",
+        "exchanges": "Exchanges",
+        "tradingStrategy": "Trading strategy"
+      },
+      "error": "Error Creating Strategy"
+    },
+    "detail": {
+      "title": "Strategy Details",
+      "loading": "Loading details...",
+      "returnRate": "Return Rate",
+      "strategyType": "Strategy Type",
+      "modelProvider": "Model Provider",
+      "modelId": "Model ID",
+      "initialCapital": "Initial Capital",
+      "maxLeverage": "Max Leverage",
+      "tradingSymbols": "Trading Symbols",
+      "prompt": "Prompt"
+    }
+  },
+  "rank": {
+    "title": "Profit Leaderboard",
+    "days": {
+      "7": "7D",
+      "30": "1M"
+    },
+    "table": {
+      "rank": "Rank",
+      "user": "User",
+      "pnl": "P&L",
+      "strategy": "Strategy",
+      "exchange": "Exchange",
+      "model": "Model",
+      "details": "Details",
+      "loading": "Loading..."
+    }
   }
 }

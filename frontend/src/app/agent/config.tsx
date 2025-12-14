@@ -1,4 +1,5 @@
 import { ArrowRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link, Navigate, useParams } from "react-router";
 import { useEnableAgent, useGetAgentInfo } from "@/api/agent";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { MarkdownRenderer } from "@/components/valuecell/renderer";
 import type { Route } from "./+types/config";
 
 export default function AgentConfig() {
+  const { t } = useTranslation();
   const { agentName } = useParams<Route.LoaderArgs["params"]>();
   const { data: agent, isLoading: isLoadingAgent } = useGetAgentInfo({
     agentName: agentName ?? "",
@@ -52,14 +54,14 @@ export default function AgentConfig() {
           <div className="flex items-center gap-4">
             {agentName !== "ValueCellAgent" && (
               <Button variant="secondary" onClick={handleEnableAgent}>
-                Disable
+                {t("agent.config.disable")}
               </Button>
             )}
             <Link
               className="flex items-center gap-2 rounded-md bg-black px-5 py-1.5 font-semibold text-base text-white hover:bg-black/80"
               to={`/agent/${agentName}`}
             >
-              Chat <ArrowRight size={16} />
+              {t("agent.config.chat")} <ArrowRight size={16} />
             </Link>
           </div>
         ) : (
@@ -68,7 +70,7 @@ export default function AgentConfig() {
             to={`/agent/${agentName}`}
             onClick={handleEnableAgent}
           >
-            Collect and chat
+            {t("agent.config.collectAndChat")}
             <ArrowRight size={16} />
           </Link>
         )}
