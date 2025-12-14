@@ -95,6 +95,21 @@
     }
   },
   "strategy": {
+    "types": {
+      "PromptBasedStrategy": "Prompt 策略",
+      "GridStrategy": "網格策略"
+    },
+    "providers": {
+      "aliyun": "阿里雲",
+      "azure": "Azure OpenAI",
+      "dashscope": "阿里雲",
+      "deepseek": "深度求索",
+      "google": "Google Cloud",
+      "openai": "OpenAI",
+      "openai-compatible": "OpenAI 兼容",
+      "openrouter": "OpenRouter",
+      "siliconflow": "硅基流動"
+    },
     "title": "交易策略",
     "add": "新增交易策略",
     "noStrategies": "暫無交易策略",
@@ -263,8 +278,28 @@
       "modelId": "模型 ID",
       "initialCapital": "初始資金",
       "maxLeverage": "最大槓桿",
-      "tradingSymbols": "交易標的",
-      "prompt": "提示詞"
+      "tradingSymbols": "交易對",
+      "prompt": "Prompt"
+    },
+    "history": {
+      "title": "交易歷史",
+      "live": "實盤交易",
+      "virtual": "模擬交易",
+      "cycle": "週期 #{{index}}",
+      "aiReasoning": "AI 推理邏輯",
+      "operation": "執行操作",
+      "empty": {
+        "title": "暫無交易歷史",
+        "desc": "您完成的交易將顯示在這裡"
+      },
+      "details": {
+        "time": "時間",
+        "price": "價格",
+        "quantity": "數量",
+        "holdingTime": "持倉時間",
+        "tradingFee": "交易費用",
+        "reasoning": "推理"
+      }
     }
   },
   "rank": {

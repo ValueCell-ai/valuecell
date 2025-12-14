@@ -150,7 +150,9 @@ export function ModelDetail({ provider }: ModelDetailProps) {
   return (
     <div className="scroll-container flex flex-1 flex-col px-8">
       <div className="mb-4 flex items-center justify-between">
-        <p className="font-semibold text-gray-950 text-lg">{provider}</p>
+        <p className="font-semibold text-gray-950 text-lg">
+          {t(`strategy.providers.${provider}`) || provider}
+        </p>
         <div className="flex items-center gap-2">
           <p className="font-semibold text-base text-gray-700">
             {t("settings.models.defaultProvider")}

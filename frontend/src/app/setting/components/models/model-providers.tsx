@@ -50,7 +50,7 @@ export function ModelProviders({
                   className="size-6"
                 />
                 <div className="flex flex-1 flex-col text-left">
-                  <span>{provider.provider}</span>
+                  <span>{t(`strategy.providers.${provider.provider}`) || provider.provider}</span>
                   <span className="font-normal text-gray-500 text-xs">
                     {provider.provider}
                   </span>

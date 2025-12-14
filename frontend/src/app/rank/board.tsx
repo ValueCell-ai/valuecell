@@ -119,7 +119,7 @@ export default function RankBoard() {
                           {numberFixed(strategy.return_rate_pct, 2)}%
                         </span>
                       </TableCell>
-                      <TableCell>{strategy.strategy_type}</TableCell>
+                      <TableCell>{t(`strategy.types.${strategy.strategy_type}`)}</TableCell>
                       <TableCell>
                         <Tag>
                           <PngIcon

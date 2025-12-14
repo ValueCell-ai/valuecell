@@ -96,7 +96,7 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
       <div className="flex items-center gap-2">
         {strategy.strategy_type && (
           <p className="rounded-sm bg-gray-100 px-2 py-1 text-gray-700 text-xs">
-            {strategy.strategy_type}
+            {t(`strategy.types.${strategy.strategy_type}`)}
           </p>
         )}
         <p className="rounded-sm bg-gray-100 px-2 py-1 text-gray-700 text-xs">
