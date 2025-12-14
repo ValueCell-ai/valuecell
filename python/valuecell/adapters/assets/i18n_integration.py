@@ -261,7 +261,11 @@ class AssetI18nService:
 
         # Use i18n service to translate asset type
         key = f"assets.types.{asset_type.value}"
-        return t(key, default=asset_type.value.replace("_", " ").title())
+        return t(
+            key,
+            language=language,
+            default=asset_type.value.replace("_", " ").title(),
+        )
 
     def get_market_status_display_name(
         self, status: MarketStatus, language: Optional[str] = None
@@ -281,7 +285,11 @@ class AssetI18nService:
 
         # Use i18n service to translate market status
         key = f"assets.market_status.{status.value}"
-        return t(key, default=status.value.replace("_", " ").title())
+        return t(
+            key,
+            language=language,
+            default=status.value.replace("_", " ").title(),
+        )
 
     def format_currency_amount(
         self,
@@ -371,22 +379,24 @@ class AssetI18nService:
         """
         if language is None:
             config = get_i18n_config()
+            target_language = config.language
         else:
             config = I18nConfig(language=language)
+            target_language = language
 
         # Determine appropriate unit
         if market_cap >= 1e12:  # Trillion
             value = market_cap / 1e12
-            unit = t("units.trillion", default="T")
+            unit = t("units.trillion", language=target_language, default="T")
         elif market_cap >= 1e9:  # Billion
             value = market_cap / 1e9
-            unit = t("units.billion", default="B")
+            unit = t("units.billion", language=target_language, default="B")
         elif market_cap >= 1e6:  # Million
             value = market_cap / 1e6
-            unit = t("units.million", default="M")
+            unit = t("units.million", language=target_language, default="M")
         elif market_cap >= 1e3:  # Thousand
             value = market_cap / 1e3
-            unit = t("units.thousand", default="K")
+            unit = t("units.thousand", language=target_language, default="K")
         else:
             value = market_cap
             unit = ""
