@@ -145,7 +145,7 @@ export default function RankBoard() {
                           className="gap-2"
                         >
                           <Eye className="h-4 w-4" />
-                          View
+                          {t("agent.action.view")}
                         </Button>
                       </TableCell>
                     </TableRow>

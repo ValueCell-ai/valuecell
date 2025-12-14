@@ -1,5 +1,6 @@
 import { Wallet } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useTestConnection } from "@/api/strategy";
 import { Button } from "@/components/ui/button";
 import { FieldGroup } from "@/components/ui/field";
@@ -50,56 +51,57 @@ const getPlaceholder = (
     | "passphrase"
     | "wallet_address"
     | "private_key",
+  t: (key: string) => string,
 ): string => {
   switch (exchangeId) {
     case "binance":
-      if (fieldType === "api_key") return "Enter API Key (64 characters)";
-      if (fieldType === "secret_key") return "Enter Secret Key (64 characters)";
+      if (fieldType === "api_key") return t("strategy.form.exchanges.placeholder.binance.apiKey");
+      if (fieldType === "secret_key") return t("strategy.form.exchanges.placeholder.binance.secretKey");
       break;
     case "okx":
       if (fieldType === "api_key")
-        return "Enter API Key (Format: xxxxxxxx-xxxx-...)";
+        return t("strategy.form.exchanges.placeholder.okx.apiKey");
       if (fieldType === "secret_key")
-        return "Enter Secret Key (32 uppercase letters & numbers)";
+        return t("strategy.form.exchanges.placeholder.okx.secretKey");
       if (fieldType === "passphrase")
-        return "Enter Passphrase (Set during API creation)";
+        return t("strategy.form.exchanges.placeholder.okx.passphrase");
       break;
     case "gate":
-      if (fieldType === "api_key") return "Enter API Key (Starts with 'key_')";
-      if (fieldType === "secret_key") return "Enter Secret Key (64 characters)";
+      if (fieldType === "api_key") return t("strategy.form.exchanges.placeholder.gate.apiKey");
+      if (fieldType === "secret_key") return t("strategy.form.exchanges.placeholder.gate.secretKey");
       break;
     case "hyperliquid":
       if (fieldType === "wallet_address")
-        return "Enter Wallet Address (Starts with '0x')";
+        return t("strategy.form.exchanges.placeholder.hyperliquid.walletAddress");
       if (fieldType === "private_key")
-        return "Enter Private Key (64 characters)";
+        return t("strategy.form.exchanges.placeholder.hyperliquid.privateKey");
       break;
     case "blockchaincom":
       if (fieldType === "api_key")
-        return "Enter API Key (Format: xxxxxxxx-xxxx-...)";
-      if (fieldType === "secret_key") return "Enter Secret Key";
+        return t("strategy.form.exchanges.placeholder.blockchain.apiKey");
+      if (fieldType === "secret_key") return t("strategy.form.exchanges.placeholder.blockchain.secretKey");
       break;
     case "coinbaseexchange":
-      if (fieldType === "api_key") return "Enter API Key (or Key Name)";
+      if (fieldType === "api_key") return t("strategy.form.exchanges.placeholder.coinbase.apiKey");
       if (fieldType === "secret_key")
-        return "Enter API Secret (or Private Key)";
+        return t("strategy.form.exchanges.placeholder.coinbase.secretKey");
       if (fieldType === "passphrase")
-        return "Enter Passphrase (Required for Legacy Pro API)";
+        return t("strategy.form.exchanges.placeholder.coinbase.passphrase");
       break;
     case "mexc":
       if (fieldType === "api_key")
-        return "Enter Access Key (Starts with 'mx0')";
+        return t("strategy.form.exchanges.placeholder.mexc.apiKey");
       if (fieldType === "secret_key")
-        return "Enter Secret Key (Usually 32 characters)";
+        return t("strategy.form.exchanges.placeholder.mexc.secretKey");
       break;
   }
 
   // Default placeholders
-  if (fieldType === "api_key") return "Paste your API Key here";
-  if (fieldType === "secret_key") return "Paste your Secret Key here";
-  if (fieldType === "passphrase") return "Enter Passphrase";
-  if (fieldType === "wallet_address") return "Enter Wallet Address";
-  if (fieldType === "private_key") return "Enter Private Key";
+  if (fieldType === "api_key") return t("strategy.form.exchanges.placeholder.default.apiKey");
+  if (fieldType === "secret_key") return t("strategy.form.exchanges.placeholder.default.secretKey");
+  if (fieldType === "passphrase") return t("strategy.form.exchanges.placeholder.default.passphrase");
+  if (fieldType === "wallet_address") return t("strategy.form.exchanges.placeholder.default.walletAddress");
+  if (fieldType === "private_key") return t("strategy.form.exchanges.placeholder.default.privateKey");
   return "";
 };
 
@@ -114,6 +116,7 @@ export const ExchangeForm = withForm({
     private_key: "",
   },
   render({ form }) {
+    const { t } = useTranslation();
     const { mutateAsync: testConnection, isPending } = useTestConnection();
     const [testStatus, setTestStatus] = useState<{
       success: boolean;
@@ -124,13 +127,11 @@ export const ExchangeForm = withForm({
       setTestStatus(null);
       try {
         await testConnection(form.state.values);
-        setTestStatus({ success: true, message: "Success!" });
+        setTestStatus({ success: true, message: t("strategy.form.exchanges.test.success") });
       } catch (_error) {
         setTestStatus({
           success: false,
-          message:
-            "Connection failed. Please check your API Key, Secret Key, or " +
-            "Passphrase.",
+          message: t("strategy.form.exchanges.test.failed"),
         });
       }
     };
@@ -154,17 +155,17 @@ export const ExchangeForm = withForm({
           name="trading_mode"
         >
           {(field) => (
-            <field.RadioField label="Transaction Type">
+            <field.RadioField label={t("strategy.form.exchanges.transactionType")}>
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="live" id="live" />
                 <Label htmlFor="live" className="text-sm">
-                  Live Trading
+                  {t("strategy.form.exchanges.liveTrading")}
                 </Label>
               </div>
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="virtual" id="virtual" />
                 <Label htmlFor="virtual" className="text-sm">
-                  Virtual Trading
+                  {t("strategy.form.exchanges.virtualTrading")}
                 </Label>
               </div>
             </field.RadioField>
@@ -178,7 +179,7 @@ export const ExchangeForm = withForm({
                 <>
                   <form.AppField name="exchange_id">
                     {(field) => (
-                      <field.SelectField label="Select Exchange">
+                      <field.SelectField label={t("strategy.form.exchanges.selectExchange")}>
                         {EXCHANGE_OPTIONS.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             <div className="flex items-center gap-2">
@@ -206,10 +207,11 @@ export const ExchangeForm = withForm({
                           <form.AppField name="wallet_address">
                             {(field) => (
                               <field.TextField
-                                label="Wallet Address"
+                                label={t("strategy.form.exchanges.walletAddress")}
                                 placeholder={getPlaceholder(
                                   exchangeId || "",
                                   "wallet_address",
+                                  t,
                                 )}
                               />
                             )}
@@ -217,10 +219,11 @@ export const ExchangeForm = withForm({
                           <form.AppField name="private_key">
                             {(field) => (
                               <field.PasswordField
-                                label="Private Key"
+                                label={t("strategy.form.exchanges.privateKey")}
                                 placeholder={getPlaceholder(
                                   exchangeId || "",
                                   "private_key",
+                                  t,
                                 )}
                               />
                             )}
@@ -231,10 +234,11 @@ export const ExchangeForm = withForm({
                           <form.AppField name="api_key">
                             {(field) => (
                               <field.PasswordField
-                                label="API Key"
+                                label={t("strategy.form.exchanges.apiKey")}
                                 placeholder={getPlaceholder(
                                   exchangeId || "",
                                   "api_key",
+                                  t,
                                 )}
                               />
                             )}
@@ -242,10 +246,11 @@ export const ExchangeForm = withForm({
                           <form.AppField name="secret_key">
                             {(field) => (
                               <field.PasswordField
-                                label="Secret Key"
+                                label={t("strategy.form.exchanges.secretKey")}
                                 placeholder={getPlaceholder(
                                   exchangeId || "",
                                   "secret_key",
+                                  t,
                                 )}
                               />
                             )}
@@ -256,10 +261,11 @@ export const ExchangeForm = withForm({
                             <form.AppField name="passphrase">
                               {(field) => (
                                 <field.PasswordField
-                                  label="Passphrase"
+                                  label={t("strategy.form.exchanges.passphrase")}
                                   placeholder={getPlaceholder(
                                     exchangeId || "",
                                     "passphrase",
+                                    t,
                                   )}
                                 />
                               )}
@@ -292,7 +298,7 @@ export const ExchangeForm = withForm({
                       ) : (
                         <Wallet className="size-5" />
                       )}
-                      Test Connection
+                      {t("strategy.form.exchanges.testConnection")}
                     </Button>
                   </div>
                 </>

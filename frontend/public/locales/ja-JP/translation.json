@@ -79,6 +79,11 @@
     },
     "action": {
       "view": "表示"
+    },
+    "config": {
+      "disable": "無効にする",
+      "chat": "チャット",
+      "collectAndChat": "収集してチャット"
     }
   },
   "chat": {
@@ -86,7 +91,15 @@
       "placeholder": "メッセージを入力..."
     },
     "newConversation": "新しい会話",
-    "settings": "設定"
+    "settings": "設定",
+    "conversationList": {
+      "title": "会話リスト",
+      "loading": "読み込み中...",
+      "empty": "会話はまだありません"
+    },
+    "action": {
+      "delete": "削除"
+    }
   },
   "strategy": {
     "title": "取引戦略",
@@ -143,6 +156,110 @@
         "tradingStrategy": "取引戦略"
       },
       "error": "戦略作成エラー"
+    },
+    "form": {
+      "strategyType": {
+        "label": "戦略タイプ",
+        "promptBased": "プロンプトベース戦略",
+        "grid": "グリッド戦略"
+      },
+      "strategyName": {
+        "label": "戦略名",
+        "placeholder": "戦略名を入力"
+      },
+      "initialCapital": {
+        "label": "初期資本",
+        "placeholder": "初期資本を入力"
+      },
+      "maxLeverage": {
+        "label": "最大レバレッジ",
+        "placeholder": "最大レバレッジ"
+      },
+      "decideInterval": {
+        "label": "決定間隔 (秒)",
+        "placeholder": "例: 300"
+      },
+      "tradingSymbols": {
+        "label": "取引ペア",
+        "placeholder": "取引ペアを選択...",
+        "searchPlaceholder": "取引ペアを検索または追加...",
+        "emptyText": "取引ペアが見つかりません。"
+      },
+      "promptTemplate": {
+        "label": "システムプロンプトテンプレート",
+        "new": "新規プロンプト",
+        "view": "戦略を表示"
+      },
+      "aiModels": {
+        "platform": "モデルプラットフォーム",
+        "model": "モデルを選択",
+        "noModels": "利用可能なモデルがありません",
+        "apiKey": {
+          "label": "APIキー",
+          "placeholder": "APIキーを入力"
+        }
+      },
+      "exchanges": {
+        "transactionType": "取引タイプ",
+        "liveTrading": "ライブ取引",
+        "virtualTrading": "バーチャル取引",
+        "selectExchange": "取引所を選択",
+        "walletAddress": "ウォレットアドレス",
+        "privateKey": "秘密鍵",
+        "apiKey": "APIキー",
+        "secretKey": "シークレットキー",
+        "passphrase": "パスフレーズ",
+        "testConnection": "接続テスト",
+        "test": {
+          "success": "接続成功！",
+          "failed": "接続に失敗しました。APIキー、シークレットキー、またはパスフレーズを確認してください。"
+        },
+        "placeholder": {
+          "binance": {
+            "apiKey": "APIキーを入力 (64文字)",
+            "secretKey": "シークレットキーを入力 (64文字)"
+          },
+          "okx": {
+            "apiKey": "APIキーを入力 (形式: xxxxxxxx-xxxx-...)",
+            "secretKey": "シークレットキーを入力 (32文字の大文字と数字)",
+            "passphrase": "パスフレーズを入力 (API作成時に設定)"
+          },
+          "gate": {
+            "apiKey": "APIキーを入力 ('key_'で始まる)",
+            "secretKey": "シークレットキーを入力 (64文字)"
+          },
+          "hyperliquid": {
+            "walletAddress": "ウォレットアドレスを入力 ('0x'で始まる)",
+            "privateKey": "秘密鍵を入力 (64文字)"
+          },
+          "blockchain": {
+            "apiKey": "APIキーを入力 (形式: xxxxxxxx-xxxx-...)",
+            "secretKey": "シークレットキーを入力"
+          },
+          "coinbase": {
+            "apiKey": "APIキーを入力 (またはキー名)",
+            "secretKey": "APIシークレットを入力 (または秘密鍵)",
+            "passphrase": "パスフレーズを入力 (Legacy Pro APIに必要)"
+          },
+          "mexc": {
+            "apiKey": "アクセスキーを入力 ('mx0'で始まる)",
+            "secretKey": "シークレットキーを入力 (通常32文字)"
+          },
+          "default": {
+            "apiKey": "ここにAPIキーを貼り付け",
+            "secretKey": "ここにシークレットキーを貼り付け",
+            "passphrase": "パスフレーズを入力",
+            "walletAddress": "ウォレットアドレスを入力",
+            "privateKey": "秘密鍵を入力"
+          }
+        }
+      }
+    },
+    "prompt": {
+      "delete": {
+        "title": "戦略プロンプトを削除",
+        "description": "この戦略プロンプトを削除してもよろしいですか？この操作は取り消せず、システムからプロンプトが完全に削除されます。"
+      }
     },
     "detail": {
       "title": "戦略詳細",

@@ -72,6 +72,11 @@
     },
     "action": {
       "view": "View"
+    },
+    "config": {
+      "disable": "Disable",
+      "chat": "Chat",
+      "collectAndChat": "Collect and chat"
     }
   },
   "chat": {
@@ -79,7 +84,15 @@
       "placeholder": "Type your message..."
     },
     "newConversation": "New Conversation",
-    "settings": "Settings"
+    "settings": "Settings",
+    "conversationList": {
+      "title": "Conversation List",
+      "loading": "Loading...",
+      "empty": "No conversation yet"
+    },
+    "action": {
+      "delete": "Delete"
+    }
   },
   "strategy": {
     "title": "Trading Strategies",
@@ -136,6 +149,110 @@
         "tradingStrategy": "Trading strategy"
       },
       "error": "Error Creating Strategy"
+    },
+    "form": {
+      "strategyType": {
+        "label": "Strategy Type",
+        "promptBased": "Prompt Based Strategy",
+        "grid": "Grid Strategy"
+      },
+      "strategyName": {
+        "label": "Strategy Name",
+        "placeholder": "Enter strategy name"
+      },
+      "initialCapital": {
+        "label": "Initial Capital",
+        "placeholder": "Enter Initial Capital"
+      },
+      "maxLeverage": {
+        "label": "Max Leverage",
+        "placeholder": "Max Leverage"
+      },
+      "decideInterval": {
+        "label": "Decision Interval (seconds)",
+        "placeholder": "e.g. 300"
+      },
+      "tradingSymbols": {
+        "label": "Trading Symbols",
+        "placeholder": "Select trading symbols...",
+        "searchPlaceholder": "Search or add symbols...",
+        "emptyText": "No symbols found."
+      },
+      "promptTemplate": {
+        "label": "System Prompt Template",
+        "new": "New Prompt",
+        "view": "View Strategy"
+      },
+      "aiModels": {
+        "platform": "Model Platform",
+        "model": "Select Model",
+        "noModels": "No models available",
+        "apiKey": {
+          "label": "API key",
+          "placeholder": "Enter API Key"
+        }
+      },
+      "exchanges": {
+        "transactionType": "Transaction Type",
+        "liveTrading": "Live Trading",
+        "virtualTrading": "Virtual Trading",
+        "selectExchange": "Select Exchange",
+        "walletAddress": "Wallet Address",
+        "privateKey": "Private Key",
+        "apiKey": "API Key",
+        "secretKey": "Secret Key",
+        "passphrase": "Passphrase",
+        "testConnection": "Test Connection",
+        "test": {
+          "success": "Success!",
+          "failed": "Connection failed. Please check your API Key, Secret Key, or Passphrase."
+        },
+        "placeholder": {
+          "binance": {
+            "apiKey": "Enter API Key (64 characters)",
+            "secretKey": "Enter Secret Key (64 characters)"
+          },
+          "okx": {
+            "apiKey": "Enter API Key (Format: xxxxxxxx-xxxx-...)",
+            "secretKey": "Enter Secret Key (32 uppercase letters & numbers)",
+            "passphrase": "Enter Passphrase (Set during API creation)"
+          },
+          "gate": {
+            "apiKey": "Enter API Key (Starts with 'key_')",
+            "secretKey": "Enter Secret Key (64 characters)"
+          },
+          "hyperliquid": {
+            "walletAddress": "Enter Wallet Address (Starts with '0x')",
+            "privateKey": "Enter Private Key (64 characters)"
+          },
+          "blockchain": {
+            "apiKey": "Enter API Key (Format: xxxxxxxx-xxxx-...)",
+            "secretKey": "Enter Secret Key"
+          },
+          "coinbase": {
+            "apiKey": "Enter API Key (or Key Name)",
+            "secretKey": "Enter API Secret (or Private Key)",
+            "passphrase": "Enter Passphrase (Required for Legacy Pro API)"
+          },
+          "mexc": {
+            "apiKey": "Enter Access Key (Starts with 'mx0')",
+            "secretKey": "Enter Secret Key (Usually 32 characters)"
+          },
+          "default": {
+            "apiKey": "Paste your API Key here",
+            "secretKey": "Paste your Secret Key here",
+            "passphrase": "Enter Passphrase",
+            "walletAddress": "Enter Wallet Address",
+            "privateKey": "Enter Private Key"
+          }
+        }
+      }
+    },
+    "prompt": {
+      "delete": {
+        "title": "Delete Strategy Prompt",
+        "description": "Are you sure you want to delete this strategy prompt? This action cannot be undone and will permanently remove the prompt from the system."
+      }
     },
     "detail": {
       "title": "Strategy Details",

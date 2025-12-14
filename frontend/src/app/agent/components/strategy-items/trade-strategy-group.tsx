@@ -320,7 +320,7 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
             className="w-full gap-3 rounded-lg py-4 text-base"
           >
             <Plus className="size-6" />
-            Add trading strategy
+            {t("strategy.create.title")}
           </Button>
         </CreateStrategyModal>
       </div>
