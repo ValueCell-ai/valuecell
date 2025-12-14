@@ -22,5 +22,40 @@
       "title": "应用更新",
       "check": "检查更新"
     }
+  },
+  "settings": {
+    "title": "设置",
+    "nav": {
+      "models": "模型",
+      "general": "通用",
+      "memory": "记忆"
+    },
+    "models": {
+      "title": "模型提供商",
+      "noProviders": "无可用提供商。",
+      "loading": "正在加载提供商详情...",
+      "defaultProvider": "默认提供商",
+      "apiKey": "API 密钥",
+      "enterApiKey": "输入 API 密钥",
+      "getApiKey": "点击此处获取 API 密钥",
+      "apiHost": "API 主机",
+      "models": "模型",
+      "add": "添加",
+      "addModel": "添加模型",
+      "modelId": "模型 ID",
+      "enterModelId": "输入模型 ID",
+      "modelName": "模型名称",
+      "enterModelName": "输入模型名称",
+      "cancel": "取消",
+      "confirm": "确认",
+      "noModels": "该提供商未配置任何模型。"
+    },
+    "memory": {
+      "title": "保留记忆",
+      "description": "我将记住并自动管理聊天中的有用信息，以增强回复的个性化和相关性",
+      "loading": "加载中...",
+      "noMemories": "暂无记忆",
+      "delete": "删除"
+    }
   }
 }
