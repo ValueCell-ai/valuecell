@@ -101,6 +101,8 @@ export function getTradingViewLocale(language: string): string {
       return "th_TH";
     case "vi-VN":
       return "vi_VN";
+    case "ca-ES":
+      return "ca_ES";
     default:
       return "en";
   }
