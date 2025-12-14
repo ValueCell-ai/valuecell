@@ -1,3 +1,9 @@
+import dayjs from "dayjs";
+import "dayjs/locale/en";
+import "dayjs/locale/en-gb";
+import "dayjs/locale/ja";
+import "dayjs/locale/zh-cn";
+import "dayjs/locale/zh-tw";
 import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import Backend from "i18next-http-backend";
@@ -29,5 +35,16 @@ i18n
       caches: [], // Don't cache in localStorage by i18next, we use our own store.
     },
   });
+
+i18n.on("languageChanged", (lng) => {
+  const dayjsLocaleMap: Record<string, string> = {
+    "en-US": "en",
+    "en-GB": "en-gb",
+    "zh-Hans": "zh-cn",
+    "zh-Hant": "zh-tw",
+    "ja-JP": "ja",
+  };
+  dayjs.locale(dayjsLocaleMap[lng] || "en");
+});
 
 export default i18n;
