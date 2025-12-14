@@ -193,7 +193,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
       >
         <DialogTitle className="flex flex-col gap-4 px-1">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-lg">Add trading strategy</h2>
+            <h2 className="font-semibold text-lg">{t("strategy.create.title")}</h2>
             <CloseButton onClick={resetAll} />
           </div>
 

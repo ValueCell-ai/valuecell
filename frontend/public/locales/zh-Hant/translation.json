@@ -58,20 +58,28 @@
       "delete": "刪除"
     }
   },
+  "common": {
+    "back": "返回"
+  },
   "market": {
     "title": "Agent 市場"
   },
   "agent": {
-    "config": {
-      "disable": "禁用",
-      "chat": "聊天",
-      "collectAndChat": "收藏並聊天"
+    "welcome": "歡迎使用 {{name}}!",
+    "unknown": "未知 Agent",
+    "status": {
+      "running": "運行中"
     },
-    "chat": {
-      "placeholder": "輸入您的訊息...",
-      "newConversation": "新對話",
-      "settings": "設置"
+    "action": {
+      "view": "查看"
     }
+  },
+  "chat": {
+    "input": {
+      "placeholder": "輸入訊息..."
+    },
+    "newConversation": "新對話",
+    "settings": "設置"
   },
   "strategy": {
     "title": "交易策略",
@@ -121,6 +129,7 @@
       "noOpenDesc": "開倉後將在此處顯示持倉"
     },
     "create": {
+      "title": "新增交易策略",
       "steps": {
         "aiModels": "AI 模型",
         "exchanges": "交易所",
@@ -160,17 +169,33 @@
   },
   "home": {
     "hello": "👋 您好，投資者！",
+    "welcome": "👋 歡迎來到 ValueCell !",
     "watchlist": "我的自選股",
     "stock": {
       "loading": "正在載入股票數據...",
       "error": "載入股票數據失敗: {{message}}",
       "remove": "移除",
       "removing": "移除中...",
+      "add": "新增股票",
       "about": "簡介",
+      "sector": "板塊:",
+      "industry": "行業:",
+      "website": "官網:",
       "chart": {
         "24h": "24小時",
         "7d": "7天",
         "30d": "30天"
+      }
+    },
+    "search": {
+      "title": "搜尋股票",
+      "placeholder": "搜尋股票名稱或代碼",
+      "searching": "搜尋中...",
+      "noResults": "未找到相關股票",
+      "action": {
+        "watch": "關注",
+        "watching": "關注中...",
+        "watched": "已關注"
       }
     },
     "suggestions": {

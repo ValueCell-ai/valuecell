@@ -1,5 +1,6 @@
 import { Plus, Search, X } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   useAddStockToWatchlist,
   useGetStocksList,
@@ -23,6 +24,7 @@ interface StockSearchModalProps {
 }
 
 const StockItem = ({ stock }: { stock: Stock }) => {
+  const { t } = useTranslation();
   const {
     mutateAsync: addStockToWatchlist,
     isPending: isPendingAddStockToWatchlist,
@@ -60,22 +62,23 @@ const StockItem = ({ stock }: { stock: Stock }) => {
         {isPendingAddStockToWatchlist && (
           <>
             <Spinner className="size-5" />
-            Watching...
+            {t("home.search.action.watching")}
           </>
         )}
         {!isStockInWatchlist && (
           <>
             <Plus className="size-5" />
-            Watchlist
+            {t("home.search.action.watch")}
           </>
         )}
-        {isStockInWatchlist && <>Watched</>}
+        {isStockInWatchlist && <>{t("home.search.action.watched")}</>}
       </Button>
     </div>
   );
 };
 
 export default function StockSearchModal({ children }: StockSearchModalProps) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 300);
   const { data: stockList, isLoading } = useGetStocksList({
@@ -110,7 +113,7 @@ export default function StockSearchModal({ children }: StockSearchModalProps) {
       >
         <header className="flex items-center justify-between">
           <DialogTitle className="font-semibold text-2xl text-neutral-900">
-            Stock Search
+            {t("home.search.title")}
           </DialogTitle>
           <DialogClose asChild>
             <Button size="icon" variant="ghost" className="cursor-pointer">
@@ -124,7 +127,7 @@ export default function StockSearchModal({ children }: StockSearchModalProps) {
           <Search className="size-5 text-neutral-400" />
           <Input
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search for stock name or code"
+            placeholder={t("home.search.placeholder")}
             className="border-none bg-transparent p-0 text-neutral-900 text-sm shadow-none placeholder:text-neutral-400 focus-visible:ring-0 focus-visible:ring-offset-0"
           />
         </div>
@@ -133,7 +136,7 @@ export default function StockSearchModal({ children }: StockSearchModalProps) {
         <div className="scroll-container">
           {isLoading ? (
             <p className="p-4 text-center text-neutral-400 text-sm">
-              Searching...
+              {t("home.search.searching")}
             </p>
           ) : filteredStockList && filteredStockList.length > 0 ? (
             <div className="rounded-lg bg-white py-2">
@@ -147,7 +150,7 @@ export default function StockSearchModal({ children }: StockSearchModalProps) {
             stockList &&
             filteredStockList.length === 0 && (
               <p className="p-4 text-center text-neutral-400 text-sm">
-                No related stocks found
+                {t("home.search.noResults")}
               </p>
             )
           )}

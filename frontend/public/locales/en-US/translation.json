@@ -58,20 +58,28 @@
       "delete": "Delete"
     }
   },
+  "common": {
+    "back": "Back"
+  },
   "market": {
     "title": "Agent Market"
   },
   "agent": {
-    "config": {
-      "disable": "Disable",
-      "chat": "Chat",
-      "collectAndChat": "Collect and chat"
+    "welcome": "Welcome to {{name}}!",
+    "unknown": "Unknown Agent",
+    "status": {
+      "running": "Running"
     },
-    "chat": {
-      "placeholder": "Type your message...",
-      "newConversation": "New Conversation",
-      "settings": "Settings"
+    "action": {
+      "view": "View"
     }
+  },
+  "chat": {
+    "input": {
+      "placeholder": "Type your message..."
+    },
+    "newConversation": "New Conversation",
+    "settings": "Settings"
   },
   "strategy": {
     "title": "Trading Strategies",
@@ -121,6 +129,7 @@
       "noOpenDesc": "Positions will appear here when trades are opened"
     },
     "create": {
+      "title": "Add trading strategy",
       "steps": {
         "aiModels": "AI Models",
         "exchanges": "Exchanges",
@@ -160,17 +169,33 @@
   },
   "home": {
     "hello": "👋 Hello Investor!",
+    "welcome": "👋 Welcome to ValueCell !",
     "watchlist": "My Watchlist",
     "stock": {
       "loading": "Loading stock data...",
       "error": "Error loading stock data: {{message}}",
       "remove": "Remove",
       "removing": "Removing...",
+      "add": "Add Stocks",
       "about": "About",
+      "sector": "Sector:",
+      "industry": "Industry:",
+      "website": "Website:",
       "chart": {
         "24h": "24h",
         "7d": "7d",
         "30d": "30d"
+      }
+    },
+    "search": {
+      "title": "Stock Search",
+      "placeholder": "Search for stock name or code",
+      "searching": "Searching...",
+      "noResults": "No related stocks found",
+      "action": {
+        "watch": "Watchlist",
+        "watching": "Watching...",
+        "watched": "Watched"
       }
     },
     "suggestions": {

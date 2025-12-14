@@ -106,20 +106,20 @@ function Stock() {
         {stockDetailData?.properties && (
           <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-muted-foreground">Sector:</span>
+              <span className="text-muted-foreground">{t("home.stock.sector")}</span>
               <span className="ml-2 font-medium">
                 {stockDetailData.properties.sector}
               </span>
             </div>
             <div>
-              <span className="text-muted-foreground">Industry:</span>
+              <span className="text-muted-foreground">{t("home.stock.industry")}</span>
               <span className="ml-2 font-medium">
                 {stockDetailData.properties.industry}
               </span>
             </div>
             {stockDetailData.properties.website && (
               <div className="col-span-2">
-                <span className="text-muted-foreground">Website:</span>
+                <span className="text-muted-foreground">{t("home.stock.website")}</span>
                 <LinkButton
                   url={stockDetailData.properties.website}
                   className="ml-2 text-blue-600"

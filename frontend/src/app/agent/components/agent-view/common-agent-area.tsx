@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { type FC, memo, useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Navigate,
   useLocation,
@@ -42,6 +43,7 @@ interface CommonAgentAreaProps {
 }
 
 const CommonAgentAreaContent: FC<CommonAgentAreaProps> = ({ agentName }) => {
+  const { t } = useTranslation();
   const { data: agent, isLoading: isLoadingAgent } = useGetAgentInfo({
     agentName: agentName ?? "",
   });
@@ -213,7 +215,7 @@ const CommonAgentAreaContent: FC<CommonAgentAreaProps> = ({ agentName }) => {
       <>
         <ChatConversationHeader agent={agent} />
         <ChatWelcomeScreen
-          title={`Welcome to ${agent.display_name}!`}
+          title={t("agent.welcome", { name: agent.display_name })}
           inputValue={inputValue}
           onInputChange={handleInputChange}
           onSendMessage={handleSendMessage}
@@ -240,7 +242,7 @@ const CommonAgentAreaContent: FC<CommonAgentAreaProps> = ({ agentName }) => {
           value={inputValue}
           onChange={handleInputChange}
           onSend={handleSendMessage}
-          placeholder="Type your message..."
+          placeholder={t("chat.input.placeholder")}
           disabled={isStreaming}
           variant="chat"
         />
