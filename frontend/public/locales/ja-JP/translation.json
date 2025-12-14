@@ -64,5 +64,8 @@
       "noMemories": "メモリはまだありません",
       "delete": "削除"
     }
+  },
+  "market": {
+    "title": "Agent マーケット"
   }
 }

@@ -57,5 +57,8 @@
       "noMemories": "暫無記憶",
       "delete": "刪除"
     }
+  },
+  "market": {
+    "title": "Agent 市場"
   }
 }

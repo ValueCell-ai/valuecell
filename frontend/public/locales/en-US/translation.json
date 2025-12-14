@@ -57,5 +57,8 @@
       "noMemories": "No memories yet",
       "delete": "Delete"
     }
+  },
+  "market": {
+    "title": "Agent Market"
   }
 }
