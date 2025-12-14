@@ -24,7 +24,9 @@ export function ModelProviders({
 
   return (
     <div className="flex flex-col gap-4 overflow-hidden *:px-6">
-      <h2 className="font-semibold text-gray-950 text-lg">{t("settings.models.title")}</h2>
+      <h2 className="font-semibold text-gray-950 text-lg">
+        {t("settings.models.title")}
+      </h2>
 
       <ItemGroup className="scroll-container">
         {providers.length === 0 ? (
@@ -54,7 +56,10 @@ export function ModelProviders({
                   className="size-6"
                 />
                 <div className="flex flex-1 flex-col text-left">
-                  <span>{t(`strategy.providers.${provider.provider}`) || provider.provider}</span>
+                  <span>
+                    {t(`strategy.providers.${provider.provider}`) ||
+                      provider.provider}
+                  </span>
                   <span className="font-normal text-gray-500 text-xs">
                     {provider.provider}
                   </span>

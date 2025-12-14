@@ -36,7 +36,6 @@ import {
 } from "@/components/ui/input-group";
 import { Switch } from "@/components/ui/switch";
 import LinkButton from "@/components/valuecell/button/link-button";
-import { useTauriInfo } from "@/hooks/use-tauri-info";
 
 const configSchema = z.object({
   api_key: z.string(),
@@ -54,7 +53,6 @@ type ModelDetailProps = {
 
 export function ModelDetail({ provider }: ModelDetailProps) {
   const { t } = useTranslation();
-  const { isTauriApp } = useTauriInfo();
 
   const { data: providerDetail, isLoading: detailLoading } =
     useGetModelProviderDetail(provider);
@@ -139,7 +137,9 @@ export function ModelDetail({ provider }: ModelDetailProps) {
 
   if (detailLoading) {
     return (
-      <div className="text-gray-400 text-sm">{t("settings.models.loading")}</div>
+      <div className="text-gray-400 text-sm">
+        {t("settings.models.loading")}
+      </div>
     );
   }
 
@@ -249,7 +249,9 @@ export function ModelDetail({ provider }: ModelDetailProps) {
           {/* Models section */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <div className="font-medium text-base text-gray-950">{t("settings.models.models")}</div>
+              <div className="font-medium text-base text-gray-950">
+                {t("settings.models.models")}
+              </div>
               <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
@@ -301,7 +303,9 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                                 {t("settings.models.modelName")}
                               </FieldLabel>
                               <Input
-                                placeholder={t("settings.models.enterModelName")}
+                                placeholder={t(
+                                  "settings.models.enterModelName",
+                                )}
                                 value={field.state.value}
                                 onChange={(e) =>
                                   field.handleChange(e.target.value)
@@ -356,26 +360,28 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                         {m.model_name}
                       </span>
 
-                    <div className="flex items-center gap-3">
-                      <Switch
-                        className="cursor-pointer"
-                        checked={m.model_id === providerDetail.default_model_id}
-                        disabled={isBusy}
-                        onCheckedChange={() =>
-                          handleSetDefaultModel(m.model_id)
-                        }
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        disabled={isBusy}
-                        onClick={() => handleDeleteModel(m.model_id)}
-                      >
-                        <Trash2 className="size-5" />
-                      </Button>
+                      <div className="flex items-center gap-3">
+                        <Switch
+                          className="cursor-pointer"
+                          checked={
+                            m.model_id === providerDetail.default_model_id
+                          }
+                          disabled={isBusy}
+                          onCheckedChange={() =>
+                            handleSetDefaultModel(m.model_id)
+                          }
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          disabled={isBusy}
+                          onClick={() => handleDeleteModel(m.model_id)}
+                        >
+                          <Trash2 className="size-5" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             )}
           </div>

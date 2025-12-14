@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { useShallow } from "zustand/shallow";
-import i18n from "@/lib/i18n";
 import {
   GREEN_BADGE,
   GREEN_COLOR,
@@ -13,16 +12,12 @@ import {
   RED_COLOR,
   RED_GRADIENT,
 } from "@/constants/stock";
+import i18n from "@/lib/i18n";
 import type { StockChangeType } from "@/types/stock";
 
 export type StockColorMode = "GREEN_UP_RED_DOWN" | "RED_UP_GREEN_DOWN";
 
-export type LanguageCode =
-  | "en-US"
-  | "en-GB"
-  | "zh-Hans"
-  | "zh-Hant"
-  | "ja-JP";
+export type LanguageCode = "en-US" | "en-GB" | "zh-Hans" | "zh-Hant" | "ja-JP";
 
 interface SettingsStoreState {
   stockColorMode: StockColorMode;

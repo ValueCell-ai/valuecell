@@ -46,7 +46,9 @@ const StrategyComposeItem: FC<StrategyComposeItemProps> = ({ compose }) => {
       </div>
 
       {/* AI Reasoning Logic */}
-      <p className="text-gray-400 text-xs">{t("strategy.history.aiReasoning")}</p>
+      <p className="text-gray-400 text-xs">
+        {t("strategy.history.aiReasoning")}
+      </p>
       <Collapsible open={isReasoningOpen} onOpenChange={setIsReasoningOpen}>
         <CollapsibleTrigger
           data-active={isReasoningOpen}
@@ -70,7 +72,9 @@ const StrategyComposeItem: FC<StrategyComposeItemProps> = ({ compose }) => {
       {/* Perform Operation */}
       {compose.actions.length > 0 && (
         <>
-          <p className="text-gray-400 text-xs">{t("strategy.history.operation")}</p>
+          <p className="text-gray-400 text-xs">
+            {t("strategy.history.operation")}
+          </p>
           {compose.actions.map((action) => (
             <ActionItem key={action.instruction_id} action={action} />
           ))}
@@ -194,7 +198,9 @@ const ActionItem: FC<{ action: StrategyAction }> = ({ action }) => {
 
         {/* Reasoning Box */}
         <div className="rounded-lg bg-blue-50 p-3">
-          <p className="mb-1 font-medium text-gray-900 text-xs">{t("strategy.history.details.reasoning")}</p>
+          <p className="mb-1 font-medium text-gray-900 text-xs">
+            {t("strategy.history.details.reasoning")}
+          </p>
           <p className="text-gray-500 text-xs leading-relaxed">
             {action.rationale}
           </p>
@@ -222,7 +228,9 @@ const StrategyComposeList: FC<StrategyComposeListProps> = ({
         </h3>
 
         <p className="rounded-md bg-gray-100 px-2.5 py-1 font-medium text-gray-950 text-sm">
-          {tradingMode === "live" ? t("strategy.history.live") : t("strategy.history.virtual")}
+          {tradingMode === "live"
+            ? t("strategy.history.live")
+            : t("strategy.history.virtual")}
         </p>
       </div>
 

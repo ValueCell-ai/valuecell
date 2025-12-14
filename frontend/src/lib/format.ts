@@ -43,9 +43,7 @@ const FORMAT_CONFIGS = {
 type LanguageCode = keyof typeof FORMAT_CONFIGS;
 
 function getConfig(language: string) {
-  return (
-    FORMAT_CONFIGS[language as LanguageCode] || FORMAT_CONFIGS["en-US"]
-  );
+  return FORMAT_CONFIGS[language as LanguageCode] || FORMAT_CONFIGS["en-US"];
 }
 
 function getCurrentLanguage() {
@@ -57,7 +55,7 @@ function getCurrentLanguage() {
  */
 export function formatDate(
   date: string | Date | number | undefined | null,
-  language?: string
+  language?: string,
 ) {
   if (!date) return "";
   const config = getConfig(language || getCurrentLanguage());
@@ -69,7 +67,7 @@ export function formatDate(
  */
 export function formatTime(
   date: string | Date | number | undefined | null,
-  language?: string
+  language?: string,
 ) {
   if (!date) return "";
   const config = getConfig(language || getCurrentLanguage());
@@ -81,7 +79,7 @@ export function formatTime(
  */
 export function formatDateTime(
   date: string | Date | number | undefined | null,
-  language?: string
+  language?: string,
 ) {
   if (!date) return "";
   const config = getConfig(language || getCurrentLanguage());
@@ -94,7 +92,7 @@ export function formatDateTime(
 export function formatNumber(
   number: number | undefined | null,
   options?: Intl.NumberFormatOptions,
-  language?: string
+  language?: string,
 ) {
   if (number === undefined || number === null) return "";
   const lang = language || getCurrentLanguage();
@@ -107,12 +105,12 @@ export function formatNumber(
 export function formatCurrency(
   amount: number | undefined | null,
   currency?: string,
-  language?: string
+  language?: string,
 ) {
   if (amount === undefined || amount === null) return "";
   const lang = language || getCurrentLanguage();
   const config = getConfig(lang);
-  
+
   return new Intl.NumberFormat(lang, {
     style: "currency",
     currency: currency || config.currency,

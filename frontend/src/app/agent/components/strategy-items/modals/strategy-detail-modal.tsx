@@ -70,7 +70,9 @@ const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
         </DialogHeader>
         <div className="scroll-container">
           {isLoadingStrategyDetail || !strategyDetail ? (
-            <div className="py-8 text-center">{t("strategy.detail.loading")}</div>
+            <div className="py-8 text-center">
+              {t("strategy.detail.loading")}
+            </div>
           ) : (
             <div className="grid gap-4 py-4">
               <div className="flex items-center gap-4">
@@ -96,16 +98,23 @@ const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
                   >
                     {numberFixed(strategyDetail.return_rate_pct, 2)}%
                   </div>
-                  <div className="text-gray-500 text-sm">{t("strategy.detail.returnRate")}</div>
+                  <div className="text-gray-500 text-sm">
+                    {t("strategy.detail.returnRate")}
+                  </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-[auto_1fr] gap-y-2 text-nowrap text-sm [&>p]:text-gray-500 [&>span]:text-right">
                 <p>{t("strategy.detail.strategyType")}</p>
-                <span>{t(`strategy.types.${strategyDetail.strategy_type}`)}</span>
+                <span>
+                  {t(`strategy.types.${strategyDetail.strategy_type}`)}
+                </span>
 
                 <p>{t("strategy.detail.modelProvider")}</p>
-                <span>{t(`strategy.providers.${strategyDetail.llm_provider}`) || strategyDetail.llm_provider}</span>
+                <span>
+                  {t(`strategy.providers.${strategyDetail.llm_provider}`) ||
+                    strategyDetail.llm_provider}
+                </span>
 
                 <p>{t("strategy.detail.modelId")}</p>
                 <span>{strategyDetail.llm_model_id}</span>
@@ -123,7 +132,9 @@ const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
               </div>
 
               <div className="gap-2">
-                <span className="text-gray-500 text-sm">{t("strategy.detail.prompt")}</span>
+                <span className="text-gray-500 text-sm">
+                  {t("strategy.detail.prompt")}
+                </span>
                 <p className="rounded-md bg-gray-50 p-3 text-gray-700 text-sm">
                   {strategyDetail.prompt}
                 </p>

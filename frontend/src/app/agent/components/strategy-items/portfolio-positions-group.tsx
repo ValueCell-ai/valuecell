@@ -158,12 +158,14 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button>
-                    <SvgIcon name={Send} className="size-5" /> {t("strategy.action.publish")}
+                    <SvgIcon name={Send} className="size-5" />{" "}
+                    {t("strategy.action.publish")}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={handleSharePortfolio}>
-                    <SvgIcon name={Share} className="size-5" /> {t("strategy.action.shareToSocial")}
+                    <SvgIcon name={Share} className="size-5" />{" "}
+                    {t("strategy.action.shareToSocial")}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={handlePublishToRankBoard}
@@ -181,7 +183,8 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
             ) : (
               <LoginModal>
                 <Button>
-                  <SvgIcon name={Send} className="size-5" /> {t("strategy.action.publish")}
+                  <SvgIcon name={Send} className="size-5" />{" "}
+                  {t("strategy.action.publish")}
                 </Button>
               </LoginModal>
             ))}
@@ -189,19 +192,25 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
 
         <div className="grid grid-cols-3 gap-4 text-nowrap">
           <div className="rounded-lg bg-gray-50 p-4">
-            <p className="text-gray-500 text-sm">{t("strategy.portfolio.totalEquity")}</p>
+            <p className="text-gray-500 text-sm">
+              {t("strategy.portfolio.totalEquity")}
+            </p>
             <p className="mt-1 font-semibold text-gray-900 text-lg">
               {numberFixed(summary?.total_value, 4)}
             </p>
           </div>
           <div className="rounded-lg bg-gray-50 p-4">
-            <p className="text-gray-500 text-sm">{t("strategy.portfolio.availableBalance")}</p>
+            <p className="text-gray-500 text-sm">
+              {t("strategy.portfolio.availableBalance")}
+            </p>
             <p className="mt-1 font-semibold text-gray-900 text-lg">
               {numberFixed(summary?.cash, 4)}
             </p>
           </div>
           <div className="rounded-lg bg-gray-50 p-4">
-            <p className="text-gray-500 text-sm">{t("strategy.portfolio.totalPnl")}</p>
+            <p className="text-gray-500 text-sm">
+              {t("strategy.portfolio.totalPnl")}
+            </p>
             <p
               className="mt-1 font-semibold text-gray-900 text-lg"
               style={{ color: stockColors[changeType] }}
@@ -236,25 +245,37 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
 
       {/* Positions Section */}
       <div className="flex flex-col gap-4">
-        <h3 className="font-semibold text-base text-gray-950">{t("strategy.positions.title")}</h3>
+        <h3 className="font-semibold text-base text-gray-950">
+          {t("strategy.positions.title")}
+        </h3>
         {hasPositions ? (
           <Table className="scroll-container max-h-[260px]">
             <TableHeader>
               <TableRow>
                 <TableHead>
-                  <p className="font-normal text-gray-400 text-sm">{t("strategy.positions.symbol")}</p>
+                  <p className="font-normal text-gray-400 text-sm">
+                    {t("strategy.positions.symbol")}
+                  </p>
                 </TableHead>
                 <TableHead>
-                  <p className="font-normal text-gray-400 text-sm">{t("strategy.positions.type")}</p>
+                  <p className="font-normal text-gray-400 text-sm">
+                    {t("strategy.positions.type")}
+                  </p>
                 </TableHead>
                 <TableHead>
-                  <p className="font-normal text-gray-400 text-sm">{t("strategy.positions.leverage")}</p>
+                  <p className="font-normal text-gray-400 text-sm">
+                    {t("strategy.positions.leverage")}
+                  </p>
                 </TableHead>
                 <TableHead>
-                  <p className="font-normal text-gray-400 text-sm">{t("strategy.positions.quantity")}</p>
+                  <p className="font-normal text-gray-400 text-sm">
+                    {t("strategy.positions.quantity")}
+                  </p>
                 </TableHead>
                 <TableHead>
-                  <p className="font-normal text-gray-400 text-sm">{t("strategy.positions.pnl")}</p>
+                  <p className="font-normal text-gray-400 text-sm">
+                    {t("strategy.positions.pnl")}
+                  </p>
                 </TableHead>
               </TableRow>
             </TableHeader>

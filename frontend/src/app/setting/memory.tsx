@@ -33,7 +33,9 @@ export default function MemoryPage() {
     <div className="flex flex-col gap-5 px-16 py-10">
       {/* Title section */}
       <div className="flex flex-col gap-1.5">
-        <h1 className="font-bold text-gray-950 text-xl">{t("settings.memory.title")}</h1>
+        <h1 className="font-bold text-gray-950 text-xl">
+          {t("settings.memory.title")}
+        </h1>
         <p className="text-base text-gray-400 leading-[22px]">
           {t("settings.memory.description")}
         </p>

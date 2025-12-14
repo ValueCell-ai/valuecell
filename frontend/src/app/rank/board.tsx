@@ -52,9 +52,7 @@ export default function RankBoard() {
     <div className="flex size-full flex-col p-6">
       <Card className="border-none p-0 shadow-none">
         <CardHeader className="flex flex-row items-center justify-between px-0">
-          <CardTitle className="font-bold text-xl">
-            {t("rank.title")}
-          </CardTitle>
+          <CardTitle className="font-bold text-xl">{t("rank.title")}</CardTitle>
           <Tabs
             value={String(days)}
             onValueChange={(val) => setDays(Number(val))}
@@ -70,7 +68,9 @@ export default function RankBoard() {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-[80px]">{t("rank.table.rank")}</TableHead>
+                  <TableHead className="w-[80px]">
+                    {t("rank.table.rank")}
+                  </TableHead>
                   <TableHead>{t("rank.table.user")}</TableHead>
                   <TableHead>{t("rank.table.pnl")}</TableHead>
                   <TableHead>{t("rank.table.strategy")}</TableHead>
@@ -119,7 +119,9 @@ export default function RankBoard() {
                           {numberFixed(strategy.return_rate_pct, 2)}%
                         </span>
                       </TableCell>
-                      <TableCell>{t(`strategy.types.${strategy.strategy_type}`)}</TableCell>
+                      <TableCell>
+                        {t(`strategy.types.${strategy.strategy_type}`)}
+                      </TableCell>
                       <TableCell>
                         <Tag>
                           <PngIcon

@@ -105,7 +105,9 @@ export const TradingStrategyForm = withForm({
               <SelectItem value="PromptBasedStrategy">
                 {t("strategy.form.strategyType.promptBased")}
               </SelectItem>
-              <SelectItem value="GridStrategy">{t("strategy.form.strategyType.grid")}</SelectItem>
+              <SelectItem value="GridStrategy">
+                {t("strategy.form.strategyType.grid")}
+              </SelectItem>
             </field.SelectField>
           )}
         </form.AppField>
@@ -168,8 +170,12 @@ export const TradingStrategyForm = withForm({
                       options={TRADING_SYMBOLS}
                       value={field.state.value}
                       onValueChange={(value) => field.handleChange(value)}
-                      placeholder={t("strategy.form.tradingSymbols.placeholder")}
-                      searchPlaceholder={t("strategy.form.tradingSymbols.searchPlaceholder")}
+                      placeholder={t(
+                        "strategy.form.tradingSymbols.placeholder",
+                      )}
+                      searchPlaceholder={t(
+                        "strategy.form.tradingSymbols.searchPlaceholder",
+                      )}
                       emptyText={t("strategy.form.tradingSymbols.emptyText")}
                       maxDisplayed={5}
                       creatable
@@ -277,7 +283,9 @@ export const TradingStrategyForm = withForm({
         >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>{t("strategy.prompt.delete.title")}</AlertDialogTitle>
+              <AlertDialogTitle>
+                {t("strategy.prompt.delete.title")}
+              </AlertDialogTitle>
               <AlertDialogDescription>
                 {t("strategy.prompt.delete.description")}
               </AlertDialogDescription>
