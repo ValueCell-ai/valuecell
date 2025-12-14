@@ -75,6 +75,32 @@ export function getTradingViewLocale(language: string): string {
       return "zh_TW";
     case "ja-JP":
       return "ja";
+    case "ko-KR":
+      return "kr";
+    case "de-DE":
+      return "de_DE";
+    case "fr-FR":
+      return "fr";
+    case "it-IT":
+      return "it";
+    case "es-ES":
+      return "es";
+    case "tr-TR":
+      return "tr";
+    case "pl-PL":
+      return "pl";
+    case "ru-RU":
+      return "ru";
+    case "pt-PT":
+      return "br";
+    case "id-ID":
+      return "id";
+    case "ms-MY":
+      return "ms_MY";
+    case "th-TH":
+      return "th_TH";
+    case "vi-VN":
+      return "vi_VN";
     default:
       return "en";
   }
