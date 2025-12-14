@@ -66,3 +66,16 @@ export const getCoinCapIcon = (symbol: string) => {
   const fixedSymbol = symbol.split(/[-/]/)[0].toLowerCase();
   return `https://assets.coincap.io/assets/icons/${fixedSymbol}@2x.png`;
 };
+
+export function getTradingViewLocale(language: string): string {
+  switch (language) {
+    case "zh-Hans":
+      return "zh_CN";
+    case "zh-Hant":
+      return "zh_TW";
+    case "ja-JP":
+      return "ja";
+    default:
+      return "en";
+  }
+}

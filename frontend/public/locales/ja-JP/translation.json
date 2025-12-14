@@ -164,5 +164,35 @@
       "details": "詳細",
       "loading": "読み込み中..."
     }
+  },
+  "home": {
+    "hello": "👋 こんにちは、投資家さん！",
+    "watchlist": "ウォッチリスト",
+    "stock": {
+      "loading": "株価データを読み込み中...",
+      "error": "株価データの読み込みに失敗しました: {{message}}",
+      "remove": "削除",
+      "removing": "削除中...",
+      "about": "概要",
+      "chart": {
+        "24h": "24時間",
+        "7d": "7日",
+        "30d": "30日"
+      }
+    },
+    "suggestions": {
+      "research": {
+        "title": "深層調査",
+        "description": "SEC提出書類を分析し、詳細な株式解釈レポートを作成します。"
+      },
+      "strategy": {
+        "title": "自動取引",
+        "description": "マルチ戦略スマート取引、戦略を自動実行"
+      },
+      "news": {
+        "title": "ニュースプッシュ",
+        "description": "カスタムスケジュールでパーソナライズされたニュース更新をプッシュ"
+      }
+    }
   }
 }

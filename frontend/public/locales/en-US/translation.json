@@ -157,5 +157,35 @@
       "details": "Details",
       "loading": "Loading..."
     }
+  },
+  "home": {
+    "hello": "👋 Hello Investor!",
+    "watchlist": "My Watchlist",
+    "stock": {
+      "loading": "Loading stock data...",
+      "error": "Error loading stock data: {{message}}",
+      "remove": "Remove",
+      "removing": "Removing...",
+      "about": "About",
+      "chart": {
+        "24h": "24h",
+        "7d": "7d",
+        "30d": "30d"
+      }
+    },
+    "suggestions": {
+      "research": {
+        "title": "Deep Research",
+        "description": "Analyze SEC filings to generate in-depth stock interpretation reports."
+      },
+      "strategy": {
+        "title": "Automated Trading",
+        "description": "Multi-strategy smart trading, automatically execute your strategies"
+      },
+      "news": {
+        "title": "Pushing News",
+        "description": "Personalized news updates on a custom schedule"
+      }
+    }
   }
 }
