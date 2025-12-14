@@ -22,5 +22,40 @@
       "title": "App Updates",
       "check": "Check for Update"
     }
+  },
+  "settings": {
+    "title": "Settings",
+    "nav": {
+      "models": "Models",
+      "general": "General",
+      "memory": "Memory"
+    },
+    "models": {
+      "title": "Model Provider",
+      "noProviders": "No providers available.",
+      "loading": "Loading provider details...",
+      "defaultProvider": "Default Provider",
+      "apiKey": "API key",
+      "enterApiKey": "Enter API key",
+      "getApiKey": "Click here to get the API key",
+      "apiHost": "API Host",
+      "models": "Models",
+      "add": "Add",
+      "addModel": "Add Model",
+      "modelId": "Model ID",
+      "enterModelId": "Enter model ID",
+      "modelName": "Model Name",
+      "enterModelName": "Enter model name",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "noModels": "No models configured for this provider."
+    },
+    "memory": {
+      "title": "Preserved memories",
+      "description": "I will remember and automatically manage useful information in chats to enhance the personalisation and relevance of replies",
+      "loading": "Loading...",
+      "noMemories": "No memories yet",
+      "delete": "Delete"
+    }
   }
 }

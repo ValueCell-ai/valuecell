@@ -1,4 +1,5 @@
 import { MoreVertical, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,6 +21,8 @@ interface MemoryItemCardProps {
 }
 
 export function MemoryItemCard({ item, onDelete }: MemoryItemCardProps) {
+  const { t } = useTranslation();
+
   return (
     <Item variant="outline" className="rounded-xl">
       <ItemContent>
@@ -44,7 +47,7 @@ export function MemoryItemCard({ item, onDelete }: MemoryItemCardProps) {
               onClick={() => onDelete?.(item.id)}
             >
               <Trash2 className="size-4" />
-              Delete
+              {t("settings.memory.delete")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

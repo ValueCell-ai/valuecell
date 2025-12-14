@@ -29,5 +29,40 @@
       "title": "アプリアップデート",
       "check": "アップデートを確認"
     }
+  },
+  "settings": {
+    "title": "設定",
+    "nav": {
+      "models": "モデル",
+      "general": "一般",
+      "memory": "メモリ"
+    },
+    "models": {
+      "title": "モデルプロバイダー",
+      "noProviders": "利用可能なプロバイダーはありません。",
+      "loading": "プロバイダー詳細を読み込み中...",
+      "defaultProvider": "デフォルトプロバイダー",
+      "apiKey": "API キー",
+      "enterApiKey": "API キーを入力",
+      "getApiKey": "ここをクリックして API キーを取得",
+      "apiHost": "API ホスト",
+      "models": "モデル",
+      "add": "追加",
+      "addModel": "モデルを追加",
+      "modelId": "モデル ID",
+      "enterModelId": "モデル ID を入力",
+      "modelName": "モデル名",
+      "enterModelName": "モデル名を入力",
+      "cancel": "キャンセル",
+      "confirm": "確認",
+      "noModels": "このプロバイダーにはモデルが設定されていません。"
+    },
+    "memory": {
+      "title": "保存されたメモリ",
+      "description": "チャット内の有用な情報を記憶・自動管理し、返信のパーソナライズと関連性を向上させます",
+      "loading": "読み込み中...",
+      "noMemories": "メモリはまだありません",
+      "delete": "削除"
+    }
   }
 }
