@@ -27,7 +27,7 @@ const ChatInputArea: FC<ChatInputAreaProps> = ({
   variant = "chat",
 }) => {
   const { t } = useTranslation();
-  const resolvedPlaceholder = placeholder ?? t("agent.chat.placeholder");
+  const resolvedPlaceholder = placeholder ?? t("chat.input.placeholder");
 
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Send message on Enter key (excluding Shift+Enter line breaks and IME composition state)

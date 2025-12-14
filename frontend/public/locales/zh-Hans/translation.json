@@ -72,6 +72,11 @@
     },
     "action": {
       "view": "查看"
+    },
+    "config": {
+      "disable": "禁用",
+      "chat": "聊天",
+      "collectAndChat": "收藏并聊天"
     }
   },
   "chat": {
@@ -79,7 +84,15 @@
       "placeholder": "输入消息..."
     },
     "newConversation": "新对话",
-    "settings": "设置"
+    "settings": "设置",
+    "conversationList": {
+      "title": "对话列表",
+      "loading": "加载中...",
+      "empty": "暂无对话"
+    },
+    "action": {
+      "delete": "删除"
+    }
   },
   "strategy": {
     "title": "交易策略",
@@ -136,6 +149,110 @@
         "tradingStrategy": "交易策略"
       },
       "error": "创建策略失败"
+    },
+    "form": {
+      "strategyType": {
+        "label": "策略类型",
+        "promptBased": "Prompt 策略",
+        "grid": "网格策略"
+      },
+      "strategyName": {
+        "label": "策略名称",
+        "placeholder": "输入策略名称"
+      },
+      "initialCapital": {
+        "label": "初始资金",
+        "placeholder": "输入初始资金"
+      },
+      "maxLeverage": {
+        "label": "最大杠杆",
+        "placeholder": "最大杠杆"
+      },
+      "decideInterval": {
+        "label": "决策间隔 (秒)",
+        "placeholder": "例如: 300"
+      },
+      "tradingSymbols": {
+        "label": "交易对",
+        "placeholder": "选择交易对...",
+        "searchPlaceholder": "搜索或添加交易对...",
+        "emptyText": "未找到交易对。"
+      },
+      "promptTemplate": {
+        "label": "系统 Prompt 模板",
+        "new": "新建 Prompt",
+        "view": "查看策略"
+      },
+      "aiModels": {
+        "platform": "模型平台",
+        "model": "选择模型",
+        "noModels": "暂无可用模型",
+        "apiKey": {
+          "label": "API Key",
+          "placeholder": "输入 API Key"
+        }
+      },
+      "exchanges": {
+        "transactionType": "交易类型",
+        "liveTrading": "实盘交易",
+        "virtualTrading": "模拟交易",
+        "selectExchange": "选择交易所",
+        "walletAddress": "钱包地址",
+        "privateKey": "私钥",
+        "apiKey": "API Key",
+        "secretKey": "Secret Key",
+        "passphrase": "Passphrase",
+        "testConnection": "测试连接",
+        "test": {
+          "success": "连接成功！",
+          "failed": "连接失败。请检查您的 API Key, Secret Key 或 Passphrase。"
+        },
+        "placeholder": {
+          "binance": {
+            "apiKey": "输入 API Key (64 字符)",
+            "secretKey": "输入 Secret Key (64 字符)"
+          },
+          "okx": {
+            "apiKey": "输入 API Key (格式: xxxxxxxx-xxxx-...)",
+            "secretKey": "输入 Secret Key (32 大写字母和数字)",
+            "passphrase": "输入 Passphrase (API 创建时设置)"
+          },
+          "gate": {
+            "apiKey": "输入 API Key (以 'key_' 开头)",
+            "secretKey": "输入 Secret Key (64 字符)"
+          },
+          "hyperliquid": {
+            "walletAddress": "输入钱包地址 (以 '0x' 开头)",
+            "privateKey": "输入私钥 (64 字符)"
+          },
+          "blockchain": {
+            "apiKey": "输入 API Key (格式: xxxxxxxx-xxxx-...)",
+            "secretKey": "输入 Secret Key"
+          },
+          "coinbase": {
+            "apiKey": "输入 API Key (或 Key Name)",
+            "secretKey": "输入 API Secret (或 Private Key)",
+            "passphrase": "输入 Passphrase (Legacy Pro API 需要)"
+          },
+          "mexc": {
+            "apiKey": "输入 Access Key (以 'mx0' 开头)",
+            "secretKey": "输入 Secret Key (通常 32 字符)"
+          },
+          "default": {
+            "apiKey": "在此粘贴 API Key",
+            "secretKey": "在此粘贴 Secret Key",
+            "passphrase": "输入 Passphrase",
+            "walletAddress": "输入钱包地址",
+            "privateKey": "输入私钥"
+          }
+        }
+      }
+    },
+    "prompt": {
+      "delete": {
+        "title": "删除策略 Prompt",
+        "description": "您确定要删除此策略 Prompt 吗？此操作无法撤消，并将从系统中永久删除该 Prompt。"
+      }
     },
     "detail": {
       "title": "策略详情",
