@@ -1,3 +1,4 @@
+import { isTauri } from "@tauri-apps/api/core";
 import { load, type Store } from "@tauri-apps/plugin-store";
 import type { StateStorage } from "zustand/middleware";
 import { debounce } from "@/hooks/use-debounce";
@@ -23,11 +24,7 @@ export class TauriStoreState implements StateStorage {
       return;
     }
 
-    const tauriInternals = (
-      window as Window & { __TAURI_INTERNALS__?: unknown }
-    ).__TAURI_INTERNALS__;
-
-    if (!tauriInternals) {
+    if (!isTauri()) {
       // Running in a regular browser; fall back to default persist storage.
       return;
     }

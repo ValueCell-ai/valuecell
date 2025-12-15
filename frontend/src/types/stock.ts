@@ -34,55 +34,17 @@ export interface StockPrice {
  */
 export type StockInterval =
   | "1m" // 1 minute
-  | "5m" // 5 minutes
-  | "15m" // 15 minutes
-  | "30m" // 30 minutes
-  | "60m" // 60 minutes
   | "1h" // 1 hour
   | "1d" // 1 day (default)
-  | "1w" // 1 week
-  | "1mo"; // 1 month
+  | "1w"; // 1 week
 
 export interface StockHistory {
-  ticker: string;
-  interval: StockInterval;
-  prices: {
-    ticker: string;
-    price: number;
-    timestamp: string;
-    open_price: number;
-    high_price: number;
-    low_price: number;
-    close_price: number;
-    volume: number;
-    change: number;
-    change_percent?: number;
-    currency: StockCurrency;
-    source: string;
-  }[];
+  time: string;
+  price: number;
 }
 
 export interface StockDetail {
-  ticker: string;
-  asset_type: "stock" | "etf" | "index" | "crypto";
-  asset_type_display: string;
-  names: {
-    "en-US": string;
-    "en-GB": string;
-    "zh-Hans": string;
-    "zh-Hant": string;
-  };
   display_name: string;
-  descriptions: Record<string, string>;
-  market_info: {
-    exchange: string;
-    country: string;
-    currency: StockCurrency;
-    timezone: string;
-    trading_hours: string | null;
-    market_status: string;
-  };
-  source_mappings: Record<string, string>;
   properties: {
     sector: string;
     industry: string;
@@ -93,7 +55,4 @@ export interface StockDetail {
     website: string;
     business_summary: string;
   };
-  created_at: string;
-  updated_at: string;
-  is_active: boolean;
 }

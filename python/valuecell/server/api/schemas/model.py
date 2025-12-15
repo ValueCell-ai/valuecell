@@ -83,3 +83,32 @@ class SetDefaultModelRequest(BaseModel):
         None,
         description="Optional display name; added/updated in models list if provided",
     )
+
+
+# --- Model availability check ---
+class CheckModelRequest(BaseModel):
+    """Request payload to check if a provider+model is usable."""
+
+    provider: Optional[str] = Field(
+        None, description="Provider to check; defaults to current primary provider"
+    )
+    model_id: Optional[str] = Field(
+        None, description="Model id to check; defaults to provider's default model"
+    )
+    api_key: Optional[str] = Field(
+        None, description="Temporary API key to use for this check (optional)"
+    )
+    # strict/live check removed; this endpoint now validates configuration only.
+
+
+class CheckModelResponse(BaseModel):
+    """Response payload describing the model availability check result."""
+
+    ok: bool = Field(..., description="Whether the provider+model is usable")
+    provider: str = Field(..., description="Provider under test")
+    model_id: str = Field(..., description="Model id under test")
+    status: Optional[str] = Field(
+        None,
+        description="Status label like 'valid_config', 'reachable', 'timeout', 'request_failed'",
+    )
+    error: Optional[str] = Field(None, description="Error message if any")
