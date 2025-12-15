@@ -18,24 +18,24 @@ import type { StockChangeType } from "@/types/stock";
 export type StockColorMode = "GREEN_UP_RED_DOWN" | "RED_UP_GREEN_DOWN";
 
 export type LanguageCode =
-  | "en-US"
-  | "zh-Hans"
-  | "zh-Hant"
-  | "ja-JP"
-  | "de-DE"
-  | "fr-FR"
-  | "ca-ES"
-  | "es-ES"
-  | "it-IT"
-  | "pl-PL"
-  | "tr-TR"
-  | "ru-RU"
-  | "pt-PT"
-  | "id-ID"
-  | "ms-MY"
-  | "th-TH"
-  | "vi-VN"
-  | "ko-KR";
+  | "en"
+  | "zh_CN"
+  | "zh_TW"
+  | "ja"
+  | "kr"
+  | "de_DE"
+  | "fr"
+  | "it"
+  | "es"
+  | "tr"
+  | "pl"
+  | "ru"
+  | "br"
+  | "id"
+  | "ms_MY"
+  | "th_TH"
+  | "vi_VN"
+  | "ca_ES";
 
 interface SettingsStoreState {
   stockColorMode: StockColorMode;
@@ -46,7 +46,7 @@ interface SettingsStoreState {
 
 const INITIAL_STATE = {
   stockColorMode: "GREEN_UP_RED_DOWN" as StockColorMode,
-  language: "en-US" as LanguageCode,
+  language: "en" as LanguageCode,
 };
 
 /**

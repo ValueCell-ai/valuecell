@@ -3,28 +3,28 @@ import { useSettingsStore } from "@/store/settings-store";
 
 // Language-specific format configurations
 const FORMAT_CONFIGS = {
-  "en-US": {
+  en: {
     date: "MM/DD/YYYY",
     time: "hh:mm A",
     datetime: "MM/DD/YYYY hh:mm A",
     currency: "USD",
     locale: "en-us",
   },
-  "zh-Hans": {
+  zh_CN: {
     date: "YYYY年MM月DD日",
     time: "HH:mm",
     datetime: "YYYY年MM月DD日 HH:mm",
     currency: "CNY",
     locale: "zh-cn",
   },
-  "zh-Hant": {
+  zh_TW: {
     date: "YYYY年MM月DD日",
     time: "HH:mm",
     datetime: "YYYY年MM月DD日 HH:mm",
     currency: "HKD", // Defaulting to HKD for Traditional Chinese context usually
     locale: "zh-tw",
   },
-  "ja-JP": {
+  ja: {
     date: "YYYY/MM/DD",
     time: "HH:mm",
     datetime: "YYYY/MM/DD HH:mm",
@@ -36,7 +36,7 @@ const FORMAT_CONFIGS = {
 type LanguageCode = keyof typeof FORMAT_CONFIGS;
 
 function getConfig(language: string) {
-  return FORMAT_CONFIGS[language as LanguageCode] || FORMAT_CONFIGS["en-US"];
+  return FORMAT_CONFIGS[language as LanguageCode] || FORMAT_CONFIGS["en"];
 }
 
 function getCurrentLanguage() {

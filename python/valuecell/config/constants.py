@@ -12,24 +12,22 @@ CONFIG_DIR = PROJECT_ROOT / "configs"
 
 # Supported Languages Configuration
 SUPPORTED_LANGUAGES: List[Tuple[str, str]] = [
-    ("en-US", "English (United States)"),
-    ("en-GB", "English (United Kingdom)"),
-    ("zh-Hans", "简体中文 (Simplified Chinese)"),
-    ("zh-Hant", "繁體中文 (Traditional Chinese)"),
-    ("ja-JP", "日本語 (Japanese)"),
+    ("en", "English"),
+    ("zh_CN", "简体中文 (Simplified Chinese)"),
+    ("zh_TW", "繁體中文 (Traditional Chinese)"),
+    ("ja", "日本語 (Japanese)"),
 ]
 
 # Language to Timezone Mapping
 LANGUAGE_TIMEZONE_MAPPING: Dict[str, str] = {
-    "en-US": "America/New_York",
-    "en-GB": "Europe/London",
-    "zh-Hans": "Asia/Shanghai",
-    "zh-Hant": "Asia/Hong_Kong",
-    "ja-JP": "Asia/Tokyo",
+    "en": "America/New_York",
+    "zh_CN": "Asia/Shanghai",
+    "zh_TW": "Asia/Hong_Kong",
+    "ja": "Asia/Tokyo",
 }
 
 # Default Language and Timezone
-DEFAULT_LANGUAGE = "en-US"
+DEFAULT_LANGUAGE = "en"
 DEFAULT_TIMEZONE = "UTC"
 
 # Supported Language Codes
@@ -41,45 +39,40 @@ DB_COLLATION = "utf8mb4_unicode_ci"
 
 # Date and Time Format Configuration
 DATE_FORMATS: Dict[str, str] = {
-    "en-US": "%m/%d/%Y",
-    "en-GB": "%d/%m/%Y",
-    "zh-Hans": "%Y年%m月%d日",
-    "zh-Hant": "%Y年%m月%d日",
-    "ja-JP": "%Y/%m/%d",
+    "en": "%m/%d/%Y",
+    "zh_CN": "%Y年%m月%d日",
+    "zh_TW": "%Y年%m月%d日",
+    "ja": "%Y/%m/%d",
 }
 
 TIME_FORMATS: Dict[str, str] = {
-    "en-US": "%I:%M %p",
-    "en-GB": "%H:%M",
-    "zh-Hans": "%H:%M",
-    "zh-Hant": "%H:%M",
-    "ja-JP": "%H:%M",
+    "en": "%I:%M %p",
+    "zh_CN": "%H:%M",
+    "zh_TW": "%H:%M",
+    "ja": "%H:%M",
 }
 
 DATETIME_FORMATS: Dict[str, str] = {
-    "en-US": "%m/%d/%Y %I:%M %p",
-    "en-GB": "%d/%m/%Y %H:%M",
-    "zh-Hans": "%Y年%m月%d日 %H:%M",
-    "zh-Hant": "%Y年%m月%d日 %H:%M",
-    "ja-JP": "%Y/%m/%d %H:%M",
+    "en": "%m/%d/%Y %I:%M %p",
+    "zh_CN": "%Y年%m月%d日 %H:%M",
+    "zh_TW": "%Y年%m月%d日 %H:%M",
+    "ja": "%Y/%m/%d %H:%M",
 }
 
 # Currency Configuration
 CURRENCY_SYMBOLS: Dict[str, str] = {
-    "en-US": "$",
-    "en-GB": "£",
-    "zh-Hans": "¥",
-    "zh-Hant": "HK$",
-    "ja-JP": "¥",
+    "en": "$",
+    "zh_CN": "¥",
+    "zh_TW": "HK$",
+    "ja": "¥",
 }
 
 # Number Formatting Configuration
 NUMBER_FORMATS: Dict[str, Dict[str, str]] = {
-    "en-US": {"decimal": ".", "thousands": ","},
-    "en-GB": {"decimal": ".", "thousands": ","},
-    "zh-Hans": {"decimal": ".", "thousands": ","},
-    "zh-Hant": {"decimal": ".", "thousands": ","},
-    "ja-JP": {"decimal": ".", "thousands": ","},
+    "en": {"decimal": ".", "thousands": ","},
+    "zh_CN": {"decimal": ".", "thousands": ","},
+    "zh_TW": {"decimal": ".", "thousands": ","},
+    "ja": {"decimal": ".", "thousands": ","},
 }
 
 # Region-based default tickers for homepage display

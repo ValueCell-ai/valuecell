@@ -6,7 +6,6 @@ import { useGetStockDetail, useRemoveStockFromWatchlist } from "@/api/stock";
 import TradingViewAdvancedChart from "@/components/tradingview/tradingview-advanced-chart";
 import { Button } from "@/components/ui/button";
 import LinkButton from "@/components/valuecell/button/link-button";
-import { getTradingViewLocale } from "@/lib/utils";
 import { useIsLoggedIn } from "@/store/system-store";
 import type { Route } from "./+types/stock";
 
@@ -89,7 +88,7 @@ function Stock() {
           interval="D"
           minHeight={420}
           theme="light"
-          locale={getTradingViewLocale(i18n.language)}
+          locale={i18n.language}
           timezone="UTC"
         />
         {/* )} */}

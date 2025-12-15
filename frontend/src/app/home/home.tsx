@@ -6,7 +6,6 @@ import { IconGroupPng, MessageGroupPng, TrendPng } from "@/assets/png";
 import { AutoTrade, NewsPush, ResearchReport } from "@/assets/svg";
 import TradingViewTickerTape from "@/components/tradingview/tradingview-ticker-tape";
 import SvgIcon from "@/components/valuecell/icon/svg-icon";
-import { getTradingViewLocale } from "@/lib/utils";
 import ChatInputArea from "../agent/components/chat-conversation/chat-input-area";
 import { AgentSuggestionsList, AgentTaskCards } from "./components";
 
@@ -67,7 +66,7 @@ function Home() {
         <section className="flex w-full flex-1 flex-col items-center justify-between gap-4">
           <TradingViewTickerTape
             symbols={INDEX_SYMBOLS}
-            locale={getTradingViewLocale(i18n.language)}
+            locale={i18n.language}
           />
 
           <div className="scroll-container flex-1">
@@ -90,7 +89,7 @@ function Home() {
         <section className="flex w-full flex-1 flex-col items-center gap-8 rounded-lg bg-white px-6 pt-12">
           <TradingViewTickerTape
             symbols={INDEX_SYMBOLS}
-            locale={getTradingViewLocale(i18n.language)}
+            locale={i18n.language}
           />
 
           <h1 className="mt-16 font-medium text-3xl text-gray-950">
