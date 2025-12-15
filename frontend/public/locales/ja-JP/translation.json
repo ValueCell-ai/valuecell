@@ -20,7 +20,7 @@
       }
     },
     "quotesColor": {
-      "title": "相場カラー",
+      "title": "チャートの配色",
       "description": "株価の変動を視覚化する方法を選択してください。",
       "greenUpRedDown": "緑上昇 / 赤下落",
       "redUpGreenDown": "赤上昇 / 緑下落"
