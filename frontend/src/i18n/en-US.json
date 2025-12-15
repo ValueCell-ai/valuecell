@@ -315,10 +315,6 @@
   },
   "rank": {
     "title": "Profit Leaderboard",
-    "days": {
-      "7": "7D",
-      "30": "1M"
-    },
     "table": {
       "rank": "Rank",
       "user": "User",
@@ -343,12 +339,7 @@
       "about": "About",
       "sector": "Sector:",
       "industry": "Industry:",
-      "website": "Website:",
-      "chart": {
-        "24h": "24h",
-        "7d": "7d",
-        "30d": "30d"
-      }
+      "website": "Website:"
     },
     "search": {
       "title": "Stock Search",

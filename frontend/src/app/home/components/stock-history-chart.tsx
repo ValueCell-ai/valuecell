@@ -17,16 +17,15 @@ export const StockHistoryChart = ({
   ticker,
   className,
 }: StockHistoryChartProps) => {
-  const { t } = useTranslation();
   const [interval, setInterval] = useState<StockInterval>("1h");
 
   const INTERVALS: { label: string; value: StockInterval }[] = useMemo(
     () => [
-      { label: t("home.stock.chart.24h"), value: "1m" },
-      { label: t("home.stock.chart.7d"), value: "1h" },
-      { label: t("home.stock.chart.30d"), value: "1d" },
+      { label: "24H", value: "1m" },
+      { label: "7D", value: "1h" },
+      { label: "30D", value: "1d" },
     ],
-    [t],
+    [],
   );
 
   // Calculate date range based on interval

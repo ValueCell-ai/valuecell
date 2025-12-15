@@ -58,8 +58,8 @@ export default function RankBoard() {
             onValueChange={(val) => setDays(Number(val))}
           >
             <TabsList>
-              <TabsTrigger value="7">{t("rank.days.7")}</TabsTrigger>
-              <TabsTrigger value="30">{t("rank.days.30")}</TabsTrigger>
+              <TabsTrigger value="7">7D</TabsTrigger>
+              <TabsTrigger value="30">30D</TabsTrigger>
             </TabsList>
           </Tabs>
         </CardHeader>
