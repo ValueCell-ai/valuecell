@@ -1,19 +1,31 @@
-name: DeepSeek
-provider_type: deepseek
-enabled: true
+# ============================================
+# DeepSeek Provider Configuration
+# ============================================
+name: "DeepSeek"
+provider_type: "deepseek"
+
+enabled: true # Default is true if not specified
+
+# Connection Configuration
 connection:
-  base_url: https://api.deepseek.com/v1
-  api_key_env: DEEPSEEK_API_KEY
-default_model: deepseek-chat
+  base_url: "https://api.deepseek.com/v1"
+  api_key_env: "DEEPSEEK_API_KEY"
+
+# Default model if none specified
+default_model: "deepseek-chat"
+
+# Model Parameters Defaults
 defaults:
   temperature: 0.7
   max_tokens: 8096
+
+# Available Models (commonly used)
 models:
-- id: deepseek-chat
-  name: DeepSeek Chat
-  context_length: 128000
-  description: DeepSeek Chat model
-- id: deepseek-reasoner
-  name: DeepSeek Reasoner
-  context_length: 128000
-  description: DeepSeek Reasoner model with enhanced reasoning capabilities
+  - id: "deepseek-chat"
+    name: "DeepSeek Chat"
+    context_length: 128000
+    description: "DeepSeek Chat model"
+  - id: "deepseek-reasoner"
+    name: "DeepSeek Reasoner"
+    context_length: 128000
+    description: "DeepSeek Reasoner model with enhanced reasoning capabilities"
