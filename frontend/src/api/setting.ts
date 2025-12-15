@@ -8,6 +8,8 @@ import { API_QUERY_KEYS } from "@/constants/api";
 import type { ApiResponse } from "@/lib/api-client";
 import { apiClient } from "@/lib/api-client";
 import type {
+  CheckModelRequest,
+  CheckModelResult,
   MemoryItem,
   ModelProvider,
   ProviderDetail,
@@ -167,6 +169,18 @@ export const useSetDefaultProviderModel = () => {
         ]),
       });
     },
+  });
+};
+
+/**
+ * Check model availability by provider/model with optional strict live check.
+ * - When `strict` is false, validates configuration only (API key/base URL).
+ * - When `strict` is true, performs a minimal request to verify reachability.
+ */
+export const useCheckModelAvailability = () => {
+  return useMutation({
+    mutationFn: (params: CheckModelRequest) =>
+      apiClient.post<ApiResponse<CheckModelResult>>("/models/check", params),
   });
 };
 

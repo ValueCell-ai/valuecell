@@ -56,7 +56,7 @@ function Sparkline({
         bottom: 0,
       },
       xAxis: {
-        type: "time",
+        type: "category",
         show: false,
         axisLabel: {
           show: false,
@@ -78,6 +78,7 @@ function Sparkline({
         {
           type: "line",
           data: data,
+          smooth: true,
           symbol: "circle",
           symbolSize: 12,
           showSymbol: false,

@@ -5,6 +5,7 @@ to fetch stock market data, including real-time prices and historical data.
 """
 
 import logging
+import time
 from datetime import datetime
 from decimal import Decimal
 from typing import Dict, List, Optional
@@ -44,6 +45,8 @@ class YFinanceAdapter(BaseDataAdapter):
     def _initialize(self) -> None:
         """Initialize Yahoo Finance adapter configuration."""
         self.timeout = self.config.get("timeout", 30)
+        self.retry_attempts = int(self.config.get("retry_attempts", 3))
+        self.retry_backoff_base = float(self.config.get("retry_backoff_base", 0.5))
 
         # Asset type mapping for Yahoo Finance
         self.quote_type_to_asset_type_mapping = {
@@ -217,11 +220,97 @@ class YFinanceAdapter(BaseDataAdapter):
         """Get detailed asset information from Yahoo Finance."""
         try:
             source_ticker = self.convert_to_source_ticker(ticker)
-            ticker_obj = yf.Ticker(source_ticker)
-            info = ticker_obj.info
+
+            info = None
+            for attempt in range(max(1, self.retry_attempts)):
+                try:
+                    ticker_obj = yf.Ticker(source_ticker)
+                    try:
+                        info = ticker_obj.info
+                    except Exception:
+                        try:
+                            info = ticker_obj.get_info()
+                        except Exception:
+                            info = None
+                    if info and "symbol" in info:
+                        break
+                except Exception as e:
+                    if attempt < self.retry_attempts - 1:
+                        time.sleep(self.retry_backoff_base * (2**attempt))
+                        continue
+                    logger.error(f"Error fetching asset info for {ticker}: {e}")
+                    return None
 
             if not info or "symbol" not in info:
-                return None
+                try:
+                    search_obj = yf.Search(source_ticker)
+                    quotes = getattr(search_obj, "quotes", []) or []
+                    chosen = None
+                    for q in quotes:
+                        if q.get("symbol") == source_ticker:
+                            chosen = q
+                            break
+                    if not chosen and quotes:
+                        chosen = quotes[0]
+
+                    if chosen:
+                        names = LocalizedName()
+                        long_name = chosen.get("longname") or chosen.get(
+                            "shortname", ticker
+                        )
+                        names.set_name("en-US", long_name)
+
+                        mapped_exchange = self.exchange_mapping.get(
+                            chosen.get("exchange")
+                        )
+                        market_info = MarketInfo(
+                            exchange=mapped_exchange.value
+                            if mapped_exchange
+                            else "UNKNOWN",
+                            country="US",
+                            currency=chosen.get("currency", "USD"),
+                            timezone=chosen.get(
+                                "exchangeTimezoneName", "America/New_York"
+                            ),
+                        )
+
+                        asset_type = self.quote_type_to_asset_type_mapping.get(
+                            str(chosen.get("quoteType", "")).upper(), AssetType.STOCK
+                        )
+
+                        asset = Asset(
+                            ticker=ticker,
+                            asset_type=asset_type,
+                            names=names,
+                            market_info=market_info,
+                        )
+                        asset.set_source_ticker(self.source, source_ticker)
+                        return asset
+                except Exception:
+                    pass
+
+                try:
+                    ticker_obj = yf.Ticker(source_ticker)
+                    fast_info = getattr(ticker_obj, "fast_info", None)
+                    fi = fast_info if isinstance(fast_info, dict) else None
+                    names = LocalizedName()
+                    names.set_name("en-US", ticker)
+                    market_info = MarketInfo(
+                        exchange=ticker.split(":")[0] if ":" in ticker else "UNKNOWN",
+                        country="US",
+                        currency=(fi or {}).get("currency", "USD"),
+                        timezone="America/New_York",
+                    )
+                    asset = Asset(
+                        ticker=ticker,
+                        asset_type=AssetType.STOCK,
+                        names=names,
+                        market_info=market_info,
+                    )
+                    asset.set_source_ticker(self.source, source_ticker)
+                    return asset
+                except Exception:
+                    return None
 
             # Create localized names
             names = LocalizedName()
@@ -311,17 +400,81 @@ class YFinanceAdapter(BaseDataAdapter):
             ticker_obj = yf.Ticker(source_ticker)
 
             # Get current data
-            data = ticker_obj.history(period="1d", interval="1m")
-            if data.empty:
-                return None
+            data = None
+            try:
+                data = ticker_obj.history(period="1d", interval="1m")
+            except Exception:
+                data = None
+            if data is None or data.empty:
+                try:
+                    fast_info = getattr(ticker_obj, "fast_info", None)
+                    fi = fast_info if isinstance(fast_info, dict) else None
+                    if fi is None:
+                        try:
+                            fi = ticker_obj.get_fast_info()
+                        except Exception:
+                            fi = None
+                    price_val = None
+                    if fi:
+                        price_val = (
+                            fi.get("last_price")
+                            or fi.get("regular_market_price")
+                            or fi.get("last_close")
+                        )
+                    if price_val is None:
+                        return None
+                    current_price = Decimal(str(price_val))
+                    prev_close_val = None
+                    if fi and fi.get("previous_close") is not None:
+                        prev_close_val = Decimal(str(fi.get("previous_close")))
+                    else:
+                        prev_close_val = current_price
+                    change = current_price - prev_close_val
+                    change_percent = (
+                        (change / prev_close_val) * 100
+                        if prev_close_val
+                        else Decimal("0")
+                    )
+                    return AssetPrice(
+                        ticker=ticker,
+                        price=current_price,
+                        currency=(fi or {}).get("currency", "USD"),
+                        timestamp=datetime.now(),
+                        volume=None,
+                        open_price=None,
+                        high_price=None,
+                        low_price=None,
+                        close_price=current_price,
+                        change=change,
+                        change_percent=change_percent,
+                        market_cap=None,
+                        source=self.source,
+                    )
+                except Exception:
+                    return None
 
             # Get the most recent data point
             latest = data.iloc[-1]
-            info = ticker_obj.info
+            info = None
+            try:
+                info = ticker_obj.info
+            except Exception:
+                try:
+                    info = ticker_obj.get_info()
+                except Exception:
+                    info = None
 
             # Calculate change
             current_price = Decimal(str(latest["Close"]))
-            previous_close = Decimal(str(info.get("previousClose", latest["Close"])))
+            prev_close_val = None
+            if info and info.get("previousClose") is not None:
+                prev_close_val = Decimal(str(info.get("previousClose")))
+            else:
+                if len(data) >= 2:
+                    prev_close_val = Decimal(str(data.iloc[-2]["Close"]))
+                else:
+                    prev_close_val = current_price
+            previous_close = prev_close_val
             change = current_price - previous_close
             change_percent = (
                 (change / previous_close) * 100 if previous_close else Decimal("0")
@@ -330,7 +483,7 @@ class YFinanceAdapter(BaseDataAdapter):
             return AssetPrice(
                 ticker=ticker,
                 price=current_price,
-                currency=info.get("currency", "USD"),
+                currency=(info or {}).get("currency", "USD"),
                 timestamp=latest.name.to_pydatetime(),
                 volume=Decimal(str(latest["Volume"])) if latest["Volume"] else None,
                 open_price=Decimal(str(latest["Open"])),
@@ -340,7 +493,7 @@ class YFinanceAdapter(BaseDataAdapter):
                 change=change,
                 change_percent=change_percent,
                 market_cap=Decimal(str(info["marketCap"]))
-                if info.get("marketCap")
+                if (info or {}).get("marketCap")
                 else None,
                 source=self.source,
             )
