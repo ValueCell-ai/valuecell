@@ -154,7 +154,7 @@
     },
     "positions": {
       "title": "ポジション",
-      "symbol": "シンボル",
+      "symbol": "銘柄",
       "type": "売買",
       "leverage": "レバレッジ",
       "quantity": "数量",
