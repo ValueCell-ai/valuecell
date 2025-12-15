@@ -20,7 +20,7 @@
       }
     },
     "quotesColor": {
-      "title": "相場カラー",
+      "title": "チャートの配色",
       "description": "株価の変動を視覚化する方法を選択してください。",
       "greenUpRedDown": "緑上昇 / 赤下落",
       "redUpGreenDown": "赤上昇 / 緑下落"
@@ -112,7 +112,7 @@
       "deepseek": "DeepSeek",
       "google": "Google Cloud",
       "openai": "OpenAI",
-      "openai-compatible": "OpenAI互換",
+      "openai-compatible": "OpenAI 互換 API",
       "openrouter": "OpenRouter",
       "siliconflow": "SiliconFlow"
     },
@@ -154,13 +154,13 @@
     },
     "positions": {
       "title": "ポジション",
-      "symbol": "シンボル",
-      "type": "タイプ",
+      "symbol": "銘柄",
+      "type": "売買",
       "leverage": "レバレッジ",
       "quantity": "数量",
       "pnl": "損益",
-      "noOpen": "オープンポジションなし",
-      "noOpenDesc": "取引が開始されるとここにポジションが表示されます"
+      "noOpen": "保有ポジションなし",
+      "noOpenDesc": "注文が約定すると、ここにポジションが表示されます"
     },
     "create": {
       "title": "取引戦略を追加",
