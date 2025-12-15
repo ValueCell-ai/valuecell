@@ -1,6 +1,5 @@
 import dayjs from "dayjs";
 import "dayjs/locale/en";
-import "dayjs/locale/en-gb";
 import "dayjs/locale/ja";
 import "dayjs/locale/zh-cn";
 import "dayjs/locale/zh-tw";
@@ -8,7 +7,6 @@ import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
 
-import enGB from "@/i18n/en-GB.json";
 import enUS from "@/i18n/en-US.json";
 import jaJP from "@/i18n/ja-JP.json";
 import zhHans from "@/i18n/zh-Hans.json";
@@ -25,7 +23,6 @@ i18n
     },
     resources: {
       "en-US": { translation: enUS },
-      "en-GB": { translation: enGB },
       "zh-Hans": { translation: zhHans },
       "zh-Hant": { translation: zhHant },
       "ja-JP": { translation: jaJP },
@@ -47,7 +44,6 @@ i18n
 i18n.on("languageChanged", (lng) => {
   const dayjsLocaleMap: Record<string, string> = {
     "en-US": "en",
-    "en-GB": "en-gb",
     "zh-Hans": "zh-cn",
     "zh-Hant": "zh-tw",
     "ja-JP": "ja",

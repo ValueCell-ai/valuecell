@@ -97,7 +97,6 @@ export default function GeneralPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="en-US">English (United States)</SelectItem>
-              <SelectItem value="en-GB">English (United Kingdom)</SelectItem>
               <SelectItem value="zh-Hans">简体中文</SelectItem>
               <SelectItem value="zh-Hant">繁體中文</SelectItem>
               <SelectItem value="ja-JP">日本語</SelectItem>

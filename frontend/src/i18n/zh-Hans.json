@@ -13,7 +13,6 @@
       "description": "选择您喜欢的应用程序语言和区域格式。",
       "options": {
         "en-US": "English (United States)",
-        "en-GB": "English (United Kingdom)",
         "zh-Hans": "简体中文",
         "zh-Hant": "繁體中文",
         "ja-JP": "日本語"

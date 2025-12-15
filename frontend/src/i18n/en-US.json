@@ -13,7 +13,6 @@
       "description": "Select your preferred language and regional format for the app.",
       "options": {
         "en-US": "English (United States)",
-        "en-GB": "English (United Kingdom)",
         "zh-Hans": "简体中文",
         "zh-Hant": "繁體中文",
         "ja-JP": "日本語"

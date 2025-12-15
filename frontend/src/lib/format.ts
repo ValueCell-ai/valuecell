@@ -10,13 +10,6 @@ const FORMAT_CONFIGS = {
     currency: "USD",
     locale: "en-us",
   },
-  "en-GB": {
-    date: "DD/MM/YYYY",
-    time: "HH:mm",
-    datetime: "DD/MM/YYYY HH:mm",
-    currency: "GBP",
-    locale: "en-gb",
-  },
   "zh-Hans": {
     date: "YYYY年MM月DD日",
     time: "HH:mm",
