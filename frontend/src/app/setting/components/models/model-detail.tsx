@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import {
   useAddProviderModel,
+  useCheckModelAvailability,
   useDeleteProviderModel,
   useGetModelProviderDetail,
   useSetDefaultProvider,
@@ -65,6 +66,12 @@ export function ModelDetail({ provider }: ModelDetailProps) {
     useSetDefaultProviderModel();
   const { mutate: setDefaultProvider, isPending: settingDefaultProvider } =
     useSetDefaultProvider();
+  const {
+    data: checkResult,
+    mutateAsync: checkAvailability,
+    isPending: checkingAvailability,
+    reset: resetCheckResult,
+  } = useCheckModelAvailability();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -95,8 +102,11 @@ export function ModelDetail({ provider }: ModelDetailProps) {
   }, [providerDetail, configForm.setFieldValue]);
 
   useEffect(() => {
-    if (provider) setShowApiKey(false);
-  }, [provider]);
+    if (provider) {
+      setShowApiKey(false);
+      resetCheckResult();
+    }
+  }, [provider, resetCheckResult]);
 
   const addModelForm = useForm({
     defaultValues: {
@@ -133,7 +143,8 @@ export function ModelDetail({ provider }: ModelDetailProps) {
     addingModel ||
     deletingModel ||
     settingDefaultModel ||
-    settingDefaultProvider;
+    settingDefaultProvider ||
+    checkingAvailability;
 
   if (detailLoading) {
     return (
@@ -173,39 +184,79 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                   >
                     API key
                   </FieldLabel>
-                  <InputGroup>
-                    <InputGroupInput
-                      type={showApiKey ? "text" : "password"}
-                      id="api_key"
-                      placeholder={"Enter API key"}
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      onBlur={() => configForm.handleSubmit()}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          e.currentTarget.blur();
-                        }
+                  <div className="flex items-center gap-4">
+                    <InputGroup>
+                      <InputGroupInput
+                        type={showApiKey ? "text" : "password"}
+                        id="api_key"
+                        placeholder={"Enter API key"}
+                        value={field.state.value}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        onBlur={() => configForm.handleSubmit()}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            e.currentTarget.blur();
+                          }
+                        }}
+                      />
+                      <InputGroupAddon align="inline-end">
+                        <InputGroupButton
+                          type="button"
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={() => setShowApiKey(!showApiKey)}
+                          aria-label={
+                            showApiKey ? "Hide password" : "Show password"
+                          }
+                        >
+                          {showApiKey ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </InputGroupButton>
+                      </InputGroupAddon>
+                    </InputGroup>
+
+                    <Button
+                      type="button"
+                      variant={"outline"}
+                      disabled={isBusy}
+                      onClick={async () => {
+                        await checkAvailability({
+                          provider,
+                          model_id: providerDetail.default_model_id,
+                        });
                       }}
-                    />
-                    <InputGroupAddon align="inline-end">
-                      <InputGroupButton
-                        type="button"
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => setShowApiKey(!showApiKey)}
-                        aria-label={
-                          showApiKey ? "Hide password" : "Show password"
-                        }
-                      >
-                        {showApiKey ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </InputGroupButton>
-                    </InputGroupAddon>
-                  </InputGroup>
+                    >
+                      {checkingAvailability
+                        ? "Waiting for Check "
+                        : "Check Availability"}
+                    </Button>
+                  </div>
+                  {checkResult?.data && (
+                    <div className="text-sm">
+                      {checkResult.data.ok ? (
+                        <span className="text-green-600">
+                          Available
+                          {checkResult.data.status
+                            ? ` (${checkResult.data.status})`
+                            : ""}
+                        </span>
+                      ) : (
+                        <span className="text-red-600">
+                          Unavailable
+                          {checkResult.data.status
+                            ? ` (${checkResult.data.status})`
+                            : ""}
+                          {checkResult.data.error
+                            ? `: ${checkResult.data.error}`
+                            : ""}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <LinkButton
                     className="w-fit! hover:text-gray-700"
                     url={providerDetail.api_key_url}
