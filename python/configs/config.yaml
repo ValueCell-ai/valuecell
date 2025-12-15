@@ -50,6 +50,9 @@ models:
     dashscope:
       config_file: "providers/dashscope.yaml"
       api_key_env: "DASHSCOPE_API_KEY"
+    
+    ollama:
+      config_file: "providers/ollama.yaml"
 
 # Agent Configuration
 agents:

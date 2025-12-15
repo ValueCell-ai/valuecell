@@ -55,9 +55,9 @@ class ApiClient {
       const errorData = await response.json().catch(() => ({}));
       const message = JSON.stringify(
         errorData.message ||
-          errorData.detail ||
-          response.statusText ||
-          `HTTP ${response.status}`,
+        errorData.detail ||
+        response.statusText ||
+        `HTTP ${response.status}`,
       );
 
       if (response.status === 401) {

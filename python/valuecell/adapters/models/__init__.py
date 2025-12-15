@@ -29,6 +29,7 @@ from valuecell.adapters.models.factory import (
     OpenAICompatibleProvider,
     OpenAIProvider,
     OpenRouterProvider,
+    OllamaProvider,
     SiliconFlowProvider,
     create_model,
     create_model_for_agent,
@@ -49,6 +50,7 @@ __all__ = [
     "SiliconFlowProvider",
     "DeepSeekProvider",
     "DashScopeProvider",
+    "OllamaProvider",
     # Convenience functions
     "create_model",
     "create_model_for_agent",
