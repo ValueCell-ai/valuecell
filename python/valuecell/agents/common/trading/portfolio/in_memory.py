@@ -7,12 +7,14 @@ from valuecell.agents.common.trading.models import (
     MarketType,
     PortfolioView,
     PositionSnapshot,
+    StopPrice,
     TradeHistoryEntry,
     TradeSide,
     TradeType,
     TradingMode,
 )
 from valuecell.agents.common.trading.utils import extract_price_map
+from valuecell.server.db.models import StrategyStopPrices
 
 from .interfaces import BasePortfolioService
 
@@ -41,6 +43,7 @@ class InMemoryPortfolioService(BasePortfolioService):
         initial_positions: Dict[str, PositionSnapshot],
         trading_mode: TradingMode,
         market_type: MarketType,
+        stop_prices: Dict[str, StrategyStopPrices],
         constraints: Optional[Constraints] = None,
         strategy_id: Optional[str] = None,
     ) -> None:
@@ -75,6 +78,7 @@ class InMemoryPortfolioService(BasePortfolioService):
             total_realized_pnl=0.0,
             buying_power=free_cash,
             free_cash=free_cash,
+            stop_prices=stop_prices,
         )
         self._trading_mode = trading_mode
         self._market_type = market_type
@@ -88,6 +92,22 @@ class InMemoryPortfolioService(BasePortfolioService):
             except Exception:
                 pass
         return self._view
+
+    def update_stop_prices(self, stop_prices: List[StopPrice]) -> None:
+        for stop_price in stop_prices:
+            if stop_price.symbol in self._view.stop_prices:
+                self._view.stop_prices[stop_price.symbol].stop_gain_price = (
+                    stop_price.stop_gain_price
+                    if stop_price.stop_gain_price is not None
+                    else self._view.stop_prices[stop_price.symbol].stop_gain_price
+                )
+                self._view.stop_prices[stop_price.symbol].stop_loss_price = (
+                    stop_price.stop_loss_price
+                    if stop_price.stop_loss_price is not None
+                    else self._view.stop_prices[stop_price.symbol].stop_loss_price
+                )
+            else:
+                self._view.stop_prices[stop_price.symbol] = stop_price
 
     def apply_trades(
         self, trades: List[TradeHistoryEntry], market_features: List[FeatureVector]

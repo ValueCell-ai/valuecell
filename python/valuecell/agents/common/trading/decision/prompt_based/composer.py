@@ -114,7 +114,11 @@ class LlmComposer(BaseComposer):
             logger.error("Failed sending plan to Discord: {}", exc)
 
         normalized = self._normalize_plan(context, plan)
-        return ComposeResult(instructions=normalized, rationale=plan.rationale)
+        return ComposeResult(
+            instructions=normalized,
+            rationale=plan.rationale,
+            stop_prices=plan.stop_prices,
+        )
 
     # ------------------------------------------------------------------
 
@@ -153,16 +157,21 @@ class LlmComposer(BaseComposer):
         market = extract_market_section(features.get("market_snapshot", []))
 
         # Portfolio positions
-        positions = [
-            {
-                "symbol": sym,
+        positions = {
+            sym: {
+                "avg_price": snap.avg_price,
                 "qty": float(snap.quantity),
                 "unrealized_pnl": snap.unrealized_pnl,
                 "entry_ts": snap.entry_ts,
             }
             for sym, snap in pv.positions.items()
             if abs(float(snap.quantity)) > 0
-        ]
+        }
+        for symbol, stop_price in pv.stop_prices.items():
+            if symbol not in positions:
+                continue
+            positions[symbol]["stop_gain_price"] = stop_price.stop_gain_price
+            positions[symbol]["stop_loss_price"] = stop_price.stop_loss_price
 
         # Constraints
         constraints = (
@@ -203,6 +212,7 @@ class LlmComposer(BaseComposer):
         agent's `response.content` is returned (or validated) as a
         `LlmPlanProposal`.
         """
+        logger.debug("LLM prompt {}", prompt)
         response = await asyncio.wait_for(
             self.agent.arun(prompt), timeout=self._max_llm_wait_time_sec
         )
@@ -245,6 +255,13 @@ class LlmComposer(BaseComposer):
         if top_r:
             parts.append("**Overall rationale:**\n")
             parts.append(f"{top_r}\n")
+        if len(plan.stop_prices) > 0:
+            parts.append("**Updated stop prices:**")
+            for stop_price in plan.stop_prices:
+                parts.append(
+                    f"{stop_price.symbol}\tstop gain: {stop_price.stop_gain_price}\tstop loss: {stop_price.stop_loss_price}"
+                )
+            parts.append("")
 
         parts.append("**Items:**\n")
         for it in actionable:

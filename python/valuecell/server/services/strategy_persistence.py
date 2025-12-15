@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Optional
+from typing import List, Optional
 
 from loguru import logger
 
@@ -222,6 +222,22 @@ def persist_portfolio_view(view: agent_models.PortfolioView) -> bool:
         return True
     except Exception:
         logger.exception("persist_portfolio_view failed for {}", strategy_id)
+        return False
+
+
+def persist_stop_prices(
+    strategy_id: str, stop_prices: List[agent_models.StopPrice]
+) -> bool:
+    """Persist a StrategySummary into the Strategy.strategy_metadata JSON.
+
+    Returns True on success, False on failure.
+    """
+    repo = get_strategy_repository()
+    try:
+        updated = repo.upsert_stop_price(strategy_id, stop_prices=stop_prices)
+        return updated is not None
+    except Exception as e:
+        logger.exception("persist_stop_prices failed for {}, error: {}", strategy_id, e)
         return False
 
 

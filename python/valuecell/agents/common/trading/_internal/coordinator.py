@@ -179,6 +179,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         compose_result = await self._composer.compose(context)
         instructions = compose_result.instructions
         rationale = compose_result.rationale
+        stop_prices = compose_result.stop_prices
         logger.info(f"🔍 Composer returned {len(instructions)} instructions")
         for idx, inst in enumerate(instructions):
             logger.info(
@@ -229,6 +230,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
 
         trades = self._create_trades(tx_results, compose_id, timestamp_ms)
         self.portfolio_service.apply_trades(trades, market_features)
+        self.portfolio_service.update_stop_prices(stop_prices)
         summary = self.build_summary(timestamp_ms, trades)
 
         history_records = self._create_history_records(
@@ -253,6 +255,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             history_records=history_records,
             digest=digest,
             portfolio_view=portfolio,
+            stop_prices=stop_prices,
         )
 
     def _create_trades(
