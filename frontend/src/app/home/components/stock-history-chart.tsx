@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
 import { useGetStockHistory } from "@/api/stock";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Sparkline from "@/components/valuecell/charts/sparkline";
@@ -13,20 +12,17 @@ interface StockHistoryChartProps {
   className?: string;
 }
 
+const INTERVALS: { label: string; value: StockInterval }[] = [
+  { label: "24H", value: "1m" },
+  { label: "7D", value: "1h" },
+  { label: "30D", value: "1d" },
+];
+
 export const StockHistoryChart = ({
   ticker,
   className,
 }: StockHistoryChartProps) => {
   const [interval, setInterval] = useState<StockInterval>("1h");
-
-  const INTERVALS: { label: string; value: StockInterval }[] = useMemo(
-    () => [
-      { label: "24H", value: "1m" },
-      { label: "7D", value: "1h" },
-      { label: "30D", value: "1d" },
-    ],
-    [],
-  );
 
   // Calculate date range based on interval
   const { startDate, endDate } = useMemo(() => {

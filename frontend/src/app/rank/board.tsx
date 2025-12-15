@@ -59,7 +59,7 @@ export default function RankBoard() {
           >
             <TabsList>
               <TabsTrigger value="7">7D</TabsTrigger>
-              <TabsTrigger value="30">30D</TabsTrigger>
+              <TabsTrigger value="30">1M</TabsTrigger>
             </TabsList>
           </Tabs>
         </CardHeader>
