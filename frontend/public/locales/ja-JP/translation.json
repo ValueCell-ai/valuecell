@@ -155,7 +155,7 @@
     "positions": {
       "title": "ポジション",
       "symbol": "シンボル",
-      "type": "タイプ",
+      "type": "売買",
       "leverage": "レバレッジ",
       "quantity": "数量",
       "pnl": "損益",
