@@ -113,7 +113,7 @@
       "GridStrategy": "网格策略"
     },
     "providers": {
-      "azure": "Azure OpenAI",
+      "azure": "微软Azure OpenAI",
       "dashscope": "阿里云",
       "deepseek": "深度求索",
       "google": "谷歌云",
