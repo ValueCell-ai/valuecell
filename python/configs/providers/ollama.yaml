@@ -5,11 +5,3 @@ default_model: qwen3:4b
 models:
 - id: qwen3:4b
   name: qwen3:4b
-- id: qwen3:1.7b
-  name: qwen3:1.7b
-- id: qwen3:4b
-  name: qwen3:4b
-- id: llama3.2
-  name: Llama3.2
-  description: Llama3.2 model
-
