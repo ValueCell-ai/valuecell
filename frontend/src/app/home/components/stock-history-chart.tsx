@@ -13,9 +13,9 @@ interface StockHistoryChartProps {
 }
 
 const INTERVALS: { label: string; value: StockInterval }[] = [
-  { label: "24h", value: "1m" },
-  { label: "7d", value: "1h" },
-  { label: "30d", value: "1d" },
+  { label: "24H", value: "1m" },
+  { label: "7D", value: "1h" },
+  { label: "30D", value: "1d" },
 ];
 
 export const StockHistoryChart = ({

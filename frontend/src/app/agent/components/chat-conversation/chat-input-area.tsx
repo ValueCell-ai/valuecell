@@ -1,5 +1,6 @@
 import { ArrowUp } from "lucide-react";
 import { type FC, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import ScrollTextarea from "@/components/valuecell/scroll/scroll-textarea";
 import { cn } from "@/lib/utils";
@@ -20,11 +21,14 @@ const ChatInputArea: FC<ChatInputAreaProps> = ({
   onChange,
   onSend,
   onKeyDown,
-  placeholder = "Type your message...",
+  placeholder,
   disabled = false,
   className,
   variant = "chat",
 }) => {
+  const { t } = useTranslation();
+  const resolvedPlaceholder = placeholder ?? t("chat.input.placeholder");
+
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Send message on Enter key (excluding Shift+Enter line breaks and IME composition state)
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -56,7 +60,7 @@ const ChatInputArea: FC<ChatInputAreaProps> = ({
         value={value}
         onInput={(e) => onChange(e.currentTarget.value)}
         onKeyDown={handleKeyDown}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         maxHeight={120}
         minHeight={24}
         disabled={disabled}

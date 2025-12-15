@@ -1,0 +1,370 @@
+{
+  "general": {
+    "title": "一般",
+    "description": "設定とアプリケーションの管理。",
+    "account": {
+      "title": "アカウント",
+      "signInDesc": "Valuecell AI 機能を開始するにはサインインしてください。",
+      "signOut": "サインアウト",
+      "signIn": "サインイン"
+    },
+    "language": {
+      "title": "言語と地域",
+      "description": "アプリの言語と地域形式を選択してください。",
+      "options": {
+        "en-US": "English (United States)",
+        "zh-Hans": "简体中文",
+        "zh-Hant": "繁體中文",
+        "ja-JP": "日本語"
+      }
+    },
+    "quotesColor": {
+      "title": "チャートの配色",
+      "description": "株価の変動を視覚化する方法を選択してください。",
+      "greenUpRedDown": "緑上昇 / 赤下落",
+      "redUpGreenDown": "赤上昇 / 緑下落"
+    },
+    "updates": {
+      "title": "アプリアップデート",
+      "check": "アップデートを確認"
+    }
+  },
+  "settings": {
+    "title": "設定",
+    "nav": {
+      "models": "モデル",
+      "general": "一般",
+      "memory": "メモリ"
+    },
+    "models": {
+      "title": "モデルプロバイダー",
+      "noProviders": "利用可能なプロバイダーはありません。",
+      "loading": "プロバイダー詳細を読み込み中...",
+      "defaultProvider": "デフォルトプロバイダー",
+      "apiKey": "API キー",
+      "enterApiKey": "API キーを入力",
+      "getApiKey": "ここをクリックして API キーを取得",
+      "apiHost": "API ホスト",
+      "models": "モデル",
+      "add": "追加",
+      "addModel": "モデルを追加",
+      "modelId": "モデル ID",
+      "enterModelId": "モデル ID を入力",
+      "modelName": "モデル名",
+      "enterModelName": "モデル名を入力",
+      "cancel": "キャンセル",
+      "confirm": "確認",
+      "noModels": "このプロバイダーにはモデルが設定されていません。",
+      "hidePassword": "パスワードを隠す",
+      "showPassword": "パスワードを表示",
+      "waitingForCheck": "確認待ち",
+      "checkAvailability": "可用性を確認",
+      "available": "利用可能",
+      "unavailable": "利用不可"
+    },
+    "memory": {
+      "title": "保存されたメモリ",
+      "description": "チャット内の有用な情報を記憶・自動管理し、返信のパーソナライズと関連性を向上させます。",
+      "loading": "読み込み中...",
+      "noMemories": "メモリはまだありません",
+      "delete": "削除"
+    }
+  },
+  "common": {
+    "back": "戻る"
+  },
+  "market": {
+    "title": "Agent マーケット"
+  },
+  "agent": {
+    "welcome": "{{name}} へようこそ!",
+    "unknown": "不明なエージェント",
+    "status": {
+      "running": "実行中"
+    },
+    "action": {
+      "view": "表示"
+    },
+    "config": {
+      "disable": "無効にする",
+      "chat": "チャット",
+      "collectAndChat": "収集してチャット"
+    }
+  },
+  "chat": {
+    "input": {
+      "placeholder": "メッセージを入力..."
+    },
+    "newConversation": "新しい会話",
+    "settings": "設定",
+    "conversationList": {
+      "title": "会話リスト",
+      "loading": "読み込み中...",
+      "empty": "会話はまだありません"
+    },
+    "action": {
+      "delete": "削除"
+    }
+  },
+  "strategy": {
+    "types": {
+      "PromptBasedStrategy": "プロンプトベース戦略",
+      "GridStrategy": "グリッド戦略"
+    },
+    "providers": {
+      "azure": "Azure OpenAI",
+      "dashscope": "Alibaba Cloud",
+      "deepseek": "DeepSeek",
+      "google": "Google Cloud",
+      "openai": "OpenAI",
+      "openai-compatible": "OpenAI互換API",
+      "openrouter": "OpenRouter",
+      "siliconflow": "SiliconFlow"
+    },
+    "title": "取引戦略",
+    "add": "取引戦略を追加",
+    "noStrategies": "取引戦略はありません",
+    "createFirst": "最初の戦略を作成して取引を開始しましょう",
+    "status": {
+      "running": "実行中",
+      "stopped": "停止",
+      "live": "ライブ",
+      "virtual": "バーチャル"
+    },
+    "action": {
+      "stop": "取引戦略を停止しますか？",
+      "stopDesc": "戦略「{{name}}」を停止すると、即座に停止し、強制決済がトリガーされます。続行しますか？",
+      "confirmStop": "停止を確認",
+      "delete": "削除",
+      "deleteTitle": "戦略を削除しますか？",
+      "deleteDesc": "戦略「{{name}}」を削除すると、即座に停止し、強制決済がトリガーされます。続行しますか？",
+      "confirmDelete": "削除を確認",
+      "details": "詳細",
+      "duplicate": "複製",
+      "cancel": "キャンセル",
+      "back": "戻る",
+      "next": "次へ",
+      "confirm": "確認",
+      "publish": "公開",
+      "shareToSocial": "SNSでシェア",
+      "shareToRanking": "ランキングでシェア"
+    },
+    "portfolio": {
+      "title": "ポートフォリオ価値履歴",
+      "totalEquity": "総資本",
+      "availableBalance": "利用可能残高",
+      "totalPnl": "総損益",
+      "noData": "ポートフォリオ価値データなし",
+      "noDataDesc": "取引が開始されるとポートフォリオ価値チャートが表示されます"
+    },
+    "positions": {
+      "title": "ポジション",
+      "symbol": "銘柄",
+      "type": "売買",
+      "leverage": "レバレッジ",
+      "quantity": "数量",
+      "pnl": "損益",
+      "noOpen": "保有ポジションなし",
+      "noOpenDesc": "注文が約定すると、ここにポジションが表示されます"
+    },
+    "create": {
+      "title": "取引戦略を追加",
+      "steps": {
+        "aiModels": "AIモデル",
+        "exchanges": "取引所",
+        "tradingStrategy": "取引戦略"
+      },
+      "error": "戦略作成エラー"
+    },
+    "form": {
+      "strategyType": {
+        "label": "戦略タイプ",
+        "promptBased": "プロンプトベース戦略",
+        "grid": "グリッド戦略"
+      },
+      "strategyName": {
+        "label": "戦略名",
+        "placeholder": "戦略名を入力"
+      },
+      "initialCapital": {
+        "label": "初期資本",
+        "placeholder": "初期資本を入力"
+      },
+      "maxLeverage": {
+        "label": "最大レバレッジ",
+        "placeholder": "最大レバレッジ"
+      },
+      "decideInterval": {
+        "label": "決定間隔 (秒)",
+        "placeholder": "例: 300"
+      },
+      "tradingSymbols": {
+        "label": "取引ペア",
+        "placeholder": "取引ペアを選択...",
+        "searchPlaceholder": "取引ペアを検索または追加...",
+        "emptyText": "取引ペアが見つかりません。"
+      },
+      "promptTemplate": {
+        "label": "システムプロンプトテンプレート",
+        "new": "新規プロンプト",
+        "view": "戦略を表示"
+      },
+      "aiModels": {
+        "platform": "モデルプラットフォーム",
+        "model": "モデルを選択",
+        "noModels": "利用可能なモデルがありません",
+        "apiKey": {
+          "label": "APIキー",
+          "placeholder": "APIキーを入力"
+        }
+      },
+      "exchanges": {
+        "transactionType": "取引タイプ",
+        "liveTrading": "ライブ取引",
+        "virtualTrading": "バーチャル取引",
+        "selectExchange": "取引所を選択",
+        "walletAddress": "ウォレットアドレス",
+        "privateKey": "秘密鍵",
+        "apiKey": "APIキー",
+        "secretKey": "シークレットキー",
+        "passphrase": "パスフレーズ",
+        "testConnection": "接続テスト",
+        "test": {
+          "success": "接続成功！",
+          "failed": "接続に失敗しました。APIキー、シークレットキー、またはパスフレーズを確認してください。"
+        },
+        "placeholder": {
+          "binance": {
+            "apiKey": "APIキーを入力 (64文字)",
+            "secretKey": "シークレットキーを入力 (64文字)"
+          },
+          "okx": {
+            "apiKey": "APIキーを入力 (形式: xxxxxxxx-xxxx-...)",
+            "secretKey": "シークレットキーを入力 (32文字の大文字と数字)",
+            "passphrase": "パスフレーズを入力 (API作成時に設定)"
+          },
+          "gate": {
+            "apiKey": "APIキーを入力 ('key_'で始まる)",
+            "secretKey": "シークレットキーを入力 (64文字)"
+          },
+          "hyperliquid": {
+            "walletAddress": "ウォレットアドレスを入力 ('0x'で始まる)",
+            "privateKey": "秘密鍵を入力 (64文字)"
+          },
+          "blockchain": {
+            "apiKey": "APIキーを入力 (形式: xxxxxxxx-xxxx-...)",
+            "secretKey": "シークレットキーを入力"
+          },
+          "coinbase": {
+            "apiKey": "APIキーを入力 (またはキー名)",
+            "secretKey": "APIシークレットを入力 (または秘密鍵)",
+            "passphrase": "パスフレーズを入力 (Legacy Pro APIに必要)"
+          },
+          "mexc": {
+            "apiKey": "アクセスキーを入力 ('mx0'で始まる)",
+            "secretKey": "シークレットキーを入力 (通常32文字)"
+          },
+          "default": {
+            "apiKey": "ここにAPIキーを貼り付け",
+            "secretKey": "ここにシークレットキーを貼り付け",
+            "passphrase": "パスフレーズを入力",
+            "walletAddress": "ウォレットアドレスを入力",
+            "privateKey": "秘密鍵を入力"
+          }
+        }
+      }
+    },
+    "prompt": {
+      "delete": {
+        "title": "戦略プロンプトを削除",
+        "description": "この戦略プロンプトを削除してもよろしいですか？この操作は取り消せず、システムからプロンプトが完全に削除されます。"
+      }
+    },
+    "detail": {
+      "title": "戦略詳細",
+      "loading": "詳細を読み込み中...",
+      "returnRate": "収益率",
+      "strategyType": "戦略タイプ",
+      "modelProvider": "モデルプロバイダー",
+      "modelId": "モデルID",
+      "initialCapital": "初期資本",
+      "maxLeverage": "最大レバレッジ",
+      "tradingSymbols": "取引ペア",
+      "prompt": "プロンプト"
+    },
+    "history": {
+      "title": "取引履歴",
+      "live": "ライブ取引",
+      "virtual": "バーチャル取引",
+      "cycle": "サイクル #{{index}}",
+      "aiReasoning": "AI推論ロジック",
+      "operation": "操作を実行",
+      "empty": {
+        "title": "取引履歴がありません",
+        "desc": "完了した取引はここに表示されます"
+      },
+      "details": {
+        "time": "時間",
+        "price": "価格",
+        "quantity": "数量",
+        "holdingTime": "保有時間",
+        "tradingFee": "取引手数料",
+        "reasoning": "推論"
+      }
+    }
+  },
+  "rank": {
+    "title": "収益ランキング",
+    "table": {
+      "rank": "順位",
+      "user": "ユーザー",
+      "pnl": "損益",
+      "strategy": "戦略",
+      "exchange": "取引所",
+      "model": "モデル",
+      "details": "詳細",
+      "loading": "読み込み中..."
+    }
+  },
+  "home": {
+    "hello": "👋 こんにちは、投資家さん！",
+    "welcome": "👋 ValueCell へようこそ !",
+    "watchlist": "ウォッチリスト",
+    "stock": {
+      "loading": "株価データを読み込み中...",
+      "error": "株価データの読み込みに失敗しました: {{message}}",
+      "remove": "削除",
+      "removing": "削除中...",
+      "add": "銘柄を追加",
+      "about": "概要",
+      "sector": "セクター:",
+      "industry": "業界:",
+      "website": "ウェブサイト:"
+    },
+    "search": {
+      "title": "株式検索",
+      "placeholder": "銘柄名またはコードで検索",
+      "searching": "検索中...",
+      "noResults": "関連する銘柄が見つかりません",
+      "action": {
+        "watch": "ウォッチ",
+        "watching": "追加中...",
+        "watched": "ウォッチ済み"
+      }
+    },
+    "suggestions": {
+      "research": {
+        "title": "深層調査",
+        "description": "SEC提出書類を分析し、詳細な株式解釈レポートを作成します。"
+      },
+      "strategy": {
+        "title": "自動取引",
+        "description": "マルチ戦略スマート取引、戦略を自動実行。"
+      },
+      "news": {
+        "title": "ニュースプッシュ",
+        "description": "カスタムスケジュールでパーソナライズされたニュース更新をプッシュ。"
+      }
+    }
+  }
+}

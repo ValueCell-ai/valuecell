@@ -29,7 +29,7 @@ class I18nConfig:
         """Initialize i18n configuration.
 
         Args:
-            language: Language code (e.g., 'en-US', 'zh-Hans')
+            language: Language code (e.g., 'en', 'zh_CN')
             timezone: Timezone string (e.g., 'America/New_York', 'Asia/Shanghai')
         """
         self._language = self._validate_language(language or self._get_env_language())

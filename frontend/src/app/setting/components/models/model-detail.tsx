@@ -2,6 +2,7 @@ import { DialogDescription } from "@radix-ui/react-dialog";
 import { useForm } from "@tanstack/react-form";
 import { Eye, EyeOff, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import {
   useAddProviderModel,
@@ -36,7 +37,6 @@ import {
 } from "@/components/ui/input-group";
 import { Switch } from "@/components/ui/switch";
 import LinkButton from "@/components/valuecell/button/link-button";
-import { useTauriInfo } from "@/hooks/use-tauri-info";
 
 const configSchema = z.object({
   api_key: z.string(),
@@ -53,7 +53,7 @@ type ModelDetailProps = {
 };
 
 export function ModelDetail({ provider }: ModelDetailProps) {
-  const { isTauriApp } = useTauriInfo();
+  const { t } = useTranslation();
 
   const { data: providerDetail, isLoading: detailLoading } =
     useGetModelProviderDetail(provider);
@@ -148,7 +148,9 @@ export function ModelDetail({ provider }: ModelDetailProps) {
 
   if (detailLoading) {
     return (
-      <div className="text-gray-400 text-sm">Loading provider details...</div>
+      <div className="text-gray-400 text-sm">
+        {t("settings.models.loading")}
+      </div>
     );
   }
 
@@ -159,10 +161,12 @@ export function ModelDetail({ provider }: ModelDetailProps) {
   return (
     <div className="scroll-container flex flex-1 flex-col px-8">
       <div className="mb-4 flex items-center justify-between">
-        <p className="font-semibold text-gray-950 text-lg">{provider}</p>
+        <p className="font-semibold text-gray-950 text-lg">
+          {t(`strategy.providers.${provider}`) || provider}
+        </p>
         <div className="flex items-center gap-2">
           <p className="font-semibold text-base text-gray-700">
-            Default Provider
+            {t("settings.models.defaultProvider")}
           </p>
           <Switch
             checked={providerDetail.is_default}
@@ -182,14 +186,14 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                     htmlFor="api_key"
                     className="font-medium text-base"
                   >
-                    API key
+                    {t("settings.models.apiKey")}
                   </FieldLabel>
                   <div className="flex items-center gap-4">
                     <InputGroup>
                       <InputGroupInput
                         type={showApiKey ? "text" : "password"}
                         id="api_key"
-                        placeholder={"Enter API key"}
+                        placeholder={t("settings.models.enterApiKey")}
                         value={field.state.value}
                         onChange={(e) => field.handleChange(e.target.value)}
                         onBlur={() => configForm.handleSubmit()}
@@ -207,7 +211,9 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                           size="icon-xs"
                           onClick={() => setShowApiKey(!showApiKey)}
                           aria-label={
-                            showApiKey ? "Hide password" : "Show password"
+                            showApiKey
+                              ? t("settings.models.hidePassword")
+                              : t("settings.models.showPassword")
                           }
                         >
                           {showApiKey ? (
@@ -231,22 +237,22 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                       }}
                     >
                       {checkingAvailability
-                        ? "Waiting for Check "
-                        : "Check Availability"}
+                        ? t("settings.models.waitingForCheck")
+                        : t("settings.models.checkAvailability")}
                     </Button>
                   </div>
                   {checkResult?.data && (
                     <div className="text-sm">
                       {checkResult.data.ok ? (
                         <span className="text-green-600">
-                          Available
+                          {t("settings.models.available")}
                           {checkResult.data.status
                             ? ` (${checkResult.data.status})`
                             : ""}
                         </span>
                       ) : (
                         <span className="text-red-600">
-                          Unavailable
+                          {t("settings.models.unavailable")}
                           {checkResult.data.status
                             ? ` (${checkResult.data.status})`
                             : ""}
@@ -261,7 +267,7 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                     className="w-fit! hover:text-gray-700"
                     url={providerDetail.api_key_url}
                   >
-                    Click here to get the API key
+                    {t("settings.models.getApiKey")}
                   </LinkButton>
                   <FieldError errors={field.state.meta.errors} />
                 </Field>
@@ -273,7 +279,7 @@ export function ModelDetail({ provider }: ModelDetailProps) {
               {(field) => (
                 <Field className="text-gray-950">
                   <FieldLabel className="font-medium text-base">
-                    API Host
+                    {t("settings.models.apiHost")}
                   </FieldLabel>
                   <Input
                     placeholder={providerDetail.base_url}
@@ -296,7 +302,9 @@ export function ModelDetail({ provider }: ModelDetailProps) {
           {/* Models section */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <div className="font-medium text-base text-gray-950">Models</div>
+              <div className="font-medium text-base text-gray-950">
+                {t("settings.models.models")}
+              </div>
               <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
@@ -306,7 +314,7 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                     disabled={isBusy}
                   >
                     <Plus className="size-4" />
-                    Add
+                    {t("settings.models.add")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -317,7 +325,7 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                     }}
                   >
                     <DialogHeader>
-                      <DialogTitle>Add Model</DialogTitle>
+                      <DialogTitle>{t("settings.models.addModel")}</DialogTitle>
                       <DialogDescription />
                     </DialogHeader>
                     <div className="flex flex-col gap-4 py-4">
@@ -326,10 +334,10 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                           {(field) => (
                             <Field>
                               <FieldLabel className="font-medium text-sm">
-                                Model ID
+                                {t("settings.models.modelId")}
                               </FieldLabel>
                               <Input
-                                placeholder="Enter model ID"
+                                placeholder={t("settings.models.enterModelId")}
                                 value={field.state.value}
                                 onChange={(e) =>
                                   field.handleChange(e.target.value)
@@ -345,10 +353,12 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                           {(field) => (
                             <Field>
                               <FieldLabel className="font-medium text-sm">
-                                Model Name
+                                {t("settings.models.modelName")}
                               </FieldLabel>
                               <Input
-                                placeholder="Enter model name"
+                                placeholder={t(
+                                  "settings.models.enterModelName",
+                                )}
                                 value={field.state.value}
                                 onChange={(e) =>
                                   field.handleChange(e.target.value)
@@ -371,14 +381,14 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                           setIsAddDialogOpen(false);
                         }}
                       >
-                        Cancel
+                        {t("settings.models.cancel")}
                       </Button>
                       <Button
                         className="flex-1"
                         type="submit"
                         disabled={isBusy || !addModelForm.state.canSubmit}
                       >
-                        Confirm
+                        {t("settings.models.confirm")}
                       </Button>
                     </DialogFooter>
                   </form>
@@ -388,7 +398,7 @@ export function ModelDetail({ provider }: ModelDetailProps) {
 
             {providerDetail.models.length === 0 ? (
               <div className="rounded-lg border border-gray-200 border-dashed p-4 text-gray-400 text-sm">
-                No models configured for this provider.
+                {t("settings.models.noModels")}
               </div>
             ) : (
               <div className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-3">
