@@ -101,20 +101,6 @@ export default function GeneralPage() {
               <SelectItem value="zh-Hans">简体中文</SelectItem>
               <SelectItem value="zh-Hant">繁體中文</SelectItem>
               <SelectItem value="ja-JP">日本語</SelectItem>
-              <SelectItem value="de-DE">Deutsch</SelectItem>
-              <SelectItem value="fr-FR">Français</SelectItem>
-              <SelectItem value="ca-ES">Català</SelectItem>
-              <SelectItem value="es-ES">Español</SelectItem>
-              <SelectItem value="it-IT">Italiano</SelectItem>
-              <SelectItem value="pl-PL">Polski</SelectItem>
-              <SelectItem value="tr-TR">Türkçe</SelectItem>
-              <SelectItem value="ru-RU">Русский</SelectItem>
-              <SelectItem value="pt-PT">Português</SelectItem>
-              <SelectItem value="id-ID">Bahasa Indonesia</SelectItem>
-              <SelectItem value="ms-MY">Bahasa Melayu</SelectItem>
-              <SelectItem value="th-TH">ภาษาไทย</SelectItem>
-              <SelectItem value="vi-VN">Tiếng Việt</SelectItem>
-              <SelectItem value="ko-KR">한국어</SelectItem>
             </SelectContent>
           </Select>
         </Field>
