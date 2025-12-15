@@ -1,6 +1,5 @@
 import { DialogDescription } from "@radix-ui/react-dialog";
 import { useForm } from "@tanstack/react-form";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { Eye, EyeOff, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { z } from "zod";
@@ -35,6 +34,7 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Switch } from "@/components/ui/switch";
+import LinkButton from "@/components/valuecell/button/link-button";
 import { useTauriInfo } from "@/hooks/use-tauri-info";
 
 const configSchema = z.object({
@@ -206,17 +206,12 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                       </InputGroupButton>
                     </InputGroupAddon>
                   </InputGroup>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      isTauriApp
-                        ? openUrl(providerDetail.api_key_url)
-                        : window.open(providerDetail.api_key_url, "_blank")
-                    }
-                    className="w-fit! cursor-pointer text-sm underline underline-offset-4 hover:text-gray-700"
+                  <LinkButton
+                    className="w-fit! hover:text-gray-700"
+                    url={providerDetail.api_key_url}
                   >
                     Click here to get the API key
-                  </button>
+                  </LinkButton>
                   <FieldError errors={field.state.meta.errors} />
                 </Field>
               )}
