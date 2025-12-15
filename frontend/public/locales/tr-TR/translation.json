@@ -1,0 +1,367 @@
+{
+  "general": {
+    "title": "Genel",
+    "description": "Tercihlerinizi ve uygulama ayarlarınızı yönetin",
+    "account": {
+      "title": "Hesap",
+      "signInDesc": "Valuecell AI özelliklerini kullanmaya başlamak için oturum açın.",
+      "signOut": "Çıkış Yap",
+      "signIn": "Oturum Aç"
+    },
+    "language": {
+      "title": "Dil ve Bölge",
+      "description": "Uygulama için tercih ettiğiniz dili ve bölgesel formatı seçin."
+    },
+    "quotesColor": {
+      "title": "Fiyat Rengi",
+      "description": "Uygulama genelinde hisse senedi fiyat hareketlerinin nasıl görselleştirileceğini seçin.",
+      "greenUpRedDown": "Yeşil Yükseliş / Kırmızı Düşüş",
+      "redUpGreenDown": "Kırmızı Yükseliş / Yeşil Düşüş"
+    },
+    "updates": {
+      "title": "Uygulama Güncellemeleri",
+      "check": "Güncellemeleri Kontrol Et"
+    }
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "nav": {
+      "models": "Modeller",
+      "general": "Genel",
+      "memory": "Hafıza"
+    },
+    "models": {
+      "title": "Model Sağlayıcı",
+      "noProviders": "Kullanılabilir sağlayıcı yok.",
+      "loading": "Sağlayıcı detayları yükleniyor...",
+      "defaultProvider": "Varsayılan Sağlayıcı",
+      "apiKey": "API Anahtarı",
+      "enterApiKey": "API anahtarını girin",
+      "getApiKey": "API anahtarını almak için buraya tıklayın",
+      "apiHost": "API Ana Bilgisayarı",
+      "models": "Modeller",
+      "add": "Ekle",
+      "addModel": "Model Ekle",
+      "modelId": "Model Kimliği",
+      "enterModelId": "Model kimliğini girin",
+      "modelName": "Model Adı",
+      "enterModelName": "Model adını girin",
+      "cancel": "İptal",
+      "confirm": "Onayla",
+      "noModels": "Bu sağlayıcı için yapılandırılmış model yok."
+    },
+    "memory": {
+      "title": "Korunan anılar",
+      "description": "Yanıtların kişiselleştirilmesini ve alaka düzeyini artırmak için sohbetlerdeki yararlı bilgileri hatırlayacak ve otomatik olarak yöneteceğim",
+      "loading": "Yükleniyor...",
+      "noMemories": "Henüz anı yok",
+      "delete": "Sil"
+    }
+  },
+  "common": {
+    "back": "Geri"
+  },
+  "market": {
+    "title": "Ajan Pazarı"
+  },
+  "agent": {
+    "welcome": "{{name}}'e hoş geldiniz!",
+    "unknown": "Bilinmeyen Ajan",
+    "status": {
+      "running": "Çalışıyor"
+    },
+    "action": {
+      "view": "Görüntüle"
+    },
+    "config": {
+      "disable": "Devre Dışı Bırak",
+      "chat": "Sohbet",
+      "collectAndChat": "Topla ve sohbet et"
+    }
+  },
+  "chat": {
+    "input": {
+      "placeholder": "Mesajınızı yazın..."
+    },
+    "newConversation": "Yeni Sohbet",
+    "settings": "Ayarlar",
+    "conversationList": {
+      "title": "Sohbet Listesi",
+      "loading": "Yükleniyor...",
+      "empty": "Henüz sohbet yok"
+    },
+    "action": {
+      "delete": "Sil"
+    }
+  },
+  "strategy": {
+    "types": {
+      "PromptBasedStrategy": "İstem Tabanlı Strateji",
+      "GridStrategy": "Izgara Stratejisi"
+    },
+    "providers": {
+      "azure": "Azure OpenAI",
+      "dashscope": "Alibaba Cloud",
+      "deepseek": "DeepSeek",
+      "google": "Google Cloud",
+      "openai": "OpenAI",
+      "openai-compatible": "OpenAI Uyumlu",
+      "openrouter": "OpenRouter",
+      "siliconflow": "SiliconFlow"
+    },
+    "title": "Ticaret Stratejileri",
+    "add": "Ticaret stratejisi ekle",
+    "noStrategies": "Ticaret stratejisi yok",
+    "createFirst": "Ticarete başlamak için ilk stratejinizi oluşturun",
+    "status": {
+      "running": "Çalışıyor",
+      "stopped": "Durduruldu",
+      "live": "Canlı",
+      "virtual": "Sanal"
+    },
+    "action": {
+      "stop": "Ticaret Stratejisini Durdur?",
+      "stopDesc": "\"{{name}}\" stratejisini durdurmak, onu hemen durduracak ve zorunlu tasfiyeyi tetikleyecektir. Devam etmek istiyor musunuz?",
+      "confirmStop": "Durdurmayı Onayla",
+      "delete": "Sil",
+      "deleteTitle": "Stratejiyi Sil?",
+      "deleteDesc": "\"{{name}}\" stratejisini silmek, onu hemen durduracak ve zorunlu tasfiyeyi tetikleyecektir. Devam etmek istiyor musunuz?",
+      "confirmDelete": "Silmeyi Onayla",
+      "details": "Detaylar",
+      "duplicate": "Çoğalt",
+      "cancel": "İptal",
+      "back": "Geri",
+      "next": "İleri",
+      "confirm": "Onayla",
+      "publish": "Yayınla",
+      "shareToSocial": "Sosyal medyada paylaş",
+      "shareToRanking": "Sıralamada paylaş"
+    },
+    "portfolio": {
+      "title": "Portföy Değer Geçmişi",
+      "totalEquity": "Toplam Özkaynak",
+      "availableBalance": "Kullanılabilir Bakiye",
+      "totalPnl": "Toplam K&Z",
+      "noData": "Portföy değer verisi yok",
+      "noDataDesc": "Portföy değer grafiği ticaret başladığında görünecektir"
+    },
+    "positions": {
+      "title": "Pozisyonlar",
+      "symbol": "Sembol",
+      "type": "Tip",
+      "leverage": "Kaldıraç",
+      "quantity": "Miktar",
+      "pnl": "K&Z",
+      "noOpen": "Açık pozisyon yok",
+      "noOpenDesc": "Pozisyonlar işlemler açıldığında burada görünecektir"
+    },
+    "create": {
+      "title": "Ticaret stratejisi ekle",
+      "steps": {
+        "aiModels": "Yapay Zeka Modelleri",
+        "exchanges": "Borsalar",
+        "tradingStrategy": "Ticaret stratejisi"
+      },
+      "error": "Strateji Oluşturma Hatası"
+    },
+    "form": {
+      "strategyType": {
+        "label": "Strateji Tipi",
+        "promptBased": "İstem Tabanlı Strateji",
+        "grid": "Izgara Stratejisi"
+      },
+      "strategyName": {
+        "label": "Strateji Adı",
+        "placeholder": "Strateji adını girin"
+      },
+      "initialCapital": {
+        "label": "Başlangıç Sermayesi",
+        "placeholder": "Başlangıç Sermayesini Girin"
+      },
+      "maxLeverage": {
+        "label": "Maksimum Kaldıraç",
+        "placeholder": "Maksimum Kaldıraç"
+      },
+      "decideInterval": {
+        "label": "Karar Aralığı (saniye)",
+        "placeholder": "örn. 300"
+      },
+      "tradingSymbols": {
+        "label": "Ticaret Sembolleri",
+        "placeholder": "Ticaret sembollerini seçin...",
+        "searchPlaceholder": "Sembol ara veya ekle...",
+        "emptyText": "Sembol bulunamadı."
+      },
+      "promptTemplate": {
+        "label": "Sistem İstemi Şablonu",
+        "new": "Yeni İstem",
+        "view": "Stratejiyi Görüntüle"
+      },
+      "aiModels": {
+        "platform": "Model Platformu",
+        "model": "Model Seç",
+        "noModels": "Kullanılabilir model yok",
+        "apiKey": {
+          "label": "API Anahtarı",
+          "placeholder": "API Anahtarını Girin"
+        }
+      },
+      "exchanges": {
+        "transactionType": "İşlem Tipi",
+        "liveTrading": "Canlı Ticaret",
+        "virtualTrading": "Sanal Ticaret",
+        "selectExchange": "Borsa Seç",
+        "walletAddress": "Cüzdan Adresi",
+        "privateKey": "Özel Anahtar",
+        "apiKey": "API Anahtarı",
+        "secretKey": "Gizli Anahtar",
+        "passphrase": "Parola",
+        "testConnection": "Bağlantıyı Test Et",
+        "test": {
+          "success": "Başarılı!",
+          "failed": "Bağlantı başarısız. Lütfen API Anahtarınızı, Gizli Anahtarınızı veya Parolanızı kontrol edin."
+        },
+        "placeholder": {
+          "binance": {
+            "apiKey": "API Anahtarını Girin (64 karakter)",
+            "secretKey": "Gizli Anahtarı Girin (64 karakter)"
+          },
+          "okx": {
+            "apiKey": "API Anahtarını Girin (Format: xxxxxxxx-xxxx-...)",
+            "secretKey": "Gizli Anahtarı Girin (32 büyük harf ve sayı)",
+            "passphrase": "Parolayı Girin (API oluşturma sırasında belirlenen)"
+          },
+          "gate": {
+            "apiKey": "API Anahtarını Girin ('key_' ile başlar)",
+            "secretKey": "Gizli Anahtarı Girin (64 karakter)"
+          },
+          "hyperliquid": {
+            "walletAddress": "Cüzdan Adresini Girin ('0x' ile başlar)",
+            "privateKey": "Özel Anahtarı Girin (64 karakter)"
+          },
+          "blockchain": {
+            "apiKey": "API Anahtarını Girin (Format: xxxxxxxx-xxxx-...)",
+            "secretKey": "Gizli Anahtarı Girin"
+          },
+          "coinbase": {
+            "apiKey": "API Anahtarını Girin (veya Anahtar Adı)",
+            "secretKey": "API Sırrını Girin (veya Özel Anahtar)",
+            "passphrase": "Parolayı Girin (Eski Pro API için Gerekli)"
+          },
+          "mexc": {
+            "apiKey": "Erişim Anahtarını Girin ('mx0' ile başlar)",
+            "secretKey": "Gizli Anahtarı Girin (Genellikle 32 karakter)"
+          },
+          "default": {
+            "apiKey": "API Anahtarınızı buraya yapıştırın",
+            "secretKey": "Gizli Anahtarınızı buraya yapıştırın",
+            "passphrase": "Parolayı Girin",
+            "walletAddress": "Cüzdan Adresini Girin",
+            "privateKey": "Özel Anahtarı Girin"
+          }
+        }
+      }
+    },
+    "prompt": {
+      "delete": {
+        "title": "Strateji İstemini Sil",
+        "description": "Bu strateji istemini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz ve istemi sistemden kalıcı olarak kaldırır."
+      }
+    },
+    "detail": {
+      "title": "Strateji Detayları",
+      "loading": "Detaylar yükleniyor...",
+      "returnRate": "Getiri Oranı",
+      "strategyType": "Strateji Tipi",
+      "modelProvider": "Model Sağlayıcı",
+      "modelId": "Model Kimliği",
+      "initialCapital": "Başlangıç Sermayesi",
+      "maxLeverage": "Maksimum Kaldıraç",
+      "tradingSymbols": "Ticaret Sembolleri",
+      "prompt": "İstem"
+    },
+    "history": {
+      "title": "Ticaret Geçmişi",
+      "live": "Canlı Ticaret",
+      "virtual": "Sanal Ticaret",
+      "cycle": "Döngü #{{index}}",
+      "aiReasoning": "Yapay zeka mantığı",
+      "operation": "İşlemi gerçekleştir",
+      "empty": {
+        "title": "Ticaret geçmişi yok",
+        "desc": "Tamamlanan işlemleriniz burada görünecektir"
+      },
+      "details": {
+        "time": "Zaman",
+        "price": "Fiyat",
+        "quantity": "Miktar",
+        "holdingTime": "Tutma süresi",
+        "tradingFee": "İşlem Ücreti",
+        "reasoning": "Gerekçe"
+      }
+    }
+  },
+  "rank": {
+    "title": "Kar Lider Tablosu",
+    "days": {
+      "7": "7G",
+      "30": "1A"
+    },
+    "table": {
+      "rank": "Sıra",
+      "user": "Kullanıcı",
+      "pnl": "K&Z",
+      "strategy": "Strateji",
+      "exchange": "Borsa",
+      "model": "Model",
+      "details": "Detaylar",
+      "loading": "Yükleniyor..."
+    }
+  },
+  "home": {
+    "hello": "👋 Merhaba Yatırımcı!",
+    "welcome": "👋 ValueCell'e Hoş Geldiniz!",
+    "watchlist": "İzleme Listem",
+    "stock": {
+      "loading": "Hisse senedi verileri yükleniyor...",
+      "error": "Hisse senedi verileri yüklenirken hata oluştu: {{message}}",
+      "remove": "Kaldır",
+      "removing": "Kaldırılıyor...",
+      "add": "Hisse Senedi Ekle",
+      "about": "Hakkında",
+      "sector": "Sektör:",
+      "industry": "Endüstri:",
+      "website": "Web Sitesi:",
+      "chart": {
+        "24h": "24s",
+        "7d": "7g",
+        "30d": "30g"
+      }
+    },
+    "search": {
+      "title": "Hisse Senedi Arama",
+      "placeholder": "Hisse senedi adı veya kodu ile ara",
+      "searching": "Aranıyor...",
+      "noResults": "İlgili hisse senedi bulunamadı",
+      "action": {
+        "watch": "İzle",
+        "watching": "İzleniyor...",
+        "watched": "İzlendi"
+      }
+    },
+    "suggestions": {
+      "research": {
+        "title": "Derinlemesine Araştırma",
+        "description": "Derinlemesine hisse senedi yorumlama raporları oluşturmak için SEC dosyalarını analiz edin."
+      },
+      "strategy": {
+        "title": "Otomatik Ticaret",
+        "description": "Çok stratejili akıllı ticaret, stratejilerinizi otomatik olarak yürütün"
+      },
+      "news": {
+        "title": "Haber Bildirimleri",
+        "description": "Özel bir programa göre kişiselleştirilmiş haber güncellemeleri"
+      }
+    }
+  }
+}

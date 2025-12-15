@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Item, ItemGroup } from "@/components/ui/item";
 import PngIcon from "@/components/valuecell/icon/png-icon";
 import { MODEL_PROVIDER_ICONS } from "@/constants/icons";
@@ -15,17 +16,25 @@ export function ModelProviders({
   selectedProvider,
   onSelect,
 }: ModelProvidersProps) {
+  const { t } = useTranslation();
+
+  const sortedProviders = [...providers].sort((a, b) => {
+    return a.provider.localeCompare(b.provider);
+  });
+
   return (
     <div className="flex flex-col gap-4 overflow-hidden *:px-6">
-      <h2 className="font-semibold text-gray-950 text-lg">Model Provider</h2>
+      <h2 className="font-semibold text-gray-950 text-lg">
+        {t("settings.models.title")}
+      </h2>
 
       <ItemGroup className="scroll-container">
         {providers.length === 0 ? (
           <div className="rounded-xl border border-gray-200 border-dashed px-4 py-6 text-center text-gray-400 text-sm">
-            No providers available.
+            {t("settings.models.noProviders")}
           </div>
         ) : (
-          providers.map((provider) => {
+          sortedProviders.map((provider) => {
             const isActive = provider.provider === selectedProvider;
 
             return (
@@ -47,7 +56,10 @@ export function ModelProviders({
                   className="size-6"
                 />
                 <div className="flex flex-1 flex-col text-left">
-                  <span>{provider.provider}</span>
+                  <span>
+                    {t(`strategy.providers.${provider.provider}`) ||
+                      provider.provider}
+                  </span>
                   <span className="font-normal text-gray-500 text-xs">
                     {provider.provider}
                   </span>

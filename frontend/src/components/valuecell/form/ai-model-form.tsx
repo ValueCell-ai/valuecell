@@ -1,5 +1,6 @@
 import { useStore } from "@tanstack/react-form";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   useGetModelProviderDetail,
   useGetSortedModelProviders,
@@ -18,6 +19,7 @@ export const AIModelForm = withForm({
   },
 
   render({ form }) {
+    const { t } = useTranslation();
     const {
       providers: sortedProviders,
       defaultProvider,
@@ -62,7 +64,7 @@ export const AIModelForm = withForm({
           name="provider"
         >
           {(field) => (
-            <field.SelectField label="Model Platform">
+            <field.SelectField label={t("strategy.form.aiModels.platform")}>
               {sortedProviders.map(({ provider }) => (
                 <SelectItem key={provider} value={provider}>
                   <div className="flex items-center gap-2">
@@ -74,7 +76,7 @@ export const AIModelForm = withForm({
                       }
                       className="size-4"
                     />
-                    {provider}
+                    {t(`strategy.providers.${provider}`) || provider}
                   </div>
                 </SelectItem>
               ))}
@@ -83,30 +85,44 @@ export const AIModelForm = withForm({
         </form.AppField>
 
         <form.AppField name="model_id">
-          {(field) => (
-            <field.SelectField label="Select Model">
-              {modelProviderDetail?.models &&
-              modelProviderDetail?.models.length > 0 ? (
-                modelProviderDetail?.models.map(
-                  (model) =>
-                    model.model_id && (
-                      <SelectItem key={model.model_id} value={model.model_id}>
-                        {model.model_name}
-                      </SelectItem>
-                    ),
-                )
-              ) : (
-                <SelectItem value="__no_models_available__" disabled>
-                  No models available
-                </SelectItem>
-              )}
-            </field.SelectField>
-          )}
+          {(field) => {
+            const sortedModels =
+              modelProviderDetail?.models &&
+              modelProviderDetail?.models.length > 0
+                ? [...modelProviderDetail.models].sort((a, b) => {
+                    const nameA = a.model_name || a.model_id;
+                    const nameB = b.model_name || b.model_id;
+                    return nameA.localeCompare(nameB);
+                  })
+                : [];
+
+            return (
+              <field.SelectField label={t("strategy.form.aiModels.model")}>
+                {sortedModels.length > 0 ? (
+                  sortedModels.map(
+                    (model) =>
+                      model.model_id && (
+                        <SelectItem key={model.model_id} value={model.model_id}>
+                          {model.model_name}
+                        </SelectItem>
+                      ),
+                  )
+                ) : (
+                  <SelectItem value="__no_models_available__" disabled>
+                    {t("strategy.form.aiModels.noModels")}
+                  </SelectItem>
+                )}
+              </field.SelectField>
+            );
+          }}
         </form.AppField>
 
         <form.AppField name="api_key">
           {(field) => (
-            <field.PasswordField label="API key" placeholder="Enter API Key" />
+            <field.PasswordField
+              label={t("strategy.form.aiModels.apiKey.label")}
+              placeholder={t("strategy.form.aiModels.apiKey.placeholder")}
+            />
           )}
         </form.AppField>
       </FieldGroup>

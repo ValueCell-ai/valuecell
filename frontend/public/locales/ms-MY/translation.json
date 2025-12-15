@@ -1,0 +1,367 @@
+{
+  "general": {
+    "title": "Umum",
+    "description": "Urus pilihan dan tetapan aplikasi anda",
+    "account": {
+      "title": "Akaun",
+      "signInDesc": "Log masuk untuk mula menggunakan ciri Valuecell AI.",
+      "signOut": "Log Keluar",
+      "signIn": "Log Masuk"
+    },
+    "language": {
+      "title": "Bahasa dan Wilayah",
+      "description": "Pilih bahasa pilihan dan format wilayah anda untuk aplikasi."
+    },
+    "quotesColor": {
+      "title": "Warna Petikan",
+      "description": "Pilih cara pergerakan harga saham divisualisasikan di seluruh aplikasi.",
+      "greenUpRedDown": "Hijau Naik / Merah Turun",
+      "redUpGreenDown": "Merah Naik / Hijau Turun"
+    },
+    "updates": {
+      "title": "Kemas Kini Apl",
+      "check": "Semak Kemas Kini"
+    }
+  },
+  "settings": {
+    "title": "Tetapan",
+    "nav": {
+      "models": "Model",
+      "general": "Umum",
+      "memory": "Memori"
+    },
+    "models": {
+      "title": "Penyedia Model",
+      "noProviders": "Tiada penyedia tersedia.",
+      "loading": "Memuatkan butiran penyedia...",
+      "defaultProvider": "Penyedia Lalai",
+      "apiKey": "Kunci API",
+      "enterApiKey": "Masukkan kunci API",
+      "getApiKey": "Klik di sini untuk mendapatkan kunci API",
+      "apiHost": "Hos API",
+      "models": "Model",
+      "add": "Tambah",
+      "addModel": "Tambah Model",
+      "modelId": "ID Model",
+      "enterModelId": "Masukkan ID model",
+      "modelName": "Nama Model",
+      "enterModelName": "Masukkan nama model",
+      "cancel": "Batal",
+      "confirm": "Sahkan",
+      "noModels": "Tiada model dikonfigurasi untuk penyedia ini."
+    },
+    "memory": {
+      "title": "Memori tersimpan",
+      "description": "Saya akan ingat dan mengurus maklumat berguna secara automatik dalam sembang untuk meningkatkan pemperibadian dan kaitan balasan",
+      "loading": "Memuatkan...",
+      "noMemories": "Tiada memori lagi",
+      "delete": "Padam"
+    }
+  },
+  "common": {
+    "back": "Kembali"
+  },
+  "market": {
+    "title": "Pasaran Ejen"
+  },
+  "agent": {
+    "welcome": "Selamat datang ke {{name}}!",
+    "unknown": "Ejen Tidak Diketahui",
+    "status": {
+      "running": "Sedang Berjalan"
+    },
+    "action": {
+      "view": "Lihat"
+    },
+    "config": {
+      "disable": "Lumpuhkan",
+      "chat": "Sembang",
+      "collectAndChat": "Kumpul dan sembang"
+    }
+  },
+  "chat": {
+    "input": {
+      "placeholder": "Taip mesej anda..."
+    },
+    "newConversation": "Perbualan Baru",
+    "settings": "Tetapan",
+    "conversationList": {
+      "title": "Senarai Perbualan",
+      "loading": "Memuatkan...",
+      "empty": "Tiada perbualan lagi"
+    },
+    "action": {
+      "delete": "Padam"
+    }
+  },
+  "strategy": {
+    "types": {
+      "PromptBasedStrategy": "Strategi Berasaskan Prompt",
+      "GridStrategy": "Strategi Grid"
+    },
+    "providers": {
+      "azure": "Azure OpenAI",
+      "dashscope": "Alibaba Cloud",
+      "deepseek": "DeepSeek",
+      "google": "Google Cloud",
+      "openai": "OpenAI",
+      "openai-compatible": "Serasi OpenAI",
+      "openrouter": "OpenRouter",
+      "siliconflow": "SiliconFlow"
+    },
+    "title": "Strategi Dagangan",
+    "add": "Tambah strategi dagangan",
+    "noStrategies": "Tiada strategi dagangan",
+    "createFirst": "Cipta strategi pertama anda untuk mula berdagang",
+    "status": {
+      "running": "Sedang Berjalan",
+      "stopped": "Berhenti",
+      "live": "Langsung",
+      "virtual": "Maya"
+    },
+    "action": {
+      "stop": "Hentikan Strategi Dagangan?",
+      "stopDesc": "Menghentikan strategi \"{{name}}\" akan menghentikannya serta-merta dan mencetuskan pencairan paksa. Adakah anda mahu meneruskan?",
+      "confirmStop": "Sahkan Berhenti",
+      "delete": "Padam",
+      "deleteTitle": "Padam Strategi?",
+      "deleteDesc": "Memadamkan strategi \"{{name}}\" akan menghentikannya serta-merta dan mencetuskan pencairan paksa. Adakah anda mahu meneruskan?",
+      "confirmDelete": "Sahkan Padam",
+      "details": "Butiran",
+      "duplicate": "Duplikasi",
+      "cancel": "Batal",
+      "back": "Kembali",
+      "next": "Seterusnya",
+      "confirm": "Sahkan",
+      "publish": "Terbitkan",
+      "shareToSocial": "Kongsi ke Sosial",
+      "shareToRanking": "Kongsi ke Peringkat"
+    },
+    "portfolio": {
+      "title": "Sejarah Nilai Portfolio",
+      "totalEquity": "Jumlah Ekuiti",
+      "availableBalance": "Baki Tersedia",
+      "totalPnl": "Jumlah P&L",
+      "noData": "Tiada data nilai portfolio",
+      "noDataDesc": "Carta nilai portfolio akan muncul sebaik sahaja dagangan bermula"
+    },
+    "positions": {
+      "title": "Posisi",
+      "symbol": "Simbol",
+      "type": "Jenis",
+      "leverage": "Leveraj",
+      "quantity": "Kuantiti",
+      "pnl": "P&L",
+      "noOpen": "Tiada posisi terbuka",
+      "noOpenDesc": "Posisi akan muncul di sini apabila dagangan dibuka"
+    },
+    "create": {
+      "title": "Tambah strategi dagangan",
+      "steps": {
+        "aiModels": "Model AI",
+        "exchanges": "Bursa",
+        "tradingStrategy": "Strategi dagangan"
+      },
+      "error": "Ralat Mencipta Strategi"
+    },
+    "form": {
+      "strategyType": {
+        "label": "Jenis Strategi",
+        "promptBased": "Strategi Berasaskan Prompt",
+        "grid": "Strategi Grid"
+      },
+      "strategyName": {
+        "label": "Nama Strategi",
+        "placeholder": "Masukkan nama strategi"
+      },
+      "initialCapital": {
+        "label": "Modal Permulaan",
+        "placeholder": "Masukkan Modal Permulaan"
+      },
+      "maxLeverage": {
+        "label": "Leveraj Maksimum",
+        "placeholder": "Leveraj Maksimum"
+      },
+      "decideInterval": {
+        "label": "Selang Keputusan (saat)",
+        "placeholder": "cth. 300"
+      },
+      "tradingSymbols": {
+        "label": "Simbol Dagangan",
+        "placeholder": "Pilih simbol dagangan...",
+        "searchPlaceholder": "Cari atau tambah simbol...",
+        "emptyText": "Tiada simbol ditemui."
+      },
+      "promptTemplate": {
+        "label": "Templat Prompt Sistem",
+        "new": "Prompt Baru",
+        "view": "Lihat Strategi"
+      },
+      "aiModels": {
+        "platform": "Platform Model",
+        "model": "Pilih Model",
+        "noModels": "Tiada model tersedia",
+        "apiKey": {
+          "label": "Kunci API",
+          "placeholder": "Masukkan Kunci API"
+        }
+      },
+      "exchanges": {
+        "transactionType": "Jenis Transaksi",
+        "liveTrading": "Dagangan Langsung",
+        "virtualTrading": "Dagangan Maya",
+        "selectExchange": "Pilih Bursa",
+        "walletAddress": "Alamat Dompet",
+        "privateKey": "Kunci Peribadi",
+        "apiKey": "Kunci API",
+        "secretKey": "Kunci Rahsia",
+        "passphrase": "Frasa Laluan",
+        "testConnection": "Uji Sambungan",
+        "test": {
+          "success": "Berjaya!",
+          "failed": "Sambungan gagal. Sila semak Kunci API, Kunci Rahasia, atau Frasa Laluan anda."
+        },
+        "placeholder": {
+          "binance": {
+            "apiKey": "Masukkan Kunci API (64 aksara)",
+            "secretKey": "Masukkan Kunci Rahasia (64 aksara)"
+          },
+          "okx": {
+            "apiKey": "Masukkan Kunci API (Format: xxxxxxxx-xxxx-...)",
+            "secretKey": "Masukkan Kunci Rahasia (32 huruf besar & nombor)",
+            "passphrase": "Masukkan Frasa Laluan (Ditetapkan semasa penciptaan API)"
+          },
+          "gate": {
+            "apiKey": "Masukkan Kunci API (Bermula dengan 'key_')",
+            "secretKey": "Masukkan Kunci Rahasia (64 aksara)"
+          },
+          "hyperliquid": {
+            "walletAddress": "Masukkan Alamat Dompet (Bermula dengan '0x')",
+            "privateKey": "Masukkan Kunci Peribadi (64 aksara)"
+          },
+          "blockchain": {
+            "apiKey": "Masukkan Kunci API (Format: xxxxxxxx-xxxx-...)",
+            "secretKey": "Masukkan Kunci Rahasia"
+          },
+          "coinbase": {
+            "apiKey": "Masukkan Kunci API (atau Nama Kunci)",
+            "secretKey": "Masukkan Rahsia API (atau Kunci Peribadi)",
+            "passphrase": "Masukkan Frasa Laluan (Diperlukan untuk API Pro Legacy)"
+          },
+          "mexc": {
+            "apiKey": "Masukkan Kunci Akses (Bermula dengan 'mx0')",
+            "secretKey": "Masukkan Kunci Rahasia (Biasanya 32 aksara)"
+          },
+          "default": {
+            "apiKey": "Tampal Kunci API anda di sini",
+            "secretKey": "Tampal Kunci Rahasia anda di sini",
+            "passphrase": "Masukkan Frasa Laluan",
+            "walletAddress": "Masukkan Alamat Dompet",
+            "privateKey": "Masukkan Kunci Peribadi"
+          }
+        }
+      },
+      "prompt": {
+        "delete": {
+          "title": "Padam Prompt Strategi",
+          "description": "Adakah anda pasti mahu memadamkan prompt strategi ini? Tindakan ini tidak boleh dibuat asal dan akan mengalih keluar prompt secara kekal daripada sistem."
+        }
+      },
+      "detail": {
+        "title": "Butiran Strategi",
+        "loading": "Memuatkan butiran...",
+        "returnRate": "Kadar Pulangan",
+        "strategyType": "Jenis Strategi",
+        "modelProvider": "Penyedia Model",
+        "modelId": "ID Model",
+        "initialCapital": "Modal Permulaan",
+        "maxLeverage": "Leveraj Maksimum",
+        "tradingSymbols": "Simbol Dagangan",
+        "prompt": "Prompt"
+      },
+      "history": {
+        "title": "Sejarah Dagangan",
+        "live": "Dagangan Langsung",
+        "virtual": "Dagangan Maya",
+        "cycle": "Kitaran #{{index}}",
+        "aiReasoning": "Logik penaakulan AI",
+        "operation": "Lakukan operasi",
+        "empty": {
+          "title": "Tiada sejarah dagangan",
+          "desc": "Dagangan anda yang selesai akan muncul di sini"
+        },
+        "details": {
+          "time": "Masa",
+          "price": "Harga",
+          "quantity": "Kuantiti",
+          "holdingTime": "Masa pegangan",
+          "tradingFee": "Yuran Dagangan",
+          "reasoning": "Penaakulan"
+        }
+      }
+    }
+  },
+  "rank": {
+    "title": "Papan Pendahulu Keuntungan",
+    "days": {
+      "7": "7H",
+      "30": "1B"
+    },
+    "table": {
+      "rank": "Kedudukan",
+      "user": "Pengguna",
+      "pnl": "P&L",
+      "strategy": "Strategi",
+      "exchange": "Bursa",
+      "model": "Model",
+      "details": "Butiran",
+      "loading": "Memuatkan..."
+    }
+  },
+  "home": {
+    "hello": "👋 Hello Pelabur!",
+    "welcome": "👋 Selamat datang ke ValueCell!",
+    "watchlist": "Senarai Pantau Saya",
+    "stock": {
+      "loading": "Memuatkan data saham...",
+      "error": "Ralat memuatkan data saham: {{message}}",
+      "remove": "Alih Keluar",
+      "removing": "Mengalih keluar...",
+      "add": "Tambah Saham",
+      "about": "Tentang",
+      "sector": "Sektor:",
+      "industry": "Industri:",
+      "website": "Laman Web:",
+      "chart": {
+        "24h": "24j",
+        "7d": "7h",
+        "30d": "30h"
+      }
+    },
+    "search": {
+      "title": "Carian Saham",
+      "placeholder": "Cari nama atau kod saham",
+      "searching": "Mencari...",
+      "noResults": "Tiada saham berkaitan ditemui",
+      "action": {
+        "watch": "Pantau",
+        "watching": "Memantau...",
+        "watched": "Dipantau"
+      }
+    },
+    "suggestions": {
+      "research": {
+        "title": "Penyelidikan Mendalam",
+        "description": "Analisis pemfailan SEC untuk menjana laporan tafsiran saham yang mendalam."
+      },
+      "strategy": {
+        "title": "Dagangan Automatik",
+        "description": "Dagangan pintar berbilang strategi, laksanakan strategi anda secara automatik"
+      },
+      "news": {
+        "title": "Berita Push",
+        "description": "Kemas kini berita yang diperibadikan pada jadual tersuai"
+      }
+    }
+  }
+}

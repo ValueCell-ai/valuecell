@@ -1,0 +1,367 @@
+{
+  "general": {
+    "title": "General",
+    "description": "Gestioneu les vostres preferències i la configuració de l'aplicació",
+    "account": {
+      "title": "Compte",
+      "signInDesc": "Inicieu sessió per començar amb les funcions de Valuecell AI.",
+      "signOut": "Tancar sessió",
+      "signIn": "Iniciar sessió"
+    },
+    "language": {
+      "title": "Idioma i Regió",
+      "description": "Seleccioneu el vostre idioma preferit i el format regional per a l'aplicació."
+    },
+    "quotesColor": {
+      "title": "Color de les Cotitzacions",
+      "description": "Trieu com es visualitzen els moviments de les cotitzacions borsàries a l'aplicació.",
+      "greenUpRedDown": "Verd Puja / Vermell Baixa",
+      "redUpGreenDown": "Vermell Puja / Verd Baixa"
+    },
+    "updates": {
+      "title": "Actualitzacions de l'App",
+      "check": "Comprovar actualitzacions"
+    }
+  },
+  "settings": {
+    "title": "Configuració",
+    "nav": {
+      "models": "Models",
+      "general": "General",
+      "memory": "Memòria"
+    },
+    "models": {
+      "title": "Proveïdor de Model",
+      "noProviders": "Cap proveïdor disponible.",
+      "loading": "Carregant detalls del proveïdor...",
+      "defaultProvider": "Proveïdor per defecte",
+      "apiKey": "Clau API",
+      "enterApiKey": "Introduïu la clau API",
+      "getApiKey": "Feu clic aquí per obtenir la clau API",
+      "apiHost": "Amfitrió API",
+      "models": "Models",
+      "add": "Afegir",
+      "addModel": "Afegir Model",
+      "modelId": "ID del Model",
+      "enterModelId": "Introduïu l'ID del model",
+      "modelName": "Nom del Model",
+      "enterModelName": "Introduïu el nom del model",
+      "cancel": "Cancel·lar",
+      "confirm": "Confirmar",
+      "noModels": "Cap model configurat per a aquest proveïdor."
+    },
+    "memory": {
+      "title": "Records preservats",
+      "description": "Recordaré i gestionaré automàticament informació útil als xats per millorar la personalització i la rellevància de les respostes",
+      "loading": "Carregant...",
+      "noMemories": "Encara no hi ha records",
+      "delete": "Eliminar"
+    }
+  },
+  "common": {
+    "back": "Enrere"
+  },
+  "market": {
+    "title": "Mercat d'Agents"
+  },
+  "agent": {
+    "welcome": "Benvingut a {{name}}!",
+    "unknown": "Agent Desconegut",
+    "status": {
+      "running": "En execució"
+    },
+    "action": {
+      "view": "Veure"
+    },
+    "config": {
+      "disable": "Desactivar",
+      "chat": "Xat",
+      "collectAndChat": "Recollir i xatejar"
+    }
+  },
+  "chat": {
+    "input": {
+      "placeholder": "Escriviu el vostre missatge..."
+    },
+    "newConversation": "Nova Conversa",
+    "settings": "Configuració",
+    "conversationList": {
+      "title": "Llista de Converses",
+      "loading": "Carregant...",
+      "empty": "Encara no hi ha converses"
+    },
+    "action": {
+      "delete": "Eliminar"
+    }
+  },
+  "strategy": {
+    "types": {
+      "PromptBasedStrategy": "Estratègia basada en Prompt",
+      "GridStrategy": "Estratègia de Graella"
+    },
+    "providers": {
+      "azure": "Azure OpenAI",
+      "dashscope": "Alibaba Cloud",
+      "deepseek": "DeepSeek",
+      "google": "Google Cloud",
+      "openai": "OpenAI",
+      "openai-compatible": "Compatible amb OpenAI",
+      "openrouter": "OpenRouter",
+      "siliconflow": "SiliconFlow"
+    },
+    "title": "Estratègies de Trading",
+    "add": "Afegir estratègia de trading",
+    "noStrategies": "Cap estratègia de trading",
+    "createFirst": "Creeu la vostra primera estratègia per començar a fer trading",
+    "status": {
+      "running": "En execució",
+      "stopped": "Aturat",
+      "live": "En viu",
+      "virtual": "Virtual"
+    },
+    "action": {
+      "stop": "Aturar l'Estratègia de Trading?",
+      "stopDesc": "Aturar l'estratègia \"{{name}}\" l'aturarà immediatament i activarà una liquidació forçada. Voleu continuar?",
+      "confirmStop": "Confirmar Aturada",
+      "delete": "Eliminar",
+      "deleteTitle": "Eliminar l'Estratègia?",
+      "deleteDesc": "Eliminar l'estratègia \"{{name}}\" l'aturarà immediatament i activarà una liquidació forçada. Voleu continuar?",
+      "confirmDelete": "Confirmar Eliminació",
+      "details": "Detalls",
+      "duplicate": "Duplicar",
+      "cancel": "Cancel·lar",
+      "back": "Enrere",
+      "next": "Següent",
+      "confirm": "Confirmar",
+      "publish": "Publicar",
+      "shareToSocial": "Compartir a xarxes socials",
+      "shareToRanking": "Compartir al rànquing"
+    },
+    "portfolio": {
+      "title": "Historial de Valor de la Cartera",
+      "totalEquity": "Patrimoni Total",
+      "availableBalance": "Saldo Disponible",
+      "totalPnl": "P&L Total",
+      "noData": "Cap dada de valor de cartera",
+      "noDataDesc": "El gràfic de valor de la cartera apareixerà un cop comenci el trading"
+    },
+    "positions": {
+      "title": "Posicions",
+      "symbol": "Símbol",
+      "type": "Tipus",
+      "leverage": "Palanquejament",
+      "quantity": "Quantitat",
+      "pnl": "P&L",
+      "noOpen": "Cap posició oberta",
+      "noOpenDesc": "Les posicions apareixeran aquí quan s'obrin operacions"
+    },
+    "create": {
+      "title": "Afegir estratègia de trading",
+      "steps": {
+        "aiModels": "Models IA",
+        "exchanges": "Borses",
+        "tradingStrategy": "Estratègia de trading"
+      },
+      "error": "Error creant l'estratègia"
+    },
+    "form": {
+      "strategyType": {
+        "label": "Tipus d'Estratègia",
+        "promptBased": "Estratègia basada en Prompt",
+        "grid": "Estratègia de Graella"
+      },
+      "strategyName": {
+        "label": "Nom de l'Estratègia",
+        "placeholder": "Introduïu el nom de l'estratègia"
+      },
+      "initialCapital": {
+        "label": "Capital Inicial",
+        "placeholder": "Introduïu el Capital Inicial"
+      },
+      "maxLeverage": {
+        "label": "Palanquejament Màxim",
+        "placeholder": "Palanquejament Màxim"
+      },
+      "decideInterval": {
+        "label": "Interval de Decisió (segons)",
+        "placeholder": "ex: 300"
+      },
+      "tradingSymbols": {
+        "label": "Símbols de Trading",
+        "placeholder": "Seleccioneu símbols de trading...",
+        "searchPlaceholder": "Cercar o afegir símbols...",
+        "emptyText": "No s'han trobat símbols."
+      },
+      "promptTemplate": {
+        "label": "Plantilla de Prompt del Sistema",
+        "new": "Nou Prompt",
+        "view": "Veure Estratègia"
+      },
+      "aiModels": {
+        "platform": "Plataforma de Model",
+        "model": "Seleccionar Model",
+        "noModels": "Cap model disponible",
+        "apiKey": {
+          "label": "Clau API",
+          "placeholder": "Introduïu la Clau API"
+        }
+      },
+      "exchanges": {
+        "transactionType": "Tipus de Transacció",
+        "liveTrading": "Trading en Viu",
+        "virtualTrading": "Trading Virtual",
+        "selectExchange": "Seleccionar Borsa",
+        "walletAddress": "Adreça de la Cartera",
+        "privateKey": "Clau Privada",
+        "apiKey": "Clau API",
+        "secretKey": "Clau Secreta",
+        "passphrase": "Frase de Pas",
+        "testConnection": "Provar Connexió",
+        "test": {
+          "success": "Èxit!",
+          "failed": "La connexió ha fallat. Si us plau, comproveu la vostra Clau API, Clau Secreta o Frase de Pas."
+        },
+        "placeholder": {
+          "binance": {
+            "apiKey": "Introduïu la Clau API (64 caràcters)",
+            "secretKey": "Introduïu la Clau Secreta (64 caràcters)"
+          },
+          "okx": {
+            "apiKey": "Introduïu la Clau API (Format: xxxxxxxx-xxxx-...)",
+            "secretKey": "Introduïu la Clau Secreta (32 lletres majúscules i números)",
+            "passphrase": "Introduïu la Frase de Pas (Definida durant la creació de l'API)"
+          },
+          "gate": {
+            "apiKey": "Introduïu la Clau API (Comença per 'key_')",
+            "secretKey": "Introduïu la Clau Secreta (64 caràcters)"
+          },
+          "hyperliquid": {
+            "walletAddress": "Introduïu l'Adreça de la Cartera (Comença per '0x')",
+            "privateKey": "Introduïu la Clau Privada (64 caràcters)"
+          },
+          "blockchain": {
+            "apiKey": "Introduïu la Clau API (Format: xxxxxxxx-xxxx-...)",
+            "secretKey": "Introduïu la Clau Secreta"
+          },
+          "coinbase": {
+            "apiKey": "Introduïu la Clau API (o Nom de la Clau)",
+            "secretKey": "Introduïu el Secret API (o Clau Privada)",
+            "passphrase": "Introduïu la Frase de Pas (Necessari per a l'API Pro Legacy)"
+          },
+          "mexc": {
+            "apiKey": "Introduïu la Clau d'Accés (Comença per 'mx0')",
+            "secretKey": "Introduïu la Clau Secreta (Normalment 32 caràcters)"
+          },
+          "default": {
+            "apiKey": "Enganxeu la vostra Clau API aquí",
+            "secretKey": "Enganxeu la vostra Clau Secreta aquí",
+            "passphrase": "Introduïu la Frase de Pas",
+            "walletAddress": "Introduïu l'Adreça de la Cartera",
+            "privateKey": "Introduïu la Clau Privada"
+          }
+        }
+      }
+    },
+    "prompt": {
+      "delete": {
+        "title": "Eliminar Prompt d'Estratègia",
+        "description": "Esteu segur que voleu eliminar aquest prompt d'estratègia? Aquesta acció no es pot desfer i eliminarà permanentment el prompt del sistema."
+      }
+    },
+    "detail": {
+      "title": "Detalls de l'Estratègia",
+      "loading": "Carregant detalls...",
+      "returnRate": "Taxa de Retorn",
+      "strategyType": "Tipus d'Estratègia",
+      "modelProvider": "Proveïdor de Model",
+      "modelId": "ID del Model",
+      "initialCapital": "Capital Inicial",
+      "maxLeverage": "Palanquejament Màxim",
+      "tradingSymbols": "Símbols de Trading",
+      "prompt": "Prompt"
+    },
+    "history": {
+      "title": "Historial de Trading",
+      "live": "Trading en Viu",
+      "virtual": "Trading Virtual",
+      "cycle": "Cicle #{{index}}",
+      "aiReasoning": "Lògica de raonament IA",
+      "operation": "Realitzar operació",
+      "empty": {
+        "title": "Cap historial de trade",
+        "desc": "Els vostres trades completats apareixeran aquí"
+      },
+      "details": {
+        "time": "Hora",
+        "price": "Preu",
+        "quantity": "Quantitat",
+        "holdingTime": "Temps de tinença",
+        "tradingFee": "Comissió de Trading",
+        "reasoning": "Raonament"
+      }
+    }
+  },
+  "rank": {
+    "title": "Classificació de Beneficis",
+    "days": {
+      "7": "7D",
+      "30": "1M"
+    },
+    "table": {
+      "rank": "Rang",
+      "user": "Usuari",
+      "pnl": "P&L",
+      "strategy": "Estratègia",
+      "exchange": "Borsa",
+      "model": "Model",
+      "details": "Detalls",
+      "loading": "Carregant..."
+    }
+  },
+  "home": {
+    "hello": "👋 Hola Inversor!",
+    "welcome": "👋 Benvingut a ValueCell!",
+    "watchlist": "La Meva Llista de Seguiment",
+    "stock": {
+      "loading": "Carregant dades borsàries...",
+      "error": "Error carregant dades borsàries: {{message}}",
+      "remove": "Eliminar",
+      "removing": "Eliminant...",
+      "add": "Afegir Accions",
+      "about": "Sobre",
+      "sector": "Sector:",
+      "industry": "Indústria:",
+      "website": "Lloc Web:",
+      "chart": {
+        "24h": "24h",
+        "7d": "7d",
+        "30d": "30d"
+      }
+    },
+    "search": {
+      "title": "Cerca d'Accions",
+      "placeholder": "Cercar per nom d'acció o codi",
+      "searching": "Cercant...",
+      "noResults": "No s'han trobat accions relacionades",
+      "action": {
+        "watch": "Seguir",
+        "watching": "Seguint...",
+        "watched": "Seguit"
+      }
+    },
+    "suggestions": {
+      "research": {
+        "title": "Recerca Profunda",
+        "description": "Analitzeu les presentacions a la SEC per generar informes d'interpretació borsària en profunditat."
+      },
+      "strategy": {
+        "title": "Trading Automatitzat",
+        "description": "Trading intel·ligent multi-estratègia, executeu automàticament les vostres estratègies"
+      },
+      "news": {
+        "title": "Notificacions de Notícies",
+        "description": "Actualitzacions de notícies personalitzades segons un horari personalitzat"
+      }
+    }
+  }
+}

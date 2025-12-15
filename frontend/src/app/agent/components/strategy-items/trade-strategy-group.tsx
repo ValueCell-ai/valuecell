@@ -1,5 +1,6 @@
 import { Copy, Eye, MoreVertical, Plus, TrendingUp } from "lucide-react";
 import { type FC, memo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useStrategyPerformance } from "@/api/strategy";
 import { DeleteStrategy, StrategyStatus } from "@/assets/svg";
 import {
@@ -61,6 +62,7 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
   onStop,
   onDelete,
 }) => {
+  const { t } = useTranslation();
   const stockColors = useStockColors();
   const changeType = getChangeType(strategy.total_pnl_pct);
 
@@ -94,11 +96,13 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
       <div className="flex items-center gap-2">
         {strategy.strategy_type && (
           <p className="rounded-sm bg-gray-100 px-2 py-1 text-gray-700 text-xs">
-            {strategy.strategy_type}
+            {t(`strategy.types.${strategy.strategy_type}`)}
           </p>
         )}
         <p className="rounded-sm bg-gray-100 px-2 py-1 text-gray-700 text-xs">
-          {strategy.trading_mode === "live" ? "Live" : "Virtual"}
+          {strategy.trading_mode === "live"
+            ? t("strategy.status.live")
+            : t("strategy.status.virtual")}
         </p>
       </div>
 
@@ -123,7 +127,9 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
           {strategy.status === "stopped" && strategy.stop_reason ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <p className="font-medium text-gray-400 text-sm">Stopped</p>
+                <p className="font-medium text-gray-400 text-sm">
+                  {t("strategy.status.stopped")}
+                </p>
               </TooltipTrigger>
               <TooltipContent side="top" className="wrap-break-word max-w-xs">
                 {strategy.stop_reason}
@@ -142,23 +148,29 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
                     <SvgIcon name={StrategyStatus} className="size-4" />
                   )}
                   <p className="font-medium text-gray-700 text-sm">
-                    {strategy.status === "running" ? "Running" : "Stopped"}
+                    {strategy.status === "running"
+                      ? t("strategy.status.running")
+                      : t("strategy.status.stopped")}
                   </p>
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Stop Trading Strategy?</AlertDialogTitle>
+                  <AlertDialogTitle>
+                    {t("strategy.action.stop")}
+                  </AlertDialogTitle>
                   <AlertDialogDescription>
-                    Stopping the strategy "{strategy.strategy_name}" will stop
-                    it immediately and trigger a forced liquidation. Do you want
-                    to proceed?
+                    {t("strategy.action.stopDesc", {
+                      name: strategy.strategy_name,
+                    })}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel>
+                    {t("strategy.action.cancel")}
+                  </AlertDialogCancel>
                   <AlertDialogAction onClick={onStop}>
-                    Confirm Stop
+                    {t("strategy.action.confirmStop")}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -178,7 +190,7 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
                 }
               >
                 <Eye className="ml-1 size-5" />
-                Details
+                {t("strategy.action.details")}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={async () => {
@@ -215,14 +227,16 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
                 }}
               >
                 <Copy className="ml-1 size-5" />
-                Duplicate
+                {t("strategy.action.duplicate")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsDeleting(true)}>
                 <SvgIcon
                   name={DeleteStrategy}
                   className="size-6 text-red-500"
                 />{" "}
-                <span className="text-red-500">Delete</span>
+                <span className="text-red-500">
+                  {t("strategy.action.delete")}
+                </span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -232,17 +246,19 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
       <AlertDialog open={isDeleting} onOpenChange={setIsDeleting}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Strategy?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("strategy.action.deleteTitle")}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Deleting the strategy "{strategy.strategy_name}" will stop it
-              immediately and trigger a forced liquidation. Do you want to
-              proceed?
+              {t("strategy.action.deleteDesc", {
+                name: strategy.strategy_name,
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("strategy.action.cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={onDelete}>
-              Confirm Delete
+              {t("strategy.action.confirmDelete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -261,6 +277,7 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
   onStrategyStop,
   onStrategyDelete,
 }) => {
+  const { t } = useTranslation();
   const hasStrategies = strategies.length > 0;
 
   return (
@@ -288,10 +305,10 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
             </div>
             <div className="flex flex-col gap-2">
               <p className="font-semibold text-base text-gray-700">
-                No trading strategies
+                {t("strategy.noStrategies")}
               </p>
               <p className="max-w-xs text-gray-500 text-sm leading-relaxed">
-                Create your first strategy to start trading
+                {t("strategy.createFirst")}
               </p>
             </div>
           </div>
@@ -305,7 +322,7 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
             className="w-full gap-3 rounded-lg py-4 text-base"
           >
             <Plus className="size-6" />
-            Add trading strategy
+            {t("strategy.create.title")}
           </Button>
         </CreateStrategyModal>
       </div>

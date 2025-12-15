@@ -1,0 +1,367 @@
+{
+  "general": {
+    "title": "通用",
+    "description": "管理您的首選項和應用程式設定",
+    "account": {
+      "title": "帳戶",
+      "signInDesc": "登入以開始使用 Valuecell AI 功能。",
+      "signOut": "登出",
+      "signIn": "登入"
+    },
+    "language": {
+      "title": "語言與區域",
+      "description": "選擇您偏好的應用程式語言和區域格式。"
+    },
+    "quotesColor": {
+      "title": "行情顏色",
+      "description": "選擇股票行情漲跌的顯示顏色。",
+      "greenUpRedDown": "綠漲紅跌",
+      "redUpGreenDown": "紅漲綠跌"
+    },
+    "updates": {
+      "title": "應用程式更新",
+      "check": "檢查更新"
+    }
+  },
+  "settings": {
+    "title": "設定",
+    "nav": {
+      "models": "模型",
+      "general": "通用",
+      "memory": "記憶"
+    },
+    "models": {
+      "title": "模型供應商",
+      "noProviders": "無可用供應商。",
+      "loading": "正在載入供應商詳情...",
+      "defaultProvider": "預設供應商",
+      "apiKey": "API 金鑰",
+      "enterApiKey": "輸入 API 金鑰",
+      "getApiKey": "點擊此處獲取 API 金鑰",
+      "apiHost": "API 主機",
+      "models": "模型",
+      "add": "新增",
+      "addModel": "新增模型",
+      "modelId": "模型 ID",
+      "enterModelId": "輸入模型 ID",
+      "modelName": "模型名稱",
+      "enterModelName": "輸入模型名稱",
+      "cancel": "取消",
+      "confirm": "確認",
+      "noModels": "該供應商未配置任何模型。"
+    },
+    "memory": {
+      "title": "保留記憶",
+      "description": "我將記住並自動管理聊天中的有用資訊，以增強回覆的個人化和相關性",
+      "loading": "載入中...",
+      "noMemories": "暫無記憶",
+      "delete": "刪除"
+    }
+  },
+  "common": {
+    "back": "返回"
+  },
+  "market": {
+    "title": "Agent 市場"
+  },
+  "agent": {
+    "welcome": "歡迎使用 {{name}}!",
+    "unknown": "未知 Agent",
+    "status": {
+      "running": "運行中"
+    },
+    "action": {
+      "view": "查看"
+    },
+    "config": {
+      "disable": "禁用",
+      "chat": "聊天",
+      "collectAndChat": "收藏並聊天"
+    }
+  },
+  "chat": {
+    "input": {
+      "placeholder": "輸入訊息..."
+    },
+    "newConversation": "新對話",
+    "settings": "設置",
+    "conversationList": {
+      "title": "對話列表",
+      "loading": "載入中...",
+      "empty": "暫無對話"
+    },
+    "action": {
+      "delete": "刪除"
+    }
+  },
+  "strategy": {
+    "types": {
+      "PromptBasedStrategy": "Prompt 策略",
+      "GridStrategy": "網格策略"
+    },
+    "providers": {
+      "azure": "Azure OpenAI",
+      "dashscope": "阿里雲",
+      "deepseek": "深度求索",
+      "google": "Google Cloud",
+      "openai": "OpenAI",
+      "openai-compatible": "OpenAI 兼容",
+      "openrouter": "OpenRouter",
+      "siliconflow": "硅基流動"
+    },
+    "title": "交易策略",
+    "add": "新增交易策略",
+    "noStrategies": "暫無交易策略",
+    "createFirst": "建立您的第一個策略以開始交易",
+    "status": {
+      "running": "運行中",
+      "stopped": "已停止",
+      "live": "實盤",
+      "virtual": "虛擬"
+    },
+    "action": {
+      "stop": "停止交易策略？",
+      "stopDesc": "停止策略 \"{{name}}\" 將立即停止它並觸發強制平倉。您確定要繼續嗎？",
+      "confirmStop": "確認停止",
+      "delete": "刪除",
+      "deleteTitle": "刪除策略？",
+      "deleteDesc": "刪除策略 \"{{name}}\" 將立即停止它並觸發強制平倉。您確定要繼續嗎？",
+      "confirmDelete": "確認刪除",
+      "details": "詳情",
+      "duplicate": "複製",
+      "cancel": "取消",
+      "back": "返回",
+      "next": "下一步",
+      "confirm": "確認",
+      "publish": "發布",
+      "shareToSocial": "分享到社交媒體",
+      "shareToRanking": "分享到排行榜"
+    },
+    "portfolio": {
+      "title": "投資組合價值歷史",
+      "totalEquity": "總權益",
+      "availableBalance": "可用餘額",
+      "totalPnl": "總盈虧",
+      "noData": "暫無投資組合價值數據",
+      "noDataDesc": "交易開始後將顯示投資組合價值圖表"
+    },
+    "positions": {
+      "title": "持倉",
+      "symbol": "標的",
+      "type": "類型",
+      "leverage": "槓桿",
+      "quantity": "數量",
+      "pnl": "盈虧",
+      "noOpen": "暫無持倉",
+      "noOpenDesc": "開倉後將在此處顯示持倉"
+    },
+    "create": {
+      "title": "新增交易策略",
+      "steps": {
+        "aiModels": "AI 模型",
+        "exchanges": "交易所",
+        "tradingStrategy": "交易策略"
+      },
+      "error": "建立策略失敗"
+    },
+    "form": {
+      "strategyType": {
+        "label": "策略類型",
+        "promptBased": "Prompt 策略",
+        "grid": "網格策略"
+      },
+      "strategyName": {
+        "label": "策略名稱",
+        "placeholder": "輸入策略名稱"
+      },
+      "initialCapital": {
+        "label": "初始資金",
+        "placeholder": "輸入初始資金"
+      },
+      "maxLeverage": {
+        "label": "最大槓桿",
+        "placeholder": "最大槓桿"
+      },
+      "decideInterval": {
+        "label": "決策間隔 (秒)",
+        "placeholder": "例如: 300"
+      },
+      "tradingSymbols": {
+        "label": "交易對",
+        "placeholder": "選擇交易對...",
+        "searchPlaceholder": "搜尋或添加交易對...",
+        "emptyText": "未找到交易對。"
+      },
+      "promptTemplate": {
+        "label": "系統 Prompt 模板",
+        "new": "新建 Prompt",
+        "view": "查看策略"
+      },
+      "aiModels": {
+        "platform": "模型平台",
+        "model": "選擇模型",
+        "noModels": "暫無可用模型",
+        "apiKey": {
+          "label": "API Key",
+          "placeholder": "輸入 API Key"
+        }
+      },
+      "exchanges": {
+        "transactionType": "交易類型",
+        "liveTrading": "實盤交易",
+        "virtualTrading": "模擬交易",
+        "selectExchange": "選擇交易所",
+        "walletAddress": "錢包地址",
+        "privateKey": "私鑰",
+        "apiKey": "API Key",
+        "secretKey": "Secret Key",
+        "passphrase": "Passphrase",
+        "testConnection": "測試連接",
+        "test": {
+          "success": "連接成功！",
+          "failed": "連接失敗。請檢查您的 API Key, Secret Key 或 Passphrase。"
+        },
+        "placeholder": {
+          "binance": {
+            "apiKey": "輸入 API Key (64 字元)",
+            "secretKey": "輸入 Secret Key (64 字元)"
+          },
+          "okx": {
+            "apiKey": "輸入 API Key (格式: xxxxxxxx-xxxx-...)",
+            "secretKey": "輸入 Secret Key (32 大寫字母和數字)",
+            "passphrase": "輸入 Passphrase (API 創建時設置)"
+          },
+          "gate": {
+            "apiKey": "輸入 API Key (以 'key_' 開頭)",
+            "secretKey": "輸入 Secret Key (64 字元)"
+          },
+          "hyperliquid": {
+            "walletAddress": "輸入錢包地址 (以 '0x' 開頭)",
+            "privateKey": "輸入私鑰 (64 字元)"
+          },
+          "blockchain": {
+            "apiKey": "輸入 API Key (格式: xxxxxxxx-xxxx-...)",
+            "secretKey": "輸入 Secret Key"
+          },
+          "coinbase": {
+            "apiKey": "輸入 API Key (或 Key Name)",
+            "secretKey": "輸入 API Secret (或 Private Key)",
+            "passphrase": "輸入 Passphrase (Legacy Pro API 需要)"
+          },
+          "mexc": {
+            "apiKey": "輸入 Access Key (以 'mx0' 開頭)",
+            "secretKey": "輸入 Secret Key (通常 32 字元)"
+          },
+          "default": {
+            "apiKey": "在此貼上 API Key",
+            "secretKey": "在此貼上 Secret Key",
+            "passphrase": "輸入 Passphrase",
+            "walletAddress": "輸入錢包地址",
+            "privateKey": "輸入私鑰"
+          }
+        }
+      }
+    },
+    "prompt": {
+      "delete": {
+        "title": "刪除策略 Prompt",
+        "description": "您確定要刪除此策略 Prompt 嗎？此操作無法撤消，並將從系統中永久刪除該 Prompt。"
+      }
+    },
+    "detail": {
+      "title": "策略詳情",
+      "loading": "載入詳情中...",
+      "returnRate": "回報率",
+      "strategyType": "策略類型",
+      "modelProvider": "模型供應商",
+      "modelId": "模型 ID",
+      "initialCapital": "初始資金",
+      "maxLeverage": "最大槓桿",
+      "tradingSymbols": "交易對",
+      "prompt": "Prompt"
+    },
+    "history": {
+      "title": "交易歷史",
+      "live": "實盤交易",
+      "virtual": "模擬交易",
+      "cycle": "週期 #{{index}}",
+      "aiReasoning": "AI 推理邏輯",
+      "operation": "執行操作",
+      "empty": {
+        "title": "暫無交易歷史",
+        "desc": "您完成的交易將顯示在這裡"
+      },
+      "details": {
+        "time": "時間",
+        "price": "價格",
+        "quantity": "數量",
+        "holdingTime": "持倉時間",
+        "tradingFee": "交易費用",
+        "reasoning": "推理"
+      }
+    }
+  },
+  "rank": {
+    "title": "收益排行榜",
+    "days": {
+      "7": "7天",
+      "30": "1月"
+    },
+    "table": {
+      "rank": "排名",
+      "user": "用戶",
+      "pnl": "盈虧",
+      "strategy": "策略",
+      "exchange": "交易所",
+      "model": "模型",
+      "details": "詳情",
+      "loading": "載入中..."
+    }
+  },
+  "home": {
+    "hello": "👋 您好，投資者！",
+    "welcome": "👋 歡迎來到 ValueCell !",
+    "watchlist": "我的自選股",
+    "stock": {
+      "loading": "正在載入股票數據...",
+      "error": "載入股票數據失敗: {{message}}",
+      "remove": "移除",
+      "removing": "移除中...",
+      "add": "新增股票",
+      "about": "簡介",
+      "sector": "板塊:",
+      "industry": "行業:",
+      "website": "官網:",
+      "chart": {
+        "24h": "24小時",
+        "7d": "7天",
+        "30d": "30天"
+      }
+    },
+    "search": {
+      "title": "搜尋股票",
+      "placeholder": "搜尋股票名稱或代碼",
+      "searching": "搜尋中...",
+      "noResults": "未找到相關股票",
+      "action": {
+        "watch": "關注",
+        "watching": "關注中...",
+        "watched": "已關注"
+      }
+    },
+    "suggestions": {
+      "research": {
+        "title": "深度研究",
+        "description": "分析 SEC 文件，生成深度股票解讀報告。"
+      },
+      "strategy": {
+        "title": "自動交易",
+        "description": "多策略智能交易，自動執行您的策略"
+      },
+      "news": {
+        "title": "新聞推送",
+        "description": "按自定義時間表推送個性化新聞更新"
+      }
+    }
+  }
+}

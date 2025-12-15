@@ -2,8 +2,8 @@
 
 import os
 from functools import lru_cache
-from pathlib import Path
 
+from valuecell.config.constants import PROJECT_ROOT
 from valuecell.utils.env import get_system_env_dir
 
 
@@ -59,7 +59,7 @@ class Settings:
             self.DATABASE_URL = _default_db_path()
 
         # File Paths
-        self.BASE_DIR = Path(__file__).parent.parent.parent
+        self.BASE_DIR = PROJECT_ROOT
         self.LOGS_DIR = self.BASE_DIR / "logs"
         self.LOGS_DIR.mkdir(exist_ok=True)
 

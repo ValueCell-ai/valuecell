@@ -1,6 +1,7 @@
 import { MultiSelect } from "@valuecell/multi-select";
 import { Eye, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   useCreateStrategyPrompt,
   useDeleteStrategyPrompt,
@@ -50,6 +51,7 @@ export const TradingStrategyForm = withForm({
     tradingMode: "live" as "live" | "virtual",
   },
   render({ form, prompts, tradingMode }) {
+    const { t } = useTranslation();
     const { mutateAsync: createStrategyPrompt } = useCreateStrategyPrompt();
     const { mutate: deleteStrategyPrompt } = useDeleteStrategyPrompt();
     const [deletePromptId, setDeletePromptId] = useState<string | null>(null);
@@ -99,11 +101,13 @@ export const TradingStrategyForm = withForm({
           name="strategy_type"
         >
           {(field) => (
-            <field.SelectField label="Strategy Type">
+            <field.SelectField label={t("strategy.form.strategyType.label")}>
               <SelectItem value="PromptBasedStrategy">
-                Prompt Based Strategy
+                {t("strategy.form.strategyType.promptBased")}
               </SelectItem>
-              <SelectItem value="GridStrategy">Grid Strategy</SelectItem>
+              <SelectItem value="GridStrategy">
+                {t("strategy.form.strategyType.grid")}
+              </SelectItem>
             </field.SelectField>
           )}
         </form.AppField>
@@ -111,8 +115,8 @@ export const TradingStrategyForm = withForm({
         <form.AppField name="strategy_name">
           {(field) => (
             <field.TextField
-              label="Strategy Name"
-              placeholder="Enter strategy name"
+              label={t("strategy.form.strategyName.label")}
+              placeholder={t("strategy.form.strategyName.placeholder")}
             />
           )}
         </form.AppField>
@@ -123,8 +127,8 @@ export const TradingStrategyForm = withForm({
               {(field) => (
                 <field.NumberField
                   className="flex-1"
-                  label="Initial Capital"
-                  placeholder="Enter Initial Capital"
+                  label={t("strategy.form.initialCapital.label")}
+                  placeholder={t("strategy.form.initialCapital.placeholder")}
                 />
               )}
             </form.AppField>
@@ -134,8 +138,8 @@ export const TradingStrategyForm = withForm({
             {(field) => (
               <field.NumberField
                 className="flex-1"
-                label="Max Leverage"
-                placeholder="Max Leverage"
+                label={t("strategy.form.maxLeverage.label")}
+                placeholder={t("strategy.form.maxLeverage.placeholder")}
               />
             )}
           </form.AppField>
@@ -144,8 +148,8 @@ export const TradingStrategyForm = withForm({
         <form.AppField name="decide_interval">
           {(field) => (
             <field.NumberField
-              label="Decision Interval (seconds)"
-              placeholder="e.g. 300"
+              label={t("strategy.form.decideInterval.label")}
+              placeholder={t("strategy.form.decideInterval.placeholder")}
             />
           )}
         </form.AppField>
@@ -157,7 +161,7 @@ export const TradingStrategyForm = withForm({
                 {(field) => (
                   <Field>
                     <FieldLabel className="font-medium text-base text-gray-950">
-                      Trading Symbols
+                      {t("strategy.form.tradingSymbols.label")}
                     </FieldLabel>
                     <MultiSelect
                       maxSelected={
@@ -166,9 +170,13 @@ export const TradingStrategyForm = withForm({
                       options={TRADING_SYMBOLS}
                       value={field.state.value}
                       onValueChange={(value) => field.handleChange(value)}
-                      placeholder="Select trading symbols..."
-                      searchPlaceholder="Search or add symbols..."
-                      emptyText="No symbols found."
+                      placeholder={t(
+                        "strategy.form.tradingSymbols.placeholder",
+                      )}
+                      searchPlaceholder={t(
+                        "strategy.form.tradingSymbols.searchPlaceholder",
+                      )}
+                      emptyText={t("strategy.form.tradingSymbols.emptyText")}
                       maxDisplayed={5}
                       creatable
                     />
@@ -188,7 +196,7 @@ export const TradingStrategyForm = withForm({
                   {(field) => (
                     <Field>
                       <FieldLabel className="font-medium text-base text-gray-950">
-                        System Prompt Template
+                        {t("strategy.form.promptTemplate.label")}
                       </FieldLabel>
                       <div className="flex items-center gap-3">
                         <Select
@@ -238,7 +246,7 @@ export const TradingStrategyForm = withForm({
                                 variant="outline"
                               >
                                 <Plus />
-                                New Prompt
+                                {t("strategy.form.promptTemplate.new")}
                               </Button>
                             </NewPromptModal>
                           </SelectContent>
@@ -255,7 +263,7 @@ export const TradingStrategyForm = withForm({
                             className="hover:bg-gray-50"
                           >
                             <Eye />
-                            View Strategy
+                            {t("strategy.form.promptTemplate.view")}
                           </Button>
                         </ViewStrategyModal>
                       </div>
@@ -275,22 +283,22 @@ export const TradingStrategyForm = withForm({
         >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete Strategy Prompt</AlertDialogTitle>
+              <AlertDialogTitle>
+                {t("strategy.prompt.delete.title")}
+              </AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete this strategy prompt? This
-                action cannot be undone and will permanently remove the prompt
-                from the system.
+                {t("strategy.prompt.delete.description")}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel onClick={cancelDeletePrompt}>
-                Cancel
+                {t("strategy.action.cancel")}
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmDeletePrompt}
                 className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
               >
-                Confirm Delete
+                {t("strategy.action.confirmDelete")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

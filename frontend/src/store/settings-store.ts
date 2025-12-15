@@ -12,17 +12,42 @@ import {
   RED_COLOR,
   RED_GRADIENT,
 } from "@/constants/stock";
+import i18n from "@/lib/i18n";
 import type { StockChangeType } from "@/types/stock";
 
 export type StockColorMode = "GREEN_UP_RED_DOWN" | "RED_UP_GREEN_DOWN";
 
+export type LanguageCode =
+  | "en-US"
+  | "en-GB"
+  | "zh-Hans"
+  | "zh-Hant"
+  | "ja-JP"
+  | "de-DE"
+  | "fr-FR"
+  | "ca-ES"
+  | "es-ES"
+  | "it-IT"
+  | "pl-PL"
+  | "tr-TR"
+  | "ru-RU"
+  | "pt-PT"
+  | "id-ID"
+  | "ms-MY"
+  | "th-TH"
+  | "vi-VN"
+  | "ko-KR";
+
 interface SettingsStoreState {
   stockColorMode: StockColorMode;
+  language: LanguageCode;
   setStockColorMode: (mode: StockColorMode) => void;
+  setLanguage: (language: LanguageCode) => void;
 }
 
 const INITIAL_STATE = {
   stockColorMode: "GREEN_UP_RED_DOWN" as StockColorMode,
+  language: "en-US" as LanguageCode,
 };
 
 /**
@@ -34,6 +59,10 @@ export const useSettingsStore = create<SettingsStoreState>()(
       (set) => ({
         ...INITIAL_STATE,
         setStockColorMode: (stockColorMode) => set({ stockColorMode }),
+        setLanguage: (language) => {
+          set({ language });
+          i18n.changeLanguage(language);
+        },
       }),
       {
         name: "valuecell-settings",
@@ -46,10 +75,14 @@ export const useSettingsStore = create<SettingsStoreState>()(
 export const useStockColorMode = () =>
   useSettingsStore(useShallow((s) => s.stockColorMode));
 
+export const useLanguage = () =>
+  useSettingsStore(useShallow((s) => s.language));
+
 export const useSettingsActions = () =>
   useSettingsStore(
     useShallow((s) => ({
       setStockColorMode: s.setStockColorMode,
+      setLanguage: s.setLanguage,
     })),
   );
 
@@ -115,3 +148,9 @@ export const useStockBadgeColors = (): Record<
     neutral: NEUTRAL_BADGE,
   };
 };
+
+// Sync i18n with store on startup
+const state = useSettingsStore.getState();
+if (state.language) {
+  i18n.changeLanguage(state.language);
+}

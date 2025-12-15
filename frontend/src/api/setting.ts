@@ -228,7 +228,7 @@ export const useGetSortedModelProviders = () => {
       const bHasKey = apiKeyMap.get(b.provider) ?? false;
       if (aHasKey && !bHasKey) return -1;
       if (!aHasKey && bHasKey) return 1;
-      return 0;
+      return a.provider.localeCompare(b.provider);
     });
   })();
 
