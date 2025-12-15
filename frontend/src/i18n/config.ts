@@ -15,42 +15,44 @@ import zhHant from "@/i18n/zh-Hant.json";
 const getInitialLanguage = () => {
   try {
     // Try to get from localStorage (zustand persist)
-    const settings = localStorage.getItem("valuecell-settings");
-    if (settings) {
-      const parsed = JSON.parse(settings);
-      if (parsed.state?.language) {
-        return parsed.state.language;
+    if (typeof localStorage !== "undefined") {
+      const settings = localStorage.getItem("valuecell-settings");
+      if (settings) {
+        const parsed = JSON.parse(settings);
+        if (parsed.state?.language) {
+          return parsed.state.language;
+        }
       }
     }
-  } catch (e) {
+  } catch (_e) {
     // Ignore error
   }
 
   // Fallback to navigator
-  const navLang = navigator.language;
-  if (navLang === "zh-CN") return "zh-Hans";
-  if (navLang === "zh-TW" || navLang === "zh-HK") return "zh-Hant";
-  if (navLang.startsWith("ja")) return "ja-JP";
-  
+  if (typeof navigator !== "undefined") {
+    const navLang = navigator.language;
+    if (navLang === "zh-CN") return "zh-Hans";
+    if (navLang === "zh-TW" || navLang === "zh-HK") return "zh-Hant";
+    if (navLang.startsWith("ja")) return "ja-JP";
+  }
+
   return "en-US";
 };
 
-i18n
-  .use(initReactI18next)
-  .init({
-    lng: getInitialLanguage(),
-    fallbackLng: "en-US",
-    debug: import.meta.env.DEV,
-    interpolation: {
-      escapeValue: false, // not needed for react as it escapes by default
-    },
-    resources: {
-      "en-US": { translation: enUS },
-      "zh-Hans": { translation: zhHans },
-      "zh-Hant": { translation: zhHant },
-      "ja-JP": { translation: jaJP },
-    },
-  });
+i18n.use(initReactI18next).init({
+  lng: getInitialLanguage(),
+  fallbackLng: "en-US",
+  debug: import.meta.env.DEV,
+  interpolation: {
+    escapeValue: false, // not needed for react as it escapes by default
+  },
+  resources: {
+    "en-US": { translation: enUS },
+    "zh-Hans": { translation: zhHans },
+    "zh-Hant": { translation: zhHant },
+    "ja-JP": { translation: jaJP },
+  },
+});
 
 i18n.on("languageChanged", (lng) => {
   const dayjsLocaleMap: Record<string, string> = {

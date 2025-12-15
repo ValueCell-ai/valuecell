@@ -402,39 +402,35 @@ export function ModelDetail({ provider }: ModelDetailProps) {
               </div>
             ) : (
               <div className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-3">
-                {[...providerDetail.models]
-                  .sort((a, b) => a.model_name.localeCompare(b.model_name))
-                  .map((m) => (
-                    <div
-                      key={m.model_id}
-                      className="flex items-center justify-between"
-                    >
-                      <span className="font-normal text-gray-950 text-sm">
-                        {m.model_name}
-                      </span>
+                {providerDetail.models.map((m) => (
+                  <div
+                    key={m.model_id}
+                    className="flex items-center justify-between"
+                  >
+                    <span className="font-normal text-gray-950 text-sm">
+                      {m.model_name}
+                    </span>
 
-                      <div className="flex items-center gap-3">
-                        <Switch
-                          className="cursor-pointer"
-                          checked={
-                            m.model_id === providerDetail.default_model_id
-                          }
-                          disabled={isBusy}
-                          onCheckedChange={() =>
-                            handleSetDefaultModel(m.model_id)
-                          }
-                        />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          disabled={isBusy}
-                          onClick={() => handleDeleteModel(m.model_id)}
-                        >
-                          <Trash2 className="size-5" />
-                        </Button>
-                      </div>
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        className="cursor-pointer"
+                        checked={m.model_id === providerDetail.default_model_id}
+                        disabled={isBusy}
+                        onCheckedChange={() =>
+                          handleSetDefaultModel(m.model_id)
+                        }
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={isBusy}
+                        onClick={() => handleDeleteModel(m.model_id)}
+                      >
+                        <Trash2 className="size-5" />
+                      </Button>
                     </div>
-                  ))}
+                  </div>
+                ))}
               </div>
             )}
           </div>

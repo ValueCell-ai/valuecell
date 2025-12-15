@@ -86,32 +86,15 @@ export const AIModelForm = withForm({
 
         <form.AppField name="model_id">
           {(field) => {
-            const sortedModels =
-              modelProviderDetail?.models &&
-              modelProviderDetail?.models.length > 0
-                ? [...modelProviderDetail.models].sort((a, b) => {
-                    const nameA = a.model_name || a.model_id;
-                    const nameB = b.model_name || b.model_id;
-                    return nameA.localeCompare(nameB);
-                  })
-                : [];
+            const models = modelProviderDetail?.models || [];
 
             return (
               <field.SelectField label={t("strategy.form.aiModels.model")}>
-                {sortedModels.length > 0 ? (
-                  sortedModels.map(
-                    (model) =>
-                      model.model_id && (
-                        <SelectItem key={model.model_id} value={model.model_id}>
-                          {model.model_name}
-                        </SelectItem>
-                      ),
-                  )
-                ) : (
-                  <SelectItem value="__no_models_available__" disabled>
-                    {t("strategy.form.aiModels.noModels")}
+                {models.map((m) => (
+                  <SelectItem key={m.model_id} value={m.model_id}>
+                    {m.model_name}
                   </SelectItem>
-                )}
+                ))}
               </field.SelectField>
             );
           }}

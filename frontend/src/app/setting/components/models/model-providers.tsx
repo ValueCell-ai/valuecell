@@ -18,10 +18,6 @@ export function ModelProviders({
 }: ModelProvidersProps) {
   const { t } = useTranslation();
 
-  const sortedProviders = [...providers].sort((a, b) => {
-    return a.provider.localeCompare(b.provider);
-  });
-
   return (
     <div className="flex flex-col gap-4 overflow-hidden *:px-6">
       <h2 className="font-semibold text-gray-950 text-lg">
@@ -34,7 +30,7 @@ export function ModelProviders({
             {t("settings.models.noProviders")}
           </div>
         ) : (
-          sortedProviders.map((provider) => {
+          providers.map((provider) => {
             const isActive = provider.provider === selectedProvider;
 
             return (
