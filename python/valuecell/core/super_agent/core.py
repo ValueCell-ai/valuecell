@@ -156,10 +156,8 @@ class SuperAgent:
                 add_history_to_context=True,
                 stream=True,
             ):
-                content_type = getattr(response, "content_type", None)
-                if content_type is None:
-                    continue
-                if content_type == "str":
+
+                if response.content_type == "str":
                     yield response.content
                     continue
 
@@ -178,7 +176,6 @@ class SuperAgent:
                 yield final_outcome
 
         except Exception as e:
-            logger.error(f"SuperAgent: error: {e}")
             yield SuperAgentOutcome(
                 decision=SuperAgentDecision.ANSWER,
                 reason=(

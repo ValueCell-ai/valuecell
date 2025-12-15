@@ -1,67 +1,15 @@
-# ============================================
-# Ollama Provider Configuration
-# ============================================
-# Ollama is a local LLM server that runs models on your machine.
-# Make sure Ollama is installed and running before using this provider.
-#
-# Installation: https://ollama.ai
-# Default endpoint: http://localhost:11434
-
-name: "Ollama"
-provider_type: "Ollama"
+name: Ollama
+provider_type: Ollama
 enabled: true
-
-# Default model if none specified in agent configuration
-# Format: model_name:tag (e.g., "llama3.2", "gemma3:4b", "qwen3:8b")
-default_model: "llama3.2"
-
-# Model Parameters Defaults
-# These values are used as defaults when creating Ollama model instances
-# defaults:
-  # host: "http://localhost:11434"
-#   temperature: 0.7
-#   max_tokens: 4096
-  
-  # Request timeout in seconds (null = no timeout)
-  # timeout: null
-  
-  # Response format (e.g., "json" for structured output, null = default)
-  # format: null
-  
-  # Additional model options as dictionary (temperature, top_p, etc.)
-  # Example: {temperature: 0.8, top_p: 0.9}
-  # options: null
-  
-  # How long to keep the model loaded in memory
-  # Can be a duration string (e.g., "5m", "1h") or seconds (e.g., 3600)
-  # null = use Ollama default
-  # keep_alive: null
-  
-  # Custom prompt template to use (null = use model default)
-  # template: null
-  
-  # System message to use for the conversation
-  # system: null
-  
-  # Whether to return raw response without formatting (null = false)
-  # raw: null
-  
-  # Whether to stream responses (true recommended for better UX)
-  # stream: true
-  
-  # Number of retry attempts on failure
-  # retries: 0
-  
-  # Delay between retries in seconds
-  # delay_between_retries: 1
-  
-  # If true, delay doubles after each retry (exponential backoff)
-  # exponential_backoff: false
-
-# Available Models
-# List of Ollama models available for use
-# To see all available models: ollama list
+default_model: qwen3:4b
 models:
-  - id: "llama3.2"
-    name: Llama3.2
-    description: Llama3.2 model
+- id: qwen3:4b
+  name: qwen3:4b
+- id: qwen3:1.7b
+  name: qwen3:1.7b
+- id: qwen3:4b
+  name: qwen3:4b
+- id: llama3.2
+  name: Llama3.2
+  description: Llama3.2 model
+
