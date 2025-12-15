@@ -12,30 +12,12 @@ import {
   RED_COLOR,
   RED_GRADIENT,
 } from "@/constants/stock";
-import i18n from "@/i18n/config";
+import i18n from "@/i18n";
 import type { StockChangeType } from "@/types/stock";
 
 export type StockColorMode = "GREEN_UP_RED_DOWN" | "RED_UP_GREEN_DOWN";
-
-export type LanguageCode =
-  | "en"
-  | "zh_CN"
-  | "zh_TW"
-  | "ja"
-  | "kr"
-  | "de_DE"
-  | "fr"
-  | "it"
-  | "es"
-  | "tr"
-  | "pl"
-  | "ru"
-  | "br"
-  | "id"
-  | "ms_MY"
-  | "th_TH"
-  | "vi_VN"
-  | "ca_ES";
+export type LanguageCode = "en" | "zh_CN" | "zh_TW" | "ja";
+export const DEFAULT_LANGUAGE = "en";
 
 interface SettingsStoreState {
   stockColorMode: StockColorMode;
@@ -44,9 +26,18 @@ interface SettingsStoreState {
   setLanguage: (language: LanguageCode) => void;
 }
 
+const getLanguage = () => {
+  const map: Record<string, string> = {
+    "zh-Hans": "zh_CN",
+    "zh-Hant": "zh_TW",
+    "ja-JP": "ja",
+  };
+  return map[navigator.language] ?? DEFAULT_LANGUAGE;
+};
+
 const INITIAL_STATE = {
   stockColorMode: "GREEN_UP_RED_DOWN" as StockColorMode,
-  language: "en" as LanguageCode,
+  language: getLanguage() as LanguageCode,
 };
 
 /**
@@ -147,9 +138,3 @@ export const useStockBadgeColors = (): Record<
     neutral: NEUTRAL_BADGE,
   };
 };
-
-// Sync i18n with store on startup
-const state = useSettingsStore.getState();
-if (state.language) {
-  i18n.changeLanguage(state.language);
-}

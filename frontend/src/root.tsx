@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
-import "@/i18n/config";
+import "@/i18n";
 import AppSidebar from "@/components/valuecell/app/app-sidebar";
 import { Toaster } from "./components/ui/sonner";
 
