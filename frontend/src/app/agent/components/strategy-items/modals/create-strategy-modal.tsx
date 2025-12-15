@@ -43,7 +43,7 @@ export interface CreateStrategyModelRef {
 interface CreateStrategyModalProps {
   children?: React.ReactNode;
   ref?: RefObject<CreateStrategyModelRef | null>;
-  onStrategyCreated?: (strategyId: number) => void;
+  onStrategyCreated?: (strategyId: string) => void;
 }
 
 const STEPS = [
@@ -154,7 +154,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
 
       tracker.send("use", { agent_name: "StrategyAgent" });
       if (data && data.strategy_id) {
-        onStrategyCreated?.(parseInt(data.strategy_id));
+        onStrategyCreated?.(data.strategy_id);
       }
       resetAll();
     },

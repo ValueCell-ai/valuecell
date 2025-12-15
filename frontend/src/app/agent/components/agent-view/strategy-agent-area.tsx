@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
-import { type FC, useEffect, useState } from "react";
+import { type FC, useEffect } from "react";
+import { useNavigate, useParams } from "react-router";
 import {
   useDeleteStrategy,
   useGetStrategyDetails,
@@ -34,15 +35,20 @@ const EmptyIllustration = () => (
 );
 
 const StrategyAgentArea: FC<AgentViewProps> = () => {
-  const { data: strategies = [], isLoading: isLoadingStrategies } =
-    useGetStrategyList();
-  const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(
-    null,
-  );
+  const { data: strategies = [], isLoading: isLoadingStrategies } = useGetStrategyList();
+  
+  const navigate = useNavigate();
+  const { strategyId } = useParams();
 
-  const [previousStrategyIds, setPreviousStrategyIds] = useState<Set<number>>(
-    new Set(),
-  );
+  useEffect(() => {
+    if (strategies.length > 0 && !strategyId) {
+      navigate(`/agent/StrategyAgent/Strategies/${strategies[0].strategy_id}`);
+    }
+  }, [strategies, strategyId, navigate]);
+
+  const selectedStrategy = strategyId ? 
+    strategies.find(s => s.strategy_id.toString() === strategyId) || null : null;
+
   const { data: composes = [] } = useGetStrategyDetails(
     selectedStrategy?.strategy_id,
   );
@@ -60,38 +66,6 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
   const { mutateAsync: stopStrategy } = useStopStrategy();
   const { mutateAsync: deleteStrategy } = useDeleteStrategy();
 
-  useEffect(() => {
-    if (strategies.length === 0) {
-      setSelectedStrategy(null);
-      setPreviousStrategyIds(new Set());
-      return;
-    }
-
-    const currentStrategyIds = new Set(strategies.map((s) => s.strategy_id));
-
-    const newlyAddedStrategy = strategies.find(
-      (s) => !previousStrategyIds.has(s.strategy_id),
-    );
-
-    if (newlyAddedStrategy) {
-      setSelectedStrategy(newlyAddedStrategy);
-      setPreviousStrategyIds(currentStrategyIds);
-      return;
-    }
-
-    const hasSelectedStrategy =
-      selectedStrategy &&
-      strategies.some(
-        (strategy) => strategy.strategy_id === selectedStrategy.strategy_id,
-      );
-
-    if (!selectedStrategy || !hasSelectedStrategy) {
-      setSelectedStrategy(strategies[0]);
-    }
-
-    setPreviousStrategyIds(currentStrategyIds);
-  }, [strategies, selectedStrategy]);
-
   if (isLoadingStrategies) return null;
 
   return (
@@ -104,15 +78,17 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
           <TradeStrategyGroup
             strategies={strategies}
             selectedStrategy={selectedStrategy}
-            onStrategySelect={setSelectedStrategy}
             onStrategyStop={async (strategyId) =>
               await stopStrategy(strategyId)
             }
             onStrategyDelete={async (strategyId) => {
               await deleteStrategy(strategyId);
+              if (selectedStrategy?.strategy_id === strategyId) {
+                navigate('/agent/StrategyAgent/Strategies');
+              }
             }}
-            onStrategyCreated={() => {
-              /* No need for explicit ID, we'll detect the new strategy in the list */
+            onStrategyCreated={(strategyId) => {
+              navigate(`/agent/StrategyAgent/Strategies/${strategyId}`);
             }}
           />
         ) : (
