@@ -4,7 +4,6 @@ import "dayjs/locale/ja";
 import "dayjs/locale/zh-cn";
 import "dayjs/locale/zh-tw";
 import i18n from "i18next";
-import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
 
 import enUS from "@/i18n/en-US.json";
@@ -12,10 +11,34 @@ import jaJP from "@/i18n/ja-JP.json";
 import zhHans from "@/i18n/zh-Hans.json";
 import zhHant from "@/i18n/zh-Hant.json";
 
+// Simple language detection
+const getInitialLanguage = () => {
+  try {
+    // Try to get from localStorage (zustand persist)
+    const settings = localStorage.getItem("valuecell-settings");
+    if (settings) {
+      const parsed = JSON.parse(settings);
+      if (parsed.state?.language) {
+        return parsed.state.language;
+      }
+    }
+  } catch (e) {
+    // Ignore error
+  }
+
+  // Fallback to navigator
+  const navLang = navigator.language;
+  if (navLang === "zh-CN") return "zh-Hans";
+  if (navLang === "zh-TW" || navLang === "zh-HK") return "zh-Hant";
+  if (navLang.startsWith("ja")) return "ja-JP";
+  
+  return "en-US";
+};
+
 i18n
-  .use(LanguageDetector)
   .use(initReactI18next)
   .init({
+    lng: getInitialLanguage(),
     fallbackLng: "en-US",
     debug: import.meta.env.DEV,
     interpolation: {
@@ -26,18 +49,6 @@ i18n
       "zh-Hans": { translation: zhHans },
       "zh-Hant": { translation: zhHant },
       "ja-JP": { translation: jaJP },
-    },
-    detection: {
-      order: ["localStorage", "navigator"],
-      lookupLocalStorage: "valuecell-settings", // We might need to parse this if it's a JSON string from zustand persist
-      // Actually, zustand persist stores it as a JSON string with `state` key.
-      // i18next-browser-languagedetector by default looks for a simple string.
-      // So we might need a custom detector or just rely on our store syncing.
-      // Let's rely on manual sync for now: Initialize with store value, and change when store changes.
-      // Or just disable detection and control it via store.
-      // But user might want auto-detection on first load if no store value.
-      // Let's stick to standard detection for now, but priority is manual control.
-      caches: [], // Don't cache in localStorage by i18next, we use our own store.
     },
   });
 
