@@ -159,7 +159,7 @@ class SuperAgent:
                 content_type = getattr(response, "content_type", None)
                 if content_type is None:
                     continue
-                if response.content_type == "str":
+                if content_type == "str":
                     yield response.content
                     continue
 
