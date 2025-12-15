@@ -15,7 +15,13 @@ from ..history import (
     InMemoryHistoryRecorder,
     RollingDigestBuilder,
 )
-from ..models import Constraints, DecisionCycleResult, TradingMode, UserRequest
+from ..models import (
+    Constraints,
+    DecisionCycleResult,
+    StopPrice,
+    TradingMode,
+    UserRequest,
+)
 from ..portfolio.in_memory import InMemoryPortfolioService
 from ..utils import fetch_free_cash_from_gateway, fetch_positions_from_gateway
 from .coordinator import DefaultDecisionCoordinator
@@ -122,6 +128,7 @@ async def create_strategy_runtime(
     # so the in-memory portfolio starts with the previously recorded equity.
     free_cash_override = None
     total_cash_override = None
+    stop_prices = {}
     if strategy_id_override:
         try:
             repo = get_strategy_repository()
@@ -140,6 +147,19 @@ async def create_strategy_runtime(
                     "Initialized runtime initial capital from persisted snapshot for strategy_id=%s",
                     strategy_id_override,
                 )
+            stop_prices = {
+                stop_price.symbol: StopPrice(
+                    symbol=stop_price.symbol,
+                    stop_gain_price=stop_price.stop_gain_price,
+                    stop_loss_price=stop_price.stop_loss_price,
+                )
+                for stop_price in repo.get_stop_prices(strategy_id_override)
+            }
+            logger.info(
+                "Initialized runtime stop prices {} from persisted snapshot for strategy_id {}",
+                stop_prices,
+                strategy_id_override,
+            )
         except Exception:
             logger.exception(
                 "Failed to initialize initial capital from persisted snapshot for strategy_id=%s",
@@ -160,6 +180,7 @@ async def create_strategy_runtime(
         market_type=request.exchange_config.market_type,
         constraints=constraints,
         strategy_id=strategy_id,
+        stop_prices=stop_prices,
     )
 
     # Use custom composer if provided, otherwise default to LlmComposer
