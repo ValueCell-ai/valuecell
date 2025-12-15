@@ -10,7 +10,14 @@
     },
     "language": {
       "title": "语言和区域",
-      "description": "选择您喜欢的应用程序语言和区域格式。"
+      "description": "选择您喜欢的应用程序语言和区域格式。",
+      "options": {
+        "en-US": "English (United States)",
+        "en-GB": "English (United Kingdom)",
+        "zh-Hans": "简体中文",
+        "zh-Hant": "繁體中文",
+        "ja-JP": "日本語"
+      }
     },
     "quotesColor": {
       "title": "行情颜色",
@@ -48,7 +55,13 @@
       "enterModelName": "输入模型名称",
       "cancel": "取消",
       "confirm": "确认",
-      "noModels": "该提供商未配置任何模型。"
+      "noModels": "该提供商未配置任何模型。",
+      "hidePassword": "隐藏密码",
+      "showPassword": "显示密码",
+      "waitingForCheck": "等待检测",
+      "checkAvailability": "检查可用性",
+      "available": "可用",
+      "unavailable": "不可用"
     },
     "memory": {
       "title": "保留记忆",

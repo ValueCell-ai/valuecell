@@ -10,7 +10,14 @@
     },
     "language": {
       "title": "Language and Region",
-      "description": "Select your preferred language and regional format for the app."
+      "description": "Select your preferred language and regional format for the app.",
+      "options": {
+        "en-US": "English (United States)",
+        "en-GB": "English (United Kingdom)",
+        "zh-Hans": "简体中文",
+        "zh-Hant": "繁體中文",
+        "ja-JP": "日本語"
+      }
     },
     "quotesColor": {
       "title": "Quotes Colour",
@@ -48,7 +55,13 @@
       "enterModelName": "Enter model name",
       "cancel": "Cancel",
       "confirm": "Confirm",
-      "noModels": "No models configured for this provider."
+      "noModels": "No models configured for this provider.",
+      "hidePassword": "Hide password",
+      "showPassword": "Show password",
+      "waitingForCheck": "Waiting for Check",
+      "checkAvailability": "Check Availability",
+      "available": "Available",
+      "unavailable": "Unavailable"
     },
     "memory": {
       "title": "Preserved memories",

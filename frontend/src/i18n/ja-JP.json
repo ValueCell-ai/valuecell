@@ -55,7 +55,13 @@
       "enterModelName": "モデル名を入力",
       "cancel": "キャンセル",
       "confirm": "確認",
-      "noModels": "このプロバイダーにはモデルが設定されていません。"
+      "noModels": "このプロバイダーにはモデルが設定されていません。",
+      "hidePassword": "パスワードを隠す",
+      "showPassword": "パスワードを表示",
+      "waitingForCheck": "確認待ち",
+      "checkAvailability": "可用性を確認",
+      "available": "利用可能",
+      "unavailable": "利用不可"
     },
     "memory": {
       "title": "保存されたメモリ",
