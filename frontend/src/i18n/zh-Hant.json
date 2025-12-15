@@ -1,7 +1,7 @@
 {
   "general": {
     "title": "通用",
-    "description": "管理您的首選項和應用程式設定",
+    "description": "管理您的首選項和應用程式設定。",
     "account": {
       "title": "帳戶",
       "signInDesc": "登入以開始使用 Valuecell AI 功能。",
@@ -65,7 +65,7 @@
     },
     "memory": {
       "title": "保留記憶",
-      "description": "我將記住並自動管理聊天中的有用資訊，以增強回覆的個人化和相關性",
+      "description": "我將記住並自動管理聊天中的有用資訊，以增強回覆的個人化和相關性。",
       "loading": "載入中...",
       "noMemories": "暫無記憶",
       "delete": "刪除"
@@ -369,11 +369,11 @@
       },
       "strategy": {
         "title": "自動交易",
-        "description": "多策略智能交易，自動執行您的策略"
+        "description": "多策略智能交易，自動執行您的策略。"
       },
       "news": {
         "title": "新聞推送",
-        "description": "按自定義時間表推送個性化新聞更新"
+        "description": "按自定義時間表推送個性化新聞更新。"
       }
     }
   }

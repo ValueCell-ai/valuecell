@@ -1,7 +1,7 @@
 {
   "general": {
     "title": "General",
-    "description": "Manage your preferences and application settings",
+    "description": "Manage your preferences and application settings.",
     "account": {
       "title": "Account",
       "signInDesc": "Sign in to get started with Valuecell AI features.",
@@ -65,7 +65,7 @@
     },
     "memory": {
       "title": "Preserved memories",
-      "description": "I will remember and automatically manage useful information in chats to enhance the personalisation and relevance of replies",
+      "description": "I will remember and automatically manage useful information in chats to enhance the personalisation and relevance of replies.",
       "loading": "Loading...",
       "noMemories": "No memories yet",
       "delete": "Delete"
@@ -369,11 +369,11 @@
       },
       "strategy": {
         "title": "Automated Trading",
-        "description": "Multi-strategy smart trading, automatically execute your strategies"
+        "description": "Multi-strategy smart trading, automatically execute your strategies."
       },
       "news": {
         "title": "Pushing News",
-        "description": "Personalized news updates on a custom schedule"
+        "description": "Personalized news updates on a custom schedule."
       }
     }
   }

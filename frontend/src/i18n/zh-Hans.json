@@ -1,7 +1,7 @@
 {
   "general": {
     "title": "通用",
-    "description": "管理您的首选项和应用程序设置",
+    "description": "管理您的首选项和应用程序设置。",
     "account": {
       "title": "账户",
       "signInDesc": "登录以开始使用 Valuecell AI 功能。",
@@ -42,15 +42,15 @@
       "noProviders": "无可用提供商。",
       "loading": "正在加载提供商详情...",
       "defaultProvider": "默认提供商",
-      "apiKey": "API 密钥",
-      "enterApiKey": "输入 API 密钥",
-      "getApiKey": "点击此处获取 API 密钥",
-      "apiHost": "API 主机",
+      "apiKey": "API密钥",
+      "enterApiKey": "输入API密钥",
+      "getApiKey": "点击此处获取API密钥",
+      "apiHost": "API主机",
       "models": "模型",
       "add": "添加",
       "addModel": "添加模型",
-      "modelId": "模型 ID",
-      "enterModelId": "输入模型 ID",
+      "modelId": "模型ID",
+      "enterModelId": "输入模型ID",
       "modelName": "模型名称",
       "enterModelName": "输入模型名称",
       "cancel": "取消",
@@ -65,7 +65,7 @@
     },
     "memory": {
       "title": "保留记忆",
-      "description": "我将记住并自动管理聊天中的有用信息，以增强回复的个性化和相关性",
+      "description": "我将记住并自动管理聊天中的有用信息，以增强回复的个性化和相关性。",
       "loading": "加载中...",
       "noMemories": "暂无记忆",
       "delete": "删除"
@@ -75,11 +75,11 @@
     "back": "返回"
   },
   "market": {
-    "title": "Agent 市场"
+    "title": "Agent市场"
   },
   "agent": {
     "welcome": "欢迎使用 {{name}}!",
-    "unknown": "未知 Agent",
+    "unknown": "未知Agent",
     "status": {
       "running": "运行中"
     },
@@ -109,7 +109,7 @@
   },
   "strategy": {
     "types": {
-      "PromptBasedStrategy": "Prompt 策略",
+      "PromptBasedStrategy": "提示词策略",
       "GridStrategy": "网格策略"
     },
     "providers": {
@@ -118,7 +118,7 @@
       "deepseek": "深度求索",
       "google": "谷歌云",
       "openai": "OpenAI",
-      "openai-compatible": "OpenAI 兼容",
+      "openai-compatible": "OpenAI兼容API",
       "openrouter": "OpenRouter",
       "siliconflow": "硅基流动"
     },
@@ -171,7 +171,7 @@
     "create": {
       "title": "添加交易策略",
       "steps": {
-        "aiModels": "AI 模型",
+        "aiModels": "AI模型",
         "exchanges": "交易所",
         "tradingStrategy": "交易策略"
       },
@@ -180,7 +180,7 @@
     "form": {
       "strategyType": {
         "label": "策略类型",
-        "promptBased": "Prompt 策略",
+        "promptBased": "提示词策略",
         "grid": "网格策略"
       },
       "strategyName": {
@@ -206,8 +206,8 @@
         "emptyText": "未找到交易对。"
       },
       "promptTemplate": {
-        "label": "系统 Prompt 模板",
-        "new": "新建 Prompt",
+        "label": "系统提示词模板",
+        "new": "新建提示词",
         "view": "查看策略"
       },
       "aiModels": {
@@ -232,43 +232,43 @@
         "testConnection": "测试连接",
         "test": {
           "success": "连接成功！",
-          "failed": "连接失败。请检查您的 API Key, Secret Key 或 Passphrase。"
+          "failed": "连接失败。请检查您的API Key, Secret Key或Passphrase。"
         },
         "placeholder": {
           "binance": {
-            "apiKey": "输入 API Key (64 字符)",
-            "secretKey": "输入 Secret Key (64 字符)"
+            "apiKey": "输入API Key (64字符)",
+            "secretKey": "输入Secret Key (64字符)"
           },
           "okx": {
-            "apiKey": "输入 API Key (格式: xxxxxxxx-xxxx-...)",
-            "secretKey": "输入 Secret Key (32 大写字母和数字)",
-            "passphrase": "输入 Passphrase (API 创建时设置)"
+            "apiKey": "输入API Key (格式: xxxxxxxx-xxxx-...)",
+            "secretKey": "输入Secret Key (32大写字母和数字)",
+            "passphrase": "输入Passphrase (API创建时设置)"
           },
           "gate": {
-            "apiKey": "输入 API Key (以 'key_' 开头)",
-            "secretKey": "输入 Secret Key (64 字符)"
+            "apiKey": "输入API Key (以'key_'开头)",
+            "secretKey": "输入Secret Key (64字符)"
           },
           "hyperliquid": {
-            "walletAddress": "输入钱包地址 (以 '0x' 开头)",
-            "privateKey": "输入私钥 (64 字符)"
+            "walletAddress": "输入钱包地址 (以'0x'开头)",
+            "privateKey": "输入私钥 (64字符)"
           },
           "blockchain": {
-            "apiKey": "输入 API Key (格式: xxxxxxxx-xxxx-...)",
-            "secretKey": "输入 Secret Key"
+            "apiKey": "输入API Key (格式: xxxxxxxx-xxxx-...)",
+            "secretKey": "输入Secret Key"
           },
           "coinbase": {
-            "apiKey": "输入 API Key (或 Key Name)",
-            "secretKey": "输入 API Secret (或 Private Key)",
-            "passphrase": "输入 Passphrase (Legacy Pro API 需要)"
+            "apiKey": "输入API Key (或Key Name)",
+            "secretKey": "输入API Secret (或Private Key)",
+            "passphrase": "输入Passphrase (Legacy Pro API需要)"
           },
           "mexc": {
-            "apiKey": "输入 Access Key (以 'mx0' 开头)",
-            "secretKey": "输入 Secret Key (通常 32 字符)"
+            "apiKey": "输入Access Key (以 'mx0' 开头)",
+            "secretKey": "输入Secret Key (通常32字符)"
           },
           "default": {
-            "apiKey": "在此粘贴 API Key",
-            "secretKey": "在此粘贴 Secret Key",
-            "passphrase": "输入 Passphrase",
+            "apiKey": "在此粘贴API Key",
+            "secretKey": "在此粘贴Secret Key",
+            "passphrase": "输入Passphrase",
             "walletAddress": "输入钱包地址",
             "privateKey": "输入私钥"
           }
@@ -277,8 +277,8 @@
     },
     "prompt": {
       "delete": {
-        "title": "删除策略 Prompt",
-        "description": "您确定要删除此策略 Prompt 吗？此操作无法撤消，并将从系统中永久删除该 Prompt。"
+        "title": "删除策略提示词",
+        "description": "您确定要删除此策略提示词吗？此操作无法撤消，并将从系统中永久删除该提示词。"
       }
     },
     "detail": {
@@ -287,18 +287,18 @@
       "returnRate": "回报率",
       "strategyType": "策略类型",
       "modelProvider": "模型提供商",
-      "modelId": "模型 ID",
+      "modelId": "模型ID",
       "initialCapital": "初始资金",
       "maxLeverage": "最大杠杆",
       "tradingSymbols": "交易对",
-      "prompt": "Prompt"
+      "prompt": "提示词"
     },
     "history": {
       "title": "交易历史",
       "live": "实盘交易",
       "virtual": "模拟交易",
       "cycle": "周期 #{{index}}",
-      "aiReasoning": "AI 推理逻辑",
+      "aiReasoning": "AI推理逻辑",
       "operation": "执行操作",
       "empty": {
         "title": "暂无交易历史",
@@ -369,11 +369,11 @@
       },
       "strategy": {
         "title": "自动交易",
-        "description": "多策略智能交易，自动执行您的策略"
+        "description": "多策略智能交易，自动执行您的策略。"
       },
       "news": {
         "title": "新闻推送",
-        "description": "按自定义时间表推送个性化新闻更新"
+        "description": "按自定义时间表推送个性化新闻更新。"
       }
     }
   }
