@@ -35,8 +35,9 @@ const EmptyIllustration = () => (
 );
 
 const StrategyAgentArea: FC<AgentViewProps> = () => {
-  const { data: strategies = [], isLoading: isLoadingStrategies } = useGetStrategyList();
-  
+  const { data: strategies = [], isLoading: isLoadingStrategies } =
+    useGetStrategyList();
+
   const navigate = useNavigate();
   const { strategyId } = useParams();
 
@@ -46,8 +47,9 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
     }
   }, [strategies, strategyId, navigate]);
 
-  const selectedStrategy = strategyId ? 
-    strategies.find(s => s.strategy_id.toString() === strategyId) || null : null;
+  const selectedStrategy = strategyId
+    ? strategies.find((s) => s.strategy_id.toString() === strategyId) || null
+    : null;
 
   const { data: composes = [] } = useGetStrategyDetails(
     selectedStrategy?.strategy_id,
@@ -84,7 +86,7 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
             onStrategyDelete={async (strategyId) => {
               await deleteStrategy(strategyId);
               if (selectedStrategy?.strategy_id === strategyId) {
-                navigate('/agent/StrategyAgent/Strategies');
+                navigate("/agent/StrategyAgent/Strategies");
               }
             }}
             onStrategyCreated={(strategyId) => {

@@ -77,7 +77,7 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
   return (
     <div
       onClick={() => {
-        navigate(`/agent/StrategyAgent/Strategies/${strategy.strategy_id}`);        
+        navigate(`/agent/StrategyAgent/Strategies/${strategy.strategy_id}`);
       }}
       data-active={isSelected}
       className="flex cursor-pointer flex-col gap-2 rounded-lg border border-gradient border-solid px-3 py-4"
