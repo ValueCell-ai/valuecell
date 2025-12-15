@@ -118,7 +118,7 @@
       "deepseek": "DeepSeek",
       "google": "Google Cloud",
       "openai": "OpenAI",
-      "openai-compatible": "OpenAI 互換 API",
+      "openai-compatible": "OpenAI互換API",
       "openrouter": "OpenRouter",
       "siliconflow": "SiliconFlow"
     },

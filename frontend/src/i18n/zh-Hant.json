@@ -114,13 +114,13 @@
     },
     "providers": {
       "azure": "Azure OpenAI",
-      "dashscope": "阿里雲",
-      "deepseek": "深度求索",
+      "dashscope": "Alibaba Cloud",
+      "deepseek": "DeepSeek",
       "google": "Google Cloud",
       "openai": "OpenAI",
-      "openai-compatible": "OpenAI 兼容",
+      "openai-compatible": "OpenAI相容API",
       "openrouter": "OpenRouter",
-      "siliconflow": "硅基流動"
+      "siliconflow": "SiliconFlow"
     },
     "title": "交易策略",
     "add": "新增交易策略",
