@@ -27,6 +27,9 @@ interface SettingsStoreState {
 }
 
 const getLanguage = () => {
+  if (typeof navigator === "undefined") {
+    return DEFAULT_LANGUAGE;
+  }
   const map: Record<string, string> = {
     "zh-Hans": "zh_CN",
     "zh-Hant": "zh_TW",
