@@ -69,7 +69,7 @@ export const useGetStockPrice = (params: { ticker: string }) =>
     queryKey: API_QUERY_KEYS.STOCK.stockPrice(Object.values(params)),
     queryFn: () =>
       apiClient.get<ApiResponse<StockPrice>>(
-        `${useSystemStore.getState().access_token ? VALUECELL_BACKEND_URL : ""}/watchlist/asset/${params.ticker}/price`,
+        `${useSystemStore.getState().access_token ? "" : ""}/watchlist/asset/${params.ticker}/price`,
         {
           requiresAuth: !!useSystemStore.getState().access_token,
         },
@@ -102,7 +102,7 @@ export const useGetStockDetail = (params: { ticker: string }) =>
     queryKey: API_QUERY_KEYS.STOCK.stockDetail(Object.values(params)),
     queryFn: () =>
       apiClient.get<ApiResponse<StockDetail>>(
-        `${useSystemStore.getState().access_token ? VALUECELL_BACKEND_URL : ""}/watchlist/asset/${params.ticker}`,
+        `${useSystemStore.getState().access_token ? "" : ""}/watchlist/asset/${params.ticker}`,
         {
           requiresAuth: !!useSystemStore.getState().access_token,
         },

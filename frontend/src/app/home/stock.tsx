@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import LinkButton from "@/components/valuecell/button/link-button";
 import { useIsLoggedIn } from "@/store/system-store";
 import type { Route } from "./+types/stock";
-import { StockHistoryChart } from "./components/stock-history-chart";
 
 function Stock() {
   const { stockId } = useParams<Route.LoaderArgs["params"]>();
@@ -77,18 +76,18 @@ function Stock() {
         </div>
       </div>
       <div className="w-full">
-        {isLoggedIn ? (
+        {/* {isLoggedIn ? (
           <StockHistoryChart ticker={ticker} />
-        ) : (
-          <TradingViewAdvancedChart
-            ticker={ticker}
-            interval="D"
-            minHeight={420}
-            theme="light"
-            locale="en"
-            timezone="UTC"
-          />
-        )}
+        ) : ( */}
+        <TradingViewAdvancedChart
+          ticker={ticker}
+          interval="D"
+          minHeight={420}
+          theme="light"
+          locale="en"
+          timezone="UTC"
+        />
+        {/* )} */}
       </div>
 
       <div className="flex flex-col gap-2">
