@@ -1,7 +1,7 @@
 import { Copy, Eye, MoreVertical, Plus, TrendingUp } from "lucide-react";
 import { type FC, memo, useRef, useState } from "react";
-import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router";
 import { useStrategyPerformance } from "@/api/strategy";
 import { DeleteStrategy, StrategyStatus } from "@/assets/svg";
 import {
