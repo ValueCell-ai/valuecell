@@ -49,12 +49,12 @@ class LlmComposer(BaseComposer):
         *,
         default_slippage_bps: int = 25,
         quantity_precision: float = 1e-9,
-        max_llm_wait_time: float = 600.0,
+        max_llm_wait_time_sec: float = 600.0,
     ) -> None:
         self._request = request
         self._default_slippage_bps = default_slippage_bps
         self._quantity_precision = quantity_precision
-        self._max_llm_wait_time = max_llm_wait_time
+        self._max_llm_wait_time_sec = max_llm_wait_time_sec
         cfg = self._request.llm_model_config
         self._model = model_utils.create_model_with_provider(
             provider=cfg.provider,
@@ -204,7 +204,7 @@ class LlmComposer(BaseComposer):
         `LlmPlanProposal`.
         """
         response = await asyncio.wait_for(
-            self.agent.arun(prompt), timeout=self._max_llm_wait_time
+            self.agent.arun(prompt), timeout=self._max_llm_wait_time_sec
         )
         # Agent may return a raw object or a wrapper with `.content`.
         content = getattr(response, "content", None) or response
