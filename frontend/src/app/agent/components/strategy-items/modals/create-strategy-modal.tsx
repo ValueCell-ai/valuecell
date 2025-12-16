@@ -40,14 +40,17 @@ import type { CreateStrategy, Strategy } from "@/types/strategy";
 export interface CreateStrategyModelRef {
   open: (data?: CreateStrategy) => void;
 }
+
 interface CreateStrategyModalProps {
   children?: React.ReactNode;
   ref?: RefObject<CreateStrategyModelRef | null>;
+  onStrategyCreated?: (strategyId: string) => void;
 }
 
 const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
   ref,
   children,
+  onStrategyCreated,
 }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -145,13 +148,16 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
         trading_config: value,
       };
 
-      const { code, msg } = await createStrategy(payload);
+      const { code, msg, data } = await createStrategy(payload);
       if (code !== 0) {
         setError(msg);
         return;
       }
 
       tracker.send("use", { agent_name: "StrategyAgent" });
+      if (data?.strategy_id) {
+        onStrategyCreated?.(data.strategy_id);
+      }
       resetAll();
     },
   });

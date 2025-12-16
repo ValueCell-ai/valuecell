@@ -1,6 +1,7 @@
 import { Copy, Eye, MoreVertical, Plus, TrendingUp } from "lucide-react";
 import { type FC, memo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router";
 import { useStrategyPerformance } from "@/api/strategy";
 import { DeleteStrategy, StrategyStatus } from "@/assets/svg";
 import {
@@ -50,9 +51,9 @@ interface TradeStrategyCardProps {
 interface TradeStrategyGroupProps {
   strategies: Strategy[];
   selectedStrategy?: Strategy | null;
-  onStrategySelect?: (strategy: Strategy) => void;
   onStrategyStop?: (strategyId: number) => void;
   onStrategyDelete?: (strategyId: number) => void;
+  onStrategyCreated?: (strategyId: string) => void;
 }
 
 const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
@@ -65,6 +66,7 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
   const { t } = useTranslation();
   const stockColors = useStockColors();
   const changeType = getChangeType(strategy.total_pnl_pct);
+  const navigate = useNavigate();
 
   const [isDeleting, setIsDeleting] = useState(false);
   const strategyDetailModalRef = useRef<StrategyDetailModalRef>(null);
@@ -76,7 +78,9 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
 
   return (
     <div
-      onClick={onClick}
+      onClick={() => {
+        navigate(`/agent/StrategyAgent/Strategies/${strategy.strategy_id}`);
+      }}
       data-active={isSelected}
       className="flex cursor-pointer flex-col gap-2 rounded-lg border border-gradient border-solid px-3 py-4"
     >
@@ -271,11 +275,11 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
 };
 
 const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
-  strategies,
+  strategies = [],
   selectedStrategy,
-  onStrategySelect,
   onStrategyStop,
   onStrategyDelete,
+  onStrategyCreated,
 }) => {
   const { t } = useTranslation();
   const hasStrategies = strategies.length > 0;
@@ -291,7 +295,6 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
               isSelected={
                 selectedStrategy?.strategy_id === strategy.strategy_id
               }
-              onClick={() => onStrategySelect?.(strategy)}
               onStop={() => onStrategyStop?.(strategy.strategy_id)}
               onDelete={() => onStrategyDelete?.(strategy.strategy_id)}
             />
@@ -316,7 +319,7 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
       )}
 
       <div>
-        <CreateStrategyModal>
+        <CreateStrategyModal onStrategyCreated={onStrategyCreated}>
           <Button
             variant="outline"
             className="w-full gap-3 rounded-lg py-4 text-base"

@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
-import { type FC, useEffect, useState } from "react";
+import { type FC, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate, useParams } from "react-router";
 import {
   useDeleteStrategy,
   useGetStrategyDetails,
@@ -13,7 +14,6 @@ import {
 import CreateStrategyModal from "@/app/agent/components/strategy-items/modals/create-strategy-modal";
 import { Button } from "@/components/ui/button";
 import type { AgentViewProps } from "@/types/agent";
-import type { Strategy } from "@/types/strategy";
 import {
   PortfolioPositionsGroup,
   StrategyComposeList,
@@ -38,9 +38,19 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
   const { t } = useTranslation();
   const { data: strategies = [], isLoading: isLoadingStrategies } =
     useGetStrategyList();
-  const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(
-    null,
-  );
+
+  const navigate = useNavigate();
+  const { strategyId } = useParams();
+
+  useEffect(() => {
+    if (strategies.length > 0 && !strategyId) {
+      navigate(`/agent/StrategyAgent/Strategies/${strategies[0].strategy_id}`);
+    }
+  }, [strategies, strategyId, navigate]);
+
+  const selectedStrategy = strategyId
+    ? strategies.find((s) => s.strategy_id.toString() === strategyId) || null
+    : null;
 
   const { data: composes = [] } = useGetStrategyDetails(
     selectedStrategy?.strategy_id,
@@ -59,23 +69,6 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
   const { mutateAsync: stopStrategy } = useStopStrategy();
   const { mutateAsync: deleteStrategy } = useDeleteStrategy();
 
-  useEffect(() => {
-    if (strategies.length === 0) {
-      setSelectedStrategy(null);
-      return;
-    }
-
-    const hasSelectedStrategy =
-      selectedStrategy &&
-      strategies.some(
-        (strategy) => strategy.strategy_id === selectedStrategy.strategy_id,
-      );
-
-    if (!selectedStrategy || !hasSelectedStrategy) {
-      setSelectedStrategy(strategies[0]);
-    }
-  }, [strategies, selectedStrategy]);
-
   if (isLoadingStrategies) return null;
 
   return (
@@ -88,12 +81,17 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
           <TradeStrategyGroup
             strategies={strategies}
             selectedStrategy={selectedStrategy}
-            onStrategySelect={setSelectedStrategy}
             onStrategyStop={async (strategyId) =>
               await stopStrategy(strategyId)
             }
             onStrategyDelete={async (strategyId) => {
               await deleteStrategy(strategyId);
+              if (selectedStrategy?.strategy_id === strategyId) {
+                navigate("/agent/StrategyAgent/Strategies");
+              }
+            }}
+            onStrategyCreated={(strategyId) => {
+              navigate(`/agent/StrategyAgent/Strategies/${strategyId}`);
             }}
           />
         ) : (
