@@ -39,6 +39,6 @@ export { default as OpenAiPng } from "./model-providers/openai.png";
 export { default as OpenAiCompatiblePng } from "./model-providers/openai-compatible.png";
 export { default as OpenRouterPng } from "./model-providers/openrouter.png";
 export { default as SiliconFlowPng } from "./model-providers/siliconflow.png";
-export { default as OllamaSvg } from "./model-providers/ollama.png";
+export { default as OllamaPng } from "./model-providers/ollama.png";
 
 export { default as TrendPng } from "./trend.png";
