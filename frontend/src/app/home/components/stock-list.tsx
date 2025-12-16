@@ -1,4 +1,5 @@
 import { memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router";
 import { useGetStockPrice, useGetWatchlist } from "@/api/stock";
 import {
@@ -9,6 +10,7 @@ import {
 import type { Stock } from "@/types/stock";
 
 function StockList() {
+  const { t } = useTranslation();
   const { pathname } = useLocation();
   const { data: stockList } = useGetWatchlist();
 
@@ -46,7 +48,7 @@ function StockList() {
 
   return (
     <StockMenu className="h-full">
-      <StockMenuHeader>My Watchlist</StockMenuHeader>
+      <StockMenuHeader>{t("home.watchlist")}</StockMenuHeader>
       <div className="scroll-container">
         {stockData?.map((stock) => (
           <StockItem key={stock.symbol} stock={stock} />

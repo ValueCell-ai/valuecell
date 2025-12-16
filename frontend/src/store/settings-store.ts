@@ -12,17 +12,35 @@ import {
   RED_COLOR,
   RED_GRADIENT,
 } from "@/constants/stock";
+import i18n from "@/i18n";
 import type { StockChangeType } from "@/types/stock";
 
 export type StockColorMode = "GREEN_UP_RED_DOWN" | "RED_UP_GREEN_DOWN";
+export type LanguageCode = "en" | "zh_CN" | "zh_TW" | "ja";
+export const DEFAULT_LANGUAGE = "en";
 
 interface SettingsStoreState {
   stockColorMode: StockColorMode;
+  language: LanguageCode;
   setStockColorMode: (mode: StockColorMode) => void;
+  setLanguage: (language: LanguageCode) => void;
 }
+
+const getLanguage = () => {
+  if (typeof navigator === "undefined") {
+    return DEFAULT_LANGUAGE;
+  }
+  const map: Record<string, string> = {
+    "zh-Hans": "zh_CN",
+    "zh-Hant": "zh_TW",
+    "ja-JP": "ja",
+  };
+  return map[navigator.language] ?? DEFAULT_LANGUAGE;
+};
 
 const INITIAL_STATE = {
   stockColorMode: "GREEN_UP_RED_DOWN" as StockColorMode,
+  language: getLanguage() as LanguageCode,
 };
 
 /**
@@ -34,6 +52,10 @@ export const useSettingsStore = create<SettingsStoreState>()(
       (set) => ({
         ...INITIAL_STATE,
         setStockColorMode: (stockColorMode) => set({ stockColorMode }),
+        setLanguage: (language) => {
+          set({ language });
+          i18n.changeLanguage(language);
+        },
       }),
       {
         name: "valuecell-settings",
@@ -46,10 +68,14 @@ export const useSettingsStore = create<SettingsStoreState>()(
 export const useStockColorMode = () =>
   useSettingsStore(useShallow((s) => s.stockColorMode));
 
+export const useLanguage = () =>
+  useSettingsStore(useShallow((s) => s.language));
+
 export const useSettingsActions = () =>
   useSettingsStore(
     useShallow((s) => ({
       setStockColorMode: s.setStockColorMode,
+      setLanguage: s.setLanguage,
     })),
   );
 

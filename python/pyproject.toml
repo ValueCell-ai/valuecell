@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "valuecell"
-version = "0.1.18"
+version = "0.1.19"
 description = "ValueCell is a community-driven, multi-agent platform for financial applications."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -44,17 +44,12 @@ dev = [
 
 [dependency-groups]
 dev = [
-    {include-group = "lint"},
-    {include-group = "style"},
-    {include-group = "test"}
+    { include-group = "lint" },
+    { include-group = "style" },
+    { include-group = "test" },
 ]
-lint = [
-    "ruff"
-]
-style = [
-    "ruff",
-    "isort",
-]
+lint = ["ruff"]
+style = ["ruff", "isort"]
 test = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
@@ -67,13 +62,7 @@ line-length = 88
 indent-width = 4
 target-version = "py312"
 force-exclude = true
-exclude = [
-    "venv",
-    "build",
-    "dist",
-    "node_modules",
-    "site-packages",
-]
+exclude = ["venv", "build", "dist", "node_modules", "site-packages"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -82,9 +71,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.hatch.build.targets.wheel]
-include = [
-    "valuecell",
-]
+include = ["valuecell"]
 exclude = [
     "tests/**",
     "**/tests/**",
@@ -95,21 +82,8 @@ exclude = [
 ]
 
 [tool.pytest.ini_options]
-norecursedirs = [
-    ".venv",
-    "venv",
-    "build",
-    "dist",
-    "logs",
-    "examples",
-    "docs",
-]
+norecursedirs = [".venv", "venv", "build", "dist", "logs", "examples", "docs"]
 
 [tool.isort]
 profile = "black"
-skip_glob = [
-    "tests/**",
-    "**/tests/**",
-    "docs/**",
-    "**/docs/**",
-]
+skip_glob = ["tests/**", "**/tests/**", "docs/**", "**/docs/**"]

@@ -56,11 +56,23 @@ def detect_browser_language(accept_language_header: str) -> str:
         if lang in SUPPORTED_LANGUAGE_CODES:
             return lang
 
-        # Try to match language family (e.g., 'zh' -> 'zh-Hans')
-        lang_family = lang.split("-")[0]
-        for supported_lang in SUPPORTED_LANGUAGE_CODES:
-            if supported_lang.startswith(lang_family):
-                return supported_lang
+        # Handle browser locales to internal locale mapping
+        # TradingView locale codes (internal) are: en, zh_CN, zh_TW, ja, etc.
+        # Browser locales typically look like: en-US, zh-CN, zh-TW, ja-JP
+
+        # 1. Exact map for common variations
+        if lang == "zh-CN" or lang == "zh-Hans":
+            if "zh_CN" in SUPPORTED_LANGUAGE_CODES:
+                return "zh_CN"
+        if lang == "zh-TW" or lang == "zh-HK" or lang == "zh-Hant":
+            if "zh_TW" in SUPPORTED_LANGUAGE_CODES:
+                return "zh_TW"
+        if lang.startswith("ja"):
+            if "ja" in SUPPORTED_LANGUAGE_CODES:
+                return "ja"
+        if lang.startswith("en"):
+            if "en" in SUPPORTED_LANGUAGE_CODES:
+                return "en"
 
     return DEFAULT_LANGUAGE
 

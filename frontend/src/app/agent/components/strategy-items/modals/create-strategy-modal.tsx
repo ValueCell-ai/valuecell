@@ -2,6 +2,7 @@ import { useStore } from "@tanstack/react-form";
 import { AlertCircleIcon } from "lucide-react";
 import type { FC, RefObject } from "react";
 import { memo, useImperativeHandle, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useGetModelProviderDetail } from "@/api/setting";
 import {
   useCreateStrategy,
@@ -46,20 +47,21 @@ interface CreateStrategyModalProps {
   onStrategyCreated?: (strategyId: string) => void;
 }
 
-const STEPS = [
-  { step: 1, title: "AI Models" },
-  { step: 2, title: "Exchanges" },
-  { step: 3, title: "Trading strategy" },
-];
-
 const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
   ref,
   children,
   onStrategyCreated,
 }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
+
+  const STEPS = [
+    { step: 1, title: t("strategy.create.steps.aiModels") },
+    { step: 2, title: t("strategy.create.steps.exchanges") },
+    { step: 3, title: t("strategy.create.steps.tradingStrategy") },
+  ];
 
   const { data: prompts = [] } = useGetStrategyPrompts();
   const { data: strategies = [] } = useGetStrategyList();
@@ -197,7 +199,9 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
       >
         <DialogTitle className="flex flex-col gap-4 px-1">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-lg">Add trading strategy</h2>
+            <h2 className="font-semibold text-lg">
+              {t("strategy.create.title")}
+            </h2>
             <CloseButton onClick={resetAll} />
           </div>
 
@@ -226,7 +230,7 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
           {error && (
             <Alert variant="destructive">
               <AlertCircleIcon />
-              <AlertTitle>Error Creating Strategy</AlertTitle>
+              <AlertTitle>{t("strategy.create.error")}</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
@@ -238,7 +242,9 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
               onClick={currentStep === 1 ? resetAll : handleBack}
               className="border-gray-100 py-4 font-semibold text-base"
             >
-              {currentStep === 1 ? "Cancel" : "Back"}
+              {currentStep === 1
+                ? t("strategy.action.cancel")
+                : t("strategy.action.back")}
             </Button>
             <Button
               type="button"
@@ -258,7 +264,9 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
               className="relative py-4 font-semibold text-base text-white hover:bg-gray-800"
             >
               {isCreatingStrategy && <Spinner className="absolute left-4" />}
-              {currentStep === 3 ? "Confirm" : "Next"}
+              {currentStep === 3
+                ? t("strategy.action.confirm")
+                : t("strategy.action.next")}
             </Button>
           </div>
         </DialogFooter>

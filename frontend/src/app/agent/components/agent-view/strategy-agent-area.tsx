@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
-import { type FC, useEffect } from "react";
-import { useNavigate, useParams } from "react-router";
+import { type FC, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   useDeleteStrategy,
   useGetStrategyDetails,
@@ -35,6 +35,7 @@ const EmptyIllustration = () => (
 );
 
 const StrategyAgentArea: FC<AgentViewProps> = () => {
+  const { t } = useTranslation();
   const { data: strategies = [], isLoading: isLoadingStrategies } =
     useGetStrategyList();
 
@@ -74,7 +75,7 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
     <div className="flex flex-1 overflow-hidden">
       {/* Left section: Strategy list */}
       <div className="flex w-96 flex-col gap-4 border-r py-6 *:px-6">
-        <p className="font-semibold text-base">Trading Strategies</p>
+        <p className="font-semibold text-base">{t("strategy.title")}</p>
 
         {strategies && strategies.length > 0 ? (
           <TradeStrategyGroup
@@ -96,10 +97,9 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-4">
             <EmptyIllustration />
-
             <div className="flex flex-col gap-3 text-center text-base text-gray-400">
-              <p>No trading strategies</p>
-              <p>Create your first trading strategy</p>
+              <p>{t("strategy.noStrategies")}</p>
+              <p>{t("strategy.createFirst")}</p>
             </div>
 
             <CreateStrategyModal>
@@ -108,7 +108,7 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
                 className="w-full gap-3 rounded-lg py-4 text-base"
               >
                 <Plus className="size-6" />
-                Add trading strategy
+                {t("strategy.add")}
               </Button>
             </CreateStrategyModal>
           </div>
@@ -134,7 +134,7 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
           <div className="flex size-full flex-col items-center justify-center gap-8">
             <EmptyIllustration />
             <p className="font-normal text-base text-gray-400">
-              No running strategies
+              {t("strategy.noStrategies")}
             </p>
           </div>
         )}
