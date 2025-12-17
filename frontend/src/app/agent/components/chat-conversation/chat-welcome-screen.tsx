@@ -41,7 +41,7 @@ const ChatWelcomeScreen: FC<ChatWelcomeScreenProps> = ({
 };
 
 const ChatBackground = () => (
-  <div className="-z-10 absolute inset-0 overflow-hidden opacity-30 dark:opacity-15">
+  <div className="absolute inset-0 -z-10 overflow-hidden opacity-30 dark:opacity-15">
     {[
       {
         left: "12%",
@@ -81,7 +81,7 @@ const ChatBackground = () => (
     ].map((blur) => (
       <div
         key={`blur-${blur.left}-${blur.colors}`}
-        className={`-translate-x-1/2 -translate-y-1/2 absolute ${blur.size}`}
+        className={`absolute -translate-x-1/2 -translate-y-1/2 ${blur.size}`}
         style={{ left: blur.left, top: blur.top }}
       >
         <div
