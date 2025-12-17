@@ -38,6 +38,29 @@
       "check": "检查更新"
     }
   },
+  "auth": {
+    "login": {
+      "title": "登录",
+      "tagline": "首个开源金融智能体平台。",
+      "providers": {
+        "google": "Google",
+        "apple": "Apple"
+      },
+      "actions": {
+        "continueWith": "使用 {{provider}} 继续"
+      },
+      "errors": {
+        "timeout": {
+          "title": "登录超时",
+          "description": "请重试。"
+        },
+        "failed": {
+          "title": "使用 {{provider}} 登录失败",
+          "description": "错误信息：{{info}}"
+        }
+      }
+    }
+  },
   "settings": {
     "title": "设置",
     "nav": {

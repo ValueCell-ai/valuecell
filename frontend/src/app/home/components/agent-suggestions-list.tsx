@@ -101,7 +101,7 @@ function AgentSuggestionItem({
               {suggestion.avatars.map((avatar, index) => (
                 <div
                   key={`${suggestion.id}-avatar-${index}`}
-                  className="relative -mr-2 size-6 overflow-hidden rounded-full border-2 border-background last:mr-0"
+                  className="-mr-2 relative size-6 overflow-hidden rounded-full border-2 border-background last:mr-0"
                 >
                   {avatar}
                 </div>

@@ -38,6 +38,29 @@
       "check": "檢查更新"
     }
   },
+  "auth": {
+    "login": {
+      "title": "登入",
+      "tagline": "首個開源金融智能體平台。",
+      "providers": {
+        "google": "Google",
+        "apple": "Apple"
+      },
+      "actions": {
+        "continueWith": "使用 {{provider}} 繼續"
+      },
+      "errors": {
+        "timeout": {
+          "title": "登入逾時",
+          "description": "請再試一次。"
+        },
+        "failed": {
+          "title": "使用 {{provider}} 登入失敗",
+          "description": "錯誤資訊：{{info}}"
+        }
+      }
+    }
+  },
   "settings": {
     "title": "設定",
     "nav": {

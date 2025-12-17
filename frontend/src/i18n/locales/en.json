@@ -38,6 +38,29 @@
       "check": "Check for Update"
     }
   },
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "tagline": "The first open-source platform for financial agents.",
+      "providers": {
+        "google": "Google",
+        "apple": "Apple"
+      },
+      "actions": {
+        "continueWith": "Continue with {{provider}}"
+      },
+      "errors": {
+        "timeout": {
+          "title": "Login timed out",
+          "description": "Please try again."
+        },
+        "failed": {
+          "title": "Failed to sign in with {{provider}}",
+          "description": "Info: {{info}}"
+        }
+      }
+    }
+  },
   "settings": {
     "title": "Settings",
     "nav": {
