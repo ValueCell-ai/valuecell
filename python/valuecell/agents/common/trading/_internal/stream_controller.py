@@ -271,12 +271,6 @@ class StreamController:
                     "Persisted portfolio view for strategy={}", self.strategy_id
                 )
 
-            ok = strategy_persistence.persist_stop_prices(
-                self.strategy_id, result.stop_prices
-            )
-            if ok:
-                logger.info("Persisted stop prices for strategy={}", self.strategy_id)
-
             ok = strategy_persistence.persist_strategy_summary(result.strategy_summary)
             if ok:
                 logger.info(

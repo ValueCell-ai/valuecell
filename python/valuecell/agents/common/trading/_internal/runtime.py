@@ -147,14 +147,14 @@ async def create_strategy_runtime(
                     "Initialized runtime initial capital from persisted snapshot for strategy_id=%s",
                     strategy_id_override,
                 )
-            stop_prices = {
-                stop_price.symbol: StopPrice(
-                    symbol=stop_price.symbol,
-                    stop_gain_price=stop_price.stop_gain_price,
-                    stop_loss_price=stop_price.stop_loss_price,
-                )
-                for stop_price in repo.get_stop_prices(strategy_id_override)
-            }
+            stop_prices = {}
+            strategy = repo.get_strategy_by_strategy_id(strategy_id_override)
+            if strategy and strategy.strategy_metadata:
+                raw_stops = strategy.strategy_metadata.get("stop_prices", {})
+                stop_prices = {
+                    symbol: StopPrice.model_validate(data)
+                    for symbol, data in raw_stops.items()
+                }
             logger.info(
                 "Initialized runtime stop prices {} from persisted snapshot for strategy_id {}",
                 stop_prices,

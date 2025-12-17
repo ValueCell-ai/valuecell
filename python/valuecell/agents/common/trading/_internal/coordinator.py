@@ -255,7 +255,6 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             history_records=history_records,
             digest=digest,
             portfolio_view=portfolio,
-            stop_prices=stop_prices,
         )
 
     def _create_trades(
@@ -483,6 +482,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             # Use the portfolio view's total_value which now correctly reflects Equity
             # (whether simulated or synced from exchange)
             equity = float(view.total_value or 0.0)
+            stop_prices = view.stop_prices
         except Exception:
             # Fallback to internal tracking if portfolio service is unavailable
             unrealized = float(self._unrealized_pnl or 0.0)
@@ -492,6 +492,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                 if self._request.trading_config.initial_capital is not None
                 else 0.0
             )
+            stop_prices = {}
 
         # Keep internal state in sync (allow negative unrealized PnL)
         self._unrealized_pnl = float(unrealized)
@@ -516,6 +517,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             unrealized_pnl_pct=unrealized_pnl_pct,
             pnl_pct=pnl_pct,
             total_value=equity,
+            stop_prices=stop_prices,
             last_updated_ts=timestamp_ms,
         )
 

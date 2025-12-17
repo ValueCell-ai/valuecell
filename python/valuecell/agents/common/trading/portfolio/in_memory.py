@@ -14,7 +14,6 @@ from valuecell.agents.common.trading.models import (
     TradingMode,
 )
 from valuecell.agents.common.trading.utils import extract_price_map
-from valuecell.server.db.models import StrategyStopPrices
 
 from .interfaces import BasePortfolioService
 
@@ -43,7 +42,7 @@ class InMemoryPortfolioService(BasePortfolioService):
         initial_positions: Dict[str, PositionSnapshot],
         trading_mode: TradingMode,
         market_type: MarketType,
-        stop_prices: Dict[str, StrategyStopPrices],
+        stop_prices: Dict[str, StopPrice],
         constraints: Optional[Constraints] = None,
         strategy_id: Optional[str] = None,
     ) -> None:
@@ -93,21 +92,15 @@ class InMemoryPortfolioService(BasePortfolioService):
                 pass
         return self._view
 
-    def update_stop_prices(self, stop_prices: List[StopPrice]) -> None:
-        for stop_price in stop_prices:
-            if stop_price.symbol in self._view.stop_prices:
-                self._view.stop_prices[stop_price.symbol].stop_gain_price = (
-                    stop_price.stop_gain_price
-                    if stop_price.stop_gain_price is not None
-                    else self._view.stop_prices[stop_price.symbol].stop_gain_price
-                )
-                self._view.stop_prices[stop_price.symbol].stop_loss_price = (
-                    stop_price.stop_loss_price
-                    if stop_price.stop_loss_price is not None
-                    else self._view.stop_prices[stop_price.symbol].stop_loss_price
-                )
+    def update_stop_prices(self, stop_prices: Dict[str, StopPrice]) -> None:
+        for symbol, new_stop in stop_prices.items():
+            existing = self._view.stop_prices.get(symbol)
+            if existing:
+                update_data = new_stop.model_dump(exclude_unset=True, exclude_none=True)
+                for key, value in update_data.items():
+                    setattr(existing, key, value)
             else:
-                self._view.stop_prices[stop_price.symbol] = stop_price
+                self._view.stop_prices[symbol] = new_stop
 
     def apply_trades(
         self, trades: List[TradeHistoryEntry], market_features: List[FeatureVector]
