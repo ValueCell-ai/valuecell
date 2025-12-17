@@ -35,22 +35,8 @@ const EmptyIllustration = () => (
       rx="8"
       className="fill-muted"
     />
-    <rect
-      x="60"
-      y="60"
-      width="138"
-      height="8"
-      rx="4"
-      className="fill-border"
-    />
-    <rect
-      x="60"
-      y="80"
-      width="100"
-      height="8"
-      rx="4"
-      className="fill-border"
-    />
+    <rect x="60" y="60" width="138" height="8" rx="4" className="fill-border" />
+    <rect x="60" y="80" width="100" height="8" rx="4" className="fill-border" />
     <rect
       x="60"
       y="100"

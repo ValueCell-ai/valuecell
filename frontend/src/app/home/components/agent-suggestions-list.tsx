@@ -52,7 +52,9 @@ function AgentSuggestionsHeader({
       {...props}
     >
       {title && (
-        <h2 className="font-medium text-foreground text-xl leading-7">{title}</h2>
+        <h2 className="font-medium text-foreground text-xl leading-7">
+          {title}
+        </h2>
       )}
       {actionText && (
         <button

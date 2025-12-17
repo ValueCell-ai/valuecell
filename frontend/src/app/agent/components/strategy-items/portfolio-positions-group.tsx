@@ -62,7 +62,9 @@ const PositionRow: FC<PositionRowProps> = ({ position }) => {
             src={getCoinCapIcon(position.symbol)}
             callback={ValueCellAgentPng}
           />
-          <p className="font-medium text-foreground text-sm">{position.symbol}</p>
+          <p className="font-medium text-foreground text-sm">
+            {position.symbol}
+          </p>
         </div>
       </TableCell>
       <TableCell>
@@ -81,7 +83,9 @@ const PositionRow: FC<PositionRowProps> = ({ position }) => {
         </p>
       </TableCell>
       <TableCell>
-        <p className="font-medium text-foreground text-sm">{position.quantity}</p>
+        <p className="font-medium text-foreground text-sm">
+          {position.quantity}
+        </p>
       </TableCell>
       <TableCell>
         <p

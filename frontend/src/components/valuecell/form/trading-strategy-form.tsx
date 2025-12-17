@@ -257,10 +257,7 @@ export const TradingStrategyForm = withForm({
                             (prompt) => prompt.id === field.state.value,
                           )}
                         >
-                          <Button
-                            type="button"
-                            variant="outline"
-                          >
+                          <Button type="button" variant="outline">
                             <Eye />
                             {t("strategy.form.promptTemplate.view")}
                           </Button>

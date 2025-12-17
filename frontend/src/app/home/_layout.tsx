@@ -19,10 +19,7 @@ export default function HomeLayout() {
           <StockList />
 
           <StockSearchModal>
-            <Button
-              variant="secondary"
-              className="mx-5 mb-6 font-bold text-sm"
-            >
+            <Button variant="secondary" className="mx-5 mb-6 font-bold text-sm">
               <Plus size={16} />
               {t("home.stock.add")}
             </Button>

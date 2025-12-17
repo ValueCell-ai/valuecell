@@ -60,12 +60,7 @@ interface SidebarMenuProps {
 
 const Sidebar: FC<SidebarProps> = ({ children, className }) => {
   return (
-    <div
-      className={cn(
-        "flex w-16 flex-col items-center bg-muted",
-        className,
-      )}
-    >
+    <div className={cn("flex w-16 flex-col items-center bg-muted", className)}>
       {children}
     </div>
   );

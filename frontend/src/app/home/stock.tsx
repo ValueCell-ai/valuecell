@@ -1,6 +1,6 @@
 import BackButton from "@valuecell/button/back-button";
-import { memo } from "react";
 import { useTheme } from "next-themes";
+import { memo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router";
 import { useGetStockDetail, useRemoveStockFromWatchlist } from "@/api/stock";
