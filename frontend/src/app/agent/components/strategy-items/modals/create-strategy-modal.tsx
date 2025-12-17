@@ -52,7 +52,10 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
   const { t } = useTranslation();
   const aiModelSchema = useMemo(() => createAiModelSchema(t), [t]);
   const exchangeSchema = useMemo(() => createExchangeSchema(t), [t]);
-  const tradingStrategySchema = useMemo(() => createTradingStrategySchema(t), [t]);
+  const tradingStrategySchema = useMemo(
+    () => createTradingStrategySchema(t),
+    [t],
+  );
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [error, setError] = useState<string | null>(null);

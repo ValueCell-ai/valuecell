@@ -105,7 +105,9 @@ export default function GeneralPage() {
               <SelectItem value="zh_TW">
                 {t("general.language.options.zh_TW")}
               </SelectItem>
-              <SelectItem value="ja">{t("general.language.options.ja")}</SelectItem>
+              <SelectItem value="ja">
+                {t("general.language.options.ja")}
+              </SelectItem>
             </SelectContent>
           </Select>
         </Field>
