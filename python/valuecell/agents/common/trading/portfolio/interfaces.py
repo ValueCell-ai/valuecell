@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from valuecell.agents.common.trading.models import (
     FeatureVector,
@@ -35,7 +35,7 @@ class BasePortfolioService(ABC):
         """
         raise NotImplementedError
 
-    def update_stop_prices(self, stop_prices: List[StopPrice]) -> None:
+    def update_stop_prices(self, stop_prices: Dict[str, StopPrice]) -> None:
         """Update the stop prices to the portfolio view.
 
         Implementations that support state changes (paper trading, backtests)

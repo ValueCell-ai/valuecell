@@ -11,7 +11,6 @@ from typing import List, Optional
 from sqlalchemy import asc, desc, func
 from sqlalchemy.orm import Session
 
-from ....agents.common.trading.models import StopPrice
 from ..connection import get_database_manager
 from ..models.strategy import Strategy
 from ..models.strategy_compose_cycle import StrategyComposeCycle
@@ -20,7 +19,6 @@ from ..models.strategy_holding import StrategyHolding
 from ..models.strategy_instruction import StrategyInstruction
 from ..models.strategy_portfolio import StrategyPortfolioView
 from ..models.strategy_prompt import StrategyPrompt
-from ..models.strategy_stop_price import StrategyStopPrices
 
 
 class StrategyRepository:
@@ -447,59 +445,6 @@ class StrategyRepository:
             if not self.db_session:
                 session.close()
 
-    # Stop price operations
-    def upsert_stop_price(
-        self,
-        strategy_id: str,
-        stop_prices: List[StopPrice],
-        note: Optional[str] = None,
-    ) -> List[StrategyStopPrices]:
-        """Insert one strategy detail record."""
-        session = self._get_session()
-        upserted_items = []
-        try:
-            for stop_price in stop_prices:
-                existing_item = (
-                    session.query(StrategyStopPrices)
-                    .filter(
-                        StrategyStopPrices.strategy_id == strategy_id,
-                        StrategyStopPrices.symbol == stop_price.symbol,
-                    )
-                    .one_or_none()
-                )
-
-                if existing_item:
-                    existing_item.stop_gain_price = stop_price.stop_gain_price
-                    existing_item.stop_loss_price = stop_price.stop_loss_price
-                    existing_item.note = note
-                    item_to_return = existing_item
-                else:
-                    new_item = StrategyStopPrices(
-                        strategy_id=strategy_id,
-                        symbol=stop_price.symbol,
-                        stop_gain_price=stop_price.stop_gain_price,
-                        stop_loss_price=stop_price.stop_loss_price,
-                        note=note,
-                    )
-                    session.add(new_item)
-                    item_to_return = new_item
-
-                session.add(item_to_return)
-                upserted_items.append(item_to_return)
-
-            session.commit()
-            for item in upserted_items:
-                session.refresh(item)
-                session.expunge(item)
-        except Exception:
-            session.rollback()
-            return []
-        finally:
-            if not self.db_session:
-                session.close()
-
-        return upserted_items
-
     def get_cycles(
         self, strategy_id: str, limit: Optional[int] = None
     ) -> List[StrategyComposeCycle]:
@@ -577,21 +522,6 @@ class StrategyRepository:
             )
             if limit:
                 query = query.limit(limit)
-            items = query.all()
-            for item in items:
-                session.expunge(item)
-            return items
-        finally:
-            if not self.db_session:
-                session.close()
-
-    def get_stop_prices(self, strategy_id: str) -> List[StrategyStopPrices]:
-        """Get detail records for a strategy ordered by event_time desc."""
-        session = self._get_session()
-        try:
-            query = session.query(StrategyStopPrices).filter(
-                StrategyDetail.strategy_id == strategy_id
-            )
             items = query.all()
             for item in items:
                 session.expunge(item)

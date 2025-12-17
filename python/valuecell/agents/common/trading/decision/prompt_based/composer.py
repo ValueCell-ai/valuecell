@@ -100,7 +100,11 @@ class LlmComposer(BaseComposer):
                     context.compose_id,
                     plan.rationale,
                 )
-                return ComposeResult(instructions=[], rationale=plan.rationale)
+                return ComposeResult(
+                    instructions=[],
+                    rationale=plan.rationale,
+                    stop_prices=plan.stop_prices,
+                )
         except Exception as exc:  # noqa: BLE001
             logger.error("LLM invocation failed: {}", exc)
             return ComposeResult(
@@ -257,9 +261,9 @@ class LlmComposer(BaseComposer):
             parts.append(f"{top_r}\n")
         if len(plan.stop_prices) > 0:
             parts.append("**Updated stop prices:**")
-            for stop_price in plan.stop_prices:
+            for symbol, stop_price in plan.stop_prices.items():
                 parts.append(
-                    f"{stop_price.symbol}\tstop gain: {stop_price.stop_gain_price}\tstop loss: {stop_price.stop_loss_price}"
+                    f"{symbol}\tstop gain: {stop_price.stop_gain_price}\tstop loss: {stop_price.stop_loss_price}"
                 )
             parts.append("")
 

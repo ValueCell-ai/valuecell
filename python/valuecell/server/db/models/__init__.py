@@ -17,7 +17,6 @@ from .strategy_detail import StrategyDetail
 from .strategy_holding import StrategyHolding
 from .strategy_instruction import StrategyInstruction
 from .strategy_portfolio import StrategyPortfolioView
-from .strategy_stop_price import StrategyStopPrices
 from .user_profile import ProfileCategory, UserProfile
 from .watchlist import Watchlist, WatchlistItem
 
@@ -36,5 +35,4 @@ __all__ = [
     "StrategyPortfolioView",
     "StrategyComposeCycle",
     "StrategyInstruction",
-    "StrategyStopPrices",
 ]
