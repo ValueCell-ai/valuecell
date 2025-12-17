@@ -1,7 +1,8 @@
 import { useStore } from "@tanstack/react-form";
 import { AlertCircleIcon } from "lucide-react";
 import type { FC, RefObject } from "react";
-import { memo, useImperativeHandle, useState } from "react";
+import { memo, useImperativeHandle, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useGetModelProviderDetail } from "@/api/setting";
 import {
   useCreateStrategy,
@@ -27,9 +28,9 @@ import {
 import { StepIndicator } from "@/components/valuecell/step-indicator";
 import { TRADING_SYMBOLS } from "@/constants/agent";
 import {
-  aiModelSchema,
-  copyTradingStrategySchema,
-  exchangeSchema,
+  createAiModelSchema,
+  createCopyTradingStrategySchema,
+  createExchangeSchema,
 } from "@/constants/schema";
 import { useAppForm } from "@/hooks/use-form";
 import { tracker } from "@/lib/tracker";
@@ -45,21 +46,31 @@ interface CopyStrategyModalProps {
   callback?: () => void;
 }
 
-const STEPS = [
-  { step: 1, title: "AI Models" },
-  { step: 2, title: "Exchanges" },
-  { step: 3, title: "Trading strategy" },
-];
-
 const CopyStrategyModal: FC<CopyStrategyModalProps> = ({
   ref,
   children,
   callback,
 }) => {
+  const { t } = useTranslation();
+  const aiModelSchema = useMemo(() => createAiModelSchema(t), [t]);
+  const exchangeSchema = useMemo(() => createExchangeSchema(t), [t]);
+  const copyTradingStrategySchema = useMemo(
+    () => createCopyTradingStrategySchema(t),
+    [t],
+  );
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [defaultValues, setDefaultValues] = useState<CopyStrategy>();
   const [error, setError] = useState<string | null>(null);
+
+  const STEPS = useMemo(
+    () => [
+      { step: 1, title: t("strategy.create.steps.aiModels") },
+      { step: 2, title: t("strategy.create.steps.exchanges") },
+      { step: 3, title: t("strategy.create.steps.tradingStrategy") },
+    ],
+    [t],
+  );
 
   const { data: strategies = [] } = useGetStrategyList();
   const { mutateAsync: createStrategy, isPending: isCreatingStrategy } =
@@ -201,7 +212,7 @@ const CopyStrategyModal: FC<CopyStrategyModalProps> = ({
         <DialogTitle className="flex flex-col gap-4 px-1">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-lg">
-              Duplicate trading strategy
+              {t("strategy.copy.title")}
             </h2>
             <CloseButton onClick={resetAll} />
           </div>
@@ -230,7 +241,7 @@ const CopyStrategyModal: FC<CopyStrategyModalProps> = ({
           {error && (
             <Alert variant="destructive">
               <AlertCircleIcon />
-              <AlertTitle>Error Duplicating Strategy</AlertTitle>
+              <AlertTitle>{t("strategy.copy.error")}</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
@@ -241,7 +252,9 @@ const CopyStrategyModal: FC<CopyStrategyModalProps> = ({
               onClick={currentStep === 1 ? resetAll : handleBack}
               className="py-4 font-semibold text-base"
             >
-              {currentStep === 1 ? "Cancel" : "Back"}
+              {currentStep === 1
+                ? t("strategy.action.cancel")
+                : t("strategy.action.back")}
             </Button>
             <Button
               type="button"
@@ -261,7 +274,9 @@ const CopyStrategyModal: FC<CopyStrategyModalProps> = ({
               className="relative py-4 font-semibold text-base"
             >
               {isCreatingStrategy && <Spinner className="absolute left-4" />}
-              {currentStep === 3 ? "Confirm" : "Next"}
+              {currentStep === 3
+                ? t("strategy.action.confirm")
+                : t("strategy.action.next")}
             </Button>
           </div>
         </DialogFooter>

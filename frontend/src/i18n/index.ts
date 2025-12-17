@@ -26,7 +26,9 @@ i18n.use(initReactI18next).init({
   },
   saveMissing: true,
   missingKeyHandler: (_lngs, _ns, key) => {
-    console.log("🚀 ~ missing key:", key);
+    if (import.meta.env.DEV) {
+      console.log("🚀 ~ missing key:", key);
+    }
   },
 });
 

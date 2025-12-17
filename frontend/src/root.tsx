@@ -3,14 +3,24 @@ import { ThemeProvider } from "next-themes";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 import "@/i18n";
 import AppSidebar from "@/components/valuecell/app/app-sidebar";
+import { useLanguage } from "@/store/settings-store";
 import { Toaster } from "./components/ui/sonner";
 
 import "./global.css";
 import { SidebarProvider } from "./components/ui/sidebar";
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const language = useLanguage();
+  const htmlLang =
+    {
+      en: "en",
+      zh_CN: "zh-CN",
+      zh_TW: "zh-TW",
+      ja: "ja",
+    }[language] ?? "en";
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={htmlLang} suppressHydrationWarning>
       <head>
         <meta charSet="UTF-8" />
         <link rel="icon" type="image/svg+xml" href="/logo.svg" />

@@ -1,7 +1,7 @@
 import { useStore } from "@tanstack/react-form";
 import { AlertCircleIcon } from "lucide-react";
 import type { FC, RefObject } from "react";
-import { memo, useImperativeHandle, useState } from "react";
+import { memo, useImperativeHandle, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useGetModelProviderDetail } from "@/api/setting";
 import {
@@ -29,9 +29,9 @@ import { TradingStrategyForm } from "@/components/valuecell/form/trading-strateg
 import { StepIndicator } from "@/components/valuecell/step-indicator";
 import { TRADING_SYMBOLS } from "@/constants/agent";
 import {
-  aiModelSchema,
-  exchangeSchema,
-  tradingStrategySchema,
+  createAiModelSchema,
+  createExchangeSchema,
+  createTradingStrategySchema,
 } from "@/constants/schema";
 import { useAppForm } from "@/hooks/use-form";
 import { tracker } from "@/lib/tracker";
@@ -50,6 +50,9 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
   children,
 }) => {
   const { t } = useTranslation();
+  const aiModelSchema = useMemo(() => createAiModelSchema(t), [t]);
+  const exchangeSchema = useMemo(() => createExchangeSchema(t), [t]);
+  const tradingStrategySchema = useMemo(() => createTradingStrategySchema(t), [t]);
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [error, setError] = useState<string | null>(null);

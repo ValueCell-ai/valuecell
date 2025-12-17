@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -38,6 +39,7 @@ export interface SharePortfolioCardRef {
 const SharePortfolioModal: FC<{
   ref?: RefObject<SharePortfolioCardRef | null>;
 }> = ({ ref }) => {
+  const { t } = useTranslation();
   const cardRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -84,18 +86,21 @@ const SharePortfolioModal: FC<{
       await writeFile(path, new Uint8Array(arrayBuffer));
 
       setOpen(false);
-      toast.success("Image downloaded successfully", {
+      toast.success(t("sharePortfolio.toast.downloaded"), {
         action: {
-          label: "open file",
+          label: t("sharePortfolio.toast.openFile"),
           onClick: async () => {
             return await openPath(path);
           },
         },
       });
     } catch (err) {
-      toast.error(`Failed to download image: ${JSON.stringify(err)}`, {
-        duration: 6 * 1000,
-      });
+      toast.error(
+        t("sharePortfolio.toast.downloadFailed", {
+          error: JSON.stringify(err),
+        }),
+        { duration: 6 * 1000 },
+      );
     } finally {
       setIsDownloading(false);
     }
@@ -116,7 +121,9 @@ const SharePortfolioModal: FC<{
         className="h-[600px] w-[434px] overflow-hidden border-none bg-transparent p-0 shadow-none"
         showCloseButton={false}
       >
-        <DialogTitle className="sr-only">Share Portfolio</DialogTitle>
+        <DialogTitle className="sr-only">
+          {t("sharePortfolio.title")}
+        </DialogTitle>
 
         {/* Card to be captured */}
         <div
@@ -166,10 +173,10 @@ const SharePortfolioModal: FC<{
               {formatChange(data.total_pnl, "", 2)}
             </span>
 
-            <p>Model</p>
+            <p>{t("sharePortfolio.fields.model")}</p>
             <span>{data.llm_model_id}</span>
 
-            <p>Exchange</p>
+            <p>{t("sharePortfolio.fields.exchange")}</p>
             <span className="ml-auto flex items-center gap-1">
               <PngIcon
                 src={
@@ -182,7 +189,7 @@ const SharePortfolioModal: FC<{
               {data.exchange_id}
             </span>
 
-            <p>Strategy</p>
+            <p>{t("sharePortfolio.fields.strategy")}</p>
             <span>{data.strategy_type}</span>
           </div>
 
@@ -219,7 +226,7 @@ const SharePortfolioModal: FC<{
             className="h-12 flex-1 rounded-xl border-border bg-card font-medium text-base hover:bg-muted"
             onClick={() => setOpen(false)}
           >
-            Cancel
+            {t("strategy.action.cancel")}
           </Button>
 
           <Button
@@ -232,7 +239,7 @@ const SharePortfolioModal: FC<{
             ) : (
               <Download className="mr-2 size-5" />
             )}
-            Download
+            {t("sharePortfolio.action.download")}
           </Button>
         </div>
       </DialogContent>

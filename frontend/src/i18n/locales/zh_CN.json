@@ -12,10 +12,10 @@
       "title": "语言和区域",
       "description": "选择您喜欢的应用程序语言和区域格式。",
       "options": {
-        "en-US": "English (United States)",
-        "zh-Hans": "简体中文",
-        "zh-Hant": "繁體中文",
-        "ja-JP": "日本語"
+        "en": "English (United States)",
+        "zh_CN": "简体中文",
+        "zh_TW": "繁體中文",
+        "ja": "日本語"
       }
     },
     "theme": {
@@ -103,7 +103,32 @@
     }
   },
   "common": {
-    "back": "返回"
+    "back": "返回",
+    "loading": "加载中...",
+    "settingUpEnvironment": "正在配置环境..."
+  },
+  "nav": {
+    "home": "首页",
+    "strategy": "策略",
+    "ranking": "排行榜",
+    "market": "市场",
+    "setting": "设置"
+  },
+  "updates": {
+    "toast": {
+      "checking": "正在检查更新...",
+      "latest": "您正在使用最新版本",
+      "availableTitle": "发现可用更新",
+      "availableDesc": "新版本 ({{version}}) 可用。是否现在安装？",
+      "install": "安装",
+      "later": "稍后",
+      "downloading": "正在下载更新... {{percentage}}%",
+      "installedTitle": "更新安装成功！",
+      "installedDesc": "需要重启应用以应用更新。",
+      "relaunch": "重启",
+      "downloadFailed": "下载更新失败：{{error}}",
+      "checkFailed": "检查更新失败：{{error}}"
+    }
   },
   "market": {
     "title": "Agent市场"
@@ -207,6 +232,13 @@
         "tradingStrategy": "交易策略"
       },
       "error": "创建策略失败"
+    },
+    "copy": {
+      "title": "复制交易策略",
+      "error": "复制策略失败"
+    },
+    "toast": {
+      "published": "策略发布成功"
     },
     "form": {
       "strategyType": {

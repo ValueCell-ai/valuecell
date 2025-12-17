@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import type React from "react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useBackendHealth } from "@/api/system";
 import ValuecellLogo from "@/assets/png/logo/valuecell-logo.webp";
 import { Progress } from "@/components/ui/progress";
@@ -10,6 +11,7 @@ export function BackendHealthCheck({
 }: {
   children: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   const { isError, isSuccess } = useBackendHealth();
   const [showError, setShowError] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -92,7 +94,7 @@ export function BackendHealthCheck({
               className="space-y-4"
             >
               <p className="text-lg text-muted-foreground leading-relaxed">
-                Setting up environment...
+                {t("common.settingUpEnvironment")}
               </p>
             </motion.div>
 
@@ -106,7 +108,7 @@ export function BackendHealthCheck({
               <div className="max-w-lg space-y-2">
                 <Progress value={progress} className="h-2 w-full bg-muted/50" />
                 <div className="flex justify-between font-medium text-muted-foreground text-xs uppercase tracking-wider">
-                  <span>Loading</span>
+                  <span>{t("common.loading")}</span>
                   <span>{Math.round(progress)}%</span>
                 </div>
               </div>
