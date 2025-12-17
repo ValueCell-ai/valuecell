@@ -114,11 +114,14 @@ export default function LoginModal({ children }: LoginModalProps) {
         2 * 60 * 1000,
       );
     } catch (error) {
-      toast.error(t("auth.login.errors.failed.title", { provider: providerLabel }), {
-        description: t("auth.login.errors.failed.description", {
-          info: JSON.stringify(error),
-        }),
-      });
+      toast.error(
+        t("auth.login.errors.failed.title", { provider: providerLabel }),
+        {
+          description: t("auth.login.errors.failed.description", {
+            info: JSON.stringify(error),
+          }),
+        },
+      );
     }
   };
 
