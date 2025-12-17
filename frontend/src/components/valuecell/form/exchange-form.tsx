@@ -318,7 +318,7 @@ export const ExchangeForm = withForm({
                       type="button"
                     >
                       {isPending ? (
-                        <Spinner className="size-5 text-gray-500" />
+                        <Spinner className="size-5 text-muted-foreground" />
                       ) : (
                         <Wallet className="size-5" />
                       )}

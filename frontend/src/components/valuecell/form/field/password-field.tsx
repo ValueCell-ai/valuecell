@@ -25,7 +25,7 @@ export const PasswordField: FC<PasswordFieldProps> = ({
 
   return (
     <Field className={className}>
-      <FieldLabel className="font-medium text-base text-gray-950">
+      <FieldLabel className="font-medium text-base text-foreground">
         {label}
       </FieldLabel>
       <InputGroup>

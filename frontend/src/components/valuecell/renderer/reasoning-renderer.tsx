@@ -31,7 +31,7 @@ const ReasoningRenderer: FC<ReasoningRendererProps> = ({
         )}
         disabled={!hasContent}
       >
-        <div className="flex items-center gap-2 text-gray-950">
+        <div className="flex items-center gap-2 text-foreground">
           {isComplete ? (
             <Brain className="size-5" />
           ) : (
@@ -44,7 +44,7 @@ const ReasoningRenderer: FC<ReasoningRendererProps> = ({
         {hasContent && (
           <ChevronDown
             className={cn(
-              "h-6 w-6 text-gray-950 transition-transform",
+              "h-6 w-6 text-muted-foreground transition-transform",
               isOpen && "rotate-180",
             )}
           />
@@ -57,7 +57,7 @@ const ReasoningRenderer: FC<ReasoningRendererProps> = ({
           {hasContent && (
             <MarkdownRenderer
               content={content}
-              className="text-gray-600 text-xs"
+              className="text-muted-foreground text-xs"
             />
           )}
         </div>

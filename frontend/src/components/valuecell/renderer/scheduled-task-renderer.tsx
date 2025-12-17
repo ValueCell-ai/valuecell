@@ -13,11 +13,11 @@ const ScheduledTaskRenderer: FC<ScheduledTaskRendererProps> = ({
   return (
     <div
       className={cn(
-        "group relative flex h-full cursor-pointer flex-col gap-3 rounded-lg border-gradient bg-gray-50 p-4 text-gray-950 transition-all",
+        "group relative flex h-full cursor-pointer flex-col gap-3 rounded-lg border-gradient bg-card p-4 text-foreground transition-all",
       )}
       onClick={() => onOpen?.(result)}
     >
-      <p className="whitespace-nowrap text-gray-400 text-sm">
+      <p className="whitespace-nowrap text-muted-foreground text-sm">
         {TimeUtils.formatUTC(create_time, TIME_FORMATS.DATETIME_SHORT)}
       </p>
       {/* content */}

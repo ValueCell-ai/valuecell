@@ -18,7 +18,7 @@ export const TextField: FC<TextFieldProps> = ({
 
   return (
     <Field className={className}>
-      <FieldLabel className="font-medium text-base text-gray-950">
+      <FieldLabel className="font-medium text-base text-foreground">
         {label}
       </FieldLabel>
       <Input

@@ -239,7 +239,7 @@ const CopyStrategyModal: FC<CopyStrategyModalProps> = ({
               type="button"
               variant="outline"
               onClick={currentStep === 1 ? resetAll : handleBack}
-              className="border-gray-100 py-4 font-semibold text-base"
+              className="py-4 font-semibold text-base"
             >
               {currentStep === 1 ? "Cancel" : "Back"}
             </Button>
@@ -258,7 +258,7 @@ const CopyStrategyModal: FC<CopyStrategyModalProps> = ({
                     await form3.handleSubmit();
                 }
               }}
-              className="relative py-4 font-semibold text-base text-white hover:bg-gray-800"
+              className="relative py-4 font-semibold text-base"
             >
               {isCreatingStrategy && <Spinner className="absolute left-4" />}
               {currentStep === 3 ? "Confirm" : "Next"}

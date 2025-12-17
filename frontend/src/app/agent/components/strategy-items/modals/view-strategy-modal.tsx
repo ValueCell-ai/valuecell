@@ -28,14 +28,14 @@ const ViewStrategyModal: FC<ViewStrategyModalProps> = ({
         showCloseButton={false}
         aria-describedby={undefined}
       >
-        <DialogTitle className="flex items-center justify-between font-medium text-gray-950 text-lg">
+        <DialogTitle className="flex items-center justify-between font-medium text-foreground text-lg">
           {prompt.name}
           <DialogClose asChild>
             <CloseButton />
           </DialogClose>
         </DialogTitle>
 
-        <p className="scroll-container whitespace-pre-line font-normal text-base text-gray-950 leading-relaxed tracking-wide">
+        <p className="scroll-container whitespace-pre-line font-normal text-base text-foreground leading-relaxed tracking-wide">
           {prompt.content}
         </p>
       </DialogContent>

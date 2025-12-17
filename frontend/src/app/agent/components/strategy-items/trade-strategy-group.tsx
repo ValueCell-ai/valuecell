@@ -82,10 +82,10 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
     >
       {/* Header: Name and Time */}
       <div className="flex items-center justify-between">
-        <p className="font-medium text-base text-gray-950 leading-[22px]">
+        <p className="font-medium text-base text-foreground leading-[22px]">
           {strategy.strategy_name}
         </p>
-        <p className="font-normal text-gray-400 text-xs">
+        <p className="font-normal text-muted-foreground text-xs">
           {TimeUtils.formatUTC(
             strategy.created_at,
             TIME_FORMATS.DATETIME_SHORT,
@@ -95,11 +95,11 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
 
       <div className="flex items-center gap-2">
         {strategy.strategy_type && (
-          <p className="rounded-sm bg-gray-100 px-2 py-1 text-gray-700 text-xs">
+          <p className="rounded-sm bg-muted px-2 py-1 text-foreground text-xs">
             {t(`strategy.types.${strategy.strategy_type}`)}
           </p>
         )}
-        <p className="rounded-sm bg-gray-100 px-2 py-1 text-gray-700 text-xs">
+        <p className="rounded-sm bg-muted px-2 py-1 text-foreground text-xs">
           {strategy.trading_mode === "live"
             ? t("strategy.status.live")
             : t("strategy.status.virtual")}
@@ -107,7 +107,7 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
       </div>
 
       {/* Model and Exchange Info */}
-      <div className="flex items-center gap-2 font-medium text-gray-400 text-sm">
+      <div className="flex items-center gap-2 font-medium text-muted-foreground text-sm">
         <p>{strategy.model_id}</p>
         <p>{strategy.exchange_id}</p>
       </div>
@@ -127,7 +127,7 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
           {strategy.status === "stopped" && strategy.stop_reason ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <p className="font-medium text-gray-400 text-sm">
+                <p className="font-medium text-muted-foreground text-sm">
                   {t("strategy.status.stopped")}
                 </p>
               </TooltipTrigger>
@@ -147,7 +147,7 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
                   {strategy.status === "running" && (
                     <SvgIcon name={StrategyStatus} className="size-4" />
                   )}
-                  <p className="font-medium text-gray-700 text-sm">
+                  <p className="font-medium text-foreground text-sm">
                     {strategy.status === "running"
                       ? t("strategy.status.running")
                       : t("strategy.status.stopped")}
@@ -298,16 +298,16 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
           ))}
         </div>
       ) : (
-        <div className="flex w-80 items-center justify-center rounded-xl border-2 border-gray-200 border-dashed bg-gray-50/50">
+        <div className="flex w-80 items-center justify-center rounded-xl border-2 border-border border-dashed bg-muted/50">
           <div className="flex flex-col items-center gap-4 px-6 py-12 text-center">
-            <div className="flex size-14 items-center justify-center rounded-full bg-gray-100">
-              <TrendingUp className="size-7 text-gray-400" />
+            <div className="flex size-14 items-center justify-center rounded-full bg-muted">
+              <TrendingUp className="size-7 text-muted-foreground" />
             </div>
             <div className="flex flex-col gap-2">
-              <p className="font-semibold text-base text-gray-700">
+              <p className="font-semibold text-base text-foreground">
                 {t("strategy.noStrategies")}
               </p>
-              <p className="max-w-xs text-gray-500 text-sm leading-relaxed">
+              <p className="max-w-xs text-muted-foreground text-sm leading-relaxed">
                 {t("strategy.createFirst")}
               </p>
             </div>

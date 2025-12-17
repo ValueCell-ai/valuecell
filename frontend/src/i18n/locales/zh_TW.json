@@ -18,6 +18,15 @@
         "ja-JP": "日本語"
       }
     },
+    "theme": {
+      "title": "主題",
+      "description": "選擇淺色、深色或跟隨系統。",
+      "options": {
+        "system": "跟隨系統",
+        "light": "淺色",
+        "dark": "深色"
+      }
+    },
     "quotesColor": {
       "title": "行情顏色",
       "description": "選擇股票行情漲跌的顯示顏色。",
@@ -27,6 +36,29 @@
     "updates": {
       "title": "應用程式更新",
       "check": "檢查更新"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "登入",
+      "tagline": "首個開源金融智能體平台。",
+      "providers": {
+        "google": "Google",
+        "apple": "Apple"
+      },
+      "actions": {
+        "continueWith": "使用 {{provider}} 繼續"
+      },
+      "errors": {
+        "timeout": {
+          "title": "登入逾時",
+          "description": "請再試一次。"
+        },
+        "failed": {
+          "title": "使用 {{provider}} 登入失敗",
+          "description": "錯誤資訊：{{info}}"
+        }
+      }
     }
   },
   "settings": {

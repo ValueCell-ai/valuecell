@@ -30,17 +30,17 @@ const ReportRenderer: FC<ReportRendererProps> = ({
 
         {/* Text content */}
         <div className="flex flex-col gap-1">
-          <p className="font-normal text-base text-gray-950 leading-5">
+          <p className="font-normal text-base text-foreground leading-5">
             {title}
           </p>
-          <p className="whitespace-nowrap text-gray-400 text-xs leading-4">
+          <p className="whitespace-nowrap text-muted-foreground text-xs leading-4">
             {`Created at: ${TimeUtils.formatUTC(create_time, TIME_FORMATS.DATE)}`}
           </p>
         </div>
       </div>
 
       {/* Right side: Arrow icon */}
-      <ChevronRight className="size-6 text-gray-700" />
+      <ChevronRight className="size-6 text-muted-foreground" />
     </div>
   );
 };

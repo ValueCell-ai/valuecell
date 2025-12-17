@@ -10,7 +10,13 @@ const MarkdownRenderer: FC<MarkdownRendererProps> = ({
   className,
 }) => {
   return (
-    <div className={cn("prose text-sm", className)}>
+    <div
+      className={cn(
+        "prose dark:prose-invert text-sm",
+        "prose-a:text-sky-600 dark:prose-a:text-sky-300",
+        className,
+      )}
+    >
       <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
         {content}
       </ReactMarkdown>
