@@ -151,7 +151,7 @@ export default function LoginModal({ children }: LoginModalProps) {
             disabled={pendingAction !== null}
           >
             <svg
-              className="-translate-y-1/2 absolute top-1/2 left-4"
+              className="absolute top-1/2 left-4 -translate-y-1/2"
               width="16"
               height="16"
               viewBox="0 0 16 16"
@@ -176,7 +176,7 @@ export default function LoginModal({ children }: LoginModalProps) {
             </svg>
             Continue with Google
             {pendingAction === "gmail" && (
-              <Spinner className="-translate-y-1/2 absolute top-1/2 right-4" />
+              <Spinner className="absolute top-1/2 right-4 -translate-y-1/2" />
             )}
           </Button>
           {/* 
