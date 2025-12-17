@@ -13,7 +13,7 @@ export default function AgentMarket() {
   }
 
   return (
-    <div className="flex size-full flex-col items-center justify-start gap-8 pt-8">
+    <div className="flex size-full flex-col items-center justify-start gap-8 bg-card pt-8">
       {/* Page Title */}
       <h1 className="w-full text-center font-medium text-3xl leading-7">
         {t("market.title")}

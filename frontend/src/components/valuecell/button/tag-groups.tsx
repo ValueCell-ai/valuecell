@@ -24,7 +24,7 @@ export const Tag = ({
   return (
     <span
       className={cn(
-        "flex w-fit items-center gap-2 text-nowrap rounded-md bg-gray-100 px-3 py-1 font-normal text-gray-700 text-xs",
+        "flex w-fit items-center gap-2 text-nowrap rounded-md bg-muted px-3 py-1 font-normal text-foreground text-xs",
         className,
       )}
     >
@@ -56,7 +56,7 @@ const TagGroups: FC<TagGroupsProps> = ({
           <TooltipTrigger asChild>
             <button
               type="button"
-              className="flex items-center text-nowrap rounded-md bg-gray-100 px-2 py-1 font-normal text-gray-600 text-xs transition-colors hover:bg-gray-200"
+              className="flex items-center text-nowrap rounded-md bg-muted px-2 py-1 font-normal text-muted-foreground text-xs transition-colors hover:bg-muted/80"
             >
               <Plus size={12} />
               <span>{remainingTags.length}</span>
@@ -65,7 +65,7 @@ const TagGroups: FC<TagGroupsProps> = ({
           <TooltipContent side="bottom" className="max-w-xs">
             <div className="flex flex-wrap gap-1.5">
               {remainingTags.map((tag) => (
-                <Tag key={tag} className="bg-gray-700 text-white">
+                <Tag key={tag} className="bg-foreground text-background">
                   {tag}
                 </Tag>
               ))}

@@ -25,12 +25,12 @@ const ScheduledTaskControllerRenderer: FC<
   };
 
   return (
-    <div className="flex min-w-96 items-center justify-between gap-3 rounded-xl bg-gray-50 px-4 py-3">
+    <div className="flex min-w-96 items-center justify-between gap-3 rounded-xl bg-card px-4 py-3">
       <div className="flex shrink-0 items-center gap-3">
         <div className="flex size-8 shrink-0 items-center justify-center">
           <Clock className="size-5 text-primary" />
         </div>
-        <p className="font-medium text-base text-gray-950">
+        <p className="font-medium text-base text-foreground">
           {task_title || "Untitled Task"}
         </p>
       </div>
@@ -42,7 +42,7 @@ const ScheduledTaskControllerRenderer: FC<
         size="sm"
         disabled={!isRunning}
         className={cn(
-          "cursor-pointer text-base text-blue-500 transition-colors hover:text-blue-500/80 disabled:text-gray-400",
+          "cursor-pointer text-base text-primary transition-colors hover:text-primary/80 disabled:text-muted-foreground",
         )}
       >
         {isRunning ? "Cancel" : "Cancelled"}

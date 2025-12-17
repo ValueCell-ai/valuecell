@@ -135,10 +135,10 @@ export default function LoginModal({ children }: LoginModalProps) {
         <div className="mt-10 flex flex-col items-center gap-3 text-center">
           <SvgIcon
             name={Logo}
-            className="size-14 rounded-full bg-black p-2.5 text-white"
+            className="size-14 rounded-full bg-primary p-2.5 text-primary-foreground"
           />
-          <p className="font-medium text-3xl text-gray-950">ValueCell</p>
-          <p className="font-medium text-gray-500 text-sm">
+          <p className="font-medium text-3xl text-foreground">ValueCell</p>
+          <p className="font-medium text-muted-foreground text-sm">
             The first open-source platform for financial agents
           </p>
         </div>
@@ -146,7 +146,7 @@ export default function LoginModal({ children }: LoginModalProps) {
         <div className="mt-10 flex flex-col gap-4 px-4 pb-4">
           <Button
             variant="outline"
-            className="relative bg-gray-50 py-6 text-base focus-visible:ring-gray-200"
+            className="relative py-6 text-base"
             onClick={() => handleLogin("gmail")}
             disabled={pendingAction !== null}
           >
@@ -182,7 +182,7 @@ export default function LoginModal({ children }: LoginModalProps) {
           {/* 
             <Button
               variant="outline"
-              className="relative bg-gray-50 py-6 text-base focus-visible:ring-gray-200"
+              className="relative py-6 text-base"
               onClick={() => handleLogin("apple")}
               disabled={pendingAction !== null}
             >

@@ -62,7 +62,7 @@ const Sidebar: FC<SidebarProps> = ({ children, className }) => {
   return (
     <div
       className={cn(
-        "flex w-16 flex-col items-center bg-neutral-100",
+        "flex w-16 flex-col items-center bg-muted",
         className,
       )}
     >
@@ -112,14 +112,14 @@ const SidebarMenuItem: FC<SidebarItemProps> = ({
         "box-border flex size-10 items-center justify-center rounded-full",
         "cursor-pointer transition-all",
         type === "button" && [
-          "bg-neutral-200 p-3 text-gray-700",
-          "hover:data-[active=false]:bg-neutral-300",
-          "data-[active=true]:bg-black data-[active=true]:text-white",
+          "bg-muted p-3 text-muted-foreground",
+          "hover:data-[active=false]:bg-accent hover:data-[active=false]:text-accent-foreground",
+          "data-[active=true]:bg-primary data-[active=true]:text-primary-foreground",
         ],
         type === "agent" && [
-          "box-border border border-neutral-200 bg-white",
-          "hover:data-[active=false]:border-neutral-300",
-          "data-[active=true]:border-white data-[active=true]:shadow-[0_4px_12px_0_rgba(14,1,1,0.4)]",
+          "box-border border border-border bg-background",
+          "hover:data-[active=false]:border-ring/50",
+          "data-[active=true]:border-primary data-[active=true]:shadow-[0_4px_12px_0_rgba(0,0,0,0.25)]",
         ],
         className,
       )}
@@ -195,7 +195,7 @@ const AppSidebar: FC = () => {
   const verifyActive = (to: string) => prefix === to;
 
   return (
-    <Sidebar className="bg-gray-100">
+    <Sidebar>
       <SidebarHeader>
         <SidebarMenu>
           {navItems.home.map((item) => {
@@ -204,7 +204,7 @@ const AppSidebar: FC = () => {
                 <SidebarMenuItem
                   aria-label={item.label}
                   data-active={verifyActive(item.to)}
-                  className="bg-white p-2"
+                  className="p-2"
                 >
                   <SvgIcon name={item.icon} />
                 </SidebarMenuItem>
@@ -213,14 +213,14 @@ const AppSidebar: FC = () => {
           })}
 
           <AppConversationSheet>
-            <SidebarMenuItem className="cursor-pointer bg-white p-2 text-gray-700 hover:bg-neutral-300">
+            <SidebarMenuItem className="cursor-pointer p-2">
               <SvgIcon name={Conversation} className="size-6" />
             </SidebarMenuItem>
           </AppConversationSheet>
         </SidebarMenu>
       </SidebarHeader>
 
-      <Separator className="w-10! bg-white" />
+      <Separator className="w-10! bg-border" />
 
       <SidebarContent>
         <SidebarMenu className="py-3">

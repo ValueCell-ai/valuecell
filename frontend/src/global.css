@@ -135,7 +135,7 @@
     background-image: linear-gradient(var(--color-background), var(--color-background));
     background-clip: padding-box;
     background-origin: border-box;
-    border: 1px solid var(--color-gray-100);
+    border: 1px solid var(--color-border);
     transition: border-color 0.2s ease-in-out;
 
     &[data-active="true"] {

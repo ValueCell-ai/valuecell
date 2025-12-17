@@ -23,7 +23,7 @@ const ChatWelcomeScreen: FC<ChatWelcomeScreenProps> = ({
 
       {/* Welcome content */}
       <div className="flex flex-1 flex-col items-center justify-center gap-12">
-        <h1 className="text-center font-semibold text-3xl text-gray-950 leading-12">
+        <h1 className="text-center font-semibold text-3xl text-foreground leading-12">
           {title}
         </h1>
 
@@ -41,37 +41,37 @@ const ChatWelcomeScreen: FC<ChatWelcomeScreenProps> = ({
 };
 
 const ChatBackground = () => (
-  <div className="-z-10 absolute inset-0 overflow-hidden opacity-30">
+  <div className="-z-10 absolute inset-0 overflow-hidden opacity-30 dark:opacity-15">
     {[
       {
         left: "12%",
         top: "50%",
         size: "h-[40vh] w-[18vw]",
-        colors: "from-yellow-100 to-yellow-200",
+        colors: "from-yellow-100 to-yellow-200 dark:from-yellow-900/40 dark:to-yellow-800/30",
       },
       {
         left: "28%",
         top: "50%",
         size: "h-[38vh] w-[16vw]",
-        colors: "from-green-100 to-green-200",
+        colors: "from-green-100 to-green-200 dark:from-green-900/40 dark:to-green-800/30",
       },
       {
         left: "45%",
         top: "50%",
         size: "h-[42vh] w-[19vw]",
-        colors: "from-teal-100 to-teal-200",
+        colors: "from-teal-100 to-teal-200 dark:from-teal-900/40 dark:to-teal-800/30",
       },
       {
         left: "62%",
         top: "50%",
         size: "h-[40vh] w-[18vw]",
-        colors: "from-blue-100 to-blue-200",
+        colors: "from-blue-100 to-blue-200 dark:from-blue-900/40 dark:to-blue-800/30",
       },
       {
         left: "78%",
         top: "50%",
         size: "h-[35vh] w-[15vw]",
-        colors: "from-purple-100 to-purple-200",
+        colors: "from-purple-100 to-purple-200 dark:from-purple-900/40 dark:to-purple-800/30",
       },
     ].map((blur) => (
       <div

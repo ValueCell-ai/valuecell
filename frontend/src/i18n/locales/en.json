@@ -18,6 +18,15 @@
         "ja-JP": "日本語"
       }
     },
+    "theme": {
+      "title": "Theme",
+      "description": "Choose light, dark, or follow system settings.",
+      "options": {
+        "system": "System",
+        "light": "Light",
+        "dark": "Dark"
+      }
+    },
     "quotesColor": {
       "title": "Quotes Color",
       "description": "Choose how stock quote movements are visualized across the app.",

@@ -52,13 +52,13 @@ function AgentSuggestionsHeader({
       {...props}
     >
       {title && (
-        <h2 className="font-medium text-black text-xl leading-7">{title}</h2>
+        <h2 className="font-medium text-foreground text-xl leading-7">{title}</h2>
       )}
       {actionText && (
         <button
           type="button"
           onClick={onActionClick}
-          className="font-normal text-base text-black/60 transition-colors hover:text-black/80"
+          className="font-normal text-base text-muted-foreground transition-colors hover:text-foreground"
         >
           {actionText}
         </button>
@@ -99,7 +99,7 @@ function AgentSuggestionItem({
               {suggestion.avatars.map((avatar, index) => (
                 <div
                   key={`${suggestion.id}-avatar-${index}`}
-                  className="-mr-2 relative size-6 overflow-hidden rounded-full border-2 border-white last:mr-0"
+                  className="-mr-2 relative size-6 overflow-hidden rounded-full border-2 border-background last:mr-0"
                 >
                   {avatar}
                 </div>

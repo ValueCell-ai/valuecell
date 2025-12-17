@@ -26,7 +26,7 @@ const ChatConversationHeader: FC<ChatConversationHeaderProps> = ({ agent }) => {
 
         {/* Agent Info */}
         <div className="flex flex-col gap-1.5">
-          <h1 className="font-semibold text-gray-950 text-lg">
+          <h1 className="font-semibold text-foreground text-lg">
             {agent.display_name}
           </h1>
           <TagGroups tags={agent.agent_metadata.tags} />
@@ -40,10 +40,10 @@ const ChatConversationHeader: FC<ChatConversationHeaderProps> = ({ agent }) => {
             <TooltipTrigger asChild>
               <Button
                 variant="secondary"
-                className="size-8 cursor-pointer rounded-lg hover:bg-gray-200"
+                className="size-8 cursor-pointer rounded-lg hover:bg-muted"
                 size="icon"
               >
-                <MessageCircle size={16} className="text-gray-700" />
+                <MessageCircle size={16} className="text-foreground" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>{t("chat.newConversation")}</TooltipContent>
@@ -54,10 +54,10 @@ const ChatConversationHeader: FC<ChatConversationHeaderProps> = ({ agent }) => {
             <TooltipTrigger asChild>
               <Button
                 variant="secondary"
-                className="size-8 cursor-pointer rounded-lg hover:bg-gray-200"
+                className="size-8 cursor-pointer rounded-lg hover:bg-muted"
                 size="icon"
               >
-                <Settings size={16} className="text-gray-700" />
+                <Settings size={16} className="text-foreground" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>{t("chat.settings")}</TooltipContent>

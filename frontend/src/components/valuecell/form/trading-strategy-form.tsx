@@ -160,7 +160,7 @@ export const TradingStrategyForm = withForm({
               <form.Field name="symbols">
                 {(field) => (
                   <Field>
-                    <FieldLabel className="font-medium text-base text-gray-950">
+                    <FieldLabel className="font-medium text-base text-foreground">
                       {t("strategy.form.tradingSymbols.label")}
                     </FieldLabel>
                     <MultiSelect
@@ -195,7 +195,7 @@ export const TradingStrategyForm = withForm({
                 <form.Field name="template_id">
                   {(field) => (
                     <Field>
-                      <FieldLabel className="font-medium text-base text-gray-950">
+                      <FieldLabel className="font-medium text-base text-foreground">
                         {t("strategy.form.promptTemplate.label")}
                       </FieldLabel>
                       <div className="flex items-center gap-3">
@@ -260,7 +260,6 @@ export const TradingStrategyForm = withForm({
                           <Button
                             type="button"
                             variant="outline"
-                            className="hover:bg-gray-50"
                           >
                             <Eye />
                             {t("strategy.form.promptTemplate.view")}
@@ -296,7 +295,7 @@ export const TradingStrategyForm = withForm({
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmDeletePrompt}
-                className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                className="bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20"
               >
                 {t("strategy.action.confirmDelete")}
               </AlertDialogAction>

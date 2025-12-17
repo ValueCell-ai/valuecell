@@ -18,6 +18,15 @@
         "ja-JP": "日本語"
       }
     },
+    "theme": {
+      "title": "テーマ",
+      "description": "ライト、ダーク、またはシステム設定に従うを選択します。",
+      "options": {
+        "system": "システム",
+        "light": "ライト",
+        "dark": "ダーク"
+      }
+    },
     "quotesColor": {
       "title": "チャートの配色",
       "description": "株価の変動を視覚化する方法を選択してください。",

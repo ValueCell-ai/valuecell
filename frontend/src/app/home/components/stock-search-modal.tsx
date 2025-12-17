@@ -44,17 +44,17 @@ const StockItem = ({ stock }: { stock: Stock }) => {
   return (
     <div
       key={stock.ticker}
-      className="flex items-center justify-between px-4 py-2 transition-colors hover:bg-gray-50"
+      className="flex items-center justify-between px-4 py-2 transition-colors hover:bg-muted"
     >
       <div className="flex flex-col gap-px">
-        <p className="text-neutral-900 text-sm">{stock.display_name}</p>
-        <p className="text-neutral-400 text-xs">{stock.ticker}</p>
+        <p className="text-foreground text-sm">{stock.display_name}</p>
+        <p className="text-muted-foreground text-xs">{stock.ticker}</p>
       </div>
 
       <Button
         disabled={isPendingAddStockToWatchlist || isStockInWatchlist}
         size="sm"
-        className="cursor-pointer font-normal text-sm text-white"
+        className="cursor-pointer font-normal text-sm"
         onClick={async () =>
           await addStockToWatchlist({ ticker: stock.ticker })
         }
@@ -108,38 +108,38 @@ export default function StockSearchModal({ children }: StockSearchModalProps) {
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent
-        className="flex h-3/5 min-h-[400px] w-md flex-col gap-3 rounded-2xl bg-neutral-50 p-6"
+        className="flex h-3/5 min-h-[400px] w-md flex-col gap-3 rounded-2xl bg-card p-6"
         showCloseButton={false}
       >
         <header className="flex items-center justify-between">
-          <DialogTitle className="font-semibold text-2xl text-neutral-900">
+          <DialogTitle className="font-semibold text-2xl text-foreground">
             {t("home.search.title")}
           </DialogTitle>
           <DialogClose asChild>
             <Button size="icon" variant="ghost" className="cursor-pointer">
-              <X className="size-6 text-neutral-400" />
+              <X className="size-6 text-muted-foreground" />
             </Button>
           </DialogClose>
         </header>
 
         {/* Search Input */}
-        <div className="flex items-center gap-4 rounded-lg bg-white px-4 py-2 focus-within:ring-neutral-600! hover:ring-1 hover:ring-neutral-200">
-          <Search className="size-5 text-neutral-400" />
+        <div className="flex items-center gap-4 rounded-lg bg-background px-4 py-2 focus-within:ring-2 focus-within:ring-ring/50 hover:ring-1 hover:ring-border">
+          <Search className="size-5 text-muted-foreground" />
           <Input
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("home.search.placeholder")}
-            className="border-none bg-transparent p-0 text-neutral-900 text-sm shadow-none placeholder:text-neutral-400 focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="border-none bg-transparent p-0 text-foreground text-sm shadow-none placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
           />
         </div>
 
         {/* Search Results */}
         <div className="scroll-container">
           {isLoading ? (
-            <p className="p-4 text-center text-neutral-400 text-sm">
+            <p className="p-4 text-center text-muted-foreground text-sm">
               {t("home.search.searching")}
             </p>
           ) : filteredStockList && filteredStockList.length > 0 ? (
-            <div className="rounded-lg bg-white py-2">
+            <div className="rounded-lg bg-background py-2">
               {filteredStockList.map((stock) => (
                 <StockItem key={stock.ticker} stock={stock} />
               ))}
@@ -149,7 +149,7 @@ export default function StockSearchModal({ children }: StockSearchModalProps) {
             !isLoading &&
             stockList &&
             filteredStockList.length === 0 && (
-              <p className="p-4 text-center text-neutral-400 text-sm">
+              <p className="p-4 text-center text-muted-foreground text-sm">
                 {t("home.search.noResults")}
               </p>
             )

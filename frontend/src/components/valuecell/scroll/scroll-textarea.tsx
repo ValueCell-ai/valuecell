@@ -93,7 +93,7 @@ function ScrollTextarea({
         ref={textareaRef}
         onInput={handleInput}
         className={cn(
-          "w-full resize-none border-0 bg-transparent p-0 text-base leading-5.5 outline-none placeholder:text-gray-400",
+          "w-full resize-none border-0 bg-transparent p-0 text-base leading-5.5 outline-none placeholder:text-muted-foreground",
           className,
         )}
         {...props}

@@ -13,7 +13,7 @@ export const RadioField: FC<RadioFieldProps> = ({ label, children }) => {
 
   return (
     <Field>
-      <FieldLabel className="font-medium text-base text-gray-950">
+      <FieldLabel className="font-medium text-base text-foreground">
         {label}
       </FieldLabel>
       <RadioGroup

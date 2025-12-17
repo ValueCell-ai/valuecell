@@ -18,6 +18,15 @@
         "ja-JP": "日本語"
       }
     },
+    "theme": {
+      "title": "主题",
+      "description": "选择浅色、深色或跟随系统。",
+      "options": {
+        "system": "跟随系统",
+        "light": "浅色",
+        "dark": "深色"
+      }
+    },
     "quotesColor": {
       "title": "行情颜色",
       "description": "选择股票行情涨跌的显示颜色。",
