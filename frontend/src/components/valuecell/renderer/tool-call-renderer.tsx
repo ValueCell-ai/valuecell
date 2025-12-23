@@ -30,7 +30,7 @@ const ToolCallRenderer: FC<ToolCallRendererProps> = ({ content }) => {
         )}
         disabled={!tool_result}
       >
-        <div className="flex items-center gap-2 text-gray-950">
+        <div className="flex items-center gap-2 text-foreground">
           {tool_result ? (
             <Search className="size-5" />
           ) : (
@@ -41,7 +41,7 @@ const ToolCallRenderer: FC<ToolCallRendererProps> = ({ content }) => {
         {tool_result_array && (
           <ChevronDown
             className={cn(
-              "h-6 w-6 text-gray-950 transition-transform",
+              "h-6 w-6 text-muted-foreground transition-transform",
               isOpen && "rotate-180",
             )}
           />

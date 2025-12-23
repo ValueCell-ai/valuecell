@@ -97,7 +97,7 @@ export const CopyStrategyForm = withForm({
               <form.Field name="symbols">
                 {(field) => (
                   <Field>
-                    <FieldLabel className="font-medium text-base text-gray-950">
+                    <FieldLabel className="font-medium text-base text-foreground">
                       Trading Symbols
                     </FieldLabel>
                     <MultiSelect
@@ -128,10 +128,10 @@ export const CopyStrategyForm = withForm({
                 <form.Field name="prompt">
                   {(field) => (
                     <Field>
-                      <FieldLabel className="font-medium text-base text-gray-950">
+                      <FieldLabel className="font-medium text-base text-foreground">
                         System Prompt Template
                       </FieldLabel>
-                      <div className="text-gray-500 text-sm">
+                      <div className="text-muted-foreground text-sm">
                         {field.state.value}
                       </div>
                       <FieldError errors={field.state.meta.errors} />

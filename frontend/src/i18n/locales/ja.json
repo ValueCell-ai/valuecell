@@ -18,6 +18,15 @@
         "ja-JP": "日本語"
       }
     },
+    "theme": {
+      "title": "テーマ",
+      "description": "ライト、ダーク、またはシステム設定に従うを選択します。",
+      "options": {
+        "system": "システム",
+        "light": "ライト",
+        "dark": "ダーク"
+      }
+    },
     "quotesColor": {
       "title": "チャートの配色",
       "description": "株価の変動を視覚化する方法を選択してください。",
@@ -27,6 +36,29 @@
     "updates": {
       "title": "アプリアップデート",
       "check": "アップデートを確認"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "サインイン",
+      "tagline": "金融エージェント向けの最初のオープンソースプラットフォーム。",
+      "providers": {
+        "google": "Google",
+        "apple": "Apple"
+      },
+      "actions": {
+        "continueWith": "{{provider}}で続行"
+      },
+      "errors": {
+        "timeout": {
+          "title": "サインインがタイムアウトしました",
+          "description": "もう一度お試しください。"
+        },
+        "failed": {
+          "title": "{{provider}}でのサインインに失敗しました",
+          "description": "情報: {{info}}"
+        }
+      }
     }
   },
   "settings": {

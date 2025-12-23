@@ -62,7 +62,9 @@ const PositionRow: FC<PositionRowProps> = ({ position }) => {
             src={getCoinCapIcon(position.symbol)}
             callback={ValueCellAgentPng}
           />
-          <p className="font-medium text-gray-950 text-sm">{position.symbol}</p>
+          <p className="font-medium text-foreground text-sm">
+            {position.symbol}
+          </p>
         </div>
       </TableCell>
       <TableCell>
@@ -76,12 +78,14 @@ const PositionRow: FC<PositionRowProps> = ({ position }) => {
         </Badge>
       </TableCell>
       <TableCell>
-        <p className="font-medium text-gray-950 text-sm">
+        <p className="font-medium text-foreground text-sm">
           {position.leverage}X
         </p>
       </TableCell>
       <TableCell>
-        <p className="font-medium text-gray-950 text-sm">{position.quantity}</p>
+        <p className="font-medium text-foreground text-sm">
+          {position.quantity}
+        </p>
       </TableCell>
       <TableCell>
         <p
@@ -150,7 +154,7 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
       {/* Portfolio Value History Section */}
       <div className="flex flex-1 flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-base text-gray-950">
+          <h3 className="font-semibold text-base text-foreground">
             {t("strategy.portfolio.title")}
           </h3>
           {isTauriApp &&
@@ -191,28 +195,28 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
         </div>
 
         <div className="grid grid-cols-3 gap-4 text-nowrap">
-          <div className="rounded-lg bg-gray-50 p-4">
-            <p className="text-gray-500 text-sm">
+          <div className="rounded-lg bg-muted p-4">
+            <p className="text-muted-foreground text-sm">
               {t("strategy.portfolio.totalEquity")}
             </p>
-            <p className="mt-1 font-semibold text-gray-900 text-lg">
+            <p className="mt-1 font-semibold text-foreground text-lg">
               {numberFixed(summary?.total_value, 4)}
             </p>
           </div>
-          <div className="rounded-lg bg-gray-50 p-4">
-            <p className="text-gray-500 text-sm">
+          <div className="rounded-lg bg-muted p-4">
+            <p className="text-muted-foreground text-sm">
               {t("strategy.portfolio.availableBalance")}
             </p>
-            <p className="mt-1 font-semibold text-gray-900 text-lg">
+            <p className="mt-1 font-semibold text-foreground text-lg">
               {numberFixed(summary?.cash, 4)}
             </p>
           </div>
-          <div className="rounded-lg bg-gray-50 p-4">
-            <p className="text-gray-500 text-sm">
+          <div className="rounded-lg bg-muted p-4">
+            <p className="text-muted-foreground text-sm">
               {t("strategy.portfolio.totalPnl")}
             </p>
             <p
-              className="mt-1 font-semibold text-gray-900 text-lg"
+              className="mt-1 font-semibold text-foreground text-lg"
               style={{ color: stockColors[changeType] }}
             >
               {numberFixed(summary?.total_pnl, 4)}
@@ -224,16 +228,16 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
           {hasPriceCurve ? (
             <MultiLineChart data={priceCurve} showLegend={false} />
           ) : (
-            <div className="flex h-full items-center justify-center rounded-xl bg-gray-50">
+            <div className="flex h-full items-center justify-center rounded-xl bg-muted">
               <div className="flex flex-col items-center gap-4 px-6 py-12 text-center">
-                <div className="flex size-14 items-center justify-center rounded-full bg-gray-100">
-                  <LineChart className="size-7 text-gray-400" />
+                <div className="flex size-14 items-center justify-center rounded-full bg-muted">
+                  <LineChart className="size-7 text-muted-foreground" />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <p className="font-semibold text-base text-gray-700">
+                  <p className="font-semibold text-base text-foreground">
                     {t("strategy.portfolio.noData")}
                   </p>
-                  <p className="max-w-xs text-gray-500 text-sm leading-relaxed">
+                  <p className="max-w-xs text-muted-foreground text-sm leading-relaxed">
                     {t("strategy.portfolio.noDataDesc")}
                   </p>
                 </div>
@@ -245,7 +249,7 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
 
       {/* Positions Section */}
       <div className="flex flex-col gap-4">
-        <h3 className="font-semibold text-base text-gray-950">
+        <h3 className="font-semibold text-base text-foreground">
           {t("strategy.positions.title")}
         </h3>
         {hasPositions ? (
@@ -253,27 +257,27 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
             <TableHeader>
               <TableRow>
                 <TableHead>
-                  <p className="font-normal text-gray-400 text-sm">
+                  <p className="font-normal text-muted-foreground text-sm">
                     {t("strategy.positions.symbol")}
                   </p>
                 </TableHead>
                 <TableHead>
-                  <p className="font-normal text-gray-400 text-sm">
+                  <p className="font-normal text-muted-foreground text-sm">
                     {t("strategy.positions.type")}
                   </p>
                 </TableHead>
                 <TableHead>
-                  <p className="font-normal text-gray-400 text-sm">
+                  <p className="font-normal text-muted-foreground text-sm">
                     {t("strategy.positions.leverage")}
                   </p>
                 </TableHead>
                 <TableHead>
-                  <p className="font-normal text-gray-400 text-sm">
+                  <p className="font-normal text-muted-foreground text-sm">
                     {t("strategy.positions.quantity")}
                   </p>
                 </TableHead>
                 <TableHead>
-                  <p className="font-normal text-gray-400 text-sm">
+                  <p className="font-normal text-muted-foreground text-sm">
                     {t("strategy.positions.pnl")}
                   </p>
                 </TableHead>
@@ -289,16 +293,16 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
             </TableBody>
           </Table>
         ) : (
-          <div className="flex min-h-[240px] items-center justify-center rounded-xl bg-gray-50">
+          <div className="flex min-h-[240px] items-center justify-center rounded-xl bg-muted">
             <div className="flex flex-col items-center gap-4 px-6 py-10 text-center">
-              <div className="flex size-12 items-center justify-center rounded-full bg-gray-100">
-                <Wallet className="size-6 text-gray-400" />
+              <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+                <Wallet className="size-6 text-muted-foreground" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <p className="font-semibold text-gray-700 text-sm">
+                <p className="font-semibold text-foreground text-sm">
                   {t("strategy.positions.noOpen")}
                 </p>
-                <p className="max-w-xs text-gray-500 text-xs leading-relaxed">
+                <p className="max-w-xs text-muted-foreground text-xs leading-relaxed">
                   {t("strategy.positions.noOpenDesc")}
                 </p>
               </div>

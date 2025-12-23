@@ -1,3 +1,4 @@
+import { useTheme } from "next-themes";
 import { useTranslation } from "react-i18next";
 import { useSignOut } from "@/api/system";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,7 @@ import { useIsLoggedIn, useSystemInfo } from "@/store/system-store";
 
 export default function GeneralPage() {
   const { t } = useTranslation();
+  const { theme, setTheme } = useTheme();
   const stockColorMode = useStockColorMode();
   const language = useLanguage();
   const { setStockColorMode, setLanguage } = useSettingsActions();
@@ -44,10 +46,8 @@ export default function GeneralPage() {
   return (
     <div className="flex flex-1 flex-col gap-4 p-10">
       <div className="flex flex-col gap-1.5">
-        <h1 className="font-bold text-gray-950 text-xl">
-          {t("general.title")}
-        </h1>
-        <p className="font-normal text-gray-500 text-sm">
+        <h1 className="font-bold text-xl">{t("general.title")}</h1>
+        <p className="font-normal text-muted-foreground text-sm">
           {t("general.description")}
         </p>
       </div>
@@ -56,7 +56,7 @@ export default function GeneralPage() {
         {isTauriApp && (
           <Field orientation="horizontal">
             <FieldContent>
-              <FieldTitle className="font-medium text-base text-gray-950">
+              <FieldTitle className="font-medium text-base">
                 {t("general.account.title")}
               </FieldTitle>
               <FieldDescription>
@@ -81,7 +81,7 @@ export default function GeneralPage() {
 
         <Field orientation="horizontal">
           <FieldContent>
-            <FieldTitle className="font-medium text-base text-gray-950">
+            <FieldTitle className="font-medium text-base">
               {t("general.language.title")}
             </FieldTitle>
             <FieldDescription>
@@ -106,7 +106,37 @@ export default function GeneralPage() {
 
         <Field orientation="horizontal">
           <FieldContent>
-            <FieldTitle className="font-medium text-base text-gray-950">
+            <FieldTitle className="font-medium text-base">
+              {t("general.theme.title")}
+            </FieldTitle>
+            <FieldDescription>
+              {t("general.theme.description")}
+            </FieldDescription>
+          </FieldContent>
+          <Select
+            value={theme ?? "system"}
+            onValueChange={(value) => setTheme(value)}
+          >
+            <SelectTrigger className="w-[280px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="system">
+                {t("general.theme.options.system")}
+              </SelectItem>
+              <SelectItem value="light">
+                {t("general.theme.options.light")}
+              </SelectItem>
+              <SelectItem value="dark">
+                {t("general.theme.options.dark")}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+
+        <Field orientation="horizontal">
+          <FieldContent>
+            <FieldTitle className="font-medium text-base">
               {t("general.quotesColor.title")}
             </FieldTitle>
             <FieldDescription>
@@ -121,14 +151,14 @@ export default function GeneralPage() {
             }
           >
             <FieldLabel
-              className="flex cursor-pointer items-center space-x-3 text-nowrap rounded-lg border border-gray-200 p-3"
+              className="flex cursor-pointer items-center space-x-3 text-nowrap rounded-lg border border-border p-3"
               htmlFor="green-up"
             >
               <RadioGroupItem value="GREEN_UP_RED_DOWN" id="green-up" />
               {t("general.quotesColor.greenUpRedDown")}
             </FieldLabel>
             <FieldLabel
-              className="flex cursor-pointer items-center space-x-3 text-nowrap rounded-lg border border-gray-200 p-3"
+              className="flex cursor-pointer items-center space-x-3 text-nowrap rounded-lg border border-border p-3"
               htmlFor="red-up"
             >
               <RadioGroupItem value="RED_UP_GREEN_DOWN" id="red-up" />
@@ -139,7 +169,7 @@ export default function GeneralPage() {
 
         {isTauriApp && (
           <Field orientation="responsive">
-            <FieldTitle className="flex items-center gap-2 font-medium text-base text-gray-950">
+            <FieldTitle className="flex items-center gap-2 font-medium text-base">
               {t("general.updates.title")}
               {appVersion && <Badge variant="secondary">v{appVersion}</Badge>}
             </FieldTitle>

@@ -24,8 +24,8 @@ export const StepIndicator: FC<StepIndicatorProps> = ({
   ) => {
     if (isCompleted) {
       return (
-        <div className="flex size-6 items-center justify-center rounded-full bg-gray-950">
-          <Check className="size-3 text-white" />
+        <div className="flex size-6 items-center justify-center rounded-full bg-primary">
+          <Check className="size-3 text-primary-foreground" />
         </div>
       );
     }
@@ -34,12 +34,12 @@ export const StepIndicator: FC<StepIndicatorProps> = ({
       <div className="relative flex size-6 items-center justify-center">
         <div
           className={`absolute inset-0 rounded-full border-2 ${
-            isCurrent ? "border-gray-950 bg-gray-950" : "border-black/40"
+            isCurrent ? "border-primary bg-primary" : "border-border"
           }`}
         />
         <span
           className={`relative font-semibold text-base ${
-            isCurrent ? "text-white" : "text-black/40"
+            isCurrent ? "text-primary-foreground" : "text-muted-foreground"
           }`}
         >
           {step}
@@ -67,7 +67,7 @@ export const StepIndicator: FC<StepIndicatorProps> = ({
               <div className="flex min-w-0 flex-1 items-center gap-3 pr-3">
                 <span
                   className={`shrink-0 whitespace-nowrap text-base ${
-                    isActive ? "text-black/90" : "text-black/40"
+                    isActive ? "text-foreground" : "text-muted-foreground"
                   }`}
                 >
                   {step.title}
@@ -76,7 +76,7 @@ export const StepIndicator: FC<StepIndicatorProps> = ({
                 {!isLast && (
                   <div
                     className={`h-0.5 min-w-0 flex-1 ${
-                      isCompleted ? "bg-gray-950" : "bg-gray-200"
+                      isCompleted ? "bg-primary" : "bg-border"
                     }`}
                   />
                 )}

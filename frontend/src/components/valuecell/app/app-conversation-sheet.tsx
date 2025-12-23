@@ -50,11 +50,11 @@ const AppConversationSheet: FC<{ children: ReactNode }> = ({ children }) => {
 
         <SidebarMenu className="scroll-container gap-[5px] px-4">
           {isLoading ? (
-            <div className="px-2 py-4 text-center text-gray-400 text-sm">
+            <div className="px-2 py-4 text-center text-muted-foreground text-sm">
               {t("chat.conversationList.loading")}
             </div>
           ) : conversations.length === 0 ? (
-            <div className="px-2 py-4 text-center text-gray-400 text-sm">
+            <div className="px-2 py-4 text-center text-muted-foreground text-sm">
               {t("chat.conversationList.empty")}
             </div>
           ) : (
@@ -79,7 +79,7 @@ const AppConversationSheet: FC<{ children: ReactNode }> = ({ children }) => {
                           {conversation.title}
                         </span>
                       </div>
-                      <span className="w-full font-normal text-gray-400 text-xs leading-[18px]">
+                      <span className="w-full font-normal text-muted-foreground text-xs leading-[18px]">
                         {TimeUtils.formatUTC(
                           conversation.update_time,
                           TIME_FORMATS.DATE,

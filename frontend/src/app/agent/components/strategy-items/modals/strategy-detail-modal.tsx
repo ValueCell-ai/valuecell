@@ -98,13 +98,13 @@ const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
                   >
                     {numberFixed(strategyDetail.return_rate_pct, 2)}%
                   </div>
-                  <div className="text-gray-500 text-sm">
+                  <div className="text-muted-foreground text-sm">
                     {t("strategy.detail.returnRate")}
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-[auto_1fr] gap-y-2 text-nowrap text-sm [&>p]:text-gray-500 [&>span]:text-right">
+              <div className="grid grid-cols-[auto_1fr] gap-y-2 text-nowrap text-sm [&>p]:text-muted-foreground [&>span]:text-right">
                 <p>{t("strategy.detail.strategyType")}</p>
                 <span>
                   {t(`strategy.types.${strategyDetail.strategy_type}`)}
@@ -132,10 +132,10 @@ const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
               </div>
 
               <div className="gap-2">
-                <span className="text-gray-500 text-sm">
+                <span className="text-muted-foreground text-sm">
                   {t("strategy.detail.prompt")}
                 </span>
-                <p className="rounded-md bg-gray-50 p-3 text-gray-700 text-sm">
+                <p className="rounded-md bg-muted p-3 text-foreground text-sm">
                   {strategyDetail.prompt}
                 </p>
               </div>

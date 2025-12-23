@@ -65,7 +65,7 @@ const NewPromptModal: FC<NewPromptModalProps> = ({ onSave, children }) => {
         showCloseButton={false}
         aria-describedby={undefined}
       >
-        <DialogTitle className="flex items-center justify-between font-medium text-gray-950 text-lg">
+        <DialogTitle className="flex items-center justify-between font-medium text-foreground text-lg">
           Create New Prompt
           <CloseButton onClick={handleCancel} />
         </DialogTitle>
@@ -76,7 +76,7 @@ const NewPromptModal: FC<NewPromptModalProps> = ({ onSave, children }) => {
             <form.Field name="name">
               {(field) => (
                 <Field>
-                  <FieldLabel className="font-medium text-base text-gray-950">
+                  <FieldLabel className="font-medium text-base text-foreground">
                     Prompt Name
                   </FieldLabel>
                   <Input
@@ -94,7 +94,7 @@ const NewPromptModal: FC<NewPromptModalProps> = ({ onSave, children }) => {
             <form.Field name="content">
               {(field) => (
                 <Field>
-                  <FieldLabel className="font-medium text-base text-gray-950">
+                  <FieldLabel className="font-medium text-base text-foreground">
                     Prompt Template
                   </FieldLabel>
                   <Textarea
@@ -122,7 +122,7 @@ const NewPromptModal: FC<NewPromptModalProps> = ({ onSave, children }) => {
           </Button>
           <Button
             type="submit"
-            className="flex-1 py-4 font-semibold text-base text-white hover:bg-gray-800"
+            className="flex-1 py-4 font-semibold text-base"
             onClick={form.handleSubmit}
             disabled={isSaving}
           >

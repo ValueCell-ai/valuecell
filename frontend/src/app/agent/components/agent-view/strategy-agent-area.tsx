@@ -27,10 +27,24 @@ const EmptyIllustration = () => (
     xmlns="http://www.w3.org/2000/svg"
     className="h-[185px] w-[258px]"
   >
-    <rect x="40" y="30" width="178" height="125" rx="8" fill="#F3F4F6" />
-    <rect x="60" y="60" width="138" height="8" rx="4" fill="#E5E7EB" />
-    <rect x="60" y="80" width="100" height="8" rx="4" fill="#E5E7EB" />
-    <rect x="60" y="100" width="120" height="8" rx="4" fill="#E5E7EB" />
+    <rect
+      x="40"
+      y="30"
+      width="178"
+      height="125"
+      rx="8"
+      className="fill-muted"
+    />
+    <rect x="60" y="60" width="138" height="8" rx="4" className="fill-border" />
+    <rect x="60" y="80" width="100" height="8" rx="4" className="fill-border" />
+    <rect
+      x="60"
+      y="100"
+      width="120"
+      height="8"
+      rx="4"
+      className="fill-border"
+    />
   </svg>
 );
 
@@ -79,9 +93,9 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
   if (isLoadingStrategies) return null;
 
   return (
-    <div className="flex flex-1 overflow-hidden">
+    <div className="flex flex-1 overflow-hidden bg-muted/30">
       {/* Left section: Strategy list */}
-      <div className="flex w-96 flex-col gap-4 border-r py-6 *:px-6">
+      <div className="flex w-96 flex-col gap-4 border-r bg-card py-6 *:px-6">
         <p className="font-semibold text-base">{t("strategy.title")}</p>
 
         {strategies && strategies.length > 0 ? (
@@ -99,7 +113,7 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-4">
             <EmptyIllustration />
-            <div className="flex flex-col gap-3 text-center text-base text-gray-400">
+            <div className="flex flex-col gap-3 text-center text-base text-muted-foreground">
               <p>{t("strategy.noStrategies")}</p>
               <p>{t("strategy.createFirst")}</p>
             </div>
@@ -135,7 +149,7 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
         ) : (
           <div className="flex size-full flex-col items-center justify-center gap-8">
             <EmptyIllustration />
-            <p className="font-normal text-base text-gray-400">
+            <p className="font-normal text-base text-muted-foreground">
               {t("strategy.noStrategies")}
             </p>
           </div>

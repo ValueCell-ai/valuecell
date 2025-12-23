@@ -41,7 +41,7 @@ export default function RankBoard() {
     if (rank === 1) return <Rank1Icon />;
     if (rank === 2) return <Rank2Icon />;
     if (rank === 3) return <Rank3Icon />;
-    return <span className="text-gray-950 text-sm">{rank}</span>;
+    return <span className="text-foreground text-sm">{rank}</span>;
   };
 
   const handleViewStrategy = (strategyId: number) => {
@@ -49,7 +49,7 @@ export default function RankBoard() {
   };
 
   return (
-    <div className="flex size-full flex-col p-6">
+    <div className="flex size-full flex-col bg-card p-6">
       <Card className="border-none p-0 shadow-none">
         <CardHeader className="flex flex-row items-center justify-between px-0">
           <CardTitle className="font-bold text-xl">{t("rank.title")}</CardTitle>
@@ -88,7 +88,7 @@ export default function RankBoard() {
                   </TableRow>
                 ) : (
                   strategies?.map((strategy, index) => (
-                    <TableRow key={strategy.id} className="hover:bg-gray-50/50">
+                    <TableRow key={strategy.id} className="hover:bg-muted/50">
                       <TableCell className="font-medium">
                         <div className="flex w-8 items-center justify-center">
                           {getRankIcon(index + 1)}
