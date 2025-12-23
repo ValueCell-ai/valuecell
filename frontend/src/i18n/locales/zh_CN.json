@@ -1,0 +1,402 @@
+{
+  "general": {
+    "title": "通用",
+    "description": "管理您的首选项和应用程序设置。",
+    "account": {
+      "title": "账户",
+      "signInDesc": "登录以开始使用 Valuecell AI 功能。",
+      "signOut": "退出登录",
+      "signIn": "登录"
+    },
+    "language": {
+      "title": "语言和区域",
+      "description": "选择您喜欢的应用程序语言和区域格式。",
+      "options": {
+        "en-US": "English (United States)",
+        "zh-Hans": "简体中文",
+        "zh-Hant": "繁體中文",
+        "ja-JP": "日本語"
+      }
+    },
+    "theme": {
+      "title": "主题",
+      "description": "选择浅色、深色或跟随系统。",
+      "options": {
+        "system": "跟随系统",
+        "light": "浅色",
+        "dark": "深色"
+      }
+    },
+    "quotesColor": {
+      "title": "行情颜色",
+      "description": "选择股票行情涨跌的显示颜色。",
+      "greenUpRedDown": "绿涨红跌",
+      "redUpGreenDown": "红涨绿跌"
+    },
+    "updates": {
+      "title": "应用更新",
+      "check": "检查更新"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "登录",
+      "tagline": "首个开源金融智能体平台。",
+      "providers": {
+        "google": "Google",
+        "apple": "Apple"
+      },
+      "actions": {
+        "continueWith": "使用 {{provider}} 继续"
+      },
+      "errors": {
+        "timeout": {
+          "title": "登录超时",
+          "description": "请重试。"
+        },
+        "failed": {
+          "title": "使用 {{provider}} 登录失败",
+          "description": "错误信息：{{info}}"
+        }
+      }
+    }
+  },
+  "settings": {
+    "title": "设置",
+    "nav": {
+      "models": "模型",
+      "general": "通用",
+      "memory": "记忆"
+    },
+    "models": {
+      "title": "模型提供商",
+      "noProviders": "无可用提供商。",
+      "loading": "正在加载提供商详情...",
+      "defaultProvider": "默认提供商",
+      "apiKey": "API密钥",
+      "enterApiKey": "输入API密钥",
+      "getApiKey": "点击此处获取API密钥",
+      "apiHost": "API主机",
+      "models": "模型",
+      "add": "添加",
+      "addModel": "添加模型",
+      "modelId": "模型ID",
+      "enterModelId": "输入模型ID",
+      "modelName": "模型名称",
+      "enterModelName": "输入模型名称",
+      "cancel": "取消",
+      "confirm": "确认",
+      "noModels": "该提供商未配置任何模型。",
+      "hidePassword": "隐藏密码",
+      "showPassword": "显示密码",
+      "waitingForCheck": "等待检测",
+      "checkAvailability": "检查可用性",
+      "available": "可用",
+      "unavailable": "不可用"
+    },
+    "memory": {
+      "title": "保留记忆",
+      "description": "我将记住并自动管理聊天中的有用信息，以增强回复的个性化和相关性。",
+      "loading": "加载中...",
+      "noMemories": "暂无记忆",
+      "delete": "删除"
+    }
+  },
+  "common": {
+    "back": "返回"
+  },
+  "market": {
+    "title": "Agent市场"
+  },
+  "agent": {
+    "welcome": "欢迎使用 {{name}}!",
+    "unknown": "未知Agent",
+    "status": {
+      "running": "运行中"
+    },
+    "action": {
+      "view": "查看"
+    },
+    "config": {
+      "disable": "禁用",
+      "chat": "聊天",
+      "collectAndChat": "收藏并聊天"
+    }
+  },
+  "chat": {
+    "input": {
+      "placeholder": "输入消息..."
+    },
+    "newConversation": "新对话",
+    "settings": "设置",
+    "conversationList": {
+      "title": "对话列表",
+      "loading": "加载中...",
+      "empty": "暂无对话"
+    },
+    "action": {
+      "delete": "删除"
+    }
+  },
+  "strategy": {
+    "types": {
+      "PromptBasedStrategy": "提示词策略",
+      "GridStrategy": "网格策略"
+    },
+    "providers": {
+      "azure": "微软Azure OpenAI",
+      "dashscope": "阿里云",
+      "deepseek": "深度求索",
+      "google": "谷歌云",
+      "openai": "OpenAI",
+      "openai-compatible": "OpenAI兼容API",
+      "openrouter": "OpenRouter",
+      "siliconflow": "硅基流动"
+    },
+    "title": "交易策略",
+    "add": "添加交易策略",
+    "noStrategies": "暂无交易策略",
+    "createFirst": "创建您的第一个策略以开始交易",
+    "status": {
+      "running": "运行中",
+      "stopped": "已停止",
+      "live": "实盘",
+      "virtual": "虚拟"
+    },
+    "action": {
+      "stop": "停止交易策略？",
+      "stopDesc": "停止策略 \"{{name}}\" 将立即停止它并触发强制平仓。您确定要继续吗？",
+      "confirmStop": "确认停止",
+      "delete": "删除",
+      "deleteTitle": "删除策略？",
+      "deleteDesc": "删除策略 \"{{name}}\" 将立即停止它并触发强制平仓。您确定要继续吗？",
+      "confirmDelete": "确认删除",
+      "details": "详情",
+      "duplicate": "复制",
+      "cancel": "取消",
+      "back": "返回",
+      "next": "下一步",
+      "confirm": "确认",
+      "publish": "发布",
+      "shareToSocial": "分享到社交媒体",
+      "shareToRanking": "分享到排行榜"
+    },
+    "portfolio": {
+      "title": "投资组合价值历史",
+      "totalEquity": "总权益",
+      "availableBalance": "可用余额",
+      "totalPnl": "总盈亏",
+      "noData": "暂无投资组合价值数据",
+      "noDataDesc": "交易开始后将显示投资组合价值图表"
+    },
+    "positions": {
+      "title": "持仓",
+      "symbol": "标的",
+      "type": "类型",
+      "leverage": "杠杆",
+      "quantity": "数量",
+      "pnl": "盈亏",
+      "noOpen": "暂无持仓",
+      "noOpenDesc": "开仓后将在此处显示持仓"
+    },
+    "create": {
+      "title": "添加交易策略",
+      "steps": {
+        "aiModels": "AI模型",
+        "exchanges": "交易所",
+        "tradingStrategy": "交易策略"
+      },
+      "error": "创建策略失败"
+    },
+    "form": {
+      "strategyType": {
+        "label": "策略类型",
+        "promptBased": "提示词策略",
+        "grid": "网格策略"
+      },
+      "strategyName": {
+        "label": "策略名称",
+        "placeholder": "输入策略名称"
+      },
+      "initialCapital": {
+        "label": "初始资金",
+        "placeholder": "输入初始资金"
+      },
+      "maxLeverage": {
+        "label": "最大杠杆",
+        "placeholder": "最大杠杆"
+      },
+      "decideInterval": {
+        "label": "决策间隔 (秒)",
+        "placeholder": "例如: 300"
+      },
+      "tradingSymbols": {
+        "label": "交易对",
+        "placeholder": "选择交易对...",
+        "searchPlaceholder": "搜索或添加交易对...",
+        "emptyText": "未找到交易对。"
+      },
+      "promptTemplate": {
+        "label": "系统提示词模板",
+        "new": "新建提示词",
+        "view": "查看策略"
+      },
+      "aiModels": {
+        "platform": "模型平台",
+        "model": "选择模型",
+        "noModels": "暂无可用模型",
+        "apiKey": {
+          "label": "API Key",
+          "placeholder": "输入 API Key"
+        }
+      },
+      "exchanges": {
+        "transactionType": "交易类型",
+        "liveTrading": "实盘交易",
+        "virtualTrading": "模拟交易",
+        "selectExchange": "选择交易所",
+        "walletAddress": "钱包地址",
+        "privateKey": "私钥",
+        "apiKey": "API Key",
+        "secretKey": "Secret Key",
+        "passphrase": "Passphrase",
+        "testConnection": "测试连接",
+        "test": {
+          "success": "连接成功！",
+          "failed": "连接失败。请检查您的API Key, Secret Key或Passphrase。"
+        },
+        "placeholder": {
+          "binance": {
+            "apiKey": "输入API Key (64字符)",
+            "secretKey": "输入Secret Key (64字符)"
+          },
+          "okx": {
+            "apiKey": "输入API Key (格式: xxxxxxxx-xxxx-...)",
+            "secretKey": "输入Secret Key (32大写字母和数字)",
+            "passphrase": "输入Passphrase (API创建时设置)"
+          },
+          "gate": {
+            "apiKey": "输入API Key (以'key_'开头)",
+            "secretKey": "输入Secret Key (64字符)"
+          },
+          "hyperliquid": {
+            "walletAddress": "输入钱包地址 (以'0x'开头)",
+            "privateKey": "输入私钥 (64字符)"
+          },
+          "blockchain": {
+            "apiKey": "输入API Key (格式: xxxxxxxx-xxxx-...)",
+            "secretKey": "输入Secret Key"
+          },
+          "coinbase": {
+            "apiKey": "输入API Key (或Key Name)",
+            "secretKey": "输入API Secret (或Private Key)",
+            "passphrase": "输入Passphrase (Legacy Pro API需要)"
+          },
+          "mexc": {
+            "apiKey": "输入Access Key (以 'mx0' 开头)",
+            "secretKey": "输入Secret Key (通常32字符)"
+          },
+          "default": {
+            "apiKey": "在此粘贴API Key",
+            "secretKey": "在此粘贴Secret Key",
+            "passphrase": "输入Passphrase",
+            "walletAddress": "输入钱包地址",
+            "privateKey": "输入私钥"
+          }
+        }
+      }
+    },
+    "prompt": {
+      "delete": {
+        "title": "删除策略提示词",
+        "description": "您确定要删除此策略提示词吗？此操作无法撤消，并将从系统中永久删除该提示词。"
+      }
+    },
+    "detail": {
+      "title": "策略详情",
+      "loading": "加载详情中...",
+      "returnRate": "回报率",
+      "strategyType": "策略类型",
+      "modelProvider": "模型提供商",
+      "modelId": "模型ID",
+      "initialCapital": "初始资金",
+      "maxLeverage": "最大杠杆",
+      "tradingSymbols": "交易对",
+      "prompt": "提示词"
+    },
+    "history": {
+      "title": "交易历史",
+      "live": "实盘交易",
+      "virtual": "模拟交易",
+      "cycle": "周期 #{{index}}",
+      "aiReasoning": "AI推理逻辑",
+      "operation": "执行操作",
+      "empty": {
+        "title": "暂无交易历史",
+        "desc": "您完成的交易将显示在这里"
+      },
+      "details": {
+        "time": "时间",
+        "price": "价格",
+        "quantity": "数量",
+        "holdingTime": "持仓时间",
+        "tradingFee": "交易费用",
+        "reasoning": "推理"
+      }
+    }
+  },
+  "rank": {
+    "title": "收益排行榜",
+    "table": {
+      "rank": "排名",
+      "user": "用户",
+      "pnl": "盈亏",
+      "strategy": "策略",
+      "exchange": "交易所",
+      "model": "模型",
+      "details": "详情",
+      "loading": "加载中..."
+    }
+  },
+  "home": {
+    "hello": "👋 您好，投资者！",
+    "welcome": "👋 欢迎来到 ValueCell !",
+    "watchlist": "我的自选股",
+    "stock": {
+      "loading": "正在加载股票数据...",
+      "error": "加载股票数据失败: {{message}}",
+      "remove": "移除",
+      "removing": "移除中...",
+      "add": "添加股票",
+      "about": "简介",
+      "sector": "板块:",
+      "industry": "行业:",
+      "website": "官网:"
+    },
+    "search": {
+      "title": "搜索股票",
+      "placeholder": "搜索股票名称或代码",
+      "searching": "搜索中...",
+      "noResults": "未找到相关股票",
+      "action": {
+        "watch": "关注",
+        "watching": "关注中...",
+        "watched": "已关注"
+      }
+    },
+    "suggestions": {
+      "research": {
+        "title": "深度研究",
+        "description": "分析 SEC 文件，生成深度股票解读报告。"
+      },
+      "strategy": {
+        "title": "自动交易",
+        "description": "多策略智能交易，自动执行您的策略。"
+      },
+      "news": {
+        "title": "新闻推送",
+        "description": "按自定义时间表推送个性化新闻更新。"
+      }
+    }
+  }
+}

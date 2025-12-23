@@ -18,7 +18,7 @@ export const SelectField: FC<SelectFieldProps> = ({ label, children }) => {
 
   return (
     <Field>
-      <FieldLabel className="font-medium text-base text-gray-950">
+      <FieldLabel className="font-medium text-base text-foreground">
         {label}
       </FieldLabel>
       <Select value={field.state.value} onValueChange={field.handleChange}>

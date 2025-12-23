@@ -2,6 +2,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { onOpenUrl } from "@tauri-apps/plugin-deep-link";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { getUserInfo } from "@/api/system";
 import { Logo } from "@/assets/svg";
@@ -26,6 +27,7 @@ export interface LoginModalProps {
 }
 
 export default function LoginModal({ children }: LoginModalProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(
     null,
@@ -61,6 +63,11 @@ export default function LoginModal({ children }: LoginModalProps) {
   const handleLogin = async (provider: PendingAction) => {
     clearLoginHandlers();
     setPendingAction(provider);
+
+    const providerLabel =
+      provider === "gmail"
+        ? t("auth.login.providers.google")
+        : t("auth.login.providers.apple");
 
     try {
       await openUrl(`https://valuecell.ai/login?provider=${provider}`);
@@ -100,13 +107,20 @@ export default function LoginModal({ children }: LoginModalProps) {
       timeoutRef.current = window.setTimeout(
         () => {
           clearLoginHandlers();
-          toast.error("Login timed out, please try again.");
+          toast.error(t("auth.login.errors.timeout.title"), {
+            description: t("auth.login.errors.timeout.description"),
+          });
         },
         2 * 60 * 1000,
       );
     } catch (error) {
       toast.error(
-        `Failed to login with ${provider}, info: ${JSON.stringify(error)}`,
+        t("auth.login.errors.failed.title", { provider: providerLabel }),
+        {
+          description: t("auth.login.errors.failed.description", {
+            info: JSON.stringify(error),
+          }),
+        },
       );
     }
   };
@@ -126,7 +140,7 @@ export default function LoginModal({ children }: LoginModalProps) {
         aria-describedby={undefined}
       >
         <DialogTitle className="flex items-center justify-between">
-          Sign in
+          {t("auth.login.title")}
           <DialogClose asChild>
             <CloseButton />
           </DialogClose>
@@ -135,23 +149,23 @@ export default function LoginModal({ children }: LoginModalProps) {
         <div className="mt-10 flex flex-col items-center gap-3 text-center">
           <SvgIcon
             name={Logo}
-            className="size-14 rounded-full bg-black p-2.5 text-white"
+            className="size-14 rounded-full bg-primary p-2.5 text-primary-foreground"
           />
-          <p className="font-medium text-3xl text-gray-950">ValueCell</p>
-          <p className="font-medium text-gray-500 text-sm">
-            The first open-source platform for financial agents
+          <p className="font-medium text-3xl text-foreground">ValueCell</p>
+          <p className="font-medium text-muted-foreground text-sm">
+            {t("auth.login.tagline")}
           </p>
         </div>
 
         <div className="mt-10 flex flex-col gap-4 px-4 pb-4">
           <Button
             variant="outline"
-            className="relative bg-gray-50 py-6 text-base focus-visible:ring-gray-200"
+            className="relative py-6 text-base"
             onClick={() => handleLogin("gmail")}
             disabled={pendingAction !== null}
           >
             <svg
-              className="-translate-y-1/2 absolute top-1/2 left-4"
+              className="absolute top-1/2 left-4 -translate-y-1/2"
               width="16"
               height="16"
               viewBox="0 0 16 16"
@@ -174,15 +188,17 @@ export default function LoginModal({ children }: LoginModalProps) {
                 fill="#4285F4"
               />
             </svg>
-            Continue with Google
+            {t("auth.login.actions.continueWith", {
+              provider: t("auth.login.providers.google"),
+            })}
             {pendingAction === "gmail" && (
-              <Spinner className="-translate-y-1/2 absolute top-1/2 right-4" />
+              <Spinner className="absolute top-1/2 right-4 -translate-y-1/2" />
             )}
           </Button>
           {/* 
             <Button
               variant="outline"
-              className="relative bg-gray-50 py-6 text-base focus-visible:ring-gray-200"
+              className="relative py-6 text-base"
               onClick={() => handleLogin("apple")}
               disabled={pendingAction !== null}
             >

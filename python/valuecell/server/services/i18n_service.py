@@ -47,7 +47,9 @@ class TranslationManager:
             # Create empty translation if file doesn't exist
             self._translations[language] = {}
 
-    def get_translation(self, language: str, key: str, **kwargs) -> str:
+    def get_translation(
+        self, language: str, key: str, default: Optional[str] = None, **kwargs
+    ) -> str:
         """Get translated string for given key and language.
 
         Args:
@@ -73,7 +75,11 @@ class TranslationManager:
         except (KeyError, TypeError):
             # Fallback to default language
             if language != DEFAULT_LANGUAGE:
-                return self.get_translation(DEFAULT_LANGUAGE, key, **kwargs)
+                return self.get_translation(
+                    DEFAULT_LANGUAGE, key, default=default, **kwargs
+                )
+            if default is not None:
+                return default
             return key  # Return key if no translation found
 
         # Format string with provided variables
@@ -122,7 +128,13 @@ class I18nService:
         self._translation_manager = TranslationManager()
         self._i18n_config = get_i18n_config()
 
-    def translate(self, key: str, language: Optional[str] = None, **kwargs) -> str:
+    def translate(
+        self,
+        key: str,
+        language: Optional[str] = None,
+        default: Optional[str] = None,
+        **kwargs,
+    ) -> str:
         """Translate a key to current or specified language.
 
         Args:
@@ -134,9 +146,11 @@ class I18nService:
             Translated string
         """
         target_language = language or self._i18n_config.language
-        return self._translation_manager.get_translation(target_language, key, **kwargs)
+        return self._translation_manager.get_translation(
+            target_language, key, default=default, **kwargs
+        )
 
-    def t(self, key: str, **kwargs) -> str:
+    def t(self, key: str, default: Optional[str] = None, **kwargs) -> str:
         """Short alias for translate method.
 
         Args:
@@ -146,7 +160,7 @@ class I18nService:
         Returns:
             Translated string
         """
-        return self.translate(key, **kwargs)
+        return self.translate(key, default=default, **kwargs)
 
     def get_current_language(self) -> str:
         """Get current language code."""
@@ -303,7 +317,7 @@ def reset_i18n_service() -> None:
 
 
 # Convenience functions
-def t(key: str, **kwargs) -> str:
+def t(key: str, default: Optional[str] = None, **kwargs) -> str:
     """Translate a key (convenience function).
 
     Args:
@@ -313,10 +327,12 @@ def t(key: str, **kwargs) -> str:
     Returns:
         Translated string
     """
-    return get_i18n_service().translate(key, **kwargs)
+    return get_i18n_service().translate(key, default=default, **kwargs)
 
 
-def translate(key: str, language: Optional[str] = None, **kwargs) -> str:
+def translate(
+    key: str, language: Optional[str] = None, default: Optional[str] = None, **kwargs
+) -> str:
     """Translate a key to specified language (convenience function).
 
     Args:
@@ -327,4 +343,6 @@ def translate(key: str, language: Optional[str] = None, **kwargs) -> str:
     Returns:
         Translated string
     """
-    return get_i18n_service().translate(key, language, **kwargs)
+    return get_i18n_service().translate(
+        key, language=language, default=default, **kwargs
+    )

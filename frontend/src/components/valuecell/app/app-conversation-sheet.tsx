@@ -1,5 +1,6 @@
 import { MoreVertical, Trash2 } from "lucide-react";
 import type { FC, ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { NavLink, useNavigate, useSearchParams } from "react-router";
 import {
   useDeleteConversation,
@@ -29,6 +30,7 @@ import AgentAvatar from "@/components/valuecell/icon/agent-avatar";
 import { TIME_FORMATS, TimeUtils } from "@/lib/time";
 
 const AppConversationSheet: FC<{ children: ReactNode }> = ({ children }) => {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const currentConversationId = searchParams.get("id") ?? "";
   const navigate = useNavigate();
@@ -42,18 +44,18 @@ const AppConversationSheet: FC<{ children: ReactNode }> = ({ children }) => {
 
       <SheetContent side="left" className="w-[300px]">
         <SheetHeader>
-          <SheetTitle>Conversation List</SheetTitle>
+          <SheetTitle>{t("chat.conversationList.title")}</SheetTitle>
           <SheetDescription />
         </SheetHeader>
 
         <SidebarMenu className="scroll-container gap-[5px] px-4">
           {isLoading ? (
-            <div className="px-2 py-4 text-center text-gray-400 text-sm">
-              Loading...
+            <div className="px-2 py-4 text-center text-muted-foreground text-sm">
+              {t("chat.conversationList.loading")}
             </div>
           ) : conversations.length === 0 ? (
-            <div className="px-2 py-4 text-center text-gray-400 text-sm">
-              No conversation yet
+            <div className="px-2 py-4 text-center text-muted-foreground text-sm">
+              {t("chat.conversationList.empty")}
             </div>
           ) : (
             conversations.map((conversation) => {
@@ -77,7 +79,7 @@ const AppConversationSheet: FC<{ children: ReactNode }> = ({ children }) => {
                           {conversation.title}
                         </span>
                       </div>
-                      <span className="w-full font-normal text-gray-400 text-xs leading-[18px]">
+                      <span className="w-full font-normal text-muted-foreground text-xs leading-[18px]">
                         {TimeUtils.formatUTC(
                           conversation.update_time,
                           TIME_FORMATS.DATE,
@@ -110,7 +112,7 @@ const AppConversationSheet: FC<{ children: ReactNode }> = ({ children }) => {
                         }}
                       >
                         <Trash2 />
-                        Delete
+                        {t("chat.action.delete")}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

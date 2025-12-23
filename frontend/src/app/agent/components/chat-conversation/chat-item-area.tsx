@@ -28,9 +28,13 @@ const ChatItemArea: FC<ChatItemAreaProps> = ({ items }) => {
         >
           <div
             id="chat-item"
-            className={cn("max-w-[80%] rounded-2xl px-4", {
-              "ml-auto bg-gray-50 py-2.5": item.role === "user",
-            })}
+            className={cn(
+              "max-w-[80%] rounded-2xl px-4 text-foreground dark:text-white",
+              "dark:[&_a:hover]:text-sky-200 dark:[&_a]:text-sky-300 dark:[&_em]:text-white dark:[&_h1]:text-white dark:[&_h2]:text-white dark:[&_h3]:text-white dark:[&_h4]:text-white dark:[&_h5]:text-white dark:[&_h6]:text-white dark:[&_li]:text-white dark:[&_p]:text-white dark:[&_span]:text-white dark:[&_strong]:text-white",
+              {
+                "ml-auto bg-muted py-2.5": item.role === "user",
+              },
+            )}
           >
             {/* Render different message types based on payload structure */}
             {(() => {

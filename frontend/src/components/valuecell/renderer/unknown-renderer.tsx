@@ -10,14 +10,14 @@ interface UnknownRendererProps {
 const UnknownRenderer: FC<UnknownRendererProps> = ({ item, content }) => {
   return (
     <div>
-      <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
+      <div className="mt-3 rounded-lg border border-border bg-muted p-3">
         <div className="mb-2 flex items-center gap-2">
-          <FileText size={16} className="text-blue-600" />
-          <span className="font-medium text-blue-900 text-sm capitalize">
+          <FileText size={16} className="text-primary" />
+          <span className="font-medium text-foreground text-sm capitalize">
             {item.component_type} (Unknown Component Type)
           </span>
         </div>
-        <div className="rounded bg-white p-3 text-gray-800 text-sm">
+        <div className="rounded bg-card p-3 text-foreground text-sm">
           <pre className="whitespace-pre-wrap font-mono text-xs">{content}</pre>
         </div>
       </div>

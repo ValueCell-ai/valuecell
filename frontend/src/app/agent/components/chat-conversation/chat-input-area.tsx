@@ -1,5 +1,6 @@
 import { ArrowUp } from "lucide-react";
 import { type FC, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import ScrollTextarea from "@/components/valuecell/scroll/scroll-textarea";
 import { cn } from "@/lib/utils";
@@ -20,11 +21,14 @@ const ChatInputArea: FC<ChatInputAreaProps> = ({
   onChange,
   onSend,
   onKeyDown,
-  placeholder = "Type your message...",
+  placeholder,
   disabled = false,
   className,
   variant = "chat",
 }) => {
+  const { t } = useTranslation();
+  const resolvedPlaceholder = placeholder ?? t("chat.input.placeholder");
+
   const handleKeyDown = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Send message on Enter key (excluding Shift+Enter line breaks and IME composition state)
     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -44,9 +48,9 @@ const ChatInputArea: FC<ChatInputAreaProps> = ({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 rounded-2xl bg-white p-4",
-        "border border-gray-200 shadow-[0px_4px_20px_8px_rgba(17,17,17,0.04)]",
-        "focus-within:border-gray-300",
+        "flex flex-col gap-2 rounded-2xl bg-card p-4",
+        "border border-border shadow-[0px_4px_20px_8px_rgba(17,17,17,0.04)]",
+        "focus-within:border-ring",
         isWelcomeVariant && "w-2/3 min-w-[600px]",
         !isWelcomeVariant && "w-full",
         className,
@@ -56,7 +60,7 @@ const ChatInputArea: FC<ChatInputAreaProps> = ({
         value={value}
         onInput={(e) => onChange(e.currentTarget.value)}
         onKeyDown={handleKeyDown}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         maxHeight={120}
         minHeight={24}
         disabled={disabled}
@@ -68,7 +72,7 @@ const ChatInputArea: FC<ChatInputAreaProps> = ({
         disabled={disabled || !value.trim()}
         aria-label="Send message"
       >
-        <ArrowUp size={16} className="text-white" />
+        <ArrowUp size={16} className="text-primary-foreground" />
       </Button>
     </div>
   );

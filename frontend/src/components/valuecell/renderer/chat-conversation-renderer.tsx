@@ -1,5 +1,6 @@
 import { parse } from "best-effort-json-parser";
 import { type FC, memo, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router";
 import { useGetAgentInfo } from "@/api/agent";
 import { useGetConversationHistory } from "@/api/conversation";
@@ -13,6 +14,7 @@ import type { ChatConversationRendererProps } from "@/types/renderer";
 const ChatConversationRenderer: FC<ChatConversationRendererProps> = ({
   content,
 }) => {
+  const { t } = useTranslation();
   // phase => 'start' | 'end'
   const { conversation_id, agent_name, phase } = parse(content);
   const currentConversation = useConversationById(conversation_id);
@@ -37,15 +39,15 @@ const ChatConversationRenderer: FC<ChatConversationRendererProps> = ({
   if (!currentConversation) return null;
 
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-100 bg-neutral-100 [&_#chat-item]:max-w-none">
+    <div className="overflow-hidden rounded-lg border border-border bg-muted [&_#chat-item]:max-w-none">
       {/* Header section */}
-      <div className="flex items-center justify-between bg-white p-4">
-        <div className="flex min-w-40 items-center gap-2 rounded-full border border-gray-200 bg-gray-50 py-1 pr-5 pl-1.5">
+      <div className="flex items-center justify-between bg-card p-4">
+        <div className="flex min-w-40 items-center gap-2 rounded-full border border-border bg-muted py-1 pr-5 pl-1.5">
           {agent && (
             <AgentAvatar agentName={agent.agent_name} className="size-9" />
           )}
-          <p className="whitespace-nowrap font-normal text-base text-gray-950 leading-[22px]">
-            {agent?.display_name || "Unknown Agent"}
+          <p className="whitespace-nowrap font-normal text-base text-foreground leading-[22px]">
+            {agent?.display_name || t("agent.unknown")}
           </p>
         </div>
 
@@ -54,16 +56,16 @@ const ChatConversationRenderer: FC<ChatConversationRendererProps> = ({
             disabled
             className="rounded-full px-2.5 py-1.5 font-normal text-sm"
           >
-            <Spinner /> Running
+            <Spinner /> {t("agent.status.running")}
           </Button>
         )}
 
         {phase === "end" && (
           <NavLink
             to={`/agent/${agent_name}?id=${conversation_id}`}
-            className="rounded-full bg-blue-500 px-2.5 py-1.5 font-normal text-sm text-white hover:bg-blue-500/80"
+            className="rounded-full bg-primary px-2.5 py-1.5 font-normal text-primary-foreground text-sm hover:bg-primary/90"
           >
-            View
+            {t("agent.action.view")}
           </NavLink>
         )}
       </div>

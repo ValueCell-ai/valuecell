@@ -1,5 +1,6 @@
 import { MessageCircle, Settings } from "lucide-react";
 import { type FC, memo } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +17,7 @@ interface ChatConversationHeaderProps {
 }
 
 const ChatConversationHeader: FC<ChatConversationHeaderProps> = ({ agent }) => {
+  const { t } = useTranslation();
   return (
     <header className="flex w-full items-center justify-between p-6">
       <div className="flex items-center gap-2">
@@ -24,7 +26,7 @@ const ChatConversationHeader: FC<ChatConversationHeaderProps> = ({ agent }) => {
 
         {/* Agent Info */}
         <div className="flex flex-col gap-1.5">
-          <h1 className="font-semibold text-gray-950 text-lg">
+          <h1 className="font-semibold text-foreground text-lg">
             {agent.display_name}
           </h1>
           <TagGroups tags={agent.agent_metadata.tags} />
@@ -38,13 +40,13 @@ const ChatConversationHeader: FC<ChatConversationHeaderProps> = ({ agent }) => {
             <TooltipTrigger asChild>
               <Button
                 variant="secondary"
-                className="size-8 cursor-pointer rounded-lg hover:bg-gray-200"
+                className="size-8 cursor-pointer rounded-lg hover:bg-muted"
                 size="icon"
               >
-                <MessageCircle size={16} className="text-gray-700" />
+                <MessageCircle size={16} className="text-foreground" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>New Conversation</TooltipContent>
+            <TooltipContent>{t("chat.newConversation")}</TooltipContent>
           </Tooltip>
         </Link>
         <Link to="./config">
@@ -52,13 +54,13 @@ const ChatConversationHeader: FC<ChatConversationHeaderProps> = ({ agent }) => {
             <TooltipTrigger asChild>
               <Button
                 variant="secondary"
-                className="size-8 cursor-pointer rounded-lg hover:bg-gray-200"
+                className="size-8 cursor-pointer rounded-lg hover:bg-muted"
                 size="icon"
               >
-                <Settings size={16} className="text-gray-700" />
+                <Settings size={16} className="text-foreground" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Settings</TooltipContent>
+            <TooltipContent>{t("chat.settings")}</TooltipContent>
           </Tooltip>
         </Link>
       </div>

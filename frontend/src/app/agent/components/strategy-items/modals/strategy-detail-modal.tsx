@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { useStrategyPerformance } from "@/api/strategy";
 import { ValueCellAgentPng } from "@/assets/png";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -32,6 +33,7 @@ interface StrategyDetailModalProps {
 }
 
 const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
+  const { t } = useTranslation();
   const stockColors = useStockColors();
   const [open, setOpen] = useState(false);
   const [strategyId, setStrategyId] = useState<number | null>(null);
@@ -64,11 +66,13 @@ const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
         aria-describedby={undefined}
       >
         <DialogHeader>
-          <DialogTitle>Strategy Details</DialogTitle>
+          <DialogTitle>{t("strategy.detail.title")}</DialogTitle>
         </DialogHeader>
         <div className="scroll-container">
           {isLoadingStrategyDetail || !strategyDetail ? (
-            <div className="py-8 text-center">Loading details...</div>
+            <div className="py-8 text-center">
+              {t("strategy.detail.loading")}
+            </div>
           ) : (
             <div className="grid gap-4 py-4">
               <div className="flex items-center gap-4">
@@ -94,35 +98,44 @@ const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
                   >
                     {numberFixed(strategyDetail.return_rate_pct, 2)}%
                   </div>
-                  <div className="text-gray-500 text-sm">Return Rate</div>
+                  <div className="text-muted-foreground text-sm">
+                    {t("strategy.detail.returnRate")}
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-[auto_1fr] gap-y-2 text-nowrap text-sm [&>p]:text-gray-500 [&>span]:text-right">
-                <p>Strategy Type</p>
-                <span>{strategyDetail.strategy_type}</span>
+              <div className="grid grid-cols-[auto_1fr] gap-y-2 text-nowrap text-sm [&>p]:text-muted-foreground [&>span]:text-right">
+                <p>{t("strategy.detail.strategyType")}</p>
+                <span>
+                  {t(`strategy.types.${strategyDetail.strategy_type}`)}
+                </span>
 
-                <p>Model Provider</p>
-                <span>{strategyDetail.llm_provider}</span>
+                <p>{t("strategy.detail.modelProvider")}</p>
+                <span>
+                  {t(`strategy.providers.${strategyDetail.llm_provider}`) ||
+                    strategyDetail.llm_provider}
+                </span>
 
-                <p>Model ID</p>
+                <p>{t("strategy.detail.modelId")}</p>
                 <span>{strategyDetail.llm_model_id}</span>
 
-                <p>Initial Capital</p>
+                <p>{t("strategy.detail.initialCapital")}</p>
                 <span>{strategyDetail.initial_capital}</span>
 
-                <p>Max Leverage</p>
+                <p>{t("strategy.detail.maxLeverage")}</p>
                 <span>{strategyDetail.max_leverage}x</span>
 
-                <p>Trading Symbols</p>
+                <p>{t("strategy.detail.tradingSymbols")}</p>
                 <span className="whitespace-normal">
                   {strategyDetail.symbols.join(", ")}
                 </span>
               </div>
 
               <div className="gap-2">
-                <span className="text-gray-500 text-sm">Prompt</span>
-                <p className="rounded-md bg-gray-50 p-3 text-gray-700 text-sm">
+                <span className="text-muted-foreground text-sm">
+                  {t("strategy.detail.prompt")}
+                </span>
+                <p className="rounded-md bg-muted p-3 text-foreground text-sm">
                   {strategyDetail.prompt}
                 </p>
               </div>
@@ -163,7 +176,7 @@ const StrategyDetailModal: FC<StrategyDetailModalProps> = ({ ref }) => {
               });
             }}
           >
-            Duplicate
+            {t("strategy.action.duplicate")}
           </Button>
         </DialogFooter>
       </DialogContent>

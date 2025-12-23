@@ -74,10 +74,10 @@ def create_i18n_router() -> APIRouter:
         """Get user context and apply to i18n service."""
         if user_id and user_id in _user_contexts:
             user_context = _user_contexts[user_id]
-            i18n_service.set_language(user_context.get("language", "en-US"))
+            i18n_service.set_language(user_context.get("language", "en"))
             i18n_service.set_timezone(user_context.get("timezone", "UTC"))
             return user_context
-        return {"language": "en-US", "timezone": "UTC"}
+        return {"language": "en", "timezone": "UTC"}
 
     # Configuration endpoints
     @router.get(

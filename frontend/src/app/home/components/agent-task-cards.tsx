@@ -17,15 +17,15 @@ const AgentTaskCard: FC<TaskCardItem> = ({
   if (!Component) return null;
 
   return (
-    <div className="flex size-full flex-col gap-4 rounded-lg border border-gray-100 bg-[linear-gradient(98deg,#FFF_5.05%,#E7EFFF_100%)] px-5 py-4">
+    <div className="flex size-full flex-col gap-4 rounded-lg border border-border bg-[linear-gradient(98deg,hsl(var(--card))_5.05%,hsl(var(--muted))_100%)] px-5 py-4">
       <div className="flex w-full items-center justify-between">
         <div className="flex shrink-0 items-center gap-2">
           <AgentAvatar agentName={agent_name} className="size-8" />
-          <p className="whitespace-nowrap font-normal text-base text-gray-950 leading-[22px]">
+          <p className="whitespace-nowrap font-normal text-base text-foreground leading-[22px]">
             {agent_name}
           </p>
         </div>
-        <p className="shrink-0 whitespace-nowrap text-gray-400 text-xs leading-[18px]">
+        <p className="shrink-0 whitespace-nowrap text-muted-foreground text-xs leading-[18px]">
           {TimeUtils.fromUTCRelative(update_time)}
         </p>
       </div>

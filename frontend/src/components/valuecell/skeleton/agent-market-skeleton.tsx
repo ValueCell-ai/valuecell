@@ -7,7 +7,7 @@ function AgentCardSkeleton({ className, ...props }: AgentCardSkeletonProps) {
   return (
     <div
       className={cn(
-        "box-border flex w-full flex-col items-center gap-4 rounded-xl border border-gray-100 bg-neutral-50 p-4",
+        "box-border flex w-full flex-col items-center gap-4 rounded-xl border border-border bg-card p-4",
         className,
       )}
       {...props}

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Dict
 
@@ -48,10 +49,12 @@ class LlmComposer(BaseComposer):
         *,
         default_slippage_bps: int = 25,
         quantity_precision: float = 1e-9,
+        max_llm_wait_time_sec: float = 600.0,
     ) -> None:
         self._request = request
         self._default_slippage_bps = default_slippage_bps
         self._quantity_precision = quantity_precision
+        self._max_llm_wait_time_sec = max_llm_wait_time_sec
         cfg = self._request.llm_model_config
         self._model = model_utils.create_model_with_provider(
             provider=cfg.provider,
@@ -200,7 +203,9 @@ class LlmComposer(BaseComposer):
         agent's `response.content` is returned (or validated) as a
         `LlmPlanProposal`.
         """
-        response = await self.agent.arun(prompt)
+        response = await asyncio.wait_for(
+            self.agent.arun(prompt), timeout=self._max_llm_wait_time_sec
+        )
         # Agent may return a raw object or a wrapper with `.content`.
         content = getattr(response, "content", None) or response
         logger.debug("Received LLM response {}", content)
