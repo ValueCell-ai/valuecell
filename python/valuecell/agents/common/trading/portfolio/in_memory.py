@@ -7,6 +7,7 @@ from valuecell.agents.common.trading.models import (
     MarketType,
     PortfolioView,
     PositionSnapshot,
+    StopPrice,
     TradeHistoryEntry,
     TradeSide,
     TradeType,
@@ -41,6 +42,7 @@ class InMemoryPortfolioService(BasePortfolioService):
         initial_positions: Dict[str, PositionSnapshot],
         trading_mode: TradingMode,
         market_type: MarketType,
+        stop_prices: Dict[str, StopPrice],
         constraints: Optional[Constraints] = None,
         strategy_id: Optional[str] = None,
     ) -> None:
@@ -75,6 +77,7 @@ class InMemoryPortfolioService(BasePortfolioService):
             total_realized_pnl=0.0,
             buying_power=free_cash,
             free_cash=free_cash,
+            stop_prices=stop_prices,
         )
         self._trading_mode = trading_mode
         self._market_type = market_type
@@ -88,6 +91,16 @@ class InMemoryPortfolioService(BasePortfolioService):
             except Exception:
                 pass
         return self._view
+
+    def update_stop_prices(self, stop_prices: Dict[str, StopPrice]) -> None:
+        for symbol, new_stop in stop_prices.items():
+            existing = self._view.stop_prices.get(symbol)
+            if existing:
+                update_data = new_stop.model_dump(exclude_unset=True, exclude_none=True)
+                for key, value in update_data.items():
+                    setattr(existing, key, value)
+            else:
+                self._view.stop_prices[symbol] = new_stop
 
     def apply_trades(
         self, trades: List[TradeHistoryEntry], market_features: List[FeatureVector]
