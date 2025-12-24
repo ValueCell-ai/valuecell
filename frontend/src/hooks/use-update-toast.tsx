@@ -1,9 +1,11 @@
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type DownloadEvent } from "@tauri-apps/plugin-updater";
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 export function useUpdateToast() {
+  const { t } = useTranslation();
   const downloadAndInstallUpdate = useCallback(
     async (update: Awaited<ReturnType<typeof check>>) => {
       if (!update) return;
@@ -17,7 +19,9 @@ export function useUpdateToast() {
           switch (event.event) {
             case "Started":
               contentLength = event.data.contentLength;
-              progressToastId = toast.loading("Downloading update... 0%");
+              progressToastId = toast.loading(
+                t("updates.toast.downloading", { percentage: 0 }),
+              );
               break;
 
             case "Progress":
@@ -27,7 +31,7 @@ export function useUpdateToast() {
                   Math.round((downloaded / contentLength) * 100),
                   100,
                 );
-                toast.loading(`Downloading update... ${percentage}%`, {
+                toast.loading(t("updates.toast.downloading", { percentage }), {
                   id: progressToastId,
                 });
               }
@@ -38,16 +42,16 @@ export function useUpdateToast() {
                 toast.dismiss(progressToastId);
               }
               // Show toast with relaunch or later options
-              toast.success("Update installed successfully!", {
-                description: "The app needs to restart to apply the update.",
+              toast.success(t("updates.toast.installedTitle"), {
+                description: t("updates.toast.installedDesc"),
                 action: {
-                  label: "Relaunch",
+                  label: t("updates.toast.relaunch"),
                   onClick: async () => {
                     await relaunch();
                   },
                 },
                 cancel: {
-                  label: "Later",
+                  label: t("updates.toast.later"),
                   onClick: () => toast.dismiss(),
                 },
                 duration: Infinity,
@@ -59,39 +63,43 @@ export function useUpdateToast() {
       } catch (downloadError) {
         toast.dismiss(progressToastId);
         toast.error(
-          `Failed to download update: ${JSON.stringify(downloadError)}`,
+          t("updates.toast.downloadFailed", {
+            error: JSON.stringify(downloadError),
+          }),
         );
       }
     },
-    [],
+    [t],
   );
 
   const checkAndUpdate = useCallback(async () => {
-    const checkToastId = toast.loading("Checking for updates...");
+    const checkToastId = toast.loading(t("updates.toast.checking"));
 
     try {
       const update = await check();
 
       if (!update) {
         toast.dismiss(checkToastId);
-        toast.success("You are using the latest version");
+        toast.success(t("updates.toast.latest"));
         return;
       }
 
       toast.dismiss(checkToastId);
 
       // Show toast asking user to install
-      const installToastId = toast.info("Update available", {
-        description: `A new version (${update.version}) is available. Would you like to install it now?`,
+      const installToastId = toast.info(t("updates.toast.availableTitle"), {
+        description: t("updates.toast.availableDesc", {
+          version: update.version,
+        }),
         action: {
-          label: "Install",
+          label: t("updates.toast.install"),
           onClick: async () => {
             toast.dismiss(installToastId);
             await downloadAndInstallUpdate(update);
           },
         },
         cancel: {
-          label: "Later",
+          label: t("updates.toast.later"),
           onClick: () => toast.dismiss(installToastId),
         },
         duration: Infinity,
@@ -99,9 +107,11 @@ export function useUpdateToast() {
       });
     } catch (error) {
       toast.dismiss(checkToastId);
-      toast.error(`Failed to check for updates: ${JSON.stringify(error)}`);
+      toast.error(
+        t("updates.toast.checkFailed", { error: JSON.stringify(error) }),
+      );
     }
-  }, [downloadAndInstallUpdate]);
+  }, [downloadAndInstallUpdate, t]);
 
   const checkForUpdatesSilent = useCallback(async () => {
     try {
@@ -112,17 +122,19 @@ export function useUpdateToast() {
       }
 
       // Show toast asking user to install
-      const installToastId = toast.info("Update available", {
-        description: `A new version (${update.version}) is available. Would you like to install it now?`,
+      const installToastId = toast.info(t("updates.toast.availableTitle"), {
+        description: t("updates.toast.availableDesc", {
+          version: update.version,
+        }),
         action: {
-          label: "Install",
+          label: t("updates.toast.install"),
           onClick: async () => {
             toast.dismiss(installToastId);
             await downloadAndInstallUpdate(update);
           },
         },
         cancel: {
-          label: "Later",
+          label: t("updates.toast.later"),
           onClick: () => toast.dismiss(installToastId),
         },
         duration: Infinity,
@@ -131,7 +143,7 @@ export function useUpdateToast() {
     } catch {
       // Silently fail for auto checks
     }
-  }, [downloadAndInstallUpdate]);
+  }, [downloadAndInstallUpdate, t]);
 
   return { checkAndUpdate, checkForUpdatesSilent };
 }

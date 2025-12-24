@@ -96,10 +96,18 @@ export default function GeneralPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="en">English (United States)</SelectItem>
-              <SelectItem value="zh_CN">简体中文</SelectItem>
-              <SelectItem value="zh_TW">繁體中文</SelectItem>
-              <SelectItem value="ja">日本語</SelectItem>
+              <SelectItem value="en">
+                {t("general.language.options.en")}
+              </SelectItem>
+              <SelectItem value="zh_CN">
+                {t("general.language.options.zh_CN")}
+              </SelectItem>
+              <SelectItem value="zh_TW">
+                {t("general.language.options.zh_TW")}
+              </SelectItem>
+              <SelectItem value="ja">
+                {t("general.language.options.ja")}
+              </SelectItem>
             </SelectContent>
           </Select>
         </Field>
