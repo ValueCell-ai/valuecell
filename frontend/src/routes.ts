@@ -21,6 +21,10 @@ export default [
   route("/ranking", "app/rank/board.tsx"),
 
   ...prefix("/agent", [
+    route(
+      "/StrategyAgent/Strategies/:strategyId?",
+      "app/agent/components/agent-view/strategy-agent-area.tsx",
+    ),
     route("/:agentName", "app/agent/chat.tsx"),
     route("/:agentName/config", "app/agent/config.tsx"),
   ]),
