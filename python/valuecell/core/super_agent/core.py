@@ -156,7 +156,6 @@ class SuperAgent:
                 add_history_to_context=True,
                 stream=True,
             ):
-
                 if response.content_type == "str":
                     yield response.content
                     continue
