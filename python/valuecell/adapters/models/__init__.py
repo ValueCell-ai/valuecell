@@ -26,6 +26,7 @@ from valuecell.adapters.models.factory import (
     GoogleProvider,
     ModelFactory,
     ModelProvider,
+    OllamaProvider,
     OpenAICompatibleProvider,
     OpenAIProvider,
     OpenRouterProvider,
@@ -49,6 +50,7 @@ __all__ = [
     "SiliconFlowProvider",
     "DeepSeekProvider",
     "DashScopeProvider",
+    "OllamaProvider",
     # Convenience functions
     "create_model",
     "create_model_for_agent",

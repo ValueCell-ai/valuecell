@@ -564,6 +564,29 @@ class DashScopeProvider(ModelProvider):
         )
 
 
+class OllamaProvider(ModelProvider):
+    """Ollama model provider"""
+
+    def create_model(self, model_id: Optional[str] = None, **kwargs):
+        """Create Ollama model via agno"""
+        try:
+            from agno.models.ollama import Ollama
+        except ImportError:
+            raise ImportError(
+                "agno package not installed, install with: pip install agno"
+            )
+
+        model_id = model_id or self.config.default_model
+
+        logger.info(f"Creating Ollama model: {model_id}")
+
+        return Ollama(id=model_id)
+
+    def is_available(self) -> bool:
+        """Ollama doesn't require API key, just needs host configured"""
+        return bool(self.config.parameters.get("host"))
+
+
 class ModelFactory:
     """
     Factory for creating model instances with provider abstraction
@@ -585,6 +608,7 @@ class ModelFactory:
         "openai-compatible": OpenAICompatibleProvider,
         "deepseek": DeepSeekProvider,
         "dashscope": DashScopeProvider,
+        "ollama": OllamaProvider,
     }
 
     def __init__(self, config_manager: Optional[ConfigManager] = None):

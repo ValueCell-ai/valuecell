@@ -10,6 +10,7 @@ import {
   HyperliquidPng,
   MexcPng,
   OkxPng,
+  OllamaPng,
   OpenAiCompatiblePng,
   OpenAiPng,
   OpenRouterPng,
@@ -26,6 +27,7 @@ export const MODEL_PROVIDER_ICONS = {
   google: GooglePng,
   azure: AzurePng,
   dashscope: DashScopePng,
+  ollama: OllamaPng,
 };
 
 export const EXCHANGE_ICONS = {

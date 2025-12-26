@@ -135,6 +135,7 @@ class ConfigManager:
                     "openai",
                     "openai-compatible",
                     "azure",
+                    "ollama",
                 ]
 
                 for preferred in preferred_order:

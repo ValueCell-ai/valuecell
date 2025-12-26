@@ -1,0 +1,7 @@
+name: Ollama
+provider_type: Ollama
+enabled: true
+default_model: qwen3:4b
+models:
+- id: qwen3:4b
+  name: qwen3:4b
