@@ -1,4 +1,5 @@
-FROM node:18-alpine
+FROM node:20-alpine
+
 
 WORKDIR /app
 
@@ -22,4 +23,5 @@ ENV HOST=0.0.0.0
 ENV PORT=1420
 
 # Start dev server
-CMD ["bun", "run", "dev"]
+CMD ["bun", "x", "react-router", "dev", "--host", "0.0.0.0"]
+
