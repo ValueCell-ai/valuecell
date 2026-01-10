@@ -93,7 +93,7 @@ Discord コミュニティへのご参加をお待ちしています。使用中
 
 ## 新規ユーザー向け
 
-最新の ValueCell アプリケーション（MacOS または Windows 用）を GitHub の[リリースページ](https://github.com/ValueCell-ai/valuecell/releases)からダウンロードできます。また、公式ウェブサイト [https://valuecell.ai](https://valuecell.ai) からもダウンロードできます。
+最新の ValueCell アプリケーション（MacOS または Windows 用）を GitHub の[リリースページ](https://github.com/ValueCell-ai/valuecell/releases)からダウンロードできます。
 
 インストール後、初回使用時に、お好みのモデルプロバイダーを設定してください。アプリケーション内の指示またはドキュメントを参照してください。
 
