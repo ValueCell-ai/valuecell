@@ -1,19 +1,10 @@
 import { LineChart, Wallet } from "lucide-react";
-import { type FC, memo, useRef } from "react";
+import { type FC, memo } from "react";
 import { useTranslation } from "react-i18next";
-import { useStrategyPerformance } from "@/api/strategy";
-import { usePublishStrategy } from "@/api/system";
+// import { useStrategyPerformance } from "@/api/strategy";
+// import { usePublishStrategy } from "@/api/system";
 import { ValueCellAgentPng } from "@/assets/png";
-import { Send, Share } from "@/assets/svg";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -24,9 +15,7 @@ import {
 } from "@/components/ui/table";
 import MultiLineChart from "@/components/valuecell/charts/model-multi-line";
 import { PngIcon } from "@/components/valuecell/icon/png-icon";
-import SvgIcon from "@/components/valuecell/icon/svg-icon";
-import LoginModal from "@/components/valuecell/modal/login-modal";
-import { useTauriInfo } from "@/hooks/use-tauri-info";
+// import { useTauriInfo } from "@/hooks/use-tauri-info";
 import {
   formatChange,
   getChangeType,
@@ -34,10 +23,10 @@ import {
   numberFixed,
 } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
-import { useIsLoggedIn, useSystemInfo } from "@/store/system-store";
+// import { useIsLoggedIn, useSystemInfo } from "@/store/system-store";
 import type { PortfolioSummary, Position, Strategy } from "@/types/strategy";
-import type { SharePortfolioCardRef } from "./modals/share-portfolio-modal";
-import SharePortfolioModal from "./modals/share-portfolio-modal";
+// import type { SharePortfolioCardRef } from "./modals/share-portfolio-modal";
+// import SharePortfolioModal from "./modals/share-portfolio-modal";
 
 interface PortfolioPositionsGroupProps {
   priceCurve: Array<Array<number | string>>;
@@ -104,50 +93,50 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
   summary,
   priceCurve,
   positions,
-  strategy,
+  // strategy,
 }) => {
   const { t } = useTranslation();
-  const sharePortfolioModalRef = useRef<SharePortfolioCardRef>(null);
+  // const sharePortfolioModalRef = useRef<SharePortfolioCardRef>(null);
 
   const stockColors = useStockColors();
   const changeType = getChangeType(summary?.total_pnl);
-  const { name, avatar } = useSystemInfo();
-  const isLogin = useIsLoggedIn();
-  const { isTauriApp } = useTauriInfo();
+  // const { name, avatar } = useSystemInfo();
+  // const isLogin = useIsLoggedIn();
+  // const { isTauriApp } = useTauriInfo();
 
   const hasPositions = positions.length > 0;
   const hasPriceCurve = priceCurve.length > 0;
 
-  const { mutate: publishStrategy, isPending: isPublishing } =
-    usePublishStrategy();
+  // const { mutate: publishStrategy, isPending: isPublishing } =
+  //   usePublishStrategy();
 
-  const { refetch: refetchPerformance } = useStrategyPerformance(
-    strategy.strategy_id,
-  );
+  // const { refetch: refetchPerformance } = useStrategyPerformance(
+  //   strategy.strategy_id,
+  // );
 
-  const handlePublishToRankBoard = async () => {
-    const { data } = await refetchPerformance();
-    if (!data) return;
-    const { exchange_id, ...rest } = data;
+  // const handlePublishToRankBoard = async () => {
+  //   const { data } = await refetchPerformance();
+  //   if (!data) return;
+  //   const { exchange_id, ...rest } = data;
 
-    publishStrategy({
-      ...rest,
-      exchange_id: exchange_id || "virtual",
-      name,
-      avatar,
-    });
-  };
+  //   publishStrategy({
+  //     ...rest,
+  //     exchange_id: exchange_id || "virtual",
+  //     name,
+  //     avatar,
+  //   });
+  // };
 
-  const handleSharePortfolio = async () => {
-    const { data } = await refetchPerformance();
-    if (!data) return;
+  // const handleSharePortfolio = async () => {
+  //   const { data } = await refetchPerformance();
+  //   if (!data) return;
 
-    sharePortfolioModalRef.current?.open({
-      ...data,
-      total_pnl: summary?.total_pnl ?? 0,
-      created_at: strategy.created_at,
-    });
-  };
+  //   sharePortfolioModalRef.current?.open({
+  //     ...data,
+  //     total_pnl: summary?.total_pnl ?? 0,
+  //     created_at: strategy.created_at,
+  //   });
+  // };
 
   return (
     <div className="scroll-container flex flex-1 flex-col gap-8 p-6">
@@ -157,6 +146,7 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
           <h3 className="font-semibold text-base text-foreground">
             {t("strategy.portfolio.title")}
           </h3>
+          {/* Publish/Share features - commented out (requires login)
           {isTauriApp &&
             (isLogin ? (
               <DropdownMenu>
@@ -192,6 +182,7 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
                 </Button>
               </LoginModal>
             ))}
+          */}
         </div>
 
         <div className="grid grid-cols-3 gap-4 text-nowrap">
@@ -311,7 +302,7 @@ const PortfolioPositionsGroup: FC<PortfolioPositionsGroupProps> = ({
         )}
       </div>
 
-      <SharePortfolioModal ref={sharePortfolioModalRef} />
+      {/* <SharePortfolioModal ref={sharePortfolioModalRef} /> */}
     </div>
   );
 };
