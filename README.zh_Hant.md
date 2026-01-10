@@ -93,7 +93,7 @@ ValueCell 是一個社群驅動的多智能體金融應用產品，我們的計�
 
 ## 新使用者
 
-若要快速開始使用，請從 GitHub 的[發布頁面](https://github.com/ValueCell-ai/valuecell/releases)下載適用於 MacOS 或 Windows 的最新 ValueCell 應用程式。您也可以從我們的官方網站 [https://valuecell.ai](https://valuecell.ai) 下載應用程式。
+若要快速開始使用，請從 GitHub 的[發布頁面](https://github.com/ValueCell-ai/valuecell/releases)下載適用於 MacOS 或 Windows 的最新 ValueCell 應用程式。
 
 安裝後，使用 ValueCell 前請先設定您偏好的模型供應商。請參閱應用程式內的指示或文件。
 
