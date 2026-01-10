@@ -25,6 +25,7 @@ import {
 import { useStockColors } from "@/store/settings-store";
 // import { useIsLoggedIn, useSystemInfo } from "@/store/system-store";
 import type { PortfolioSummary, Position, Strategy } from "@/types/strategy";
+
 // import type { SharePortfolioCardRef } from "./modals/share-portfolio-modal";
 // import SharePortfolioModal from "./modals/share-portfolio-modal";
 
