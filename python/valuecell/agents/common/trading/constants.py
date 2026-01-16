@@ -9,7 +9,7 @@ DEFAULT_MODEL_PROVIDER = "siliconflow"
 DEFAULT_MAX_POSITIONS = 5
 DEFAULT_MAX_SYMBOLS = 5
 DEFAULT_MAX_LEVERAGE = 10.0
-DEFAULT_CAP_FACTOR = 1.5
+DEFAULT_CAP_FACTOR = 3.0  # Grid strategies need sufficient room for position additions
 
 # Feature grouping constants
 FEATURE_GROUP_BY_KEY = "group_by_key"

@@ -123,6 +123,105 @@ async def fetch_free_cash_from_gateway(
     return float(free_cash), float(total_cash)
 
 
+async def sync_positions_from_gateway(
+    execution_gateway, symbols: Optional[List[str]] = None
+) -> Dict[str, Dict]:
+    """Fetch and parse real positions from exchange gateway.
+
+    Args:
+        execution_gateway: Execution gateway instance with fetch_positions method
+        symbols: Optional list of symbols to fetch positions for
+
+    Returns:
+        Dict mapping symbol to position data:
+        {
+            'BTC/USDT:USDT': {
+                'symbol': 'BTC/USDT:USDT',
+                'contracts': 0.5,  # Position size in contracts
+                'side': 'long',    # 'long' or 'short'
+                'notional': 25000.0,
+                'leverage': 10.0,
+                'unrealizedPnl': 150.0,
+                'entryPrice': 50000.0,
+                'markPrice': 50300.0,
+                'liquidationPrice': 45000.0,
+            }
+        }
+    """
+    logger.info("🔄 Syncing positions from exchange for LIVE trading mode")
+
+    if not hasattr(execution_gateway, "fetch_positions"):
+        logger.warning("⚠️ Exchange gateway does not support fetch_positions")
+        return {}
+
+    try:
+        raw_positions = await execution_gateway.fetch_positions(symbols)
+        if not raw_positions:
+            logger.info("📭 No positions found on exchange")
+            return {}
+
+        parsed_positions = {}
+        for pos in raw_positions:
+            if not isinstance(pos, dict):
+                continue
+
+            # Skip zero/closed positions
+            contracts = float(pos.get("contracts", 0.0) or 0.0)
+            if contracts == 0.0:
+                continue
+
+            symbol = pos.get("symbol")
+            if not symbol:
+                continue
+
+            # Parse position data (CCXT unified structure)
+            side = str(pos.get("side", "")).lower()  # 'long' or 'short'
+            entry_price = float(pos.get("entryPrice", 0.0) or 0.0)
+            mark_price = float(pos.get("markPrice", 0.0) or 0.0)
+            notional = float(pos.get("notional", 0.0) or 0.0)
+            unrealized_pnl = float(pos.get("unrealizedPnl", 0.0) or 0.0)
+            liquidation_price = float(pos.get("liquidationPrice", 0.0) or 0.0)
+            
+            # Calculate actual leverage from position data
+            # CCXT's 'leverage' field is often not reliable, so we reverse-engineer it
+            leverage = float(pos.get("leverage", 1.0) or 1.0)
+            
+            # If CCXT didn't provide leverage or it's 1.0, try to calculate from margin
+            if leverage == 1.0 and notional != 0:
+                # Get initial margin from position
+                initial_margin = float(pos.get("initialMargin", 0.0) or 0.0)
+                if initial_margin > 0:
+                    # Leverage = notional / margin_used
+                    leverage = abs(notional) / initial_margin
+                    logger.debug(
+                        f"  📐 {symbol}: Calculated leverage={leverage:.1f}x " f"from notional={abs(notional):.2f} / margin={initial_margin:.2f}"
+                    )
+
+            parsed_positions[symbol] = {
+                "symbol": symbol,
+                "contracts": contracts,
+                "side": side,
+                "notional": notional,
+                "leverage": leverage,
+                "unrealizedPnl": unrealized_pnl,
+                "entryPrice": entry_price,
+                "markPrice": mark_price,
+                "liquidationPrice": liquidation_price,
+            }
+
+            logger.info(
+                f"  📊 {symbol}: {side.upper()} {contracts} contracts @ {entry_price}, "
+                f"mark={mark_price}, PnL={unrealized_pnl:+.2f}"
+            )
+
+        logger.info(f"✅ Synced {len(parsed_positions)} positions from exchange")
+        return parsed_positions
+
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to sync positions from exchange: {e}", exc_info=True)
+        return {}
+
+
 async def fetch_positions_from_gateway(
     execution_gateway, retry_cnt: int = 0, max_retries: int = 3
 ) -> Dict[str, PositionSnapshot]:
@@ -245,15 +344,52 @@ def extract_price_map(features: List[FeatureVector]) -> Dict[str, float]:
             continue
 
         try:
-            price_map[symbol] = float(price)
+            # Standardize symbol key for consistent lookup
+            standardized_symbol = standardize_symbol_key(symbol)
+            price_map[standardized_symbol] = float(price)
         except (TypeError, ValueError):
             logger.warning("Failed to parse feature price for {}", symbol)
 
     return price_map
 
 
+def standardize_symbol_key(symbol: str) -> str:
+    """Standardize symbol to internal key format (BASE/QUOTE).
+    
+    Handles all possible format variations:
+        - SOL-USDT -> SOL/USDT
+        - SOL/USDT -> SOL/USDT (unchanged)
+        - SOL/USDT:USDT -> SOL/USDT (remove settlement currency)
+        - BTC-USD -> BTC/USD
+        - BTC/USD:USD -> BTC/USD
+    
+    This function ensures consistent symbol keys across:
+    - Portfolio positions
+    - Price maps
+    - Feature vectors
+    - Strategy configurations
+    
+    Args:
+        symbol: Symbol in any format
+        
+    Returns:
+        Standardized symbol in BASE/QUOTE format
+    """
+    if not symbol:
+        return symbol
+    
+    # Step 1: Remove settlement currency suffix (e.g., ":USDT")
+    if ":" in symbol:
+        symbol = symbol.split(":")[0]
+    
+    # Step 2: Replace dash with slash
+    symbol = symbol.replace("-", "/")
+    
+    return symbol
+
+
 def normalize_symbol(symbol: str) -> str:
-    """Normalize symbol format for CCXT.
+    """Normalize symbol format for CCXT API calls.
 
     Examples:
         BTC-USD -> BTC/USD:USD (spot)

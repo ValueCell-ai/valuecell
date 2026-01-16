@@ -61,7 +61,10 @@ class SimpleMarketDataSource(BaseMarketDataSource):
         async def _fetch_and_process(symbol: str) -> List[Candle]:
             # instantiate exchange class by name (e.g., ccxtpro.kraken)
             exchange_cls = get_exchange_cls(self._exchange_id)
-            exchange = exchange_cls({"newUpdates": False})
+            exchange = exchange_cls({
+                "newUpdates": False,
+                "timeout": 30000,  # 30 seconds timeout
+            })
 
             symbol_candles: List[Candle] = []
             normalized_symbol = self._normalize_symbol(symbol)
@@ -207,7 +210,10 @@ class SimpleMarketDataSource(BaseMarketDataSource):
         snapshot = defaultdict(dict)
 
         exchange_cls = get_exchange_cls(self._exchange_id)
-        exchange = exchange_cls({"newUpdates": False})
+        exchange = exchange_cls({
+            "newUpdates": False,
+            "timeout": 30000,  # 30 seconds timeout
+        })
         try:
             for symbol in symbols:
                 sym = normalize_symbol(symbol)

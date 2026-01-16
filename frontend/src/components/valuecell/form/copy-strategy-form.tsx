@@ -1,4 +1,8 @@
 import { MultiSelect } from "@valuecell/multi-select";
+import { Eye, Plus } from "lucide-react";
+import { useCreateStrategyPrompt } from "@/api/strategy";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
   FieldError,
@@ -8,7 +12,14 @@ import {
 import { SelectItem } from "@/components/ui/select";
 import { TRADING_SYMBOLS } from "@/constants/agent";
 import { withForm } from "@/hooks/use-form";
-import type { Strategy } from "@/types/strategy";
+import type {
+  DynamicStrategyConfig,
+  Strategy,
+  StrategyPrompt,
+} from "@/types/strategy";
+import { DynamicStrategyConfigForm } from "./dynamic-strategy-config";
+import NewPromptModal from "../modals/new-prompt-modal";
+import ViewStrategyModal from "../modals/view-strategy-modal";
 
 export const CopyStrategyForm = withForm({
   defaultValues: {
@@ -20,6 +31,9 @@ export const CopyStrategyForm = withForm({
     symbols: TRADING_SYMBOLS,
     prompt_name: "",
     prompt: "",
+    decide_interval: 60, // Default: 60 seconds (1 minute)
+    enable_dynamic_strategy: false,
+    dynamicConfig: undefined as DynamicStrategyConfig | undefined,
   },
   props: {
     tradingMode: "live" as "live" | "virtual",
@@ -86,7 +100,8 @@ export const CopyStrategyForm = withForm({
           {(field) => (
             <field.NumberField
               label="Decision Interval (seconds)"
-              placeholder="e.g. 300"
+              placeholder="Enter decision interval in seconds"
+              description="Time between decision cycles. Default: 60 seconds (1 minute). Minimum: 10 seconds, Maximum: 3600 seconds (1 hour)."
             />
           )}
         </form.AppField>
@@ -139,6 +154,69 @@ export const CopyStrategyForm = withForm({
                   )}
                 </form.Field>
               )
+            );
+          }}
+        </form.Subscribe>
+
+        {/* Dynamic Strategy Configuration */}
+        <form.AppField name="enable_dynamic_strategy">
+          {(field) => (
+            <Field>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="enable_dynamic_strategy"
+                  checked={field.state.value}
+                  onCheckedChange={(checked) => {
+                    field.handleChange(checked);
+                    if (checked && !form.getFieldValue("dynamicConfig")) {
+                      form.setFieldValue("dynamicConfig", {
+                        baseStrategy: ["TREND", "GRID", "BREAKOUT", "ARBITRAGE"],
+                        switchMode: "SCORE",
+                        scoreWeights: {
+                          volatility: 0.25,
+                          trendStrength: 0.25,
+                          volumeRatio: 0.25,
+                          marketSentiment: 0.25,
+                        },
+                        riskMode: "NEUTRAL",
+                      });
+                    } else if (!checked) {
+                      form.setFieldValue("dynamicConfig", undefined);
+                    }
+                  }}
+                />
+                <FieldLabel
+                  htmlFor="enable_dynamic_strategy"
+                  className="text-base font-medium cursor-pointer"
+                >
+                  启用动态策略评分选择器
+                </FieldLabel>
+              </div>
+              <p className="text-sm text-gray-500 mt-1">
+                根据实时市场条件自动选择最佳策略
+              </p>
+            </Field>
+          )}
+        </form.AppField>
+
+        <form.Subscribe
+          selector={(state) => state.values.enable_dynamic_strategy}
+        >
+          {(enabled) => {
+            if (!enabled) return null;
+
+            const dynamicConfig = form.getFieldValue("dynamicConfig");
+            if (!dynamicConfig) return null;
+
+            return (
+              <div className="mt-4">
+                <DynamicStrategyConfigForm
+                  value={dynamicConfig}
+                  onChange={(config) => {
+                    form.setFieldValue("dynamicConfig", config);
+                  }}
+                />
+              </div>
             );
           }}
         </form.Subscribe>

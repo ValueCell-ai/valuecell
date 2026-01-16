@@ -47,8 +47,38 @@ if [ ! -d ".venv" ]; then
 else
     echo -e "${YELLOW}.venv already exists, skipping venv creation.${NC}"
 fi
+
+# Use Chinese mirror if UV_INDEX_URL is not set
+if [ -z "${UV_INDEX_URL:-}" ]; then
+    echo -e "${YELLOW}Using Chinese mirror for faster download (Tsinghua)...${NC}"
+    export UV_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple"
+fi
+
 highlight_command "uv sync --group dev"
-uv sync --group dev
+echo -e "${YELLOW}开始安装依赖，这可能需要几分钟时间...${NC}"
+if [ -n "${UV_INDEX_URL:-}" ]; then
+    echo -e "${BLUE}使用镜像: ${UV_INDEX_URL}${NC}"
+else
+    echo -e "${YELLOW}未设置镜像，使用默认源（可能较慢）${NC}"
+fi
+echo ""
+
+# 执行 uv sync，显示详细输出
+if uv sync --group dev; then
+    echo -e "${GREEN}依赖安装完成！${NC}"
+else
+    echo -e "${RED}依赖安装失败！${NC}"
+    echo -e "${YELLOW}可能的原因：${NC}"
+    echo "  1. 网络连接问题"
+    echo "  2. 镜像源不可用"
+    echo "  3. 依赖包版本冲突"
+    echo ""
+    echo -e "${BLUE}尝试解决方案：${NC}"
+    echo "  1. 检查网络连接"
+    echo "  2. 尝试切换镜像源: export UV_INDEX_URL='https://mirrors.aliyun.com/pypi/simple/'"
+    echo "  3. 查看详细错误信息: uv sync --group dev --verbose"
+    exit 1
+fi
 uvx playwright install --with-deps chromium
 echo -e "${GREEN}Main environment setup complete.${NC}"
 

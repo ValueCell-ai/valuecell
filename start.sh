@@ -80,6 +80,11 @@ compile() {
   # Backend deps
   if [[ -d "$PY_DIR" ]]; then
     info "Sync Python dependencies (uv sync)..."
+    # Use Chinese mirror if not configured
+    if [[ -z "${UV_INDEX_URL:-}" ]]; then
+      info "Using Chinese mirror for faster download (Tsinghua)..."
+      export UV_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple"
+    fi
     (cd "$PY_DIR" && bash scripts/prepare_envs.sh && uv run valuecell/server/db/init_db.py)
     success "Python dependencies synced"
   else
@@ -89,6 +94,11 @@ compile() {
   # Frontend deps
   if [[ -d "$FRONTEND_DIR" ]]; then
     info "Install frontend dependencies (bun install)..."
+    # Use Chinese mirror if not configured
+    if [[ -z "${BUN_INSTALL_REGISTRY:-}" ]] && [[ ! -f "$HOME/.bunfig.toml" ]]; then
+      info "Using Chinese mirror for faster download (npmmirror)..."
+      export BUN_INSTALL_REGISTRY="https://registry.npmmirror.com"
+    fi
     (cd "$FRONTEND_DIR" && bun install)
     success "Frontend dependencies installed"
   else
@@ -102,6 +112,8 @@ start_backend() {
     return 0
   fi
   info "Starting backend in debug mode (AGENT_DEBUG_MODE=true)..."
+  
+  # Python's loguru will handle file logging automatically
   cd "$PY_DIR" && AGENT_DEBUG_MODE=true uv run python -m valuecell.server.main
 }
 

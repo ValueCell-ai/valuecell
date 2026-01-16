@@ -8,13 +8,18 @@ import {
   useGetStrategyList,
   useGetStrategyPortfolioSummary,
   useGetStrategyPriceCurve,
+  useManualClosePosition,
+  useStartStrategy,
   useStopStrategy,
 } from "@/api/strategy";
 import CreateStrategyModal from "@/app/agent/components/strategy-items/modals/create-strategy-modal";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { AgentViewProps } from "@/types/agent";
 import type { Strategy } from "@/types/strategy";
 import {
+  CreateStrategyModal,
+  MarketStateScores,
   PortfolioPositionsGroup,
   StrategyComposeList,
   TradeStrategyGroup,
@@ -72,6 +77,38 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
 
   const { mutateAsync: stopStrategy } = useStopStrategy();
   const { mutateAsync: deleteStrategy } = useDeleteStrategy();
+  const { mutateAsync: closePosition } = useManualClosePosition();
+  const { mutateAsync: startStrategy } = useStartStrategy();
+
+  const handlePositionClose = async (
+    strategyId: string,
+    symbol: string,
+    ratio: number,
+  ) => {
+    try {
+      await closePosition({
+        strategyId,
+        symbol,
+        closeRatio: ratio,
+      });
+      toast.success(`Successfully closed ${ratio * 100}% of ${symbol} position`);
+    } catch (error) {
+      toast.error(
+        `Failed to close position: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  };
+
+  const handleStrategyRestart = async (strategyId: string) => {
+    try {
+      await startStrategy(strategyId);
+      toast.success("Strategy restarted successfully");
+    } catch (error) {
+      toast.error(
+        `Failed to restart strategy: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
+  };
 
   useEffect(() => {
     if (strategies.length === 0) {
@@ -109,6 +146,8 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
             onStrategyDelete={async (strategyId) => {
               await deleteStrategy(strategyId);
             }}
+            onPositionClose={handlePositionClose}
+            onStrategyRestart={handleStrategyRestart}
           />
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-4">
@@ -132,19 +171,29 @@ const StrategyAgentArea: FC<AgentViewProps> = () => {
       </div>
 
       {/* Right section: Trade History and Portfolio/Positions */}
-      <div className="flex flex-1">
+      <div className="flex flex-1 overflow-hidden">
         {selectedStrategy ? (
           <>
             <StrategyComposeList
               composes={composes}
               tradingMode={selectedStrategy.trading_mode}
             />
-            <PortfolioPositionsGroup
-              summary={summary}
-              priceCurve={priceCurve}
-              positions={positions}
-              strategy={selectedStrategy}
-            />
+            <div className="flex flex-1 flex-col overflow-y-auto">
+              {/* 动态策略市场状态 */}
+              {selectedStrategy.enable_dynamic_strategy && (
+                <div className="border-b p-6">
+                  <MarketStateScores strategy={selectedStrategy} />
+                </div>
+              )}
+
+              {/* 持仓和投资组合摘要 */}
+              <PortfolioPositionsGroup
+                summary={summary}
+                priceCurve={priceCurve}
+                positions={positions}
+                strategy={selectedStrategy}
+              />
+            </div>
           </>
         ) : (
           <div className="flex size-full flex-col items-center justify-center gap-8">

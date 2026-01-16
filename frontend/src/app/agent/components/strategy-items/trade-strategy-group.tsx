@@ -1,3 +1,4 @@
+import { Play, Plus, TrendingUp } from "lucide-react";
 import { Copy, Eye, MoreVertical, Plus, TrendingUp } from "lucide-react";
 import { type FC, memo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -35,6 +36,7 @@ import { formatChange, getChangeType } from "@/lib/utils";
 import { useStockColors } from "@/store/settings-store";
 import type { Strategy } from "@/types/strategy";
 import CreateStrategyModal from "./modals/create-strategy-modal";
+import { ClosePositionModal } from "./modals/close-position-modal";
 import StrategyDetailModal, {
   type StrategyDetailModalRef,
 } from "./modals/strategy-detail-modal";
@@ -45,6 +47,8 @@ interface TradeStrategyCardProps {
   onClick?: () => void;
   onStop?: () => void;
   onDelete?: () => void;
+  onClosePosition?: (symbol: string, ratio: number) => void;
+  onRestart?: () => void;
 }
 
 interface TradeStrategyGroupProps {
@@ -53,6 +57,8 @@ interface TradeStrategyGroupProps {
   onStrategySelect?: (strategy: Strategy) => void;
   onStrategyStop?: (strategyId: number) => void;
   onStrategyDelete?: (strategyId: number) => void;
+  onPositionClose?: (strategyId: string, symbol: string, ratio: number) => void;
+  onStrategyRestart?: (strategyId: string) => void;
 }
 
 const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
@@ -61,6 +67,8 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
   onClick,
   onStop,
   onDelete,
+  onClosePosition,
+  onRestart,
 }) => {
   const { t } = useTranslation();
   const stockColors = useStockColors();
@@ -123,7 +131,8 @@ const TradeStrategyCard: FC<TradeStrategyCardProps> = ({
         </p>
 
         {/* Status Badge */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2"
+             onClick={(e) => e.stopPropagation()}>
           {strategy.status === "stopped" && strategy.stop_reason ? (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -276,6 +285,8 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
   onStrategySelect,
   onStrategyStop,
   onStrategyDelete,
+  onPositionClose,
+  onStrategyRestart,
 }) => {
   const { t } = useTranslation();
   const hasStrategies = strategies.length > 0;
@@ -283,20 +294,25 @@ const TradeStrategyGroup: FC<TradeStrategyGroupProps> = ({
   return (
     <>
       {hasStrategies ? (
-        <div className="scroll-container flex flex-1 flex-col gap-3">
-          {strategies.map((strategy) => (
-            <TradeStrategyCard
-              key={strategy.strategy_id}
-              strategy={strategy}
-              isSelected={
-                selectedStrategy?.strategy_id === strategy.strategy_id
-              }
-              onClick={() => onStrategySelect?.(strategy)}
-              onStop={() => onStrategyStop?.(strategy.strategy_id)}
-              onDelete={() => onStrategyDelete?.(strategy.strategy_id)}
-            />
-          ))}
-        </div>
+        <div className="scroll-container flex flex-1flex-col gap-3">
+            {strategies.map((strategy) => (
+              <TradeStrategyCard
+                key={strategy.strategy_id}
+                strategy={strategy}
+                isSelected={
+                  selectedStrategy?.strategy_id === strategy.strategy_id
+                }
+                onClick={() => onStrategySelect?.(strategy)}
+                onStop={() => onStrategyStop?.(strategy.strategy_id)}
+                onDelete={() => onStrategyDelete?.(strategy.strategy_id)}
+                onClosePosition={(symbol, ratio) =>
+                  onPositionClose?.(strategy.strategy_id, symbol, ratio)
+                }
+                onRestart={() => onStrategyRestart?.(strategy.strategy_id)}
+              />
+            ))}
+          </div>
+
       ) : (
         <div className="flex w-80 items-center justify-center rounded-xl border-2 border-border border-dashed bg-muted/50">
           <div className="flex flex-col items-center gap-4 px-6 py-12 text-center">

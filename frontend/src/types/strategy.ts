@@ -12,6 +12,7 @@ export interface Strategy {
   created_at: string;
   exchange_id: string;
   model_id: string;
+  stop_reason?: string; // Stop reason (e.g., "stop_loss", "cancelled", etc.)
 }
 
 // Strategy Performance types
@@ -105,6 +106,7 @@ export interface CreateStrategy {
     max_leverage: number;
     symbols: string[]; // e.g. ['BTC', 'ETH', ...]
     template_id: string;
+    custom_prompt?: string;
     decide_interval: number;
     strategy_type: Strategy["strategy_type"];
   };
@@ -140,6 +142,8 @@ export interface CopyStrategy {
     strategy_type: Strategy["strategy_type"];
     prompt_name: string;
     prompt: string;
+    decide_interval?: number; // Decision interval in seconds (default: 60)
+    dynamicConfig?: DynamicStrategyConfig; // 动态策略配置（可选）
   };
 }
 
@@ -149,3 +153,100 @@ export interface PortfolioSummary {
   total_value: number;
   total_pnl: number;
 }
+
+// Dynamic Strategy Configuration types
+export type BaseStrategyType = "TREND" | "GRID" | "BREAKOUT" | "ARBITRAGE";
+export type SwitchMode = "SCORE" | "MANUAL";
+export type RiskMode = "AGGRESSIVE" | "NEUTRAL" | "DEFENSIVE";
+
+export interface ScoreWeights {
+  volatility: number; // 波动率权重 (0-1)
+  trendStrength: number; // 趋势强度权重 (0-1)
+  volumeRatio: number; // 成交量比率权重 (0-1)
+  marketSentiment: number; // 市场情绪权重 (0-1)
+}
+
+export interface DynamicStrategyConfig {
+  baseStrategy: BaseStrategyType[]; // 基础策略池
+  switchMode: SwitchMode; // 切换模式：评分自动切换 或 手动指定
+  scoreWeights: ScoreWeights; // 各指标的权重 (总和应为1)
+  riskMode: RiskMode; // 整体风险偏好
+}
+
+// Market State and Strategy Scores
+export interface StrategyScore {
+  name: string;
+  score: number; // 0-100
+  reason?: string; // 得分原因说明
+}
+
+export interface MarketStateAndScores {
+  currentState: string; // 当前市场状态描述
+  strategyScores: StrategyScore[]; // 各策略得分
+  recommendedStrategy: string; // 推荐策略
+  marketIndicators: {
+    volatility: number;
+    trendStrength: number;
+    volumeRatio: number;
+    marketSentiment: number;
+  };
+}
+
+// Backtest Configuration
+export interface BacktestConfig {
+  strategyId?: string; // 策略ID（用于回测已有策略）
+  strategyConfig?: CreateStrategyRequest; // 策略配置（用于回测新策略）
+  startDate: string; // 回测开始日期 (ISO format)
+  endDate: string; // 回测结束日期 (ISO format)
+  initialCapital: number; // 初始资金
+}
+
+export interface BacktestResult {
+  backtestId: string;
+  totalReturn: number; // 总收益率
+  totalReturnPct: number; // 总收益率百分比
+  sharpeRatio: number; // 夏普比率
+  maxDrawdown: number; // 最大回撤
+  maxDrawdownPct: number; // 最大回撤百分比
+  winRate: number; // 胜率
+  totalTrades: number; // 总交易次数
+  startDate: string;
+  endDate: string;
+  equityCurve: Array<[number, number]>; // [timestamp, equity] 权益曲线
+  trades: Array<{
+    symbol: string;
+    action: string;
+    entryPrice: number;
+    exitPrice: number;
+    quantity: number;
+    pnl: number;
+    pnlPct: number;
+    entryTime: string;
+    exitTime: string;
+  }>;
+}
+
+// Position Control Update
+export interface PositionControlUpdate {
+  strategyId: string;
+  maxPositions?: number; // 最大持仓数量
+  maxPositionQty?: number; // 单个标的最大持仓量
+  maxLeverage?: number; // 最大杠杆
+  positionSize?: Record<string, number>; // 各标的的仓位大小 (symbol -> quantity)
+}
+
+// Manual Close Position
+export interface ManualClosePositionRequest {
+  strategyId: string;
+  symbol: string;
+  closeRatio: number; // 0.0 - 1.0
+}
+
+export interface ManualClosePositionData {
+  strategyId: string;
+  symbol: string;
+  closedQuantity: number;
+  closeRatio: number;
+  message: string;
+}
+

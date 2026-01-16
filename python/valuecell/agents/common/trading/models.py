@@ -257,6 +257,38 @@ class TradingConfig(BaseModel):
         description="Notional cap factor used by the composer to limit per-symbol exposure (e.g., 1.5)",
         gt=0,
     )
+    
+    # Take Profit and Stop Loss thresholds
+    take_profit_pct: float = Field(
+        default=22.0,  # Updated default: 22% take profit
+        description="Take profit threshold in percentage (e.g., 22.0 for +22%)",
+    )
+    stop_loss_pct: float = Field(
+        default=-20.0,  # Updated default: -20% stop loss
+        description="Stop loss threshold in percentage (e.g., -20.0 for -20%)",
+    )
+    
+    # Partial (tiered) take profit with trailing stop
+    partial_tp_enabled: bool = Field(
+        default=True,
+        description="Enable tiered take profit: partial close at first threshold, trailing stop for remainder",
+    )
+    partial_tp_threshold_pct: float = Field(
+        default=15.0,
+        description="First-tier take profit threshold (e.g., 15.0 for +15%)",
+    )
+    partial_tp_close_ratio: float = Field(
+        default=0.3,
+        description="Ratio of position to close at first-tier (e.g., 0.3 for 30%)",
+        ge=0.0,
+        le=1.0,
+    )
+    trailing_stop_drawdown_pct: float = Field(
+        default=3.0,
+        description="Max drawdown from peak PnL before triggering trailing stop (e.g., 3.0 for 3%)",
+        gt=0.0,
+    )
+    
     # Grid parameters are model-decided at runtime; no user-configurable grid_* fields.
 
     @field_validator("symbols")
@@ -431,6 +463,7 @@ class StopReason(str, Enum):
     CANCELLED = "cancelled"
     ERROR = "error"
     ERROR_CLOSING_POSITIONS = "error_closing_positions"
+    STOP_LOSS = "stop_loss"  # Strategy stopped due to stop loss trigger
 
 
 class Constraints(BaseModel):
@@ -459,9 +492,9 @@ class Constraints(BaseModel):
         default=None,
         description="Maximum quantity allowed per single order (in instrument units).",
     )
-    min_notional: Optional[float] = Field(
+    min_notional: Optional[float | Dict[str, float]] = Field(
         default=None,
-        description="Minimum order notional (in quote currency) required for an order to be placed.",
+        description="Minimum order notional (in quote currency) required for an order to be placed. Can be a single float (global) or a dict mapping normalized symbol to min notional.",
     )
     max_position_qty: Optional[float] = Field(
         default=None,
@@ -912,6 +945,9 @@ class StrategySummary(BaseModel):
         description="Total portfolio value (equity) including cash and positions",
     )
     last_updated_ts: Optional[int] = Field(default=None)
+    metadata: Optional[dict] = Field(
+        default=None, description="Additional metadata (e.g., stop_reason)"
+    )
 
 
 class StrategyStatusContent(BaseModel):
@@ -934,6 +970,7 @@ class ComposeResult(BaseModel):
 
     instructions: List[TradeInstruction]
     rationale: Optional[str] = None
+    should_stop: bool = False  # Signal to coordinator to stop the strategy
 
 
 class FeaturesPipelineResult(BaseModel):

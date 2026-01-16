@@ -12,7 +12,6 @@ import {
   Conversation,
   Logo,
   Market,
-  Ranking,
   Setting,
   StrategyAgent,
 } from "@/assets/svg";
@@ -155,12 +154,12 @@ const AppSidebar: FC = () => {
           label: t("nav.strategy"),
           to: "/agent/StrategyAgent",
         },
-        {
-          id: "ranking",
-          icon: Ranking,
-          label: t("nav.ranking"),
-          to: "/ranking",
-        },
+        // {
+        //   id: "ranking",
+        //   icon: Ranking,
+        //   label: t("nav.ranking"),
+        //   to: "/ranking",
+        // },
         {
           id: "market",
           icon: Market,

@@ -1,6 +1,6 @@
 import { useTheme } from "next-themes";
 import { useTranslation } from "react-i18next";
-import { useSignOut } from "@/api/system";
+// import { useSignOut } from "@/api/system";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,17 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import LoginModal from "@/components/valuecell/modal/login-modal";
 import { useTauriInfo } from "@/hooks/use-tauri-info";
 import { useUpdateToast } from "@/hooks/use-update-toast";
-import { withTrack } from "@/lib/tracker";
 import type { LanguageCode, StockColorMode } from "@/store/settings-store";
 import {
   useLanguage,
   useSettingsActions,
   useStockColorMode,
 } from "@/store/settings-store";
-import { useIsLoggedIn, useSystemInfo } from "@/store/system-store";
+// import { useIsLoggedIn, useSystemInfo } from "@/store/system-store";
 
 export default function GeneralPage() {
   const { t } = useTranslation();
@@ -39,10 +37,10 @@ export default function GeneralPage() {
   const { setStockColorMode, setLanguage } = useSettingsActions();
   const { checkAndUpdate } = useUpdateToast();
   const { isTauriApp, appVersion } = useTauriInfo();
-  const { email, id } = useSystemInfo();
-  const isLoggedIn = useIsLoggedIn();
+  // const { email, id } = useSystemInfo();
+  // const isLoggedIn = useIsLoggedIn();
 
-  const { mutate: signOut } = useSignOut();
+  // const { mutate: signOut } = useSignOut();
   return (
     <div className="flex flex-1 flex-col gap-4 p-10">
       <div className="flex flex-col gap-1.5">
@@ -53,6 +51,7 @@ export default function GeneralPage() {
       </div>
 
       <FieldGroup className="gap-6">
+        {/* Account section - commented out for now
         {isTauriApp && (
           <Field orientation="horizontal">
             <FieldContent>
@@ -78,6 +77,7 @@ export default function GeneralPage() {
             )}
           </Field>
         )}
+        */}
 
         <Field orientation="horizontal">
           <FieldContent>

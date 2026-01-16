@@ -10,7 +10,7 @@
 # Model Provider Configuration
 models:
   # Primary provider
-  primary_provider: "openrouter"
+  primary_provider: "deepseek"
   
   # Global default settings
   defaults:
