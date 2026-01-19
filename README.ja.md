@@ -36,13 +36,20 @@
 
 
 # ValueCell
-ValueCellは、金融アプリケーション向けのコミュニティ主導型マルチエージェントプロダクトです。私たちの目標は、世界最大の分散型金融エージェントコミュニティを構築することです。
 
-ポートフォリオ管理を支援するトップクラスの投資エージェントチームを提供します。これにより、銘柄選別、リサーチ、追跡、および取引の完了を支援します。
+## プロダクト公開 🔥🔥🔥
 
-機密情報はすべてローカルデバイスに保存され、コアデータのセキュリティが確保されます。
+**ValueCell は A 株のディープリサーチと市場分析を提供し、デプロイ不要で [valuecell.ai](https://valuecell.ai) から直接利用できます。**
 
-Discord コミュニティへのご参加をお待ちしています。使用中に発生した問題についてのご意見をお寄せいただき、さらに多くの開発者にご参加いただけますようお願いします🔥🔥🔥
+## 概要
+
+ValueCell は、金融アプリケーション向けのコミュニティ主導型マルチエージェントプラットフォームです。私たちの使命は、世界最大の分散型金融エージェントコミュニティを構築することです。
+
+トップクラスの投資エージェントチームが、銘柄選別、リサーチ、追跡、さらには取引まで支援します。
+
+機密情報はすべてローカルデバイスに保存され、コアデータのセキュリティを確保します。
+
+Discord コミュニティへのご参加をお待ちしています。使用中に発生した問題についてのご意見をお寄せいただき、さらに多くの開発者にご参加いただけますようお願いします 🔥🔥🔥
 
 >注意: ValueCellチームメンバーがコミュニティ参加者に主動的に連絡することはありません。このプロジェクトは技術交流のみを目的としています。投資にはリスクが伴います。⚠️
 
@@ -51,23 +58,11 @@ Discord コミュニティへのご参加をお待ちしています。使用中
 [![動画を観る](https://img.youtube.com/vi/C3tfHyGY9YE/maxresdefault.jpg)](https://www.youtube.com/watch?v=C3tfHyGY9YE)
 
 <p align="center">
-  <img src="assets/product/homepage.png" style="width: 100%; height: auto;">
-</p>
-
-<p align="center">
-  <img src="assets/product/superagent.png" style="width: 100%; height: auto;">
-</p>
-
-<p align="center">
   <img src="assets/product/AutoTradingAgent.png" style="width: 100%; height: auto;">
 </p>
 
 <p align="center">
   <img src="assets/product/Model_Configuration.png" style="width: 100%; height: auto;">
-</p>
-
-<p align="center">
-  <img src="assets/product/agent_market.png" style="width: 100%; height: auto;">
 </p>
 
 # 主な機能
@@ -87,7 +82,7 @@ Discord コミュニティへのご参加をお待ちしています。使用中
 - **複数のLLMプロバイダー**: OpenRouter、SiliconFlow、Azure、Openai-compatible、Google、OpenAIおよびDeepSeekをサポート
 - **人気の市場データ**: 米国市場、暗号市場、香港市場、中国市場など
 - **マルチエージェントフレームワーク対応**: A2AプロトコルによるLangchain、Agnoをサポート、研究開発の統合を行う
- **マ取引所接続**: OKX と Binance へのリアルタイムルーティングに対応し、安全ガードレールを内蔵
+- **取引所接続**: OKX と Binance へのリアルタイムルーティングに対応し、安全ガードレールを内蔵
 
 # クイックスタート
 

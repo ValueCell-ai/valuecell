@@ -36,6 +36,13 @@
 
 
 # ValueCell
+
+## Our Product Launched 🔥🔥🔥
+
+ **ValueCell now provides A-share deep research, market analysis and requires no deployment—access directly at [valuecell.ai](https://valuecell.ai).**
+
+## Description
+
 ValueCell is a community-driven, multi-agent platform for financial applications. Our mission is to build the world's largest decentralized financial agent community.
 
 It provides a team of TOP investment Agents to help you with stock selection, research, tracking, and even trading.
@@ -50,13 +57,6 @@ Welcome to join our Discord community to share feedback and issues you encounter
 
 [![Watch the video](https://img.youtube.com/vi/C3tfHyGY9YE/maxresdefault.jpg)](https://www.youtube.com/watch?v=C3tfHyGY9YE)
 
-<p align="center">
-  <img src="assets/product/homepage.png" style="width: 100%; height: auto;">
-</p>
-
-<p align="center">
-  <img src="assets/product/superagent.png" style="width: 100%; height: auto;">
-</p>
 
 <p align="center">
   <img src="assets/product/AutoTradingAgent.png" style="width: 100%; height: auto;">
@@ -64,10 +64,6 @@ Welcome to join our Discord community to share feedback and issues you encounter
 
 <p align="center">
   <img src="assets/product/Model_Configuration.png" style="width: 100%; height: auto;">
-</p>
-
-<p align="center">
-  <img src="assets/product/agent_market.png" style="width: 100%; height: auto;">
 </p>
 
 

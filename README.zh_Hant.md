@@ -36,13 +36,20 @@
 
 
 # ValueCell
-ValueCell 是一個社群驅動的多智能體金融應用產品，我們的計劃是打造全球最大的去中心化金融智能體社群。
 
-它會為您提供頂尖的投資智能體團隊，協助您完成選股、調研、追蹤和交易。
+## 產品已上線 🔥🔥🔥
 
-系統會將您的敏感資訊完全託管在本地，保證核心資料安全。
+**ValueCell 現已提供 A 股深度研究與市場分析，且無需部署——直接造訪 [valuecell.ai](https://valuecell.ai)。**
 
-歡迎大家加入Discord社群反饋使用中遇到的問題，以及更多開發者參與共建🔥🔥🔥
+## 簡介
+
+ValueCell 是一個社群驅動的多智能體金融應用平台，我們的使命是打造世界最大的去中心化金融智能體社群。
+
+它會為您提供頂尖的投資智能體團隊，協助您完成選股、調研、追蹤，甚至交易。
+
+系統會將您的敏感資訊完全託管在本地，確保核心資料安全。
+
+歡迎大家加入 Discord 社群回饋使用中遇到的問題，並邀請更多開發者參與共建 🔥🔥🔥
 
 >注意：ValueCell團隊人員不會主動私信社群參與者，項目僅為技術交流使用，投資有風險。⚠️
 
@@ -51,23 +58,11 @@ ValueCell 是一個社群驅動的多智能體金融應用產品，我們的計�
 [![觀看影片](https://img.youtube.com/vi/C3tfHyGY9YE/maxresdefault.jpg)](https://www.youtube.com/watch?v=C3tfHyGY9YE)
 
 <p align="center">
-  <img src="assets/product/homepage.png" style="width: 100%; height: auto;">
-</p>
-
-<p align="center">
-  <img src="assets/product/superagent.png" style="width: 100%; height: auto;">
-</p>
-
-<p align="center">
   <img src="assets/product/AutoTradingAgent.png" style="width: 100%; height: auto;">
 </p>
 
 <p align="center">
   <img src="assets/product/Model_Configuration.png" style="width: 100%; height: auto;">
-</p>
-
-<p align="center">
-  <img src="assets/product/agent_market.png" style="width: 100%; height: auto;">
 </p>
 
 # 核心功能
@@ -87,7 +82,7 @@ ValueCell 是一個社群驅動的多智能體金融應用產品，我們的計�
 - **多家大型語言模型供應商**：支援 OpenRouter、SiliconFlow、Openai-compatible、Azure、Google、OpenAI 與 DeepSeek
 - **熱門市場資料**：涵蓋美國市場、加密貨幣、香港市場、中國市場等
 - **多智能體框架相容**：透過 A2A 協議，支援 LangChain、Agno 等主流 Agent 框架，進行研發整合
-**交易所連接**：支援即時路由至 OKX 和 Binance，並內建安全防護機制
+- **交易所連接**：支援即時路由至 OKX 和 Binance，並內建安全防護機制
 
 # 快速開始
 

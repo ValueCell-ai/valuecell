@@ -36,13 +36,20 @@
 
 
 # ValueCell
-ValueCell 是一个社区驱动的多智能体金融应用产品，我们的计划是打造全球最大的去中心化金融智能体社区
 
-它将为您提供顶级的投资智能体团队，帮助您完成选股，调研，跟踪和交易
+## 产品已上线 🔥🔥🔥
 
-系统会将您的敏感信息完全托管在本地，保证核心数据安全
+**ValueCell 现已提供 A 股深度研究与市场分析，且无需部署——直接访问 [valuecell.ai](https://valuecell.ai)。**
 
-欢迎大家加入Discord社区反馈使用中遇到的问题，以及更多开发者参与共建🔥🔥🔥
+## 简介
+
+ValueCell 是一个社区驱动的多智能体金融应用平台，我们的使命是打造世界最大的去中心化金融智能体社区。
+
+它为您提供顶级的投资智能体团队，帮助您完成选股、调研、跟踪，甚至交易。
+
+系统会将您的敏感信息完全托管在本地，确保核心数据安全。
+
+欢迎大家加入 Discord 社区反馈使用中遇到的问题，并邀请更多开发者参与共建 🔥🔥🔥
 
 >注意：ValueCell团队人员不会主动私信社区参与者，项目仅为技术交流使用，投资有风险。⚠️
 
@@ -51,27 +58,12 @@ ValueCell 是一个社区驱动的多智能体金融应用产品，我们的计�
 [![观看视频](https://img.youtube.com/vi/C3tfHyGY9YE/maxresdefault.jpg)](https://www.youtube.com/watch?v=C3tfHyGY9YE)
 
 <p align="center">
-  <img src="assets/product/homepage.png" style="width: 100%; height: auto;">
-</p>
-
-
-<p align="center">
-  <img src="assets/product/superagent.png" style="width: 100%; height: auto;">
-</p>
-
-<p align="center">
   <img src="assets/product/AutoTradingAgent.png" style="width: 100%; height: auto;">
 </p>
 
 <p align="center">
   <img src="assets/product/Model_Configuration.png" style="width: 100%; height: auto;">
 </p>
-
-<p align="center">
-  <img src="assets/product/agent_market.png" style="width: 100%; height: auto;">
-</p>
-
-
 
 # 核心特性
 
