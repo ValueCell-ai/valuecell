@@ -244,6 +244,15 @@ class BaseStrategyAgent(BaseAgent, ABC):
 
         # Call user hook for custom initialization
         try:
+            # Initialize long-lived features resources if available
+            try:
+                await runtime.coordinator.features_pipeline.open()
+            except Exception:
+                logger.exception(
+                    "Error initializing features pipeline resources for strategy {}",
+                    strategy_id,
+                )
+
             await self._on_start(runtime, request)
         except Exception:
             logger.exception("Error in _on_start hook for strategy {}", strategy_id)
@@ -336,6 +345,13 @@ class BaseStrategyAgent(BaseAgent, ABC):
                 )
 
             # Finalize: close resources and mark stopped/paused/error
+            try:
+                await runtime.coordinator.features_pipeline.close()
+            except Exception:
+                logger.exception(
+                    "Error closing features pipeline resources for strategy {}",
+                    strategy_id,
+                )
             await controller.finalize(
                 runtime, reason=stop_reason, reason_detail=stop_reason_detail
             )

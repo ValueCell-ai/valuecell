@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from valuecell.agents.common.trading.models import (
     Candle,
     FeaturesPipelineResult,
     FeatureVector,
 )
+
+if TYPE_CHECKING:
+    # Only for type hints to avoid hard dependency at runtime
+    from valuecell.agents.common.trading.models import DataSourceImage
 
 # Contracts for feature computation (module-local abstract interfaces).
 # Plain ABCs (not Pydantic) to keep implementations lightweight.
@@ -39,6 +43,31 @@ class CandleBasedFeatureComputer(ABC):
         raise NotImplementedError
 
 
+class ImageBasedFeatureComputer(ABC):
+    """Abstract base for image-based feature computers.
+
+    Implementations consume one or more images (screenshots, dashboard panes)
+    and return domain FeatureVector objects. The concrete implementations may
+    call external vision/LLM services.
+    """
+
+    @abstractmethod
+    async def compute_features(
+        self,
+        images: Optional[List["DataSourceImage"]] = None,
+        meta: Optional[Dict[str, Any]] = None,
+    ) -> List[FeatureVector]:
+        """Build feature vectors from the provided images.
+
+        Args:
+            images: list of `DataSourceImage` objects produced by data sources.
+            meta: optional metadata such as instrument or timestamps.
+        Returns:
+            A list of `FeatureVector` items.
+        """
+        raise NotImplementedError
+
+
 class BaseFeaturesPipeline(ABC):
     """Abstract pipeline that produces feature vectors (including market features)."""
 
@@ -51,3 +80,22 @@ class BaseFeaturesPipeline(ABC):
         into this call.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    async def open(self) -> None:
+        """Optional one-time initialization for long-lived resources.
+
+        Implementations may open network/browser sessions or warm caches here.
+        This method will be called by the runtime when available; callers may
+        ignore if not needed.
+        """
+        pass
+
+    @abstractmethod
+    async def close(self) -> None:
+        """Optional cleanup for resources allocated in `open()`.
+
+        Called by the runtime during shutdown to release resources (e.g., close
+        browser, stop background tasks). Implementations should make this idempotent.
+        """
+        pass
