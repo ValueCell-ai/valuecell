@@ -1,6 +1,8 @@
 name: Tauri build on Windows
 
 on:
+  pull_request:
+    branches: [ "main" ]
   push:
     tags:
       - "v*"
@@ -111,7 +113,7 @@ jobs:
         uses: signpath/github-action-submit-signing-request@v2
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
-          organization_id: '78e37079-23df-4800-b41c-33312ad7c1e3'
+          organization-id: '78e37079-23df-4800-b41c-33312ad7c1e3'
           project-slug: 'ValueCell'
           signing-policy-slug: 'ValueCell-sign'
           github-artifact-id: '${{ steps.upload-unsigned-artifact.outputs.artifact-id }}'
