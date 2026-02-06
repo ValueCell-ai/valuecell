@@ -90,16 +90,16 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD}}
         with:
-          tagName: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && 'v__VERSION__' || '' }}
-          releaseName: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && 'ValueCell-__VERSION__-beta' || '' }}
-          releaseDraft: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
-          prerelease: false
-          assetNamePattern: ValueCell-[version]-beta-[platform]-[arch][ext]
+          # tagName: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && 'v__VERSION__' || '' }}
+          # releaseName: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && 'ValueCell-__VERSION__-beta' || '' }}
+          # releaseDraft: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+          # prerelease: false
+          # assetNamePattern: ValueCell-[version]-beta-[platform]-[arch][ext]
           args: ${{ matrix.args }}
           
       - name: Upload Artifacts
+        id: upload-unsigned-artifact
         uses: actions/upload-artifact@v5
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         with:
           path: |
             frontend/src-tauri/target/release/bundle/msi/*.msi
@@ -107,3 +107,20 @@ jobs:
           name: ValueCell-${{ matrix.target }}-${{ github.sha }}
           retention-days: 3
 
+      - name: Sign Windows
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization_id: '78e37079-23df-4800-b41c-33312ad7c1e3'
+          project-slug: 'ValueCell'
+          signing-policy-slug: 'ValueCell-sign'
+          github-artifact-id: '${{ steps.upload-unsigned-artifact.outputs.artifact-id }}'
+          wait-for-completion: true
+          output-artifact-directory: 'signed-artifacts'
+
+      - name: Upload Signed Artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          name: Signed-ValueCell-${{ matrix.target }}-${{ github.sha }}
+          path: signed-artifacts
+          retention-days: 3
