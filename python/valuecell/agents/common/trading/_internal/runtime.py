@@ -148,9 +148,42 @@ async def create_strategy_runtime(
 
     free_cash = free_cash_override or request.trading_config.initial_free_cash or 0.0
     total_cash = total_cash_override or request.trading_config.initial_capital or 0.0
+    initial_capital = total_cash_override or request.trading_config.initial_capital or 0.0
+
+    # Configure per-symbol min_notional
+    # User requirement: SOL/USDT, XRP/USDT, DOGE/USDT min 5 USDT; ETH/USDT min 20 USDT.
+    # "Include leverage" implies these checks apply to the leverage-trading value (Notional).
+    min_notional_map = {}
+    default_min = 5.0
+
+    for sym in request.trading_config.symbols:
+        # Simple substring matching for robustness
+        s_upper = sym.upper()
+        if "ETH" in s_upper:
+             min_notional_map[sym] = 20.0
+        elif any(coin in s_upper for coin in ["SOL", "XRP", "DOGE"]):
+             min_notional_map[sym] = 5.0
+        else:
+             min_notional_map[sym] = default_min
+
+    # For grid strategies: remove max_positions limit to allow free position additions
+    # based on available margin. Only limit by buying power and cap_factor.
+    # For prompt strategies: keep the user-configured max_positions limit.
+    from ..models import StrategyType
+    max_positions_limit = None  # Default: no limit
+    if hasattr(request.trading_config, 'strategy_type'):
+        if request.trading_config.strategy_type != StrategyType.GRID:
+            # Non-grid strategies: use configured max_positions
+            max_positions_limit = request.trading_config.max_positions
+        # Grid strategies: max_positions_limit remains None (unlimited)
+    else:
+        # Fallback: if strategy_type not set, assume prompt-based, use limit
+        max_positions_limit = request.trading_config.max_positions
+
     constraints = Constraints(
-        max_positions=request.trading_config.max_positions,
+        max_positions=max_positions_limit,
         max_leverage=request.trading_config.max_leverage,
+        min_notional=min_notional_map,
     )
     portfolio_service = InMemoryPortfolioService(
         free_cash=free_cash,

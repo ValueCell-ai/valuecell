@@ -50,8 +50,8 @@ class DefaultFeaturesPipeline(BaseFeaturesPipeline):
         self._market_snapshot_computer = market_snapshot_computer
         self._candle_configurations = candle_configurations
         self._candle_configurations = candle_configurations or [
-            CandleConfig(interval="1s", lookback=60 * 3),
-            CandleConfig(interval="1m", lookback=60 * 4),
+            CandleConfig(interval="1m", lookback=300),  # Short-term: 5 hours (300 candles)
+            CandleConfig(interval="5m", lookback=240),  # Medium-term: 20 hours (240 candles)
         ]
 
     async def build(self) -> FeaturesPipelineResult:

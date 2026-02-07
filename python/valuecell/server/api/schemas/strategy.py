@@ -4,7 +4,7 @@ Strategy API schemas for handling strategy-related requests and responses.
 
 from datetime import datetime
 from enum import Enum
-from typing import List, Literal, Optional
+from typing import Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -284,3 +284,160 @@ class StrategyPerformanceData(BaseModel):
 
 
 StrategyPerformanceResponse = SuccessResponse[StrategyPerformanceData]
+
+
+# Dynamic Strategy Schemas
+class BaseStrategyType(str, Enum):
+    """Base strategy types for dynamic selection."""
+
+    TREND = "TREND"
+    GRID = "GRID"
+    BREAKOUT = "BREAKOUT"
+    ARBITRAGE = "ARBITRAGE"
+
+
+class RiskMode(str, Enum):
+    """Risk preference modes."""
+
+    AGGRESSIVE = "AGGRESSIVE"
+    NEUTRAL = "NEUTRAL"
+    DEFENSIVE = "DEFENSIVE"
+
+
+class ScoreWeights(BaseModel):
+    """Weights for different market indicators."""
+
+    volatility: float = Field(0.25, ge=0, le=1, description="Volatility weight")
+    trendStrength: float = Field(0.25, ge=0, le=1, description="Trend strength weight")
+    volumeRatio: float = Field(0.25, ge=0, le=1, description="Volume ratio weight")
+    marketSentiment: float = Field(0.25, ge=0, le=1, description="Market sentiment weight")
+
+
+class DynamicStrategyConfig(BaseModel):
+    """Dynamic strategy configuration."""
+
+    baseStrategy: List[BaseStrategyType] = Field(
+        ..., description="Base strategy pool to evaluate"
+    )
+    switchMode: Literal["SCORE", "MANUAL"] = Field(
+        "SCORE", description="Switch mode: automatic scoring or manual"
+    )
+    scoreWeights: ScoreWeights = Field(
+        default_factory=lambda: ScoreWeights(), description="Indicator weights"
+    )
+    riskMode: RiskMode = Field(RiskMode.NEUTRAL, description="Risk preference mode")
+
+
+class MarketIndicatorsData(BaseModel):
+    """Market indicators data."""
+
+    volatility: float = Field(..., description="Market volatility (0-1)")
+    trendStrength: float = Field(..., description="Trend strength (0-1)")
+    volumeRatio: float = Field(..., description="Volume ratio vs average (0-1)")
+    marketSentiment: float = Field(..., description="Market sentiment (0-1)")
+
+
+class StrategyScoreData(BaseModel):
+    """Strategy score data."""
+
+    name: str = Field(..., description="Strategy name")
+    score: float = Field(..., description="Score (0-100)")
+    reason: Optional[str] = Field(None, description="Reason for the score")
+
+
+class MarketStateAndScoresData(BaseModel):
+    """Market state and strategy scores data."""
+
+    currentState: str = Field(..., description="Current market state description")
+    strategyScores: List[StrategyScoreData] = Field(..., description="Strategy scores")
+    recommendedStrategy: str = Field(..., description="Recommended strategy")
+    marketIndicators: MarketIndicatorsData = Field(..., description="Market indicators")
+
+
+MarketStateAndScoresResponse = SuccessResponse[MarketStateAndScoresData]
+
+
+# Backtest Schemas
+class BacktestConfigRequest(BaseModel):
+    """Backtest configuration request."""
+
+    strategyId: Optional[str] = Field(None, description="Strategy ID to backtest")
+    strategyConfig: Optional[dict] = Field(None, description="Strategy config for new backtest")
+    startDate: str = Field(..., description="Backtest start date (ISO format)")
+    endDate: str = Field(..., description="Backtest end date (ISO format)")
+    initialCapital: float = Field(..., gt=0, description="Initial capital")
+
+
+class BacktestTradeData(BaseModel):
+    """Backtest trade data."""
+
+    symbol: str = Field(..., description="Trading symbol")
+    action: str = Field(..., description="Trade action")
+    entryPrice: float = Field(..., description="Entry price")
+    exitPrice: float = Field(..., description="Exit price")
+    quantity: float = Field(..., description="Quantity")
+    pnl: float = Field(..., description="PnL")
+    pnlPct: float = Field(..., description="PnL percentage")
+    entryTime: str = Field(..., description="Entry time (ISO format)")
+    exitTime: str = Field(..., description="Exit time (ISO format)")
+
+
+class BacktestResultData(BaseModel):
+    """Backtest result data."""
+
+    backtestId: str = Field(..., description="Backtest ID")
+    totalReturn: float = Field(..., description="Total return")
+    totalReturnPct: float = Field(..., description="Total return percentage")
+    sharpeRatio: float = Field(..., description="Sharpe ratio")
+    maxDrawdown: float = Field(..., description="Max drawdown")
+    maxDrawdownPct: float = Field(..., description="Max drawdown percentage")
+    winRate: float = Field(..., description="Win rate")
+    totalTrades: int = Field(..., description="Total number of trades")
+    startDate: str = Field(..., description="Start date")
+    endDate: str = Field(..., description="End date")
+    equityCurve: List[List[float]] = Field(..., description="Equity curve [[timestamp, equity]]")
+    trades: List[BacktestTradeData] = Field(..., description="Trade list")
+
+
+BacktestResultResponse = SuccessResponse[BacktestResultData]
+BacktestStartResponse = SuccessResponse[dict]  # {backtestId: str}
+
+
+# Position Control Schemas
+class PositionControlUpdateRequest(BaseModel):
+    """Position control update request."""
+
+    strategyId: str = Field(..., description="Strategy ID")
+    maxPositions: Optional[int] = Field(None, gt=0, description="Max number of positions")
+    maxPositionQty: Optional[float] = Field(None, gt=0, description="Max position quantity per symbol")
+    maxLeverage: Optional[float] = Field(None, gt=0, description="Max leverage")
+    positionSize: Optional[Dict[str, float]] = Field(
+        None, description="Position sizes per symbol"
+    )
+
+
+PositionControlUpdateResponse = SuccessResponse[dict]  # {message: str}
+
+
+# Manual Close Position Schemas
+class ManualClosePositionRequest(BaseModel):
+    """Manual close position request."""
+
+    strategyId: str = Field(..., description="Strategy ID")
+    symbol: str = Field(..., description="Trading symbol (e.g., BTC/USDT)")
+    closeRatio: float = Field(
+        ..., gt=0, le=1.0, description="Close ratio (0.0-1.0, where 1.0 = 100%)"
+    )
+
+
+class ManualClosePositionData(BaseModel):
+    """Manual close position response data."""
+
+    strategyId: str = Field(..., description="Strategy ID")
+    symbol: str = Field(..., description="Trading symbol")
+    closedQuantity: float = Field(..., description="Closed quantity")
+    closeRatio: float = Field(..., description="Close ratio applied")
+    message: str = Field(..., description="Execution message")
+
+
+ManualClosePositionResponse = SuccessResponse[ManualClosePositionData]

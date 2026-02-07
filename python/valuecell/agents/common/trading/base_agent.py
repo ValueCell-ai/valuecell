@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, AsyncGenerator, Dict, Optional
 
@@ -26,6 +27,27 @@ if TYPE_CHECKING:
     )
     from valuecell.agents.common.trading.decision import BaseComposer
     from valuecell.agents.common.trading.features.interfaces import BaseFeaturesPipeline
+
+
+def _calculate_startup_delay(strategy_id: str) -> float:
+    """Calculate staggered startup delay to avoid exchange rate limits.
+    
+    When multiple strategies restart simultaneously (e.g., after service restart),
+    they would all hit the exchange at the same time causing rate limit errors.
+    This function returns a deterministic delay based on strategy_id hash.
+    
+    Args:
+        strategy_id: The strategy identifier
+        
+    Returns:
+        Delay in seconds, range: 5.0 ~ 20.0
+    """
+    base_delay = 5.0  # Minimum delay
+    hash_obj = hashlib.md5(strategy_id.encode('utf-8'))
+    hash_int = int(hash_obj.hexdigest(), 16)
+    additional_delay = hash_int % 15  # 0-14 seconds
+    return base_delay + float(additional_delay)
+
 
 
 class BaseStrategyAgent(BaseAgent, ABC):
@@ -241,6 +263,17 @@ class BaseStrategyAgent(BaseAgent, ABC):
         await controller.wait_running()
         strategy_id = runtime.strategy_id
         request = runtime.request
+
+        # Staggered startup to avoid exchange rate limits when multiple strategies restart
+        startup_delay = _calculate_startup_delay(strategy_id)
+        logger.info(
+            "⏱️ Strategy {} applying staggered startup delay: {:.1f}s (base=5s + hash_offset={}s)",
+            strategy_id,
+            startup_delay,
+            int(startup_delay - 5.0)
+        )
+        await asyncio.sleep(startup_delay)
+        logger.info("✅ Strategy {} startup delay completed, beginning initialization", strategy_id)
 
         # Call user hook for custom initialization
         try:

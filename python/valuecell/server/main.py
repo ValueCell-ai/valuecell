@@ -46,6 +46,26 @@ def control_loop(
 def main() -> None:
     """Start the server and coordinate graceful shutdown via stdin control."""
 
+    # Configure file logging with loguru
+    import os
+    log_dir = os.path.join(os.path.dirname(__file__), "../logs")
+    os.makedirs(log_dir, exist_ok=True)
+    log_file = os.path.join(log_dir, "server.log")
+    
+    # Add file sink with rotation
+    logger.add(
+        log_file,
+        rotation="100 MB",  # Rotate when file reaches 100MB
+        retention="7 days",  # Keep logs for 7 days
+        compression="zip",  # Compress rotated logs
+        encoding="utf-8",
+        enqueue=True,  # Thread-safe logging
+        backtrace=True,
+        diagnose=True,
+        level="DEBUG",
+    )
+    logger.info(f"📝 Logging to file: {log_file}")
+
     settings = get_settings()
 
     config = uvicorn.Config(

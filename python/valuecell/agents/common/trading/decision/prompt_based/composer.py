@@ -184,7 +184,7 @@ class LlmComposer(BaseComposer):
 
         instructions = (
             "Read Context and decide. "
-            "features.1m = structural trends (240 periods), features.1s = realtime signals (180 periods). "
+            "features.1m = short-term signals (180 periods), features.5m = structural trends (240 periods). "
             "market.funding_rate: positive = longs pay shorts. "
             "Respect constraints and risk_flags. Prefer NOOP when edge unclear. "
             "Always include a concise top-level 'rationale'. "

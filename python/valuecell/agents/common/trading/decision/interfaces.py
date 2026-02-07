@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 from loguru import logger
@@ -145,9 +146,19 @@ class BaseComposer(ABC):
         if price is not None and price > 0:
             # cap_factor controls how aggressively we allow position sizing by notional.
             # Make it configurable via trading_config.cap_factor (strategy parameter).
-            cap_factor = float(self._request.trading_config.cap_factor or 1.5)
-            if constraints.quantity_step and constraints.quantity_step > 0:
-                cap_factor = max(cap_factor, 1.5)
+            # Default 3.0 allows grid strategies sufficient room for adding positions
+            cap_factor = float(self._request.trading_config.cap_factor or 3.0)
+            # Ensure minimum cap_factor for all strategies
+            cap_factor = max(cap_factor, 3.0)
+            
+            # For grid strategies with multiple steps, increase cap_factor further
+            # to accommodate full grid depth without premature capping
+            if hasattr(self._request.trading_config, 'strategy_type'):
+                from ..models import StrategyType
+                if self._request.trading_config.strategy_type == StrategyType.GRID:
+                    # Allow additional room based on grid depth: base 3.0 + extra per max_steps
+                    # This ensures grid strategies can add positions across multiple price levels
+                    cap_factor = max(cap_factor, 5.0)
 
             allowed_lev_cap = (
                 allowed_lev if math.isfinite(allowed_lev) else float("inf")
@@ -179,6 +190,33 @@ class BaseComposer(ABC):
                 self._quantity_precision,
             )
             return 0.0, 0.0
+
+        # Step 2.5: Re-check min_notional after capping
+        # The cap might have reduced quantity below min_notional threshold
+        if constraints.min_notional is not None and price is not None and price > 0:
+            notional_after_cap = qty * price
+            
+            # Handle min_notional as either a scalar or a dict (per-symbol)
+            if isinstance(constraints.min_notional, dict):
+                min_notional_value = constraints.min_notional.get(symbol)
+                if min_notional_value is not None and notional_after_cap < float(min_notional_value):
+                    logger.warning(
+                        "Post-cap notional for {} is {:.4f} < min_notional={} -> skipping",
+                        symbol,
+                        notional_after_cap,
+                        min_notional_value,
+                    )
+                    return 0.0, 0.0
+            else:
+                # Scalar min_notional
+                if notional_after_cap < float(constraints.min_notional):
+                    logger.warning(
+                        "Post-cap notional for {} is {:.4f} < min_notional={} -> skipping",
+                        symbol,
+                        notional_after_cap,
+                        constraints.min_notional,
+                    )
+                    return 0.0, 0.0
 
         # Step 3: buying power clamp
         px = price_map.get(symbol)
@@ -223,7 +261,15 @@ class BaseComposer(ABC):
             slip_bps = float(self._default_slippage_bps or 0.0)
             slip = slip_bps / 10000.0
             effective_px = float(px) * (1.0 + slip)
-            ap_units = (avail_bp / effective_px) if avail_bp > 0 else 0.0
+            
+            # For derivatives: avail_bp is margin, multiply by leverage to get contract purchasing power
+            # For spot: leverage is 1.0, so this formula works for both
+            if self._request.exchange_config.market_type == MarketType.SPOT:
+                ap_units = (avail_bp / effective_px) if avail_bp > 0 else 0.0
+            else:
+                # Derivatives: margin × leverage = notional purchasing power
+                ap_units = (avail_bp * allowed_lev / effective_px) if avail_bp > 0 else 0.0
+
 
             # Piecewise: additional gross consumption must fit into available BP
             if side is TradeSide.BUY:
@@ -270,7 +316,15 @@ class BaseComposer(ABC):
             slip_bps = float(self._default_slippage_bps or 0.0)
             slip = slip_bps / 10000.0
             effective_px = float(px) * (1.0 + slip)
-            consumed_bp_delta = (delta_abs * effective_px) if delta_abs > 0 else 0.0
+            
+            # For derivatives, consumed BP is margin = notional / leverage
+            # For spot, leverage=1.0, so formula works for both
+            if self._request.exchange_config.market_type == MarketType.SPOT:
+                consumed_bp_delta = (delta_abs * effective_px) if delta_abs > 0 else 0.0
+            else:
+                # Derivatives: margin consumed = notional / leverage
+                consumed_bp_delta = (delta_abs * effective_px / allowed_lev) if delta_abs > 0 else 0.0
+
 
         return final_qty, consumed_bp_delta
 
@@ -556,14 +610,32 @@ class BaseComposer(ABC):
                 logger.warning(f"FILTERED: {symbol} no price reference available")
                 return 0.0
             notional = qty * price
-            if notional < float(min_notional):
-                logger.warning(
-                    f"FILTERED: {symbol} notional={notional:.4f} < min_notional={min_notional}"
+            
+            # Handle min_notional as either a scalar or a dict (per-symbol)
+            if isinstance(min_notional, dict):
+                min_notional_value = min_notional.get(symbol)
+                if min_notional_value is None:
+                    # Symbol not in dict, skip this check
+                    logger.debug(f"No min_notional configured for {symbol}, skipping check")
+                else:
+                    if notional < float(min_notional_value):
+                        logger.warning(
+                            f"FILTERED: {symbol} notional={notional:.4f} < min_notional={min_notional_value}"
+                        )
+                        return 0.0
+                    logger.debug(
+                        f"Passed min_notional check: notional={notional:.4f} >= {min_notional_value}"
+                    )
+            else:
+                # Scalar min_notional
+                if notional < float(min_notional):
+                    logger.warning(
+                        f"FILTERED: {symbol} notional={notional:.4f} < min_notional={min_notional}"
+                    )
+                    return 0.0
+                logger.debug(
+                    f"Passed min_notional check: notional={notional:.4f} >= {min_notional}"
                 )
-                return 0.0
-            logger.debug(
-                f"Passed min_notional check: notional={notional:.4f} >= {min_notional}"
-            )
 
         logger.debug(f"Final qty for {symbol}: {qty}")
         return qty
