@@ -1,0 +1,40 @@
+# Use bun image from domestic mirror (docker.1ms.run)
+FROM docker.1ms.run/oven/bun:1.3.0-slim
+
+# Configure apt to use Aliyun mirror (for Debian)
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources || \
+    sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list || true
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy frontend files
+COPY frontend/package.json frontend/bun.lock ./frontend/
+
+# Configure bun to use npm registry mirror (Taobao)
+RUN echo "registry=https://registry.npmmirror.com" > /root/.npmrc && \
+    echo "_authToken=" >> /root/.npmrc
+
+# Set environment variable for bun registry
+ENV BUN_CONFIG_REGISTRY=https://registry.npmmirror.com
+
+# Install dependencies
+RUN cd frontend && bun install --frozen-lockfile
+
+# Copy frontend source code
+COPY frontend ./frontend
+
+EXPOSE 1420
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD curl -f http://localhost:1420 || exit 1
+
+# Run the frontend dev server
+WORKDIR /app/frontend
+CMD ["bun", "run", "dev"]
+
