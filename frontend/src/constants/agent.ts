@@ -114,9 +114,12 @@ export const VALUECELL_AGENT: AgentInfo = {
 
 // Trading symbols options
 export const TRADING_SYMBOLS: string[] = [
-  "BTC/USDT",
-  "ETH/USDT",
-  "SOL/USDT",
-  "DOGE/USDT",
-  "XRP/USDT",
+  "BTC/USDT",   // Bitcoin
+  "ETH/USDT",   // Ethereum
+  "BNB/USDT",   // Binance Coin
+  "SOL/USDT",   // Solana
+  "DOGE/USDT",  // Dogecoin
+  "XRP/USDT",   // Ripple
+  "TRUMP/USDT", // Trump Meme Coin
 ];
+

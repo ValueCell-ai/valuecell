@@ -35,7 +35,7 @@ class GridComposer(BaseComposer):
     - Define grid step with `step_pct` (e.g., 0.5%).
     - With positions: price falling ≥ 1 step vs average adds; rising ≥ 1 step
       reduces (max `max_steps` per cycle).
-    - Without positions: use recent change percent (prefer 1s feature) to
+    - Without positions: use recent change percent (prefer 1m feature) to
       trigger open; spot opens long only, perps can open both directions.
     - Base size is `equity * base_fraction / price`; `_normalize_plan` later
       clamps by filters and buying power.
@@ -78,6 +78,12 @@ class GridComposer(BaseComposer):
         self._min_grid_zone_pct: float = 0.10  # at least ±10%
         # Limit per-update grid_count change to avoid oscillation
         self._max_grid_count_delta: int = 2
+        
+        # Track symbols that have hit Stop Loss and should not be traded anymore
+        self._stopped_symbols: set[str] = set()
+        
+        # Tiered take-profit tracking: {symbol: {partial_closed: bool, peak_pnl: float}}
+        self._tp_tracking: dict[str, dict] = {}
 
     def _max_abs_change_pct(self, context: ComposeContext) -> Optional[float]:
         symbols = list(self._request.trading_config.symbols or [])
@@ -142,11 +148,35 @@ class GridComposer(BaseComposer):
 
     async def compose(self, context: ComposeContext) -> ComposeResult:
         ts = int(context.ts)
-        # 0) Refresh interval is internal (no user-configurable grid_* fields)
+        # Define symbols early for use in TP/SL and param logic
+        symbols = list(dict.fromkeys(self._request.trading_config.symbols))
 
-        # 1) User grid overrides removed — parameters decided by the model only
+        # 0) Quick pre-check: Skip LLM if no buying power and no positions to close
+        # This saves expensive LLM calls when we can't trade anyway
+        has_positions = any(
+            context.portfolio.positions.get(sym) and 
+            context.portfolio.positions[sym].quantity != 0
+            for sym in symbols
+        )
+        buying_power = float(context.portfolio.buying_power or 0.0)
+        min_required_bp = 1.0  # Minimum $1 to consider trading
+        
+        if not has_positions and buying_power < min_required_bp:
+            logger.warning(
+                f"⚠️ Skipping compose: No positions and insufficient buying power "
+                f"(${buying_power:.2f} < ${min_required_bp:.2f}). "
+                f"Skipping LLM call to save costs."
+            )
+            return ComposeResult(
+                instructions=[],
+                rationale=f"No action: Insufficient buying power (${buying_power:.2f}) and no positions to manage."
+            )
 
-        # 2) Refresh LLM advice periodically (always enabled)
+        # 1) Refresh interval is internal (no user-configurable grid_* fields)
+
+        # 2) User grid overrides removed — parameters decided by the model only
+
+        # 3) Refresh LLM advice periodically (always enabled)
         try:
             source_is_llm = True
             should_refresh = (
@@ -175,7 +205,7 @@ class GridComposer(BaseComposer):
                     ) or self._has_clear_market_change(context)
                     if apply_new:
                         # Apply advised params with sanity clamps — model decides dynamically
-                        self._step_pct = max(1e-6, float(advice.grid_step_pct))
+                        self._step_pct = max(0.003, float(advice.grid_step_pct))  # Minimum 0.3%
                         self._max_steps = max(1, int(advice.grid_max_steps))
                         self._base_fraction = max(
                             1e-6, float(advice.grid_base_fraction)
@@ -251,164 +281,214 @@ class GridComposer(BaseComposer):
             # Non-fatal; continue with configured defaults
             pass
 
+        # 3) Check Take Profit and Stop Loss - read from config (supports runtime changes)
+        tp_pct_threshold = float(
+            getattr(self._request.trading_config, 'take_profit_pct', 22.0)
+        )
+        sl_pct_threshold = float(
+            getattr(self._request.trading_config, 'stop_loss_pct', -20.0)
+        )
+        logger.info(
+            f"⚙️ TP/SL Config: Take Profit={tp_pct_threshold:.1f}%, Stop Loss={sl_pct_threshold:.1f}%"
+        )
+        items: List[TradeDecisionItem] = []
+        noop_reasons: List[str] = []
+        should_stop_strategy = False
+        
+        # 🔍 DEBUG: Log current positions at compose start
+        position_symbols = list(context.portfolio.positions.keys())
+        logger.info(f"📦 Compose start - Portfolio has {len(position_symbols)} positions: {position_symbols}")
+        for sym in position_symbols:
+            pos = context.portfolio.positions.get(sym)
+            if pos and pos.quantity != 0:
+                logger.info(f"  📊 Position {sym}: qty={pos.quantity:.4f}, avg_px={pos.avg_price:.4f}")
+
+        # Helper to snapshot buy/sell ranges near current price
+        def ranges_near(curr_px: float):
+            pass  # Placeholder, not used in TP/SL check
+        
         # Prepare buying power/constraints/price map, then generate plan and reuse parent normalization
         equity, allowed_lev, constraints, _projected_gross, price_map = (
             self._init_buying_power_context(context)
         )
 
-        items: List[TradeDecisionItem] = []
-
-        # Pre-fetch micro change percentage from features (prefer 1s, fallback 1m)
-        def latest_change_pct(
-            symbol: str, *, allow_market_snapshot: bool = True
-        ) -> Optional[float]:
-            best: Optional[float] = None
-            best_rank = 999
-            for fv in context.features or []:
-                try:
-                    if str(getattr(fv.instrument, "symbol", "")) != symbol:
-                        continue
-
-                    meta = fv.meta or {}
-                    interval = meta.get("interval")
-                    group_key = meta.get(FEATURE_GROUP_BY_KEY)
-
-                    # 1) Primary: candle features provide bare `change_pct` with interval
-                    change = fv.values.get("change_pct")
-                    used_market_snapshot = False
-
-                    # 2) Fallback: market snapshot provides `price.change_pct`
-                    if change is None:
-                        if not allow_market_snapshot:
-                            # Skip market snapshot-based percent change when disallowed
-                            pass
-                        else:
-                            change = fv.values.get("price.change_pct")
-                            used_market_snapshot = change is not None
-
-                    # 3) Last resort: infer from price.last/close vs price.open
-                    if change is None:
-                        # Only allow price-based inference for candle intervals when snapshot disallowed
-                        if allow_market_snapshot or (interval in ("1s", "1m")):
-                            last_px = fv.values.get("price.last") or fv.values.get(
-                                "price.close"
-                            )
-                            open_px = fv.values.get("price.open")
-                            if last_px is not None and open_px is not None:
-                                try:
-                                    o = float(open_px)
-                                    last_price = float(last_px)
-                                    if o > 0:
-                                        change = last_price / o - 1.0
-                                        used_market_snapshot = (
-                                            group_key
-                                            == FEATURE_GROUP_BY_MARKET_SNAPSHOT
-                                        )
-                                except Exception:
-                                    # ignore parse errors
-                                    pass
-
-                    if change is None:
-                        continue
-
-                    # Ranking preference:
-                    # - 1s candle features are best
-                    # - Market snapshot next (often closest to real-time)
-                    # - 1m candle features then
-                    # - Anything else last
-                    if interval == "1s":
-                        rank = 0
-                    elif (
-                        group_key == FEATURE_GROUP_BY_MARKET_SNAPSHOT
-                    ) or used_market_snapshot:
-                        rank = 1
-                    elif interval == "1m":
-                        rank = 2
-                    else:
-                        rank = 3
-
-                    if rank < best_rank:
-                        best = float(change)
-                        best_rank = rank
-                except Exception:
-                    continue
-            return best
-
-        def snapshot_price_debug(symbol: str) -> str:
-            keys = (
-                "price.last",
-                "price.close",
-                "price.open",
-                "price.bid",
-                "price.ask",
-                "price.mark",
-                "funding.mark_price",
-            )
-            found: List[str] = []
-            for fv in context.features or []:
-                try:
-                    if str(getattr(fv.instrument, "symbol", "")) != symbol:
-                        continue
-                    meta = fv.meta or {}
-                    group_key = meta.get(FEATURE_GROUP_BY_KEY)
-                    if group_key != FEATURE_GROUP_BY_MARKET_SNAPSHOT:
-                        continue
-                    for k in keys:
-                        val = fv.values.get(k)
-                        if val is not None:
-                            try:
-                                num = float(val)
-                                found.append(f"{k}={num:.4f}")
-                            except Exception:
-                                found.append(f"{k}=<invalid>")
-                except Exception:
-                    continue
-            return ", ".join(found) if found else "no snapshot price keys present"
-
-        # Resolve previous and current price pair for the symbol using best available feature
+        # Helper to resolve prev/curr prices for grid logic
         def resolve_prev_curr_prices(symbol: str) -> Optional[Tuple[float, float]]:
-            best_pair: Optional[Tuple[float, float]] = None
-            best_rank = 999
+            # Prefer 1m change_pct from market snapshot
             for fv in context.features or []:
-                try:
-                    if str(getattr(fv.instrument, "symbol", "")) != symbol:
-                        continue
-                    meta = fv.meta or {}
-                    interval = meta.get("interval")
-                    group_key = meta.get(FEATURE_GROUP_BY_KEY)
-                    open_px = fv.values.get("price.open")
-                    last_px = fv.values.get("price.last") or fv.values.get(
-                        "price.close"
-                    )
-                    if open_px is None or last_px is None:
-                        continue
-                    try:
-                        o = float(open_px)
-                        last_price = float(last_px)
-                        if o <= 0 or last_price <= 0:
-                            continue
-                    except Exception:
-                        continue
-                    if interval == "1s":
-                        rank = 0
-                    elif group_key == FEATURE_GROUP_BY_MARKET_SNAPSHOT:
-                        rank = 1
-                    elif interval == "1m":
-                        rank = 2
-                    else:
-                        rank = 3
-                    if rank < best_rank:
-                        best_pair = (o, last_price)
-                        best_rank = rank
-                except Exception:
+                if getattr(fv.instrument, "symbol", "") != symbol:
                     continue
-            return best_pair
+                meta = fv.meta or {}
+                group_key = meta.get(FEATURE_GROUP_BY_KEY)
+                if group_key == FEATURE_GROUP_BY_MARKET_SNAPSHOT:
+                    curr_px = fv.values.get("price.last")
+                    prev_px = fv.values.get("price.open")  # Use open as previous
+                    if curr_px is not None and prev_px is not None:
+                        return float(prev_px), float(curr_px)
+            # Fallback to current price and a synthetic previous price based on step_pct
+            curr_px = float(price_map.get(symbol) or 0.0)
+            if curr_px > 0:
+                # If no historical data, assume previous price was within one step
+                return curr_px * (1.0 - self._step_pct / 2), curr_px
+            return None
 
-        symbols = list(dict.fromkeys(self._request.trading_config.symbols))
+        # Helper for debug info when price is missing
+        def snapshot_price_debug(symbol: str) -> str:
+            for fv in context.features or []:
+                if getattr(fv.instrument, "symbol", "") != symbol:
+                    continue
+                meta = fv.meta or {}
+                group_key = meta.get(FEATURE_GROUP_BY_KEY)
+                if group_key == FEATURE_GROUP_BY_MARKET_SNAPSHOT:
+                    return f"snapshot_price.last={fv.values.get('price.last')}, snapshot_price.open={fv.values.get('price.open')}"
+            return "no market snapshot"
+
+        # Determine market type once
         is_spot = self._request.exchange_config.market_type == MarketType.SPOT
-        noop_reasons: List[str] = []
+
+        # 🔍 DEBUG: Log TP/SL check loop start
+        logger.info(f"🎯 Starting TP/SL checks for {len(symbols)} symbols: {symbols}")
+        
+        for symbol in symbols:
+            # If symbol is already stopped (hit SL previously), don't process it unless we still have position to close
+            if symbol in self._stopped_symbols:
+               # We might want to check here if position remains and retry close, otherwise skip
+               logger.debug(f"⏭️ Skipping {symbol}: already in stopped_symbols")
+               pass
+
+            pos = context.portfolio.positions.get(symbol)
+            if not pos:
+                logger.debug(f"⏭️ Skipping {symbol}: no position found in portfolio")
+                continue
+
+            quantity = float(pos.quantity or 0.0)
+            if quantity == 0.0:
+                logger.debug(f"⏭️ Skipping {symbol}: position quantity is 0")
+                continue
+            
+            logger.info(f"✅ Checking TP/SL for {symbol} with position qty={quantity:.4f}")
+
+            # Calculate unrealized PnL % using reliable mark price
+            mark_px = float(price_map.get(symbol) or pos.mark_price or 0.0)
+            avg_px = float(pos.avg_price or 0.0)
+            entry_ts = getattr(pos, "entry_ts", 0)
+
+            if mark_px > 0 and avg_px > 0:
+                # Calculate price movement percentage (without leverage)
+                price_move_pct = 0.0
+                if quantity > 0:
+                    price_move_pct = (mark_px - avg_px) / avg_px * 100.0
+                else:
+                    price_move_pct = (avg_px - mark_px) / avg_px * 100.0
+                
+                # Get actual leverage from position (populated by exchange sync)
+                actual_leverage = float(getattr(pos, 'leverage', 1.0) or 1.0)
+                
+                # DEBUG: Log if leverage seems wrong
+                if actual_leverage == 1.0 and abs(price_move_pct) > 1.0:
+                    logger.warning(
+                        f"⚠️ {symbol}: leverage=1.0 but price moved {price_move_pct:.2f}%. "
+                        f"Leverage might not be synced correctly from exchange!"
+                    )
+                
+                # Real PnL considering leverage effect
+                # For leveraged positions: actual_pnl% = price_movement% × leverage
+                pnl_pct = price_move_pct * actual_leverage
+                
+                logger.info(
+                    f"TP/SL Check: {symbol} qty={quantity:.4f} mark_px={mark_px:.4f} avg_px={avg_px:.4f} "
+                    f"price_move={price_move_pct:.2f}% lev={actual_leverage:.1f}x pnl={pnl_pct:.2f}% "
+                    f"(TP={tp_pct_threshold}% SL={sl_pct_threshold}%)"
+                )
+                
+                # Get tiered TP config
+                partial_tp_enabled = getattr(self._request.trading_config, 'partial_tp_enabled', True)
+                partial_tp_threshold = float(getattr(self._request.trading_config, 'partial_tp_threshold_pct', 15.0))
+                partial_tp_ratio = float(getattr(self._request.trading_config, 'partial_tp_close_ratio', 0.3))
+                trailing_drawdown = float(getattr(self._request.trading_config, 'trailing_stop_drawdown_pct', 3.0))
+                
+                # Initialize tracking state for this symbol
+                if symbol not in self._tp_tracking:
+                    self._tp_tracking[symbol] = {'partial_closed': False, 'peak_pnl': pnl_pct}
+                
+                track = self._tp_tracking[symbol]
+                if pnl_pct > track['peak_pnl']:
+                    track['peak_pnl'] = pnl_pct
+                
+                # Tier 1: Partial take profit
+                if partial_tp_enabled and not track['partial_closed'] and pnl_pct >= partial_tp_threshold:
+                    action = TradeDecisionAction.CLOSE_LONG if quantity > 0 else TradeDecisionAction.CLOSE_SHORT
+                    close_qty = abs(quantity) * partial_tp_ratio
+                    logger.warning(f"[PARTIAL TP] {symbol}: pnl={pnl_pct:.2f}% >= {partial_tp_threshold}%. Closing {partial_tp_ratio*100:.0f}% ({close_qty:.4f})")
+                    items.append(TradeDecisionItem(
+                        instrument=InstrumentRef(symbol=symbol, exchange_id=self._request.exchange_config.exchange_id),
+                        action=action, target_qty=close_qty, leverage=1.0, confidence=1.0,
+                        rationale=f"Partial TP: pnl={pnl_pct:.2f}% >= {partial_tp_threshold}%. Closing {partial_tp_ratio*100:.0f}%."
+                    ))
+                    track['partial_closed'] = True
+                    track['peak_pnl'] = pnl_pct
+                    continue
+                
+                # Tier 2: Trailing stop (after partial close)
+                if partial_tp_enabled and track['partial_closed']:
+                    drawdown = track['peak_pnl'] - pnl_pct
+                    if drawdown >= trailing_drawdown:
+                        action = TradeDecisionAction.CLOSE_LONG if quantity > 0 else TradeDecisionAction.CLOSE_SHORT
+                        logger.warning(f"[TRAILING STOP] {symbol}: peak={track['peak_pnl']:.2f}% current={pnl_pct:.2f}% drawdown={drawdown:.2f}%")
+                        items.append(TradeDecisionItem(
+                            instrument=InstrumentRef(symbol=symbol, exchange_id=self._request.exchange_config.exchange_id),
+                            action=action, target_qty=abs(quantity), leverage=1.0, confidence=1.0,
+                            rationale=f"Trailing stop: drawdown={drawdown:.2f}% from peak={track['peak_pnl']:.2f}%."
+                        ))
+                        self._tp_tracking[symbol] = {'partial_closed': False, 'peak_pnl': 0.0}
+                        continue
+                
+                # Fallback: Full TP at higher threshold
+                if pnl_pct >= tp_pct_threshold:
+                    action = TradeDecisionAction.CLOSE_LONG if quantity > 0 else TradeDecisionAction.CLOSE_SHORT
+                    logger.warning(f"[FULL TP] {symbol}: pnl={pnl_pct:.2f}% >= {tp_pct_threshold}%. Closing full position.")
+                    items.append(TradeDecisionItem(
+                        instrument=InstrumentRef(symbol=symbol, exchange_id=self._request.exchange_config.exchange_id),
+                        action=action, target_qty=abs(quantity), leverage=1.0, confidence=1.0,
+                        rationale=f"Full TP: pnl={pnl_pct:.2f}% >= {tp_pct_threshold}%.")
+                    )
+                    if symbol in self._tp_tracking:
+                        self._tp_tracking[symbol] = {'partial_closed': False, 'peak_pnl': 0.0}
+                    continue
+
+                # Check Stop Loss
+                if pnl_pct <= sl_pct_threshold:
+                    action = TradeDecisionAction.CLOSE_LONG if quantity > 0 else TradeDecisionAction.CLOSE_SHORT
+                    logger.error(
+                        f"🛑 STOP LOSS triggered for {symbol}: pnl={pnl_pct:.2f}% <= {sl_pct_threshold}%. Closing position qty={abs(quantity):.4f} and STOPPING {symbol} strategy."
+                    )
+                    items.append(
+                        TradeDecisionItem(
+                            instrument=InstrumentRef(
+                                symbol=symbol,
+                                exchange_id=self._request.exchange_config.exchange_id,
+                            ),
+                            action=action,
+                            target_qty=abs(quantity), # Close full position
+                            leverage=1.0,
+                            confidence=1.0,
+                            rationale=f"Stop Loss triggered: pnl={pnl_pct:.2f}% <= {sl_pct_threshold}%. Closing position and STOPPING strategy for {symbol}. (Restart strategy to resume)."
+                        )
+                    )
+                    self._stopped_symbols.add(symbol) # Blacklist this symbol
+                    should_stop_strategy = True  # Signal coordinator to stop the strategy
+                    continue # Skip grid logic for this symbol
 
         for symbol in symbols:
+            # Skip if we already generated a critical TP/SL action for this symbol
+            if any(item.instrument.symbol == symbol for item in items):
+                continue
+            
+            # Skip if symbol is stopped (hit SL)
+            if symbol in self._stopped_symbols:
+                noop_reasons.append(f"{symbol}: STOPPED due to previous Stop Loss (Restart to resume).")
+                continue
+
             price = float(price_map.get(symbol) or 0.0)
             if price <= 0:
                 logger.debug("Skip {} due to missing/invalid price", symbol)
@@ -424,6 +504,29 @@ class GridComposer(BaseComposer):
 
             # Base order size per grid: equity fraction converted to quantity; parent applies risk controls
             base_qty = max(0.0, (equity * self._base_fraction) / price)
+            
+            # Adaptive adjustment: ensure base_qty meets minimum notional requirement
+            # Extract min_notional from constraints (could be dict or scalar)
+            min_notional_value = None
+            if constraints and getattr(constraints, "min_notional", None) is not None:
+                min_notional = constraints.min_notional
+                if isinstance(min_notional, dict):
+                    min_notional_value = min_notional.get(symbol)
+                else:
+                    min_notional_value = min_notional
+            
+            # If min_notional check fails, increase base_qty to meet requirement
+            if min_notional_value is not None and min_notional_value > 0:
+                notional = base_qty * price
+                if notional < min_notional_value:
+                    # Calculate minimum qty needed
+                    min_qty = min_notional_value / price
+                    logger.info(
+                        f"📊 {symbol}: Adjusting base_qty from {base_qty:.6f} to {min_qty:.6f} "
+                        f"(notional {notional:.2f} < min {min_notional_value:.2f})"
+                    )
+                    base_qty = min_qty
+            
             if base_qty <= 0:
                 noop_reasons.append(
                     f"{symbol}: base_qty=0 (equity={equity:.4f}, base_fraction={self._base_fraction:.4f}, price={price:.4f})"
@@ -674,6 +777,11 @@ class GridComposer(BaseComposer):
             if self._llm_advice_rationale
             else ""
         )
+        
+        # Capture stopped symbols in rationale
+        stopped_desc = ""
+        if self._stopped_symbols:
+           stopped_desc = f". STOPPED_SYMBOLS={list(self._stopped_symbols)}"
 
         if not items:
             logger.debug(
@@ -681,14 +789,18 @@ class GridComposer(BaseComposer):
             )
             # Compose a concise rationale summarizing why no actions were emitted
             summary = "; ".join(noop_reasons) if noop_reasons else "no triggers hit"
-            rationale = f"Grid NOOP — reasons: {summary}. {params_desc}{advisor_desc}"
-            return ComposeResult(instructions=[], rationale=rationale)
+            rationale = f"Grid NOOP — reasons: {summary}. {params_desc}{advisor_desc}{stopped_desc}"
+            return ComposeResult(instructions=[], rationale=rationale, should_stop=False)
 
         plan = TradePlanProposal(
             ts=ts,
             items=items,
-            rationale=f"Grid plan — {params_desc}{advisor_desc}",
+            rationale=f"Grid plan — {params_desc}{advisor_desc}{stopped_desc}",
         )
         # Reuse parent normalization: quantity filters, buying power, cap_factor, reduceOnly, etc.
         normalized = self._normalize_plan(context, plan)
-        return ComposeResult(instructions=normalized, rationale=plan.rationale)
+        return ComposeResult(
+            instructions=normalized, 
+            rationale=plan.rationale,
+            should_stop=should_stop_strategy
+        )

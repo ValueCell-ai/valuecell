@@ -114,6 +114,7 @@ class CCXTExecutionGateway(BaseExecutionGateway):
         # Build configuration based on exchange type
         config = {
             "enableRateLimit": True,  # Respect rate limits
+            "timeout": 30000,  # 30 seconds timeout for API requests
             "options": {
                 "defaultType": self._choose_default_type_for_exchange(),
                 **self._ccxt_options,

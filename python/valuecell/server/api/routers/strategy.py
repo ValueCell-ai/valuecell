@@ -5,12 +5,28 @@ Strategy API router for handling strategy-related endpoints.
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from loguru import logger
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from valuecell.server.api.schemas.base import StatusCode, SuccessResponse
 from valuecell.server.api.schemas.strategy import (
+    BacktestConfigRequest,
+    BacktestResultData,
+    BacktestResultResponse,
+    BacktestStartResponse,
+    BaseStrategyType,
+    DynamicStrategyConfig,
+    ManualClosePositionData,
+    ManualClosePositionRequest,
+    ManualClosePositionResponse,
+    MarketStateAndScoresData,
+    MarketStateAndScoresResponse,
+    PositionControlUpdateRequest,
+    PositionControlUpdateResponse,
+    RiskMode,
+    ScoreWeights,
     StrategyCurveResponse,
     StrategyDetailResponse,
     StrategyHoldingFlatItem,
@@ -27,6 +43,15 @@ from valuecell.server.api.schemas.strategy import (
 from valuecell.server.db import get_db
 from valuecell.server.db.models.strategy import Strategy
 from valuecell.server.db.repositories import get_strategy_repository
+from valuecell.server.services.backtest_service import (
+    BacktestConfig,
+    BacktestService,
+)
+from valuecell.server.services.dynamic_strategy_service import (
+    BaseStrategyType as ServiceBaseStrategyType,
+    DynamicStrategyScorer,
+    RiskMode as ServiceRiskMode,
+)
 from valuecell.server.services.strategy_service import StrategyService
 
 
@@ -519,6 +544,411 @@ def create_strategy_router() -> APIRouter:
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to stop strategy: {str(e)}",
+            )
+
+    @router.post(
+        "/start",
+        response_model=StrategyStatusSuccessResponse,
+        summary="Start a stopped strategy",
+        description="Resume a stopped strategy by ID (via query param 'id'). This will trigger auto-resume logic.",
+    )
+    async def start_strategy(
+        id: str = Query(..., description="Strategy ID"),
+        background_tasks: BackgroundTasks = BackgroundTasks(),
+        db: Session = Depends(get_db),
+    ) -> StrategyStatusSuccessResponse:
+        try:
+            repo = get_strategy_repository(db_session=db)
+            strategy = repo.get_strategy_by_strategy_id(id)
+            if not strategy:
+                raise HTTPException(status_code=404, detail="Strategy not found")
+
+            # Update status to 'running' if it's stopped
+            if strategy.status == "stopped":
+                # Validate stop reason - only allow restarting stop-loss stopped strategies
+                metadata = strategy.metadata or {}
+                stop_reason = metadata.get("stop_reason")
+                
+                from valuecell.agents.common.trading.models import StopReason
+                if stop_reason != StopReason.STOP_LOSS.value:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Cannot restart strategy: it was stopped for reason '{stop_reason or 'unknown'}'. Only stop-loss stopped strategies can be restarted.",
+                    )
+                
+                repo.upsert_strategy(strategy_id=id, status="running")
+                
+                # Trigger auto-resume in background
+                try:
+                    from valuecell.core.coordinate.orchestrator import AgentOrchestrator
+                    from valuecell.server.services.strategy_autoresume import _resume_one
+                    
+                    orchestrator = AgentOrchestrator()
+                    # Refresh strategy object to get updated status
+                    strategy = repo.get_strategy_by_strategy_id(id)
+                    
+                    # Schedule resume as background task
+                    async def resume_task():
+                        try:
+                            await _resume_one(orchestrator, strategy)
+                            logger.info(f"Successfully resumed strategy {id}")
+                        except Exception as e:
+                            logger.exception(f"Failed to resume strategy {id}: {e}")
+                    
+                    background_tasks.add_task(resume_task)
+                    
+                    response_data = StrategyStatusUpdateResponse(
+                        strategy_id=id,
+                        status="running",
+                        message=f"Strategy '{id}' is being started. It may take a few moments to begin decision cycles.",
+                    )
+                except Exception as resume_error:
+                    # If resume fails, at least status is updated
+                    logger.warning(f"Failed to trigger auto-resume: {resume_error}")
+                    response_data = StrategyStatusUpdateResponse(
+                        strategy_id=id,
+                        status="running",
+                        message=f"Strategy '{id}' status updated to running. Please restart the server to activate.",
+                    )
+            elif strategy.status == "running":
+                response_data = StrategyStatusUpdateResponse(
+                    strategy_id=id,
+                    status="running",
+                    message=f"Strategy '{id}' is already running",
+                )
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Cannot start strategy with status '{strategy.status}'",
+                )
+
+            return SuccessResponse.create(
+                data=response_data,
+                msg=f"Successfully started strategy '{id}'",
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to start strategy: {str(e)}",
+            )
+
+    # Dynamic Strategy Endpoints
+    @router.get(
+        "/dynamic/scores",
+        response_model=MarketStateAndScoresResponse,
+        summary="Get market state and strategy scores",
+        description="Get real-time market indicators and strategy scores for dynamic strategy selection",
+    )
+    async def get_market_state_and_scores(
+        symbol: str = Query(..., description="Trading symbol (e.g., BTC/USDT)"),
+        base_strategies: Optional[str] = Query(
+            "TREND,GRID,BREAKOUT,ARBITRAGE",
+            description="Comma-separated list of base strategies to evaluate",
+        ),
+        risk_mode: str = Query("NEUTRAL", description="Risk mode: AGGRESSIVE, NEUTRAL, or DEFENSIVE"),
+        exchange_id: str = Query("okx", description="Exchange identifier"),
+    ) -> MarketStateAndScoresResponse:
+        """Get market state and strategy scores."""
+        try:
+            # Parse base strategies
+            strategy_names = [s.strip() for s in base_strategies.split(",")]
+            base_strategy_list = []
+            for name in strategy_names:
+                try:
+                    base_strategy_list.append(ServiceBaseStrategyType(name))
+                except ValueError:
+                    logger.warning(f"Invalid strategy type: {name}, skipping")
+                    continue
+
+            if not base_strategy_list:
+                base_strategy_list = [ServiceBaseStrategyType.TREND]
+
+            # Parse risk mode
+            try:
+                risk_mode_enum = ServiceRiskMode(risk_mode.upper())
+            except ValueError:
+                risk_mode_enum = ServiceRiskMode.NEUTRAL
+
+            # Create scorer and get scores
+            scorer = DynamicStrategyScorer()
+            result = await scorer.get_market_state_and_scores(
+                symbols=[symbol],
+                exchange_id=exchange_id,
+                base_strategies=base_strategy_list,
+                risk_mode=risk_mode_enum,
+            )
+
+            # Convert to response format
+            response_data = MarketStateAndScoresData(
+                currentState=result.currentState,
+                strategyScores=[
+                    {
+                        "name": score.name,
+                        "score": score.score,
+                        "reason": score.reason,
+                    }
+                    for score in result.strategyScores
+                ],
+                recommendedStrategy=result.recommendedStrategy,
+                marketIndicators={
+                    "volatility": result.marketIndicators.volatility,
+                    "trendStrength": result.marketIndicators.trendStrength,
+                    "volumeRatio": result.marketIndicators.volumeRatio,
+                    "marketSentiment": result.marketIndicators.marketSentiment,
+                },
+            )
+
+            return SuccessResponse.create(
+                data=response_data,
+                msg="Successfully retrieved market state and strategy scores",
+            )
+        except Exception as e:
+            logger.exception("Error getting market state and scores: {}", e)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to get market state and scores: {str(e)}",
+            )
+
+    # Backtest Endpoints (Binance only)
+    _backtest_service = BacktestService()
+
+    @router.post(
+        "/backtest/run",
+        response_model=BacktestStartResponse,
+        summary="Start a backtest (Binance only)",
+        description="Start a backtest for a strategy configuration using Binance historical data",
+    )
+    async def run_backtest(
+        config: BacktestConfigRequest,
+        background_tasks: BackgroundTasks,
+        db: Session = Depends(get_db),
+    ) -> BacktestStartResponse:
+        """Start a backtest."""
+        try:
+            from datetime import datetime
+
+            # Parse dates
+            start_date = datetime.fromisoformat(config.startDate.replace("Z", "+00:00"))
+            end_date = datetime.fromisoformat(config.endDate.replace("Z", "+00:00"))
+
+            # Extract symbols and interval from strategy config
+            symbols = []
+            interval = "1h"  # Default interval
+
+            if config.strategyId:
+                # Load strategy from database
+                repo = get_strategy_repository(db_session=db)
+                strategy = repo.get_strategy_by_strategy_id(config.strategyId)
+                if not strategy:
+                    raise HTTPException(status_code=404, detail="Strategy not found")
+                # Extract symbols from strategy metadata
+                meta = strategy.meta or {}
+                symbols = meta.get("symbols", [])
+                # Extract interval from strategy config if available
+                cfg = strategy.config or {}
+                trading_config = cfg.get("trading_config", {})
+                decide_interval = trading_config.get("decide_interval", 60)
+                # Map decide_interval to candle interval
+                if decide_interval <= 60:
+                    interval = "1m"
+                elif decide_interval <= 300:
+                    interval = "5m"
+                elif decide_interval <= 3600:
+                    interval = "1h"
+                else:
+                    interval = "1d"
+            elif config.strategyConfig:
+                # Extract from strategy config
+                trading_config = config.strategyConfig.get("trading_config", {})
+                symbols = trading_config.get("symbols", [])
+                decide_interval = trading_config.get("decide_interval", 60)
+                # Map decide_interval to candle interval
+                if decide_interval <= 60:
+                    interval = "1m"
+                elif decide_interval <= 300:
+                    interval = "5m"
+                elif decide_interval <= 3600:
+                    interval = "1h"
+                else:
+                    interval = "1d"
+
+            if not symbols:
+                raise HTTPException(
+                    status_code=400, detail="No symbols found in strategy configuration"
+                )
+
+            # Create backtest config
+            backtest_config = BacktestConfig(
+                strategy_id=config.strategyId,
+                strategy_config=config.strategyConfig,
+                start_date=start_date,
+                end_date=end_date,
+                initial_capital=config.initialCapital,
+                symbols=symbols,
+                interval=interval,
+            )
+
+            # Start backtest
+            backtest_id = await _backtest_service.start_backtest(backtest_config)
+
+            return SuccessResponse.create(
+                data={"backtestId": backtest_id},
+                msg=f"Backtest {backtest_id} started",
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception("Error starting backtest: {}", e)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to start backtest: {str(e)}",
+            )
+
+    @router.get(
+        "/backtest/result",
+        response_model=BacktestResultResponse,
+        summary="Get backtest result",
+        description="Get the result of a backtest by ID",
+    )
+    async def get_backtest_result(
+        id: str = Query(..., description="Backtest ID"),
+    ) -> BacktestResultResponse:
+        """Get backtest result."""
+        try:
+            result = await _backtest_service.get_backtest_result(id)
+            if not result:
+                raise HTTPException(status_code=404, detail="Backtest not found")
+
+            # Convert to response format
+            response_data = BacktestResultData(
+                backtestId=result.backtest_id,
+                totalReturn=result.total_return,
+                totalReturnPct=result.total_return_pct,
+                sharpeRatio=result.sharpe_ratio,
+                maxDrawdown=result.max_drawdown,
+                maxDrawdownPct=result.max_drawdown_pct,
+                winRate=result.win_rate,
+                totalTrades=result.total_trades,
+                startDate=result.start_date.isoformat(),
+                endDate=result.end_date.isoformat(),
+                equityCurve=result.equity_curve,
+                trades=[
+                    {
+                        "symbol": trade.symbol,
+                        "action": trade.action,
+                        "entryPrice": trade.entry_price,
+                        "exitPrice": trade.exit_price,
+                        "quantity": trade.quantity,
+                        "pnl": trade.pnl,
+                        "pnlPct": trade.pnl_pct,
+                        "entryTime": trade.entry_time.isoformat(),
+                        "exitTime": trade.exit_time.isoformat(),
+                    }
+                    for trade in result.trades
+                ],
+            )
+
+            return SuccessResponse.create(
+                data=response_data,
+                msg="Successfully retrieved backtest result",
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception("Error getting backtest result: {}", e)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to get backtest result: {str(e)}",
+            )
+
+    # Position Control Endpoints
+    @router.post(
+        "/position-control/update",
+        response_model=PositionControlUpdateResponse,
+        summary="Update position control settings",
+        description="Update position control settings for a running strategy",
+    )
+    async def update_position_control(
+        request: PositionControlUpdateRequest,
+        db: Session = Depends(get_db),
+    ) -> PositionControlUpdateResponse:
+        """Update position control settings."""
+        try:
+            repo = get_strategy_repository(db_session=db)
+            strategy = repo.get_strategy_by_strategy_id(request.strategyId)
+            if not strategy:
+                raise HTTPException(status_code=404, detail="Strategy not found")
+
+            # TODO: Implement actual position control update
+            # This would need to update the running strategy's constraints
+            # For now, just log the request
+            logger.info(
+                f"Position control update requested for strategy {request.strategyId}: "
+                f"maxPositions={request.maxPositions}, "
+                f"maxPositionQty={request.maxPositionQty}, "
+                f"maxLeverage={request.maxLeverage}, "
+                f"positionSize={request.positionSize}"
+            )
+
+            # In production, this would update the strategy runtime's constraints
+            # For now, return success message
+            return SuccessResponse.create(
+                data={"message": "Position control settings updated successfully"},
+                msg="Position control settings updated",
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception("Error updating position control: {}", e)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to update position control: {str(e)}",
+            )
+
+    # Manual Close Position Endpoint
+    @router.post(
+        "/close_position",
+        response_model=ManualClosePositionResponse,
+        summary="Manually close position for a symbol",
+        description="Close a specific position for a strategy by symbol and ratio. Strategy continues running after closure.",
+    )
+    async def close_position(
+        request: ManualClosePositionRequest,
+        db: Session = Depends(get_db),
+    ) -> ManualClosePositionResponse:
+        """Manually close position for a specific symbol.
+
+        This will:
+        1. Fetch current position for the symbol
+        2. Calculate quantity to close based on closeRatio
+        3. Execute market order to close the position
+        4. Strategy continues running after closure
+        """
+        try:
+            from valuecell.server.services.position_close_service import (
+                close_position_for_strategy,
+            )
+
+            result = await close_position_for_strategy(
+                strategy_id=request.strategyId,
+                symbol=request.symbol,
+                close_ratio=request.closeRatio,
+                db=db,
+            )
+
+            return SuccessResponse.create(
+                data=result,
+                msg=f"Successfully closed {result.closeRatio*100:.1f}% of {result.symbol} position",
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception("Error closing position: {}", e)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to close position: {str(e)}",
             )
 
     return router

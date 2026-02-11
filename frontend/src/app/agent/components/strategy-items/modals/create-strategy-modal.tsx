@@ -137,9 +137,9 @@ const CreateStrategyModal: FC<CreateStrategyModalProps> = ({
       strategy_name: "",
       initial_capital: 1000,
       max_leverage: 2,
-      decide_interval: 60,
       symbols: TRADING_SYMBOLS,
       template_id: prompts.length > 0 ? prompts[0].id : "",
+      decide_interval: 60, // Default: 60 seconds (1 minute)
     },
     validators: {
       onSubmit: tradingStrategySchema,

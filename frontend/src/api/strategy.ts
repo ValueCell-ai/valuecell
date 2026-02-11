@@ -2,9 +2,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { API_QUERY_KEYS } from "@/constants/api";
 import { type ApiResponse, apiClient } from "@/lib/api-client";
 import type {
+  BacktestConfig,
+  BacktestResult,
   CreateStrategy,
+  ManualClosePositionData,
+  ManualClosePositionRequest,
+  MarketStateAndScores,
   PortfolioSummary,
   Position,
+  PositionControlUpdate,
   Strategy,
   StrategyCompose,
   StrategyPerformance,
@@ -97,6 +103,23 @@ export const useCreateStrategy = () => {
   });
 };
 
+export const useStartStrategy = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (strategyId: string) =>
+      apiClient.post<ApiResponse<{ message: string }>>(
+        `/strategies/start?id=${strategyId}`,
+      ),
+    onSuccess: () => {
+      // Invalidate strategy list to refetch
+      queryClient.invalidateQueries({
+        queryKey: API_QUERY_KEYS.STRATEGY.strategyList,
+      });
+    },
+  });
+};
+
 export const useTestConnection = () => {
   return useMutation({
     mutationFn: (data: CreateStrategy["exchange_config"]) =>
@@ -163,6 +186,83 @@ export const useCreateStrategyPrompt = () => {
   });
 };
 
+// Dynamic Strategy APIs
+export const useGetMarketStateAndScores = (
+  symbol?: string,
+  baseStrategies?: string,
+  riskMode?: string,
+  exchangeId?: string,
+) => {
+  return useQuery({
+    queryKey: API_QUERY_KEYS.STRATEGY.marketStateAndScores([
+      symbol ?? "",
+      baseStrategies ?? "",
+      riskMode ?? "",
+      exchangeId ?? "",
+    ]),
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (symbol) params.append("symbol", symbol);
+      if (baseStrategies) params.append("base_strategies", baseStrategies);
+      if (riskMode) params.append("risk_mode", riskMode);
+      if (exchangeId) params.append("exchange_id", exchangeId);
+
+      return apiClient.get<ApiResponse<MarketStateAndScores>>(
+        `/strategies/dynamic/scores?${params.toString()}`,
+      );
+    },
+    select: (data) => data.data,
+    enabled: !!symbol, // 只有当 symbol 存在时才启用查询
+    refetchInterval: 30 * 1000, // 每30秒刷新一次
+  });
+};
+
+// Backtest APIs
+export const useRunBacktest = () => {
+  return useMutation({
+    mutationFn: (config: BacktestConfig) =>
+      apiClient.post<ApiResponse<{ backtestId: string }>>(
+        "/strategies/backtest/run",
+        config,
+      ),
+  });
+};
+
+export const useGetBacktestResult = (backtestId?: string) => {
+  return useQuery({
+    queryKey: API_QUERY_KEYS.STRATEGY.backtestResult([backtestId ?? ""]),
+    queryFn: () =>
+      apiClient.get<ApiResponse<BacktestResult>>(
+        `/strategies/backtest/result?id=${backtestId}`,
+      ),
+    select: (data) => data.data,
+    enabled: !!backtestId,
+    refetchInterval: 5 * 1000, // 回测进行中时每5秒刷新
+  });
+};
+
+// Position Control APIs
+export const useUpdatePositionControl = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: PositionControlUpdate) =>
+      apiClient.post<ApiResponse<{ message: string }>>(
+        "/strategies/position-control/update",
+        data,
+      ),
+    onSuccess: (_, variables) => {
+      // 刷新策略列表和持仓信息
+      queryClient.invalidateQueries({
+        queryKey: API_QUERY_KEYS.STRATEGY.strategyList,
+      });
+      queryClient.invalidateQueries({
+        queryKey: API_QUERY_KEYS.STRATEGY.strategyHoldings([variables.strategyId]),
+      });
+    },
+  });
+};
+
 export const useDeleteStrategyPrompt = () => {
   const queryClient = useQueryClient();
 
@@ -192,3 +292,28 @@ export const useStrategyPerformance = (strategyId: number | null) => {
     enabled: false,
   });
 };
+
+// Manual Close Position API
+export const useManualClosePosition = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: ManualClosePositionRequest) =>
+      apiClient.post<ApiResponse<ManualClosePositionData>>(
+        "/strategies/close_position",
+        data,
+      ),
+    onSuccess: (_, variables) => {
+      // 刷新策略列表和持仓信息
+      queryClient.invalidateQueries({
+        queryKey: API_QUERY_KEYS.STRATEGY.strategyList,
+      });
+      queryClient.invalidateQueries({
+        queryKey: API_QUERY_KEYS.STRATEGY.strategyHoldings([
+          variables.strategyId,
+        ]),
+      });
+    },
+  });
+};
+
