@@ -37,6 +37,23 @@ except Exception:  # pragma: no cover - constants may not exist in minimal env
     DEFAULT_AGENT_MODEL = "gpt-4o"
 
 
+def _openai_like_chat_completions_endpoint(base_url: str) -> str:
+    """
+    Derive the OpenAI Chat Completions endpoint from a base_url.
+
+    This intentionally mirrors how OpenAI-style SDKs construct URLs:
+    they append `/chat/completions` onto the configured base URL.
+
+    If the caller needs `/v1/chat/completions` (or `/api/v1/...`, etc.), they must
+    include the version segment in base_url itself (e.g. `.../v1`).
+    """
+    bu = (base_url or "").strip().rstrip("/")
+    lower = bu.lower()
+    if lower.endswith("/chat/completions"):
+        return bu
+    return f"{bu}/chat/completions"
+
+
 def create_models_router() -> APIRouter:
     """Create models-related router with endpoints for model configs and provider management."""
 
@@ -721,36 +738,17 @@ def create_models_router() -> APIRouter:
                             return None, "azure"
                         endpoint = f"{bu}/openai/deployments/{model_id}/chat/completions?api-version={api_version}"
                         return endpoint, "azure"
-                    if "openrouter.ai" in lower:
-                        return f"{bu}/api/v1/chat/completions" if not lower.endswith(
-                            "/api/v1"
-                        ) else f"{bu}/chat/completions", "openai_like"
-                    if "openai.com" in lower:
-                        return f"{bu}/v1/chat/completions" if not lower.endswith(
-                            "/v1"
-                        ) else f"{bu}/chat/completions", "openai_like"
-                    if "deepseek.com" in lower:
-                        return f"{bu}/v1/chat/completions" if not lower.endswith(
-                            "/v1"
-                        ) else f"{bu}/chat/completions", "openai_like"
-                    if "siliconflow" in lower:
-                        return f"{bu}/v1/chat/completions" if not lower.endswith(
-                            "/v1"
-                        ) else f"{bu}/chat/completions", "openai_like"
-                    if "dashscope.aliyuncs.com" in lower or "dashscope.com" in lower:
-                        # DashScope OpenAI-compatible endpoint lives under compatible-mode
-                        if lower.endswith("/compatible-mode/v1"):
-                            return f"{bu}/chat/completions", "openai_like"
-                        return (
-                            f"{bu}/compatible-mode/v1/chat/completions",
-                            "openai_like",
-                        )
-                    # If base_url provided but host is unrecognized:
-                    # - For openai-compatible, treat as generic OpenAI-like
-                    # - For Google/Azure, ignore base_url and fall through to provider fallback
-                    # - For other providers, fall through to provider fallback to use official endpoints
-                    if provider == "openai-compatible":
-                        return f"{bu}/v1/chat/completions", "openai_like"
+                    # OpenAI-style endpoints (OpenAI / OpenRouter / OpenAI-compatible, etc.)
+                    # Use base_url as-is and append `/chat/completions`, mirroring SDK behavior.
+                    if provider in {
+                        "openrouter",
+                        "openai",
+                        "openai-compatible",
+                        "deepseek",
+                        "siliconflow",
+                        "dashscope",
+                    }:
+                        return _openai_like_chat_completions_endpoint(bu), "openai_like"
 
                 # Provider-driven fallback
                 if provider == "google":
