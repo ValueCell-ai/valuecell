@@ -550,6 +550,10 @@ class PortfolioView(BaseModel):
             " effective leverage if available, otherwise falls back to constraints.max_leverage."
         ),
     )
+    stop_prices: Dict[str, "StopPrice"] = Field(
+        default_factory=dict,
+        description="Dictionary of stop prices for existing positions and positions to open.",
+    )
 
 
 class TradeDecisionAction(str, Enum):
@@ -585,6 +589,17 @@ def derive_side_from_action(
         return TradeSide.SELL
     # NOOP or future adjust/cancel actions: no executable side
     return None
+
+
+class StopPrice(BaseModel):
+    stop_gain_price: Optional[float] = Field(
+        ...,
+        description="Stop gain price for this position.",
+    )
+    stop_loss_price: Optional[float] = Field(
+        ...,
+        description="Stop loss price for this position.",
+    )
 
 
 class TradeDecisionItem(BaseModel):
@@ -640,6 +655,10 @@ class TradePlanProposal(BaseModel):
     items: List[TradeDecisionItem] = Field(default_factory=list)
     rationale: Optional[str] = Field(
         default=None, description="Optional natural language rationale"
+    )
+    stop_prices: Dict[str, StopPrice] = Field(
+        default_factory=dict,
+        description="Map of ticker symbols to their respective stop prices",
     )
 
 
@@ -911,6 +930,10 @@ class StrategySummary(BaseModel):
         default=None,
         description="Total portfolio value (equity) including cash and positions",
     )
+    stop_prices: Dict[str, StopPrice] = Field(
+        default_factory=dict,
+        description="Map of ticker symbols to their respective stop prices",
+    )
     last_updated_ts: Optional[int] = Field(default=None)
 
 
@@ -934,6 +957,7 @@ class ComposeResult(BaseModel):
 
     instructions: List[TradeInstruction]
     rationale: Optional[str] = None
+    stop_prices: Dict[str, StopPrice] = {}
 
 
 class FeaturesPipelineResult(BaseModel):

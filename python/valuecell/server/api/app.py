@@ -7,6 +7,8 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from ...adapters.assets import get_adapter_manager
@@ -190,17 +192,37 @@ API_PREFIX = "/api/v1"
 def _add_routes(app: FastAPI, settings) -> None:
     """Add routes to the application."""
 
-    # Root endpoint
-    @app.get("/", response_model=SuccessResponse[AppInfoData])
-    async def home_page():
-        return SuccessResponse.create(
-            data=AppInfoData(
-                name=settings.APP_NAME,
-                version=settings.APP_VERSION,
-                environment=settings.APP_ENVIRONMENT,
-            ),
-            msg="Welcome to ValueCell Server API",
-        )
+    # Detect whether we should serve the built React SPA.
+    # Set FRONTEND_BUILD_DIR to the path of the built client files (e.g. /app/static).
+    _frontend_dir_str = os.getenv("FRONTEND_BUILD_DIR", "")
+    _frontend_path: Path | None = Path(_frontend_dir_str) if _frontend_dir_str else None
+    _serve_frontend = bool(
+        _frontend_path and _frontend_path.is_dir() and (_frontend_path / "index.html").exists()
+    )
+
+    if _serve_frontend:
+        # In web-serving mode the root shows the React SPA, not the API info page.
+        @app.get("/", include_in_schema=False)
+        async def serve_index():
+            return FileResponse(str(_frontend_path / "index.html"))
+
+        # Mount the assets sub-directory for efficient static-file serving
+        # (hashed filenames → long cache TTL is safe).
+        _assets_dir = _frontend_path / "assets"
+        if _assets_dir.is_dir():
+            app.mount("/assets", StaticFiles(directory=str(_assets_dir)), name="assets")
+    else:
+        # API-only mode (local desktop usage): expose API info at the root.
+        @app.get("/", response_model=SuccessResponse[AppInfoData])
+        async def home_page():
+            return SuccessResponse.create(
+                data=AppInfoData(
+                    name=settings.APP_NAME,
+                    version=settings.APP_VERSION,
+                    environment=settings.APP_ENVIRONMENT,
+                ),
+                msg="Welcome to ValueCell Server API",
+            )
 
     @app.get(f"{API_PREFIX}/healthz", response_model=SuccessResponse)
     async def health_check():
@@ -235,6 +257,16 @@ def _add_routes(app: FastAPI, settings) -> None:
 
     # Include task router
     app.include_router(create_task_router(), prefix=API_PREFIX)
+
+    if _serve_frontend:
+        # SPA catch-all: must be registered AFTER all API routes.
+        # Serves static files verbatim; falls back to index.html for client-side routes.
+        @app.get("/{full_path:path}", include_in_schema=False)
+        async def serve_spa(full_path: str):
+            file_path = _frontend_path / full_path
+            if file_path.is_file():
+                return FileResponse(str(file_path))
+            return FileResponse(str(_frontend_path / "index.html"))
 
 
 # For uvicorn

@@ -179,6 +179,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
         compose_result = await self._composer.compose(context)
         instructions = compose_result.instructions
         rationale = compose_result.rationale
+        stop_prices = compose_result.stop_prices
         logger.info(f"🔍 Composer returned {len(instructions)} instructions")
         for idx, inst in enumerate(instructions):
             logger.info(
@@ -229,6 +230,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
 
         trades = self._create_trades(tx_results, compose_id, timestamp_ms)
         self.portfolio_service.apply_trades(trades, market_features)
+        self.portfolio_service.update_stop_prices(stop_prices)
         summary = self.build_summary(timestamp_ms, trades)
 
         history_records = self._create_history_records(
@@ -480,6 +482,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             # Use the portfolio view's total_value which now correctly reflects Equity
             # (whether simulated or synced from exchange)
             equity = float(view.total_value or 0.0)
+            stop_prices = view.stop_prices
         except Exception:
             # Fallback to internal tracking if portfolio service is unavailable
             unrealized = float(self._unrealized_pnl or 0.0)
@@ -489,6 +492,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
                 if self._request.trading_config.initial_capital is not None
                 else 0.0
             )
+            stop_prices = {}
 
         # Keep internal state in sync (allow negative unrealized PnL)
         self._unrealized_pnl = float(unrealized)
@@ -513,6 +517,7 @@ class DefaultDecisionCoordinator(DecisionCoordinator):
             unrealized_pnl_pct=unrealized_pnl_pct,
             pnl_pct=pnl_pct,
             total_value=equity,
+            stop_prices=stop_prices,
             last_updated_ts=timestamp_ms,
         )
 

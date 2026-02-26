@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from valuecell.agents.common.trading.models import (
     FeatureVector,
     PortfolioView,
+    StopPrice,
     TradeHistoryEntry,
 )
 
@@ -29,6 +30,17 @@ class BasePortfolioService(ABC):
         Implementations that support state changes (paper trading, backtests)
         should update their internal view accordingly. `market_features`
         contains interval="market" vectors for price references. This method
+        is optional for read-only portfolio services, but providing it here
+        makes the contract explicit to callers.
+        """
+        raise NotImplementedError
+
+    def update_stop_prices(self, stop_prices: Dict[str, StopPrice]) -> None:
+        """Update the stop prices to the portfolio view.
+
+        Implementations that support state changes (paper trading, backtests)
+        should update their internal view accordingly. `stop_prices`
+        a vector of stop (gain/loss) prices for each symbol. This method
         is optional for read-only portfolio services, but providing it here
         makes the contract explicit to callers.
         """
