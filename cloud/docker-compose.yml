@@ -1,0 +1,45 @@
+# cloud/docker-compose.yml
+# Runs on the Oracle Cloud free-tier VM (ap-singapore-1).
+# Deploy directory on the VM: /opt/valuecell/
+#
+# Usage on the VM:
+#   cd /opt/valuecell
+#   docker compose pull && docker compose up -d
+
+services:
+  app:
+    image: ghcr.io/${GHCR_OWNER:-lukecold}/valuecell:latest
+    container_name: valuecell
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      APP_ENVIRONMENT: production
+      API_DEBUG: "false"
+      # Tells FastAPI where the built React SPA lives inside the image.
+      FRONTEND_BUILD_DIR: /app/static
+      # SQLite file on the host volume – survives container restarts and upgrades.
+      VALUECELL_DATABASE_URL: "sqlite:////data/valuecell.db"
+      # ── AI provider keys ──────────────────────────────────────────────────────
+      # Set these in /opt/valuecell/.env on the VM (never commit real keys):
+      #   echo "OPENAI_API_KEY=sk-..." >> /opt/valuecell/.env
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY:-}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    volumes:
+      # Persistent data directory – SQLite DB lives here.
+      - /opt/valuecell/data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"

@@ -1,0 +1,52 @@
+# ─── Stage 1: Build the React SPA ─────────────────────────────────────────────
+# Output: build/client/ (static files only – ssr:false in react-router.config.ts)
+FROM oven/bun:1.3.3 AS frontend-build
+
+WORKDIR /build
+
+# Install deps first for better layer caching
+COPY frontend/package.json frontend/bun.lock ./
+RUN bun install --frozen-lockfile
+
+COPY frontend/ ./
+
+# VITE_API_BASE_URL is baked in at build time.
+# Using a relative path means the SPA will call the same origin,
+# so no CORS issues and no need to know the Cloud Run URL ahead of time.
+ARG VITE_API_BASE_URL=/api/v1
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
+RUN bun run build
+
+# ─── Stage 2: Python backend + bundled frontend ────────────────────────────────
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+
+WORKDIR /app
+
+# Copy Python project manifests first to get a cached dependency layer.
+COPY python/pyproject.toml python/uv.lock ./
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-install-project
+
+# Copy the full Python source tree.
+COPY python/ ./
+
+# Install the project itself.
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked
+
+# Bundle the built frontend into the container.
+# FastAPI will serve these as static files (see FRONTEND_BUILD_DIR below).
+COPY --from=frontend-build /build/build/client /app/static
+
+# ─── Runtime configuration ─────────────────────────────────────────────────────
+ENV APP_ENVIRONMENT=production
+ENV API_DEBUG=false
+# Tell the FastAPI app where to find the built frontend.
+ENV FRONTEND_BUILD_DIR=/app/static
+# Cloud Run injects PORT (default 8080). We skip main.py's stdin control-loop
+# by calling uvicorn directly, which is also slightly faster to start.
+EXPOSE 8080
+
+CMD ["sh", "-c", "exec uv run uvicorn valuecell.server.api.app:app --host 0.0.0.0 --port ${PORT:-8080}"]
