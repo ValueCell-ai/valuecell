@@ -28,6 +28,7 @@ from .schemas import (
     AShareFilingResult,
     SECFilingMetadata,
     SECFilingResult,
+    SECFilingResultDict,
 )
 
 
@@ -126,6 +127,27 @@ async def _write_and_ingest(
     return results
 
 
+def _serialize_sec_filing_results(
+    results: List[SECFilingResult],
+) -> List[SECFilingResultDict]:
+    """Return a JSON-serializable SEC filing summary list."""
+    serialized: List[SECFilingResultDict] = []
+    for result in results:
+        serialized.append(
+            {
+                "name": result.name,
+                "path": str(result.path),
+                "metadata": {
+                    "doc_type": result.metadata.doc_type,
+                    "company": result.metadata.company,
+                    "period_of_report": result.metadata.period_of_report,
+                    "filing_date": result.metadata.filing_date,
+                },
+            }
+        )
+    return serialized
+
+
 async def fetch_periodic_sec_filings(
     cik_or_ticker: str,
     forms: List[str] | str = "10-Q",
@@ -151,7 +173,7 @@ async def fetch_periodic_sec_filings(
         limit: When `year` is omitted, number of latest filings to return (by filing_date). Defaults to 10.
 
     Returns:
-        List[SECFilingResult]
+        List[SECFilingResultDict] summarizing the fetched filings.
     """
     req_forms = set(_ensure_list(forms)) or {"10-Q"}
     company = await asyncio.to_thread(lambda: Company(cik_or_ticker))
@@ -170,13 +192,15 @@ async def fetch_periodic_sec_filings(
             items = list(filings)
         else:
             items = [filings]
-        return await _write_and_ingest(items, Path(get_knowledge_path()))
+        result = await _write_and_ingest(items, Path(get_knowledge_path()))
+        return _serialize_sec_filing_results(result)
 
     filings = await asyncio.to_thread(
         lambda: company.get_filings(form=list(req_forms), year=year, quarter=quarter)
     )
 
-    return await _write_and_ingest(filings, Path(get_knowledge_path()))
+    result = await _write_and_ingest(filings, Path(get_knowledge_path()))
+    return _serialize_sec_filing_results(result)
 
 
 async def fetch_event_sec_filings(
@@ -197,7 +221,7 @@ async def fetch_event_sec_filings(
     (Note: The tool will always ingest written markdown into the knowledge base.)
 
     Returns:
-        List[SECFilingResult]
+        List[SECFilingResultDict] summarizing the fetched filings.
     """
     sd = _parse_date(start_date)
     ed = _parse_date(end_date)
@@ -216,7 +240,8 @@ async def fetch_event_sec_filings(
             items = list(filings)
         else:
             items = [filings]
-        return await _write_and_ingest(items, Path(get_knowledge_path()))
+        result = await _write_and_ingest(items, Path(get_knowledge_path()))
+        return _serialize_sec_filing_results(result)
 
     # Otherwise, fetch and filter by filing_date range
     filings = await asyncio.to_thread(lambda: company.get_filings(form=list(req_forms)))
@@ -239,7 +264,8 @@ async def fetch_event_sec_filings(
     if limit is not None and limit > 0:
         filtered = filtered[:limit]
 
-    return await _write_and_ingest(filtered, Path(get_knowledge_path()))
+    result = await _write_and_ingest(filtered, Path(get_knowledge_path()))
+    return _serialize_sec_filing_results(result)
 
 
 async def web_search(query: str) -> str:

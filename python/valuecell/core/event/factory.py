@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 from typing_extensions import Literal
 
@@ -34,6 +34,80 @@ from valuecell.core.types import (
 from valuecell.utils.uuid import generate_item_id, generate_uuid
 
 
+def _parse_tool_result_payload(result: str) -> Any | None:
+    """Best-effort parse of tool result strings into Python values."""
+    import ast
+    import json
+
+    try:
+        return json.loads(result)
+    except (json.JSONDecodeError, TypeError):
+        pass
+
+    try:
+        return ast.literal_eval(result)
+    except (SyntaxError, ValueError):
+        return None
+
+
+def _extract_sec_filing_item(item: Any) -> dict[str, str] | None:
+    """Normalize SEC filing tool payload items into a flat mapping."""
+    if not isinstance(item, dict):
+        return None
+
+    metadata = item.get("metadata")
+    if not isinstance(metadata, dict):
+        return None
+
+    normalized = {
+        "name": str(item.get("name") or ""),
+        "path": str(item.get("path") or ""),
+        "doc_type": str(metadata.get("doc_type") or ""),
+        "company": str(metadata.get("company") or ""),
+        "period_of_report": str(metadata.get("period_of_report") or ""),
+        "filing_date": str(metadata.get("filing_date") or ""),
+    }
+
+    required_keys = ("doc_type", "company", "filing_date")
+    if not all(normalized[key] for key in required_keys):
+        return None
+    return normalized
+
+
+def _format_sec_filing_result_for_frontend(result: list[Any]) -> str | None:
+    """Render SEC filing tool output into a compact Markdown summary."""
+    from pathlib import PurePath
+
+    filings: list[dict[str, str]] = []
+    for item in result:
+        filing = _extract_sec_filing_item(item)
+        if filing is None:
+            return None
+        filings.append(filing)
+
+    if not filings:
+        return None
+
+    lines = [f"**Fetched {len(filings)} SEC filing(s)**", ""]
+    for index, filing in enumerate(filings, start=1):
+        path_value = filing["path"]
+        path_name = PurePath(path_value).name if path_value else filing["name"]
+        lines.append(f"{index}. **{filing['company']}**  `{filing['doc_type']}`")
+        lines.append(f"   - **Filed:** {filing['filing_date']}")
+        if filing["period_of_report"]:
+            lines.append(f"   - **Period end:** {filing['period_of_report']}")
+        if path_name:
+            lines.append(f"   - **Saved as:** `{path_name}`")
+        if path_value:
+            lines.append(
+                "   - <details><summary>Local path</summary>"
+                f"<code>{path_value}</code></details>"
+            )
+        lines.append("")
+
+    return "\n".join(lines).strip()
+
+
 def _format_tool_result_for_frontend(result: str | None) -> str | None:
     """Format tool result as JSON array for frontend rendering.
 
@@ -53,18 +127,19 @@ def _format_tool_result_for_frontend(result: str | None) -> str | None:
     if not result:
         return result
 
-    # Check if already in expected format: [{"content": ...}]
-    try:
-        parsed = json.loads(result)
-        if (
-            isinstance(parsed, list)
-            and len(parsed) > 0
-            and isinstance(parsed[0], dict)
-            and "content" in parsed[0]
-        ):
-            return result
-    except (json.JSONDecodeError, TypeError):
-        pass
+    parsed = _parse_tool_result_payload(result)
+    if (
+        isinstance(parsed, list)
+        and len(parsed) > 0
+        and isinstance(parsed[0], dict)
+        and "content" in parsed[0]
+    ):
+        return result
+
+    if isinstance(parsed, list):
+        sec_markdown = _format_sec_filing_result_for_frontend(parsed)
+        if sec_markdown is not None:
+            return json.dumps([{"content": sec_markdown}])
 
     return json.dumps([{"content": result}])
 

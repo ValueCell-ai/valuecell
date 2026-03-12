@@ -62,7 +62,7 @@ const ToolCallRenderer: FC<ToolCallRendererProps> = ({ content }) => {
                   key={tool_result.content}
                 />
               ) : (
-                <p key={tool_result}>${String(tool_result)}</p>
+                <p key={String(tool_result)}>{String(tool_result)}</p>
               );
             })}
         </div>
