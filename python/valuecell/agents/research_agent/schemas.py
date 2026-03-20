@@ -1,5 +1,19 @@
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TypedDict
+
+
+class SECFilingMetadataDict(TypedDict):
+    doc_type: str
+    company: str
+    period_of_report: str
+    filing_date: str
+
+
+class SECFilingResultDict(TypedDict):
+    name: str
+    path: str
+    metadata: SECFilingMetadataDict
 
 
 @dataclass

@@ -215,6 +215,54 @@ class TestFormatToolResultForFrontend:
         parsed = json.loads(result)
         assert parsed == [{"content": "ERROR: connection failed"}]
 
+    def test_sec_filing_payload_rendered_as_markdown_summary(self):
+        input_payload = json.dumps(
+            [
+                {
+                    "name": "10-Q_aapl-20250628.md",
+                    "path": "/tmp/10-Q_aapl-20250628.md",
+                    "metadata": {
+                        "doc_type": "10-Q",
+                        "company": "Apple Inc.",
+                        "period_of_report": "2025-06-28",
+                        "filing_date": "2025-08-01",
+                    },
+                }
+            ]
+        )
+
+        result = _format_tool_result_for_frontend(input_payload)
+        parsed = json.loads(result)
+
+        assert len(parsed) == 1
+        assert "Fetched 1 SEC filing(s)" in parsed[0]["content"]
+        assert "**Apple Inc.**" in parsed[0]["content"]
+        assert "`10-Q`" in parsed[0]["content"]
+        assert "Period end:** 2025-06-28" in parsed[0]["content"]
+        assert "Local path" in parsed[0]["content"]
+
+    def test_python_literal_sec_filing_payload_rendered_as_markdown_summary(self):
+        input_payload = str(
+            [
+                {
+                    "name": "10-K_msft-20241231.md",
+                    "path": "/tmp/10-K_msft-20241231.md",
+                    "metadata": {
+                        "doc_type": "10-K",
+                        "company": "Microsoft Corporation",
+                        "period_of_report": "2024-12-31",
+                        "filing_date": "2025-02-01",
+                    },
+                }
+            ]
+        )
+
+        result = _format_tool_result_for_frontend(input_payload)
+        parsed = json.loads(result)
+
+        assert "Microsoft Corporation" in parsed[0]["content"]
+        assert "`10-K`" in parsed[0]["content"]
+
 
 # ============================================================
 # Tests for tool_call method with formatting

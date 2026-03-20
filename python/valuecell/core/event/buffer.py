@@ -51,7 +51,7 @@ class BufferEntry:
         agent_name: Optional[str] = None,
     ):
         self.parts: List[str] = []
-        self.last_updated: float = time.monotonic()
+        self.last_updated: float = time.perf_counter()
         # Stable paragraph id for this buffer entry. Reused across streamed chunks
         # until this entry is flushed (debounce/boundary). On size-based flush,
         # we rotate to a new paragraph id for subsequent chunks.
@@ -63,7 +63,7 @@ class BufferEntry:
         """Append a chunk of text to this buffer and update the timestamp."""
         if text:
             self.parts.append(text)
-            self.last_updated = time.monotonic()
+            self.last_updated = time.perf_counter()
 
     def snapshot_payload(self) -> Optional[BaseResponseDataPayload]:
         """Return the current aggregate content as a payload without clearing.
