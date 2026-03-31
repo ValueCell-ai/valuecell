@@ -9,6 +9,7 @@ import {
   GooglePng,
   HyperliquidPng,
   MexcPng,
+  MiniMaxPng,
   OkxPng,
   OllamaPng,
   OpenAiCompatiblePng,
@@ -27,6 +28,7 @@ export const MODEL_PROVIDER_ICONS = {
   google: GooglePng,
   azure: AzurePng,
   dashscope: DashScopePng,
+  minimax: MiniMaxPng,
   ollama: OllamaPng,
 };
 

@@ -173,6 +173,7 @@
       "dashscope": "Alibaba Cloud",
       "deepseek": "DeepSeek",
       "google": "Google Cloud",
+      "minimax": "MiniMax",
       "openai": "OpenAI",
       "openai-compatible": "OpenAI互換API",
       "openrouter": "OpenRouter",

@@ -121,6 +121,14 @@ def model_should_use_json_mode(model: AgnoModel) -> bool:
                     )
                     return True
 
+                # MiniMax doesn't support structured outputs, only JSON mode
+                if "minimax.io" in base_url_str:
+                    logger.debug(
+                        "Detected MiniMax API - forcing JSON mode "
+                        "(structured outputs not supported)"
+                    )
+                    return True
+
                 # For other OpenAI-compatible APIs, use JSON mode as safer default
                 # Most OpenAI-compatible APIs support JSON mode but not structured outputs
                 logger.debug(

@@ -46,7 +46,11 @@ models:
     deepseek:
       config_file: "providers/deepseek.yaml"
       api_key_env: "DEEPSEEK_API_KEY"
-    
+
+    minimax:
+      config_file: "providers/minimax.yaml"
+      api_key_env: "MINIMAX_API_KEY"
+
     dashscope:
       config_file: "providers/dashscope.yaml"
       api_key_env: "DASHSCOPE_API_KEY"
