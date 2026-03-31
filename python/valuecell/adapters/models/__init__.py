@@ -24,6 +24,7 @@ from valuecell.adapters.models.factory import (
     DashScopeProvider,
     DeepSeekProvider,
     GoogleProvider,
+    MiniMaxProvider,
     ModelFactory,
     ModelProvider,
     OllamaProvider,
@@ -49,6 +50,7 @@ __all__ = [
     "AzureProvider",
     "SiliconFlowProvider",
     "DeepSeekProvider",
+    "MiniMaxProvider",
     "DashScopeProvider",
     "OllamaProvider",
     # Convenience functions

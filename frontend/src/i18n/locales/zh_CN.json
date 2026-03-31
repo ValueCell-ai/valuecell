@@ -173,6 +173,7 @@
       "dashscope": "阿里云",
       "deepseek": "深度求索",
       "google": "谷歌云",
+      "minimax": "MiniMax",
       "openai": "OpenAI",
       "openai-compatible": "OpenAI兼容API",
       "openrouter": "OpenRouter",

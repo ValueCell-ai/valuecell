@@ -1,0 +1,49 @@
+# ============================================
+# MiniMax Provider Configuration
+# ============================================
+# MiniMax provides OpenAI-compatible API endpoints for their models.
+# All models support 204K context length.
+#
+# Usage:
+#   1. Set MINIMAX_API_KEY environment variable
+#   2. Set PRIMARY_PROVIDER=minimax (or use as fallback)
+#
+# Get your API key at: https://platform.minimaxi.com/
+
+name: "MiniMax"
+provider_type: "minimax"
+
+enabled: true
+
+# Connection Configuration
+connection:
+  base_url: "https://api.minimax.io/v1"
+  api_key_env: "MINIMAX_API_KEY"
+
+# Default model if none specified
+default_model: "MiniMax-M2.7"
+
+# Model Parameters Defaults
+# Note: MiniMax temperature must be in (0.0, 1.0] range
+defaults:
+  temperature: 0.7
+  max_tokens: 8096
+
+# Available Models
+models:
+  - id: "MiniMax-M2.7"
+    name: "MiniMax M2.7"
+    context_length: 204000
+    description: "MiniMax M2.7 - latest flagship model with 204K context"
+  - id: "MiniMax-M2.7-highspeed"
+    name: "MiniMax M2.7 Highspeed"
+    context_length: 204000
+    description: "MiniMax M2.7 Highspeed - faster variant with 204K context"
+  - id: "MiniMax-M2.5"
+    name: "MiniMax M2.5"
+    context_length: 204000
+    description: "MiniMax M2.5 model with 204K context"
+  - id: "MiniMax-M2.5-highspeed"
+    name: "MiniMax M2.5 Highspeed"
+    context_length: 204000
+    description: "MiniMax M2.5 Highspeed - faster variant with 204K context"

@@ -503,6 +503,58 @@ class DeepSeekProvider(ModelProvider):
         )
 
 
+class MiniMaxProvider(ModelProvider):
+    """MiniMax model provider
+
+    MiniMax provides OpenAI-compatible API endpoints for their models
+    (MiniMax-M2.7, MiniMax-M2.7-highspeed, MiniMax-M2.5, MiniMax-M2.5-highspeed).
+    All models support 204K context length.
+
+    Configuration:
+    - MINIMAX_API_KEY: API key from MiniMax platform
+    - Base URL: https://api.minimax.io/v1 (OpenAI-compatible)
+    - Temperature must be in (0.0, 1.0] range
+    """
+
+    def create_model(self, model_id: Optional[str] = None, **kwargs):
+        """Create MiniMax model via agno (OpenAI-compatible)
+
+        Args:
+            model_id: Model identifier (uses default if None)
+            **kwargs: Additional model parameters
+
+        Returns:
+            OpenAILike model instance configured for MiniMax
+        """
+        try:
+            from agno.models.openai import OpenAILike
+        except ImportError:
+            raise ImportError(
+                "agno package not installed. Install with: pip install agno"
+            )
+
+        model_id = model_id or self.config.default_model
+        params = {**self.config.parameters, **kwargs}
+
+        # MiniMax requires temperature in (0.0, 1.0]
+        temperature = params.get("temperature")
+        if temperature is not None:
+            temperature = max(0.01, min(float(temperature), 1.0))
+
+        logger.info(f"Creating MiniMax model: {model_id}")
+
+        return OpenAILike(
+            id=model_id,
+            api_key=self.config.api_key,
+            base_url=self.config.base_url,
+            temperature=temperature,
+            max_tokens=params.get("max_tokens"),
+            top_p=params.get("top_p"),
+            frequency_penalty=params.get("frequency_penalty"),
+            presence_penalty=params.get("presence_penalty"),
+        )
+
+
 class DashScopeProvider(ModelProvider):
     """DashScope model provider (native)"""
 
@@ -607,6 +659,7 @@ class ModelFactory:
         "openai": OpenAIProvider,
         "openai-compatible": OpenAICompatibleProvider,
         "deepseek": DeepSeekProvider,
+        "minimax": MiniMaxProvider,
         "dashscope": DashScopeProvider,
         "ollama": OllamaProvider,
     }
