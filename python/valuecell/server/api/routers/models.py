@@ -228,6 +228,11 @@ def create_models_router() -> APIRouter:
             api_key_env = connection.get("api_key_env")
             endpoint_env = connection.get("endpoint_env")
 
+            # Update OAuth token via env var (e.g. Anthropic)
+            auth_token_env = connection.get("auth_token_env")
+            if auth_token_env and (payload.auth_token is not None):
+                _set_env(auth_token_env, payload.auth_token)
+
             # Update API key via env var
             # Accept empty string as a deliberate clear; skip only when field is omitted
             if api_key_env and (payload.api_key is not None):
@@ -530,6 +535,41 @@ def create_models_router() -> APIRouter:
                 result.status = "runtime_missing"
                 result.error = f"Runtime dependency missing: {e}"
                 return SuccessResponse.create(data=result, msg="Live check failed")
+
+            # Anthropic: check via SDK directly using OAuth token
+            if provider == "anthropic":
+                auth_token = os.environ.get("ANTHROPIC_AUTH_TOKEN", "").strip()
+                if not auth_token:
+                    result.ok = False
+                    result.status = "auth_missing"
+                    result.error = "ANTHROPIC_AUTH_TOKEN not set in environment"
+                    return SuccessResponse.create(data=result, msg="Auth missing")
+                try:
+                    import anthropic as _anthropic
+                    _client = _anthropic.Anthropic(
+                        api_key=None,
+                        auth_token=auth_token,
+                        default_headers={
+                            "accept": "application/json",
+                            "anthropic-dangerous-direct-browser-access": "true",
+                            "anthropic-beta": "claude-code-20250219,oauth-2025-04-20",
+                            "user-agent": "claude-code/2.1.75",
+                            "x-app": "cli",
+                        },
+                    )
+                    _client.messages.create(
+                        model=model_id,
+                        max_tokens=1,
+                        messages=[{"role": "user", "content": "ping"}],
+                    )
+                    result.ok = True
+                    result.status = "reachable"
+                    return SuccessResponse.create(data=result, msg="Model reachable")
+                except Exception as _e:
+                    result.ok = False
+                    result.status = "request_failed"
+                    result.error = str(_e)[:200]
+                    return SuccessResponse.create(data=result, msg="Check failed")
 
             # Prefer a direct minimal request for OpenAI-compatible providers.
             # This avoids hidden fallbacks and validates API key/auth.

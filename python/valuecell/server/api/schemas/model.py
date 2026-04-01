@@ -61,6 +61,9 @@ class ProviderUpdateRequest(BaseModel):
     base_url: Optional[str] = Field(
         None, description="New API base URL to set for provider"
     )
+    auth_token: Optional[str] = Field(
+        None, description="OAuth token (e.g. Anthropic Claude Code token)"
+    )
 
 
 class AddModelRequest(BaseModel):
