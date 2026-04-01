@@ -33,6 +33,7 @@ export { default as IconGroupPng } from "./icon-group.png";
 export { default as IconGroupDarkPng } from "./icon-group-dark.png";
 export { default as MessageGroupPng } from "./message-group.png";
 export { default as MessageGroupDarkPng } from "./message-group-dark.png";
+export { default as AnthropicPng } from "./model-providers/anthropic.png";
 export { default as AzurePng } from "./model-providers/azure.png";
 export { default as DashScopePng } from "./model-providers/dashscope.png";
 export { default as DeepSeekPng } from "./model-providers/deepseek.png";

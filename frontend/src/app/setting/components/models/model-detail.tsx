@@ -41,6 +41,7 @@ import LinkButton from "@/components/valuecell/button/link-button";
 const configSchema = z.object({
   api_key: z.string(),
   base_url: z.string(),
+  auth_token: z.string().optional(),
 });
 
 const addModelSchema = z.object({
@@ -76,10 +77,13 @@ export function ModelDetail({ provider }: ModelDetailProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
 
+  const isAnthropicProvider = provider === "anthropic";
+
   const configForm = useForm({
     defaultValues: {
       api_key: "",
       base_url: "",
+      auth_token: "",
     },
     validators: {
       onSubmit: configSchema,
@@ -88,8 +92,9 @@ export function ModelDetail({ provider }: ModelDetailProps) {
       if (!provider) return;
       updateConfig({
         provider,
-        api_key: value.api_key,
+        api_key: isAnthropicProvider ? "" : value.api_key,
         base_url: value.base_url,
+        ...(isAnthropicProvider && { auth_token: value.auth_token }),
       });
     },
   });
@@ -179,124 +184,217 @@ export function ModelDetail({ provider }: ModelDetailProps) {
       <form>
         <div className="flex flex-col gap-6">
           <FieldGroup>
-            <configForm.Field name="api_key">
-              {(field) => (
-                <Field className="text-foreground">
-                  <FieldLabel
-                    htmlFor="api_key"
-                    className="font-medium text-base"
-                  >
-                    {t("settings.models.apiKey")}
-                  </FieldLabel>
-                  <div className="flex items-center gap-4">
-                    <InputGroup>
-                      <InputGroupInput
-                        type={showApiKey ? "text" : "password"}
-                        id="api_key"
-                        placeholder={t("settings.models.enterApiKey")}
-                        value={field.state.value}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        onBlur={() => configForm.handleSubmit()}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            e.currentTarget.blur();
-                          }
-                        }}
-                      />
-                      <InputGroupAddon align="inline-end">
-                        <InputGroupButton
-                          type="button"
-                          variant="ghost"
-                          size="icon-xs"
-                          onClick={() => setShowApiKey(!showApiKey)}
-                          aria-label={
-                            showApiKey
-                              ? t("settings.models.hidePassword")
-                              : t("settings.models.showPassword")
-                          }
-                        >
-                          {showApiKey ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </InputGroupButton>
-                      </InputGroupAddon>
-                    </InputGroup>
-
-                    <Button
-                      type="button"
-                      variant={"outline"}
-                      disabled={isBusy}
-                      onClick={async () => {
-                        await checkAvailability({
-                          provider,
-                          model_id: providerDetail.default_model_id,
-                        });
-                      }}
+            {isAnthropicProvider ? (
+              /* Anthropic OAuth Token field */
+              <configForm.Field name="auth_token">
+                {(field) => (
+                  <Field className="text-foreground">
+                    <FieldLabel
+                      htmlFor="auth_token"
+                      className="font-medium text-base"
                     >
-                      {checkingAvailability
-                        ? t("settings.models.waitingForCheck")
-                        : t("settings.models.checkAvailability")}
-                    </Button>
-                  </div>
-                  {checkResult?.data && (
-                    <div className="text-sm">
-                      {checkResult.data.ok ? (
-                        <span className="text-green-600">
-                          {t("settings.models.available")}
-                          {checkResult.data.status
-                            ? ` (${checkResult.data.status})`
-                            : ""}
-                        </span>
-                      ) : (
-                        <span className="text-red-600">
-                          {t("settings.models.unavailable")}
-                          {checkResult.data.status
-                            ? ` (${checkResult.data.status})`
-                            : ""}
-                          {checkResult.data.error
-                            ? `: ${checkResult.data.error}`
-                            : ""}
-                        </span>
-                      )}
+                      OAuth Token
+                    </FieldLabel>
+                    <div className="flex items-center gap-4">
+                      <InputGroup>
+                        <InputGroupInput
+                          type={showApiKey ? "text" : "password"}
+                          id="auth_token"
+                          placeholder="sk-ant-oat01-..."
+                          value={field.state.value}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          onBlur={() => configForm.handleSubmit()}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              e.currentTarget.blur();
+                            }
+                          }}
+                        />
+                        <InputGroupAddon align="inline-end">
+                          <InputGroupButton
+                            type="button"
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={() => setShowApiKey(!showApiKey)}
+                            aria-label={
+                              showApiKey
+                                ? t("settings.models.hidePassword")
+                                : t("settings.models.showPassword")
+                            }
+                          >
+                            {showApiKey ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </InputGroupButton>
+                        </InputGroupAddon>
+                      </InputGroup>
+                      <Button
+                        type="button"
+                        variant={"outline"}
+                        disabled={isBusy}
+                        onClick={async () => {
+                          await checkAvailability({
+                            provider,
+                            model_id: providerDetail.default_model_id,
+                          });
+                        }}
+                      >
+                        {checkingAvailability
+                          ? t("settings.models.waitingForCheck")
+                          : t("settings.models.checkAvailability")}
+                      </Button>
                     </div>
-                  )}
-                  <LinkButton
-                    className="w-fit! hover:text-foreground"
-                    url={providerDetail.api_key_url}
-                  >
-                    {t("settings.models.getApiKey")}
-                  </LinkButton>
-                  <FieldError errors={field.state.meta.errors} />
-                </Field>
-              )}
-            </configForm.Field>
+                    {checkResult?.data && (
+                      <div className="text-sm">
+                        {checkResult.data.ok ? (
+                          <span className="text-green-600">
+                            {t("settings.models.available")}
+                          </span>
+                        ) : (
+                          <span className="text-red-600">
+                            {t("settings.models.unavailable")}
+                            {checkResult.data.error
+                              ? `: ${checkResult.data.error}`
+                              : ""}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      OpenClaw / Claude Code OAuth token. Set via{" "}
+                      <code className="text-xs">ANTHROPIC_AUTH_TOKEN</code>{" "}
+                      environment variable.
+                    </p>
+                    <FieldError errors={field.state.meta.errors} />
+                  </Field>
+                )}
+              </configForm.Field>
+            ) : (
+              /* Standard API Key field for other providers */
+              <configForm.Field name="api_key">
+                {(field) => (
+                  <Field className="text-foreground">
+                    <FieldLabel
+                      htmlFor="api_key"
+                      className="font-medium text-base"
+                    >
+                      {t("settings.models.apiKey")}
+                    </FieldLabel>
+                    <div className="flex items-center gap-4">
+                      <InputGroup>
+                        <InputGroupInput
+                          type={showApiKey ? "text" : "password"}
+                          id="api_key"
+                          placeholder={t("settings.models.enterApiKey")}
+                          value={field.state.value}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          onBlur={() => configForm.handleSubmit()}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              e.currentTarget.blur();
+                            }
+                          }}
+                        />
+                        <InputGroupAddon align="inline-end">
+                          <InputGroupButton
+                            type="button"
+                            variant="ghost"
+                            size="icon-xs"
+                            onClick={() => setShowApiKey(!showApiKey)}
+                            aria-label={
+                              showApiKey
+                                ? t("settings.models.hidePassword")
+                                : t("settings.models.showPassword")
+                            }
+                          >
+                            {showApiKey ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </InputGroupButton>
+                        </InputGroupAddon>
+                      </InputGroup>
 
-            {/* API Host section */}
-            <configForm.Field name="base_url">
-              {(field) => (
-                <Field className="text-foreground">
-                  <FieldLabel className="font-medium text-base">
-                    {t("settings.models.apiHost")}
-                  </FieldLabel>
-                  <Input
-                    placeholder={providerDetail.base_url}
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={() => configForm.handleSubmit()}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        e.currentTarget.blur();
-                      }
-                    }}
-                  />
-                  <FieldError errors={field.state.meta.errors} />
-                </Field>
-              )}
-            </configForm.Field>
+                      <Button
+                        type="button"
+                        variant={"outline"}
+                        disabled={isBusy}
+                        onClick={async () => {
+                          await checkAvailability({
+                            provider,
+                            model_id: providerDetail.default_model_id,
+                          });
+                        }}
+                      >
+                        {checkingAvailability
+                          ? t("settings.models.waitingForCheck")
+                          : t("settings.models.checkAvailability")}
+                      </Button>
+                    </div>
+                    {checkResult?.data && (
+                      <div className="text-sm">
+                        {checkResult.data.ok ? (
+                          <span className="text-green-600">
+                            {t("settings.models.available")}
+                            {checkResult.data.status
+                              ? ` (${checkResult.data.status})`
+                              : ""}
+                          </span>
+                        ) : (
+                          <span className="text-red-600">
+                            {t("settings.models.unavailable")}
+                            {checkResult.data.status
+                              ? ` (${checkResult.data.status})`
+                              : ""}
+                            {checkResult.data.error
+                              ? `: ${checkResult.data.error}`
+                              : ""}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <LinkButton
+                      className="w-fit! hover:text-foreground"
+                      url={providerDetail.api_key_url}
+                    >
+                      {t("settings.models.getApiKey")}
+                    </LinkButton>
+                    <FieldError errors={field.state.meta.errors} />
+                  </Field>
+                )}
+              </configForm.Field>
+            )}
+
+            {/* API Host section — hidden for Anthropic */}
+            {!isAnthropicProvider && (
+              <configForm.Field name="base_url">
+                {(field) => (
+                  <Field className="text-foreground">
+                    <FieldLabel className="font-medium text-base">
+                      {t("settings.models.apiHost")}
+                    </FieldLabel>
+                    <Input
+                      placeholder={providerDetail.base_url}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={() => configForm.handleSubmit()}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          e.currentTarget.blur();
+                        }
+                      }}
+                    />
+                    <FieldError errors={field.state.meta.errors} />
+                  </Field>
+                )}
+              </configForm.Field>
+            )}
           </FieldGroup>
 
           {/* Models section */}

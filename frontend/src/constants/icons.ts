@@ -1,4 +1,5 @@
 import {
+  AnthropicPng,
   AzurePng,
   BinancePng,
   BlockchainPng,
@@ -19,6 +20,7 @@ import {
 } from "@/assets/png";
 
 export const MODEL_PROVIDER_ICONS = {
+  anthropic: AnthropicPng,
   openrouter: OpenRouterPng,
   siliconflow: SiliconFlowPng,
   openai: OpenAiPng,
