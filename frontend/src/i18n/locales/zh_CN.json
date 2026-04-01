@@ -176,7 +176,9 @@
       "openai": "OpenAI",
       "openai-compatible": "OpenAI兼容API",
       "openrouter": "OpenRouter",
-      "siliconflow": "硅基流动"
+      "siliconflow": "硅基流动",
+      "anthropic": "Anthropic",
+      "ollama": "Ollama"
     },
     "title": "交易策略",
     "add": "添加交易策略",
