@@ -1,64 +1,38 @@
-# ============================================
-# OpenRouter Provider Configuration
-# ============================================
-name: "OpenRouter"
-provider_type: "openrouter"
-
-enabled: true # Default is true if not specified
-
-# Connection Configuration
+name: OpenRouter
+provider_type: openrouter
+enabled: true
 connection:
-  base_url: "https://openrouter.ai/api/v1"
-  api_key_env: "OPENROUTER_API_KEY"
-
-# Default model if none specified
-default_model: "qwen/qwen3-max"
-
-# Model Parameters Defaults
+  base_url: https://openrouter.ai/api/v1
+  api_key_env: OPENROUTER_API_KEY
+default_model: qwen/qwen3-max
 defaults:
   temperature: 0.5
-
-# Extra headers for OpenRouter API
 extra_headers:
-  HTTP-Referer: "https://valuecell.ai"
-  X-Title: "ValueCell"
-
-# Available Models (commonly used)
+  HTTP-Referer: https://valuecell.ai
+  X-Title: ValueCell
 models:
-  - id: "anthropic/claude-haiku-4.5"
-    name: "Claude Haiku 4.5"
-  - id: "x-ai/grok-4"
-    name: "Grok 4"
-  - id: "qwen/qwen3-max"
-    name: "Qwen3 Max"
-  - id: "openai/gpt-5"
-    name: "GPT-5"
-  - id: "google/gemini-2.5-flash"
-    name: "Gemini 2.5 Flash"
-  - id: "google/gemini-3-pro-preview"
-    name: "Gemini 3 Pro Preview"
-  - id: "x-ai/grok-4.1-fast"
-    name: "Grok 4.1 Fast"
-
-# ============================================
-# Embedding Models Configuration
-# ============================================
-# OpenRouter provides embedding models
+- id: anthropic/claude-haiku-4.5
+  name: Claude Haiku 4.5
+- id: x-ai/grok-4
+  name: Grok 4
+- id: qwen/qwen3-max
+  name: Qwen3 Max
+- id: openai/gpt-5
+  name: GPT-5
+- id: google/gemini-2.5-flash
+  name: Gemini 2.5 Flash
+- id: google/gemini-3-pro-preview
+  name: Gemini 3 Pro Preview
+- id: x-ai/grok-4.1-fast
+  name: Grok 4.1 Fast
 embedding:
-  # Default embedding model
-  default_model: "qwen/qwen3-embedding-4b"
-
-  # Default parameters
+  default_model: qwen/qwen3-embedding-4b
   defaults:
     dimensions: 2560
-    encoding_format: "float"
-
-  # Available embedding models
+    encoding_format: float
   models:
-  - id: "qwen/qwen3-embedding-4b"
-    name: "Qwen3 Embedding 4B"
+  - id: qwen/qwen3-embedding-4b
+    name: Qwen3 Embedding 4B
     dimensions: 2560
     max_input: 32768
-    description: "Qwen3 Embedding Model"
-
-
+    description: Qwen3 Embedding Model

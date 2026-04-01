@@ -203,11 +203,10 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                           placeholder="sk-ant-oat01-..."
                           value={field.state.value}
                           onChange={(e) => field.handleChange(e.target.value)}
-                          onBlur={() => configForm.handleSubmit()}
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
                               e.preventDefault();
-                              e.currentTarget.blur();
+                              configForm.handleSubmit();
                             }
                           }}
                         />
@@ -231,6 +230,16 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                           </InputGroupButton>
                         </InputGroupAddon>
                       </InputGroup>
+                      <Button
+                        type="button"
+                        variant={"default"}
+                        disabled={isBusy || !field.state.value}
+                        onClick={() => configForm.handleSubmit()}
+                      >
+                        {updatingConfig
+                          ? t("settings.models.saving", { defaultValue: "Saving..." })
+                          : t("settings.models.save", { defaultValue: "Save" })}
+                      </Button>
                       <Button
                         type="button"
                         variant={"outline"}
@@ -262,6 +271,11 @@ export function ModelDetail({ provider }: ModelDetailProps) {
                           </span>
                         )}
                       </div>
+                    )}
+                    {providerDetail.auth_token_set && !field.state.value && (
+                      <p className="text-xs text-green-600 mt-1">
+                        ✓ Token already saved. Enter a new token to replace it.
+                      </p>
                     )}
                     <p className="text-xs text-muted-foreground mt-1">
                       OpenClaw / Claude Code OAuth token. Set via{" "}

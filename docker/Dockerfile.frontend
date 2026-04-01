@@ -1,0 +1,23 @@
+# =============================================================================
+# Valuecell Frontend — Pre-built Static Serve
+#
+# Frontend is pre-built on host (bun run build) due to CPU AVX requirement.
+# This Dockerfile copies the build output and serves it with Nginx.
+#
+# To rebuild frontend:
+#   cd /root/.openclaw/apps/valuecell/frontend
+#   VITE_API_BASE_URL=http://10.11.2.150:8000/api/v1 bun run build
+#   docker compose build frontend
+# =============================================================================
+
+FROM nginx:alpine
+
+# Copy pre-built frontend assets
+COPY frontend/build/client /usr/share/nginx/html
+
+# Copy nginx config
+COPY docker/nginx.frontend.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

@@ -396,13 +396,19 @@ class ConfigManager:
 
         # Check API key (except for ollama)
         if provider_name != "ollama" and not provider_config.api_key:
-            # Get the env var name for helpful error message
+            # Some providers support OAuth / auth tokens instead of API keys (e.g. Anthropic).
+            # Check the provider YAML for an auth_token_env and see if it is set.
             provider_data = self.loader.load_provider_config(provider_name)
-            api_key_env = provider_data.get("connection", {}).get("api_key_env")
-            return (
-                False,
-                f"API key not found for '{provider_name}'. Please set {api_key_env} in .env",
-            )
+            auth_token_env = provider_data.get("connection", {}).get("auth_token_env")
+            if auth_token_env and os.getenv(auth_token_env):
+                # Auth token present — skip API key requirement
+                pass
+            else:
+                api_key_env = provider_data.get("connection", {}).get("api_key_env")
+                return (
+                    False,
+                    f"API key not found for '{provider_name}'. Please set {api_key_env} in .env",
+                )
 
         # Azure needs endpoint too
         if provider_name == "azure" and not provider_config.base_url:

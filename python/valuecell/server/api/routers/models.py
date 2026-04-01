@@ -124,6 +124,13 @@ def create_models_router() -> APIRouter:
 
         return ordered
 
+    def _auth_token_set_for(provider: str) -> bool:
+        """Return True if an OAuth/auth token is configured for the given provider."""
+        loader = get_config_loader()
+        provider_raw = loader.load_provider_config(provider)
+        auth_token_env = provider_raw.get("connection", {}).get("auth_token_env") if provider_raw else None
+        return bool(auth_token_env and os.environ.get(auth_token_env))
+
     def _api_key_url_for(provider: str) -> str | None:
         """Return the URL for obtaining an API key for the given provider."""
         mapping = {
@@ -197,6 +204,7 @@ def create_models_router() -> APIRouter:
                 is_default=(cfg.name == manager.primary_provider),
                 default_model_id=cfg.default_model,
                 api_key_url=_api_key_url_for(cfg.name),
+                auth_token_set=_auth_token_set_for(cfg.name),
                 models=models_entries,
             )
             return SuccessResponse.create(
@@ -229,8 +237,10 @@ def create_models_router() -> APIRouter:
             endpoint_env = connection.get("endpoint_env")
 
             # Update OAuth token via env var (e.g. Anthropic)
+            # Only update when a non-empty token is provided; empty string is ignored
+            # so that a page reload (which resets the field to "") does not wipe a saved token.
             auth_token_env = connection.get("auth_token_env")
-            if auth_token_env and (payload.auth_token is not None):
+            if auth_token_env and payload.auth_token:
                 _set_env(auth_token_env, payload.auth_token)
 
             # Update API key via env var
@@ -289,6 +299,7 @@ def create_models_router() -> APIRouter:
                 base_url=cfg.base_url,
                 is_default=(cfg.name == manager.primary_provider),
                 default_model_id=cfg.default_model,
+                auth_token_set=_auth_token_set_for(cfg.name),
                 models=models_items,
             )
             return SuccessResponse.create(
@@ -477,6 +488,7 @@ def create_models_router() -> APIRouter:
                 base_url=cfg.base_url,
                 is_default=(cfg.name == manager.primary_provider),
                 default_model_id=cfg.default_model,
+                auth_token_set=_auth_token_set_for(cfg.name),
                 models=models_items,
             )
             return SuccessResponse.create(
@@ -566,9 +578,15 @@ def create_models_router() -> APIRouter:
                     result.status = "reachable"
                     return SuccessResponse.create(data=result, msg="Model reachable")
                 except Exception as _e:
+                    err_str = str(_e)
+                    # 429 rate_limit means the token is valid and was accepted by Anthropic
+                    if "429" in err_str or "rate_limit" in err_str.lower():
+                        result.ok = True
+                        result.status = "reachable"
+                        return SuccessResponse.create(data=result, msg="Model reachable")
                     result.ok = False
                     result.status = "request_failed"
-                    result.error = str(_e)[:200]
+                    result.error = err_str[:200]
                     return SuccessResponse.create(data=result, msg="Check failed")
 
             # Prefer a direct minimal request for OpenAI-compatible providers.
