@@ -1,0 +1,62 @@
+# =============================================================================
+# Valuecell — Docker Compose
+#
+# Services:
+#   backend  - Python FastAPI (uvicorn), port 8000
+#   frontend - React/Vite (nginx), port 3200
+#
+# Usage:
+#   docker compose up -d --build
+#   docker compose logs -f
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Backend — Python FastAPI
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./python
+      dockerfile: ../docker/DockerFile
+    image: valuecell-backend:latest
+    container_name: valuecell_backend
+    restart: unless-stopped
+    env_file:
+      - ./python/.env
+    environment:
+      # Skip stdin control thread — stdin is closed in Docker non-interactive mode
+      # which would cause immediate shutdown via control_loop EOF handler
+      ENV: local_dev
+    volumes:
+      - ./python/configs:/app/configs
+      - valuecell_userdata:/root/.config/valuecell
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/system/health')\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ---------------------------------------------------------------------------
+  # Frontend — React/Vite (served via Nginx)
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.frontend
+      args:
+        VITE_API_BASE_URL: "http://10.11.2.150:8000/api/v1"
+    image: valuecell-frontend:latest
+    container_name: valuecell_frontend
+    restart: unless-stopped
+    ports:
+      - "3200:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  valuecell_userdata:

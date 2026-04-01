@@ -70,12 +70,14 @@ export const useUpdateProviderConfig = () => {
       provider: string;
       api_key?: string;
       base_url?: string;
+      auth_token?: string;
     }) =>
       apiClient.put<ApiResponse<null>>(
         `/models/providers/${params.provider}/config`,
         {
           api_key: params.api_key,
           base_url: params.base_url,
+          auth_token: params.auth_token,
         },
       ),
     onSuccess: (_data, variables) => {

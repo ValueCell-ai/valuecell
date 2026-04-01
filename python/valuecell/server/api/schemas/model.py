@@ -51,6 +51,9 @@ class ProviderDetailData(BaseModel):
     api_key_url: Optional[str] = Field(
         None, description="URL to obtain/apply for the provider's API key"
     )
+    auth_token_set: bool = Field(
+        False, description="Whether an OAuth/auth token is currently configured"
+    )
     models: List[ProviderModelEntry] = Field(
         default_factory=list, description="Available provider models"
     )
@@ -60,6 +63,9 @@ class ProviderUpdateRequest(BaseModel):
     api_key: Optional[str] = Field(None, description="New API key to set for provider")
     base_url: Optional[str] = Field(
         None, description="New API base URL to set for provider"
+    )
+    auth_token: Optional[str] = Field(
+        None, description="OAuth token (e.g. Anthropic Claude Code token)"
     )
 
 

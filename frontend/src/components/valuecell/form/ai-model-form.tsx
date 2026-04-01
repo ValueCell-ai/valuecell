@@ -33,6 +33,8 @@ export const AIModelForm = withForm({
       refetch: fetchModelProviderDetail,
     } = useGetModelProviderDetail(provider);
 
+    const isAnthropic = provider === "anthropic";
+
     // Set the default provider once loaded and provider is not yet selected
     useEffect(() => {
       if (isLoadingProviders || !defaultProvider) return;
@@ -100,14 +102,29 @@ export const AIModelForm = withForm({
           }}
         </form.AppField>
 
-        <form.AppField name="api_key">
-          {(field) => (
-            <field.PasswordField
-              label={t("strategy.form.aiModels.apiKey.label")}
-              placeholder={t("strategy.form.aiModels.apiKey.placeholder")}
-            />
-          )}
-        </form.AppField>
+        {/* Hide API key field for Anthropic — uses OAuth token from environment */}
+        {!isAnthropic && (
+          <form.AppField name="api_key">
+            {(field) => (
+              <field.PasswordField
+                label={t("strategy.form.aiModels.apiKey.label")}
+                placeholder={t("strategy.form.aiModels.apiKey.placeholder")}
+              />
+            )}
+          </form.AppField>
+        )}
+
+        {/* Anthropic: show info about OAuth token */}
+        {isAnthropic && (
+          <div className="rounded-lg border border-border bg-muted/40 px-4 py-3">
+            <p className="text-sm font-medium text-foreground">OAuth Token</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Anthropic uses an OAuth token (
+              <code className="text-xs">ANTHROPIC_AUTH_TOKEN</code>) configured
+              in the server environment. No API key needed here.
+            </p>
+          </div>
+        )}
       </FieldGroup>
     );
   },

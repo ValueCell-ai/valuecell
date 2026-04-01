@@ -176,7 +176,9 @@
       "openai": "OpenAI",
       "openai-compatible": "OpenAI互換API",
       "openrouter": "OpenRouter",
-      "siliconflow": "SiliconFlow"
+      "siliconflow": "SiliconFlow",
+      "anthropic": "Anthropic",
+      "ollama": "Ollama"
     },
     "title": "取引戦略",
     "add": "取引戦略を追加",

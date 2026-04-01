@@ -564,6 +564,67 @@ class DashScopeProvider(ModelProvider):
         )
 
 
+# Claude Code OAuth headers — required for OAuth token to work
+_CLAUDE_CODE_HEADERS = {
+    "accept": "application/json",
+    "anthropic-dangerous-direct-browser-access": "true",
+    "anthropic-beta": "claude-code-20250219,oauth-2025-04-20,fine-grained-tool-streaming-2025-05-14",
+    "user-agent": "claude-code/2.1.75",
+    "x-app": "cli",
+}
+
+
+class AnthropicProvider(ModelProvider):
+    """Anthropic model provider — supports both API key and OAuth token (sk-ant-oat01-...).
+
+    OAuth tokens from OpenClaw/Claude Code require special headers to work.
+    These headers identify the request as coming from Claude Code CLI.
+    """
+
+    def create_model(self, model_id: Optional[str] = None, **kwargs):
+        """Create Anthropic Claude model via agno"""
+        try:
+            from agno.models.anthropic import Claude
+        except ImportError:
+            raise ImportError(
+                "anthropic package not installed. Install with: pip install anthropic"
+            )
+
+        import os
+        import anthropic as anthropic_sdk
+
+        model_id = model_id or self.config.default_model
+        params = {**self.config.parameters, **kwargs}
+
+        # Determine auth: prefer OAuth token (ANTHROPIC_AUTH_TOKEN) over API key
+        auth_token = os.getenv("ANTHROPIC_AUTH_TOKEN")
+        api_key = self.config.api_key or os.getenv("ANTHROPIC_API_KEY")
+
+        if auth_token:
+            logger.info(f"Creating Anthropic Claude model: {model_id} (auth: oauth_token)")
+            # OAuth token requires Claude Code headers to work
+            client = anthropic_sdk.Anthropic(
+                api_key=None,
+                auth_token=auth_token,
+                default_headers=_CLAUDE_CODE_HEADERS,
+            )
+        else:
+            logger.info(f"Creating Anthropic Claude model: {model_id} (auth: api_key)")
+            client = anthropic_sdk.Anthropic(api_key=api_key)
+
+        return Claude(
+            id=model_id,
+            client=client,
+            temperature=params.get("temperature"),
+            max_tokens=params.get("max_tokens"),
+        )
+
+    def is_available(self) -> bool:
+        """Check if Anthropic credentials available (API key or OAuth token)"""
+        import os
+        return bool(self.config.api_key or os.getenv("ANTHROPIC_AUTH_TOKEN"))
+
+
 class OllamaProvider(ModelProvider):
     """Ollama model provider"""
 
@@ -608,6 +669,7 @@ class ModelFactory:
         "openai-compatible": OpenAICompatibleProvider,
         "deepseek": DeepSeekProvider,
         "dashscope": DashScopeProvider,
+        "anthropic": AnthropicProvider,
         "ollama": OllamaProvider,
     }
 
