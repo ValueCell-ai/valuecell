@@ -428,6 +428,9 @@ OPENAI_API_VERSION=2024-10-21
 
 # DashScope (Alibaba Cloud Qwen3 models)
 DASHSCOPE_API_KEY=sk-xxxxxxxxxxxxx
+
+# Optional market sentiment data for News Agent
+ADANOS_API_KEY=sk_live_xxxxxxxxxxxxx
 ```
 
 ### Model Configuration

@@ -11,7 +11,12 @@ from valuecell.core.agent.responses import streaming
 from valuecell.core.types import BaseAgent, StreamResponse
 
 from .prompts import NEWS_AGENT_INSTRUCTIONS
-from .tools import get_breaking_news, get_financial_news, web_search
+from .tools import (
+    get_breaking_news,
+    get_financial_news,
+    get_market_sentiment,
+    web_search,
+)
 
 
 class NewsAgent(BaseAgent):
@@ -27,7 +32,9 @@ class NewsAgent(BaseAgent):
         # Load tools based on configuration
         available_tools = []
 
-        available_tools.extend([web_search, get_breaking_news, get_financial_news])
+        available_tools.extend(
+            [web_search, get_breaking_news, get_financial_news, get_market_sentiment]
+        )
 
         # Use create_model_for_agent to load agent-specific configuration
         self.knowledge_news_agent = Agent(
@@ -119,12 +126,17 @@ class NewsAgent(BaseAgent):
                     "name": "get_financial_news",
                     "description": "Get financial and market news",
                 },
+                {
+                    "name": "get_market_sentiment",
+                    "description": "Get stock market sentiment from Adanos",
+                },
             ],
             "supported_queries": [
                 "Latest news",
                 "Breaking news",
                 "Financial news",
                 "Market updates",
+                "Stock sentiment",
                 "Topic-specific news search",
             ],
         }
