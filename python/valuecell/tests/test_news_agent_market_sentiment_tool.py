@@ -14,7 +14,7 @@ TOOLS_SPEC.loader.exec_module(tools)
 
 
 class _Response:
-    def __init__(self, payload: dict):
+    def __init__(self, payload):
         self._payload = payload
 
     def raise_for_status(self) -> None:
@@ -67,6 +67,29 @@ async def test_get_market_sentiment_reports_missing_api_key(monkeypatch):
     assert result == "ADANOS_API_KEY is not configured"
 
 
+@pytest.mark.asyncio
+async def test_get_market_sentiment_returns_formatted_payload(monkeypatch):
+    def fake_fetch(ticker, source, days):
+        assert ticker == "TSLA"
+        assert source == "reddit"
+        assert days == 14
+        return {
+            "ticker": "TSLA",
+            "company_name": "Tesla Inc.",
+            "sentiment_score": 0.42,
+            "buzz_score": 88.5,
+        }
+
+    monkeypatch.setattr(tools, "_fetch_adanos_stock_sentiment", fake_fetch)
+
+    result = await tools.get_market_sentiment("TSLA", source="reddit", days=14)
+
+    assert "Market sentiment for TSLA (Tesla Inc.)" in result
+    assert "Source: reddit" in result
+    assert "Sentiment score: 0.42" in result
+    assert "Buzz score: 88.5" in result
+
+
 def test_fetch_adanos_stock_sentiment_validates_inputs(monkeypatch):
     monkeypatch.setenv("ADANOS_API_KEY", "test-key")
 
@@ -75,6 +98,20 @@ def test_fetch_adanos_stock_sentiment_validates_inputs(monkeypatch):
 
     with pytest.raises(ValueError, match="source must be one of"):
         tools._fetch_adanos_stock_sentiment("AAPL", "invalid", 7)
+
+    with pytest.raises(ValueError, match="days must be an integer"):
+        tools._fetch_adanos_stock_sentiment("AAPL", "news", "invalid")
+
+    with pytest.raises(ValueError, match="days must be between 1 and 365"):
+        tools._fetch_adanos_stock_sentiment("AAPL", "news", 0)
+
+
+def test_fetch_adanos_stock_sentiment_rejects_non_object_payload(monkeypatch):
+    monkeypatch.setenv("ADANOS_API_KEY", "test-key")
+    monkeypatch.setattr(requests, "get", lambda *args, **kwargs: _Response([]))
+
+    with pytest.raises(ValueError, match="JSON object"):
+        tools._fetch_adanos_stock_sentiment("AAPL", "news", 7)
 
 
 def test_format_adanos_stock_sentiment_includes_available_fields():

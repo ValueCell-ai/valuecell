@@ -161,13 +161,20 @@ def _fetch_adanos_stock_sentiment(
     source: str,
     days: int,
 ) -> dict:
-    ticker = ticker.strip().upper()
+    ticker = str(ticker or "").strip().upper()
     if not ticker:
         raise ValueError("ticker must not be empty")
 
-    source = source.strip().lower()
+    source = str(source or "").strip().lower()
     if source not in ADANOS_SOURCES:
         raise ValueError("source must be one of: reddit, x, news, polymarket")
+
+    try:
+        days = int(days)
+    except (TypeError, ValueError) as e:
+        raise ValueError("days must be an integer") from e
+    if days < 1 or days > 365:
+        raise ValueError("days must be between 1 and 365")
 
     api_key = os.getenv("ADANOS_API_KEY", "").strip()
     if not api_key:
@@ -180,7 +187,10 @@ def _fetch_adanos_stock_sentiment(
         timeout=10,
     )
     response.raise_for_status()
-    return response.json()
+    payload = response.json()
+    if not isinstance(payload, dict):
+        raise ValueError("Adanos response must be a JSON object")
+    return payload
 
 
 def _format_adanos_stock_sentiment(
