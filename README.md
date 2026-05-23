@@ -37,19 +37,19 @@
 
 # ValueCell
 
-## Our Product Launched 🔥🔥🔥
+## Product Launch
 
- **ValueCell now provides A-share deep research, market analysis and requires no deployment—access directly at [valuecell.ai](https://valuecell.ai).**
+**ValueCell provides A-share deep research and market analysis and requires no deployment; access it at [valuecell.ai](https://valuecell.ai).**
 
 ## Description
 
-ValueCell is a community-driven, multi-agent platform for financial applications. Our mission is to build the world's largest decentralized financial agent community.
+ValueCell is a community-driven, multi-agent platform for financial applications. Our mission is to build a leading decentralized financial agent community.
 
-It provides a team of TOP investment Agents to help you with stock selection, research, tracking, and even trading.
+It provides a team of leading investment agents to assist with stock selection, research, tracking, and trading.
 
-The system keeps all your sensitive information stored locally on your device, ensuring core data security.
+Sensitive information is stored locally on your device to help ensure data security.
 
-Welcome to join our Discord community to share feedback and issues you encounter, and invite more developers to contribute 🔥🔥🔥
+Join our Discord community to provide feedback, report issues, and collaborate with contributors.
 
 >Note: ValueCell team members will never proactively contact community participants. This project is for technical exchange only. Investing involves risk. ⚠️
 
@@ -78,13 +78,13 @@ Welcome to join our Discord community to share feedback and issues you encounter
 - **DeepResearch Agent**: Automatically retrieve and analyze fundamental documents to generate accurate data insights and interpretable summaries
 - **Strategy Agent**: Supports multiple crypto assets and multi-strategy smart trading, automatically executing your strategies
 - **News Retrieval Agent**: Supports personalized scheduled news delivery to track key information in real time
-- **Others**: More agents are in planning...
+- **Others**: Additional agents are planned.
 
 ## Flexible Integrations
-- **Multiple LLM Providers**: Support OpenRouter, SiliconFlow,Azure,Openai-compatible,Google,OpenAI and DeepSeek
-- **Popular Market Data**: Cover US market, Crypto market, Hong Kong market, China market and more
-- **Multi-Agent Framework Compatible**: Support Langchain, Agno by A2A Protocol for research and development integration
-- **Exchange Connectivity**: Live routing to OKX and Binance, featuring built-in guardrails
+- **Multiple LLM Providers**: Supports OpenRouter, SiliconFlow, Azure, OpenAI-compatible providers, Google, and DeepSeek
+- **Popular Market Data**: Covers US, crypto, Hong Kong, China markets, and others
+- **Multi-Agent Framework Compatible**: Supports LangChain and Agno (A2A Protocol) for research and development integration
+- **Exchange Connectivity**: Live routing to OKX and Binance, with built-in guardrails
 
 # Quick Start
 
@@ -96,17 +96,17 @@ After installation, please configure your preferred model provider before using 
 
 ### Live Trading
 
-- Configure AI Models: Add your AI Model API Key through the web interface.
-- Configure Exchanges: Set up Binance/HyperLiquid/OKX/Coinbase... API credentials
-- Create Strategies: Combine AI model with exchange to create custom strategies
-- Monitor & Control: Start/stop traders and monitor performance in real-time
-- Note: Currently only supports contract trading (spot is implemented as 1X contracts), so please ensure your contract account has sufficient balance
+- Configure AI Models: Add your AI model API key through the web interface.
+- Configure Exchanges: Set up API credentials for supported exchanges (Binance, HyperLiquid, OKX, Coinbase, etc.).
+- Create Strategies: Combine an AI model with an exchange to create custom strategies.
+- Monitor & Control: Start/stop traders and monitor performance in real time.
+- Note: Currently supports only contract (perpetual) trading; ensure your contract account has sufficient balance.
 
 #### Supported Exchanges
 
 | Exchange | Notes | Status |
 | --- | --- | --- |
-| **Binance** | Only supports international site [binance.com](binance.com), not US site. Uses USDT-M futures (USDT-margined contracts). Ensure your futures account has sufficient USDT balance. Trading pair format: `BTC/USDT`. Note: Ensure perpetual contract account balance is not 0. When applying for API, add IP whitelist by searching `My IP` in search engine | ✅ Tested |
+| **Binance** | Only supports the international site [binance.com](binance.com), not the US site. Uses USDT-M futures (USDT-margined contracts). Ensure your futures account has sufficient USDT balance. Trading pair format: `BTC/USDT`. Ensure your perpetual contract account balance is not zero. When creating API keys, add your IP address to the whitelist if required. | ✅ Tested |
 | **Hyperliquid** | Only supports USDC as margin currency. Uses your main wallet address + API wallet private key authentication (use [API tab](https://app.hyperliquid.xyz/API) to apply). Market orders are automatically converted to IoC limit orders. Trading pair format must be manually adjusted to `SYMBOL/USDC` (e.g., `WIF/USDC`). Configure with main wallet address + API wallet private key. Minimum 10U per trade | ✅ Tested |
 | **OKX** | Requires API Key, Secret, and Passphrase (OKX account password) for authentication. Supports USDT-margined contracts. Trading pair format: `BTC/USDT` | ✅ Tested |
 | Coinbase | Supports USDT-margined contracts. Coinbase International is not yet supported | 🟡 Partially Tested |
@@ -120,9 +120,9 @@ After installation, please configure your preferred model provider before using 
 - **Recommended**: Prioritize using fully tested exchanges (Binance, Hyperliquid, OKX)
 
 ### Notice
-- Currently supports leverage trading only, so you need to ensure your Perps account has sufficient balance.
-- You must keep your API secrets secure to avoid losing funds. The app stores secrets locally on your device and will not send them to any third party over the internet.
-- To ensure your account safety, you need to reset your API keys regularly. 
+- Currently supports leveraged trading only; ensure your perpetuals account has sufficient balance.
+- Keep your API secrets secure. The application stores secrets locally and does not transmit them to third parties.
+- Rotate your API keys regularly to reduce the risk of unauthorized access.
 
 ---
 
@@ -143,7 +143,7 @@ After installation, please configure your preferred model provider before using 
 
 ## Developers
 
-We sincerely invite all developers to join our Discord discussion group, where we regularly share the community roadmap and upcoming contributor benefit plans.
+We invite developers to join our Discord discussion group, where we regularly share the community roadmap and contributor plans.
 
 Details on development processes and standards are provided below:[CONTRIBUTING.md](.github/CONTRIBUTING.md)
 
