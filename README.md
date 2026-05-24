@@ -145,7 +145,7 @@ After installation, please configure your preferred model provider before using 
 
 We sincerely invite all developers to join our Discord discussion group, where we regularly share the community roadmap and upcoming contributor benefit plans.
 
-Details on development processes and standards are provided below:[CONTRIBUTING.md](.github/CONTRIBUTING.md)
+Details on development processes and standards are provided in [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 
 ValueCell is a Python-based application with a comprehensive web interface, supporting multi-platform deployment. Follow the configuration below to get started quickly.
 
