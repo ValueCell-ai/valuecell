@@ -28,31 +28,25 @@ def minimax_provider_config():
         enabled=True,
         api_key="test-minimax-api-key",
         base_url="https://api.minimax.io/v1",
-        default_model="MiniMax-M2.7",
+        default_model="MiniMax-M3",
         models=[
+            {
+                "id": "MiniMax-M3",
+                "name": "MiniMax M3",
+                "context_length": 512000,
+                "description": "MiniMax M3 - latest flagship model",
+            },
             {
                 "id": "MiniMax-M2.7",
                 "name": "MiniMax M2.7",
                 "context_length": 204000,
-                "description": "MiniMax M2.7 - latest flagship model",
+                "description": "MiniMax M2.7 - previous generation model",
             },
             {
                 "id": "MiniMax-M2.7-highspeed",
                 "name": "MiniMax M2.7 Highspeed",
                 "context_length": 204000,
                 "description": "MiniMax M2.7 Highspeed - faster variant",
-            },
-            {
-                "id": "MiniMax-M2.5",
-                "name": "MiniMax M2.5",
-                "context_length": 204000,
-                "description": "MiniMax M2.5 model",
-            },
-            {
-                "id": "MiniMax-M2.5-highspeed",
-                "name": "MiniMax M2.5 Highspeed",
-                "context_length": 204000,
-                "description": "MiniMax M2.5 Highspeed - faster variant",
             },
         ],
         parameters={"temperature": 0.7, "max_tokens": 8096},
@@ -73,7 +67,7 @@ def no_key_minimax_config():
         enabled=True,
         api_key=None,
         base_url="https://api.minimax.io/v1",
-        default_model="MiniMax-M2.7",
+        default_model="MiniMax-M3",
         models=[],
         parameters={},
     )
@@ -121,7 +115,7 @@ class TestMiniMaxProviderCreateModel:
             result = minimax_provider.create_model()
 
             MockOpenAILike.assert_called_once_with(
-                id="MiniMax-M2.7",
+                id="MiniMax-M3",
                 api_key="test-minimax-api-key",
                 base_url="https://api.minimax.io/v1",
                 temperature=0.7,
@@ -144,21 +138,21 @@ class TestMiniMaxProviderCreateModel:
             assert call_kwargs["id"] == "MiniMax-M2.7-highspeed"
             assert result is mock_instance
 
-    def test_create_model_m25(self, minimax_provider):
-        """create_model() should work with M2.5 model."""
+    def test_create_model_m27(self, minimax_provider):
+        """create_model() should work with M2.7 model."""
         with patch("agno.models.openai.OpenAILike") as MockOpenAILike:
             MockOpenAILike.return_value = MagicMock()
-            minimax_provider.create_model(model_id="MiniMax-M2.5")
+            minimax_provider.create_model(model_id="MiniMax-M2.7")
             call_kwargs = MockOpenAILike.call_args[1]
-            assert call_kwargs["id"] == "MiniMax-M2.5"
+            assert call_kwargs["id"] == "MiniMax-M2.7"
 
-    def test_create_model_m25_highspeed(self, minimax_provider):
-        """create_model() should work with M2.5-highspeed model."""
+    def test_create_model_m3(self, minimax_provider):
+        """create_model() should work with M3 model."""
         with patch("agno.models.openai.OpenAILike") as MockOpenAILike:
             MockOpenAILike.return_value = MagicMock()
-            minimax_provider.create_model(model_id="MiniMax-M2.5-highspeed")
+            minimax_provider.create_model(model_id="MiniMax-M3")
             call_kwargs = MockOpenAILike.call_args[1]
-            assert call_kwargs["id"] == "MiniMax-M2.5-highspeed"
+            assert call_kwargs["id"] == "MiniMax-M3"
 
 
 class TestMiniMaxTemperatureClamping:
@@ -211,7 +205,7 @@ class TestMiniMaxTemperatureClamping:
             enabled=True,
             api_key="test-key",
             base_url="https://api.minimax.io/v1",
-            default_model="MiniMax-M2.7",
+            default_model="MiniMax-M3",
             models=[],
             parameters={},
         )
@@ -350,10 +344,10 @@ class TestMiniMaxYamlConfig:
         assert config["enabled"] is True
         assert config["connection"]["base_url"] == "https://api.minimax.io/v1"
         assert config["connection"]["api_key_env"] == "MINIMAX_API_KEY"
-        assert config["default_model"] == "MiniMax-M2.7"
+        assert config["default_model"] == "MiniMax-M3"
 
     def test_yaml_models_list(self):
-        """YAML should list all MiniMax models."""
+        """YAML should list current MiniMax models (M3 + M2.7 family)."""
         import yaml
 
         yaml_path = os.path.join(
@@ -370,13 +364,34 @@ class TestMiniMaxYamlConfig:
             config = yaml.safe_load(f)
 
         model_ids = [m["id"] for m in config["models"]]
+        assert "MiniMax-M3" in model_ids
         assert "MiniMax-M2.7" in model_ids
         assert "MiniMax-M2.7-highspeed" in model_ids
-        assert "MiniMax-M2.5" in model_ids
-        assert "MiniMax-M2.5-highspeed" in model_ids
+        # Older models should have been removed
+        assert "MiniMax-M2.5" not in model_ids
+        assert "MiniMax-M2.5-highspeed" not in model_ids
 
-    def test_yaml_context_length(self):
-        """All MiniMax models should have 204K context length."""
+    def test_yaml_m3_first(self):
+        """M3 should be listed first (priority/default)."""
+        import yaml
+
+        yaml_path = os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "..",
+            "..",
+            "configs",
+            "providers",
+            "minimax.yaml",
+        )
+        with open(yaml_path) as f:
+            config = yaml.safe_load(f)
+
+        assert config["models"][0]["id"] == "MiniMax-M3"
+
+    def test_yaml_m3_context_length(self):
+        """M3 should have 512K context length; M2.7 keeps 204K."""
         import yaml
 
         yaml_path = os.path.join(
@@ -393,9 +408,10 @@ class TestMiniMaxYamlConfig:
             config = yaml.safe_load(f)
 
         for model in config["models"]:
-            assert model["context_length"] == 204000, (
-                f"Model {model['id']} should have 204K context"
-            )
+            if model["id"] == "MiniMax-M3":
+                assert model["context_length"] == 512000
+            else:
+                assert model["context_length"] == 204000
 
 
 # ============================================
@@ -448,7 +464,7 @@ class TestMiniMaxIntegrationWithConfigManager:
         assert config.name == "minimax"
         assert config.api_key == "test-integration-key"
         assert config.base_url == "https://api.minimax.io/v1"
-        assert config.default_model == "MiniMax-M2.7"
+        assert config.default_model == "MiniMax-M3"
 
     @patch.dict(os.environ, {"MINIMAX_API_KEY": "test-key"})
     def test_config_manager_validates_minimax(self):
@@ -484,7 +500,7 @@ class TestMiniMaxIntegrationWithConfigManager:
 
             assert result is mock_model
             call_kwargs = MockOpenAILike.call_args[1]
-            assert call_kwargs["id"] == "MiniMax-M2.7"
+            assert call_kwargs["id"] == "MiniMax-M3"
             assert call_kwargs["api_key"] == "test-factory-key"
             assert call_kwargs["base_url"] == "https://api.minimax.io/v1"
 
@@ -505,5 +521,6 @@ class TestMiniMaxIntegrationWithConfigManager:
         manager = ConfigManager()
         models = manager.get_available_models("minimax")
         model_ids = [m["id"] for m in models]
+        assert "MiniMax-M3" in model_ids
         assert "MiniMax-M2.7" in model_ids
         assert "MiniMax-M2.7-highspeed" in model_ids

@@ -507,8 +507,7 @@ class MiniMaxProvider(ModelProvider):
     """MiniMax model provider
 
     MiniMax provides OpenAI-compatible API endpoints for their models
-    (MiniMax-M2.7, MiniMax-M2.7-highspeed, MiniMax-M2.5, MiniMax-M2.5-highspeed).
-    All models support 204K context length.
+    (MiniMax-M3 - default, MiniMax-M2.7, MiniMax-M2.7-highspeed).
 
     Configuration:
     - MINIMAX_API_KEY: API key from MiniMax platform
