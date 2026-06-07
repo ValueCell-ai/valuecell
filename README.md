@@ -81,7 +81,7 @@ Welcome to join our Discord community to share feedback and issues you encounter
 - **Others**: More agents are in planning...
 
 ## Flexible Integrations
-- **Multiple LLM Providers**: Support OpenRouter, SiliconFlow,Azure,Openai-compatible,Google,OpenAI and DeepSeek
+- **Multiple LLM Providers**: Support OpenRouter, SiliconFlow, Azure, Openai-compatible, Google, OpenAI, DeepSeek and [MiniMax](https://platform.minimaxi.com/)
 - **Popular Market Data**: Cover US market, Crypto market, Hong Kong market, China market and more
 - **Multi-Agent Framework Compatible**: Support Langchain, Agno by A2A Protocol for research and development integration
 - **Exchange Connectivity**: Live routing to OKX and Binance, featuring built-in guardrails
@@ -263,7 +263,7 @@ ValueCell integrates external services and embeds third-party widgets. Their usa
 |---------|------|-----------------|
 | **TradingView Advanced Chart** | Embedded iframe widget | [Free Advanced Charts Agreement](https://www.tradingview.com/chart-embedding/) (proprietary) |
 | **Exchange APIs** (Binance, OKX, Hyperliquid, etc.) | REST/WebSocket endpoints | Each exchange’s ToS (e.g., [Binance API Terms](https://www.binance.com/en/terms)) |
-| **LLM Providers** (OpenAI, Azure, Google, DeepSeek, etc.) | Inference APIs | Provider-specific ToS (e.g., [OpenAI ToS](https://openai.com/policies/terms-of-use)) |
+| **LLM Providers** (OpenAI, Azure, Google, DeepSeek, MiniMax, etc.) | Inference APIs | Provider-specific ToS (e.g., [OpenAI ToS](https://openai.com/policies/terms-of-use)) |
 
 # Star History
 

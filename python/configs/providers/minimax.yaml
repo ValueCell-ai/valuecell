@@ -1,0 +1,44 @@
+# ============================================
+# MiniMax Provider Configuration
+# ============================================
+# MiniMax provides OpenAI-compatible API endpoints for their models.
+#
+# Usage:
+#   1. Set MINIMAX_API_KEY environment variable
+#   2. Set PRIMARY_PROVIDER=minimax (or use as fallback)
+#
+# Get your API key at: https://platform.minimaxi.com/
+
+name: "MiniMax"
+provider_type: "minimax"
+
+enabled: true
+
+# Connection Configuration
+connection:
+  base_url: "https://api.minimax.io/v1"
+  api_key_env: "MINIMAX_API_KEY"
+
+# Default model if none specified
+default_model: "MiniMax-M3"
+
+# Model Parameters Defaults
+# Note: MiniMax temperature must be in (0.0, 1.0] range
+defaults:
+  temperature: 0.7
+  max_tokens: 8096
+
+# Available Models
+models:
+  - id: "MiniMax-M3"
+    name: "MiniMax M3"
+    context_length: 512000
+    description: "MiniMax M3 - latest flagship model with 512K context, 128K max output, image input support"
+  - id: "MiniMax-M2.7"
+    name: "MiniMax M2.7"
+    context_length: 204000
+    description: "MiniMax M2.7 - previous generation model"
+  - id: "MiniMax-M2.7-highspeed"
+    name: "MiniMax M2.7 Highspeed"
+    context_length: 204000
+    description: "MiniMax M2.7 Highspeed - faster variant of previous generation"

@@ -28,6 +28,7 @@ ValueCell supports multiple LLM providers. Choose at least one:
 | **Google**      | [ai.google.dev](https://ai.google.dev/)             |
 | **OpenAI**      | [platform.openai.com](https://platform.openai.com/) |
 | **DashScope**   | [bailian.console.aliyun.com](https://bailian.console.aliyun.com/#/home) |
+| **MiniMax**     | [platform.minimaxi.com](https://platform.minimaxi.com/) |
 
 ### Step 2: Configure .env File
 

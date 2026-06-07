@@ -133,6 +133,7 @@ def create_models_router() -> APIRouter:
             "azure": "https://azure.microsoft.com/en-us/products/ai-foundry/models/openai/",
             "siliconflow": "https://cloud.siliconflow.cn/account/ak",
             "deepseek": "https://platform.deepseek.com/api_keys",
+            "minimax": "https://platform.minimaxi.com/",
             "dashscope": "https://bailian.console.aliyun.com/#/home",
             "ollama": None,
         }
