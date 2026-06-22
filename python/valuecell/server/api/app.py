@@ -32,11 +32,16 @@ from .routers.watchlist import create_watchlist_router
 from .schemas import AppInfoData, SuccessResponse
 
 
+def _system_env_override_enabled() -> bool:
+    """Return whether system `.env` values should override process env."""
+    return os.getenv("VALUECELL_SYSTEM_ENV_OVERRIDE", "true").lower() == "true"
+
+
 def _ensure_system_env_and_load() -> None:
     """Ensure the system `.env` exists and is loaded; use only the system path.
 
     Behavior:
-    - If the system `.env` exists, load it with `override=True`.
+    - If the system `.env` exists, load it.
     - If not, and the repository has `.env.example`, copy it to the system path and then load.
     - Do not create or load the repository root `.env`.
     """
@@ -57,9 +62,15 @@ def _ensure_system_env_and_load() -> None:
         # Load system .env into process environment
         if sys_env.exists():
             try:
-                from dotenv import load_dotenv
+                from dotenv import dotenv_values, load_dotenv
 
-                load_dotenv(sys_env, override=True)
+                override = _system_env_override_enabled()
+                if override:
+                    load_dotenv(sys_env, override=True)
+                else:
+                    for key, value in dotenv_values(sys_env).items():
+                        if value is not None and not os.environ.get(key):
+                            os.environ[key] = value
             except Exception:
                 # Fallback manual parsing
                 try:
@@ -74,7 +85,10 @@ def _ensure_system_env_and_load() -> None:
                                     value.startswith("'") and value.endswith("'")
                                 ):
                                     value = value[1:-1]
-                                os.environ[key] = value
+                                if _system_env_override_enabled() or not os.environ.get(
+                                    key
+                                ):
+                                    os.environ[key] = value
                 except Exception:
                     pass
     except Exception:

@@ -47,6 +47,8 @@ class Tracker {
   }
 
   private async init() {
+    if (!isTauri()) return;
+
     try {
       const clientId = await invoke<string>("get_client_id");
       const systemInfo = JSON.stringify(

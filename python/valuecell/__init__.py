@@ -14,11 +14,27 @@ import logging
 
 # Load environment variables as early as possible
 import os
+import warnings
 from pathlib import Path
 
 from valuecell.utils.env import ensure_system_env_dir, get_system_env_path
 
 logger = logging.getLogger(__name__)
+
+
+def _system_env_override_enabled() -> bool:
+    """Return whether system `.env` values should override process env."""
+    return os.getenv("VALUECELL_SYSTEM_ENV_OVERRIDE", "true").lower() == "true"
+
+
+def _install_warning_filters() -> None:
+    """Suppress known third-party startup warnings that are not actionable here."""
+    warnings.filterwarnings(
+        "ignore",
+        message=r"pkg_resources is deprecated as an API\..*",
+        category=UserWarning,
+        module=r"py_mini_racer\.py_mini_racer",
+    )
 
 
 def load_env_file_early() -> None:
@@ -51,9 +67,17 @@ def load_env_file_early() -> None:
                 logger.info(f"⚠️  Failed to prepare system .env: {e}")
 
         if sys_env.exists():
-            # Load with override=True to allow .env file to override system variables
-            # This is especially important for LANG which is often set by the system
-            load_dotenv(sys_env, override=True)
+            override = _system_env_override_enabled()
+            if override:
+                # Local app behavior: system `.env` is the source of truth.
+                load_dotenv(sys_env, override=True)
+            else:
+                # Container behavior: compose values win, persisted model keys fill blanks.
+                from dotenv import dotenv_values
+
+                for key, value in dotenv_values(sys_env).items():
+                    if value is not None and not os.environ.get(key):
+                        os.environ[key] = value
 
             # Optional: Log successful loading if DEBUG is enabled
             if os.getenv("AGENT_DEBUG_MODE", "false").lower() == "true":
@@ -106,12 +130,13 @@ def _load_env_file_manual() -> None:
                             value.startswith("'") and value.endswith("'")
                         ):
                             value = value[1:-1]
-                        # Always set the value (override existing env vars to match dotenv behavior)
-                        os.environ[key] = value
+                        if _system_env_override_enabled() or not os.environ.get(key):
+                            os.environ[key] = value
     except Exception:
         # Fail silently to avoid breaking imports
         pass
 
 
 # Load environment variables immediately when package is imported
+_install_warning_filters()
 load_env_file_early()
