@@ -23,6 +23,10 @@ models:
       config_file: "providers/openrouter.yaml"
       api_key_env: "OPENROUTER_API_KEY"
     
+    requesty:
+      config_file: "providers/requesty.yaml"
+      api_key_env: "REQUESTY_API_KEY"
+    
     siliconflow:
       config_file: "providers/siliconflow.yaml"
       api_key_env: "SILICONFLOW_API_KEY"
