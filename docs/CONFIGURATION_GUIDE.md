@@ -24,6 +24,7 @@ ValueCell supports multiple LLM providers. Choose at least one:
 | Provider        | Sign Up                                             |
 | --------------- | --------------------------------------------------- |
 | **OpenRouter**  | [openrouter.ai](https://openrouter.ai/)             |
+| **Requesty**    | [app.requesty.ai/api-keys](https://app.requesty.ai/api-keys) |
 | **SiliconFlow** | [siliconflow.cn](https://www.siliconflow.cn/)       |
 | **Google**      | [ai.google.dev](https://ai.google.dev/)             |
 | **OpenAI**      | [platform.openai.com](https://platform.openai.com/) |
@@ -86,6 +87,7 @@ python/
 │   ├── config.{environment}.yaml      # Environment-specific overrides
 │   ├── providers/
 │   │   ├── openrouter.yaml           # OpenRouter provider config
+│   │   ├── requesty.yaml             # Requesty provider config
 │   │   ├── siliconflow.yaml          # SiliconFlow provider config
 │   │   ├── dashscope.yaml            # DashScope (Alibaba Cloud) provider config
 │   │   └── other_provider.yaml
@@ -191,6 +193,9 @@ models:
     openrouter:
       config_file: "providers/openrouter.yaml"
       api_key_env: "OPENROUTER_API_KEY"
+    requesty:
+      config_file: "providers/requesty.yaml"
+      api_key_env: "REQUESTY_API_KEY"
     siliconflow:
       config_file: "providers/siliconflow.yaml"
       api_key_env: "SILICONFLOW_API_KEY"
@@ -327,12 +332,13 @@ ValueCell automatically selects a primary provider based on available API keys:
 The selection logic is implemented in `python/valuecell/config/manager.py`:
 
 1. OpenRouter
-2. SiliconFlow
-3. Google
-4. OpenAI
-5. OpenAI-Compatible
-6. Azure
-7. Other configured providers (including DashScope, DeepSeek, etc.)
+2. Requesty
+3. SiliconFlow
+4. Google
+5. OpenAI
+6. OpenAI-Compatible
+7. Azure
+8. Other configured providers (including DashScope, DeepSeek, etc.)
 
 Override this with an environment variable:
 

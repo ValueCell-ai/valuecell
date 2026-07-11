@@ -130,6 +130,7 @@ class ConfigManager:
                 # Priority order for auto-selection
                 preferred_order = [
                     "openrouter",
+                    "requesty",
                     "siliconflow",
                     "google",
                     "openai",

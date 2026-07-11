@@ -1,0 +1,58 @@
+# ============================================
+# Requesty Provider Configuration
+# ============================================
+name: "Requesty"
+provider_type: "requesty"
+
+enabled: true # Default is true if not specified
+
+# Connection Configuration
+connection:
+  base_url: "https://router.requesty.ai/v1"
+  api_key_env: "REQUESTY_API_KEY"
+
+# Default model if none specified
+default_model: "openai/gpt-4o-mini"
+
+# Model Parameters Defaults
+defaults:
+  temperature: 0.5
+
+# Extra headers for Requesty API (used for analytics attribution)
+extra_headers:
+  HTTP-Referer: "https://valuecell.ai"
+  X-Title: "ValueCell"
+
+# Available Models (commonly used)
+models:
+  - id: "anthropic/claude-sonnet-4-5"
+    name: "Claude Sonnet 4.5"
+  - id: "openai/gpt-4o"
+    name: "GPT-4o"
+  - id: "openai/gpt-4o-mini"
+    name: "GPT-4o mini"
+  - id: "deepseek/deepseek-chat"
+    name: "DeepSeek Chat"
+  - id: "google/gemini-2.5-flash"
+    name: "Gemini 2.5 Flash"
+
+# ============================================
+# Embedding Models Configuration
+# ============================================
+# Requesty exposes OpenAI-compatible embedding models
+embedding:
+  # Default embedding model
+  default_model: "openai/text-embedding-3-small"
+
+  # Default parameters
+  defaults:
+    dimensions: 1536
+    encoding_format: "float"
+
+  # Available embedding models
+  models:
+  - id: "openai/text-embedding-3-small"
+    name: "OpenAI Text Embedding 3 Small"
+    dimensions: 1536
+    max_input: 8192
+    description: "OpenAI Text Embedding Model"

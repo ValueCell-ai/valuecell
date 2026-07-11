@@ -116,6 +116,82 @@ class OpenRouterProvider(ModelProvider):
         )
 
 
+class RequestyProvider(ModelProvider):
+    """Requesty model provider
+
+    Requesty (https://requesty.ai) is an OpenAI-compatible LLM router. It uses the
+    same ``provider/model`` id convention as OpenRouter (e.g. ``openai/gpt-4o-mini``)
+    and the same ``HTTP-Referer`` / ``X-Title`` analytics headers, with a fixed
+    OpenAI-compatible base URL (``https://router.requesty.ai/v1``). This mirrors
+    OpenRouterProvider, using agno's OpenAILike client since the endpoint is
+    OpenAI-compatible.
+    """
+
+    def create_model(self, model_id: Optional[str] = None, **kwargs):
+        """Create Requesty model via agno (OpenAI-compatible)"""
+        try:
+            from agno.models.openai import OpenAILike
+        except ImportError:
+            raise ImportError(
+                "agno package not installed. Install with: pip install agno"
+            )
+
+        # Use provided model_id or default
+        model_id = model_id or self.config.default_model
+
+        # Merge parameters: provider defaults < kwargs
+        params = {**self.config.parameters, **kwargs}
+
+        # Get extra headers from config (analytics attribution)
+        extra_headers = self.config.extra_config.get("extra_headers", {})
+
+        logger.info(f"Creating Requesty model: {model_id}")
+
+        return OpenAILike(
+            id=model_id,
+            api_key=self.config.api_key,
+            base_url=self.config.base_url,
+            default_headers=extra_headers if extra_headers else None,
+            temperature=params.get("temperature"),
+            max_tokens=params.get("max_tokens"),
+            top_p=params.get("top_p"),
+            frequency_penalty=params.get("frequency_penalty"),
+            presence_penalty=params.get("presence_penalty"),
+        )
+
+    def create_embedder(self, model_id: Optional[str] = None, **kwargs):
+        """Create embedder via Requesty (OpenAI-compatible)"""
+        try:
+            from agno.knowledge.embedder.openai import OpenAIEmbedder
+        except ImportError:
+            raise ImportError("agno package not installed")
+
+        # Use provided model_id or default embedding model
+        model_id = model_id or self.config.default_embedding_model
+
+        if not model_id:
+            raise ValueError(
+                f"No embedding model specified for provider '{self.config.name}'"
+            )
+
+        # Merge parameters: provider embedding defaults < kwargs
+        params = {**self.config.embedding_parameters, **kwargs}
+
+        logger.info(f"Creating Requesty embedder: {model_id}")
+
+        return OpenAIEmbedder(
+            id=model_id,
+            api_key=self.config.api_key,
+            base_url=self.config.base_url,
+            dimensions=int(params.get("dimensions", 1536)),
+            encoding_format=params.get("encoding_format"),
+        )
+
+    def is_available(self) -> bool:
+        """Check if provider is available (needs both API key and base URL)"""
+        return bool(self.config.api_key and self.config.base_url)
+
+
 class GoogleProvider(ModelProvider):
     """Google Gemini model provider"""
 
@@ -601,6 +677,7 @@ class ModelFactory:
     # Registry of provider classes
     _providers: Dict[str, type[ModelProvider]] = {
         "openrouter": OpenRouterProvider,
+        "requesty": RequestyProvider,
         "google": GoogleProvider,
         "azure": AzureProvider,
         "siliconflow": SiliconFlowProvider,
