@@ -17,6 +17,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       zh_CN: "zh-CN",
       zh_TW: "zh-TW",
       ja: "ja",
+      ko: "ko",
     }[language] ?? "en";
 
   return (

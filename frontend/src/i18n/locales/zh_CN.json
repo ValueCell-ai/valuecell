@@ -15,7 +15,8 @@
         "en": "English (United States)",
         "zh_CN": "简体中文",
         "zh_TW": "繁體中文",
-        "ja": "日本語"
+        "ja": "日本語",
+        "ko": "한국어"
       }
     },
     "theme": {

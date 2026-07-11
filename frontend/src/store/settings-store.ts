@@ -16,7 +16,7 @@ import i18n from "@/i18n";
 import type { StockChangeType } from "@/types/stock";
 
 export type StockColorMode = "GREEN_UP_RED_DOWN" | "RED_UP_GREEN_DOWN";
-export type LanguageCode = "en" | "zh_CN" | "zh_TW" | "ja";
+export type LanguageCode = "en" | "zh_CN" | "zh_TW" | "ja" | "ko";
 export const DEFAULT_LANGUAGE = "en";
 
 interface SettingsStoreState {
@@ -34,6 +34,7 @@ const getLanguage = () => {
     "zh-Hans": "zh_CN",
     "zh-Hant": "zh_TW",
     "ja-JP": "ja",
+    "ko-KR": "ko",
   };
   return map[navigator.language] ?? DEFAULT_LANGUAGE;
 };

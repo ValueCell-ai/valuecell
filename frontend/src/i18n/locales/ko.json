@@ -1,0 +1,435 @@
+{
+  "general": {
+    "title": "일반",
+    "description": "환경설정과 앱 설정을 관리하세요.",
+    "account": {
+      "title": "계정",
+      "signInDesc": "Valuecell AI 기능을 시작하려면 로그인하세요.",
+      "signOut": "로그아웃",
+      "signIn": "로그인"
+    },
+    "language": {
+      "title": "언어 및 지역",
+      "description": "앱에서 사용할 언어와 지역 형식을 선택하세요.",
+      "options": {
+        "en": "English (United States)",
+        "zh_CN": "简体中文",
+        "zh_TW": "繁體中文",
+        "ja": "日本語",
+        "ko": "한국어"
+      }
+    },
+    "theme": {
+      "title": "테마",
+      "description": "밝은 테마, 어두운 테마 또는 시스템 설정을 따르도록 선택하세요.",
+      "options": {
+        "system": "시스템 설정",
+        "light": "밝게",
+        "dark": "어둡게"
+      }
+    },
+    "quotesColor": {
+      "title": "시세 색상",
+      "description": "주식 시세 등락을 표시할 색상을 선택하세요.",
+      "greenUpRedDown": "상승 초록 / 하락 빨강",
+      "redUpGreenDown": "상승 빨강 / 하락 초록"
+    },
+    "updates": {
+      "title": "앱 업데이트",
+      "check": "업데이트 확인"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "로그인",
+      "tagline": "최초의 오픈소스 금융 에이전트 플랫폼.",
+      "providers": {
+        "google": "Google",
+        "apple": "Apple"
+      },
+      "actions": {
+        "continueWith": "{{provider}}(으)로 계속하기"
+      },
+      "errors": {
+        "timeout": {
+          "title": "로그인 시간이 초과되었습니다",
+          "description": "다시 시도해 주세요."
+        },
+        "failed": {
+          "title": "{{provider}}(으)로 로그인하지 못했습니다",
+          "description": "정보: {{info}}"
+        }
+      }
+    }
+  },
+  "settings": {
+    "title": "설정",
+    "nav": {
+      "models": "모델",
+      "general": "일반",
+      "memory": "메모리"
+    },
+    "models": {
+      "title": "모델 제공업체",
+      "noProviders": "사용 가능한 제공업체가 없습니다.",
+      "loading": "제공업체 정보를 불러오는 중...",
+      "defaultProvider": "기본 제공업체",
+      "apiKey": "API 키",
+      "enterApiKey": "API 키 입력",
+      "getApiKey": "여기를 클릭해 API 키 받기",
+      "apiHost": "API 호스트",
+      "models": "모델",
+      "add": "추가",
+      "addModel": "모델 추가",
+      "modelId": "모델 ID",
+      "enterModelId": "모델 ID 입력",
+      "modelName": "모델 이름",
+      "enterModelName": "모델 이름 입력",
+      "cancel": "취소",
+      "confirm": "확인",
+      "noModels": "이 제공업체에 설정된 모델이 없습니다.",
+      "hidePassword": "비밀번호 숨기기",
+      "showPassword": "비밀번호 표시",
+      "waitingForCheck": "확인 대기 중",
+      "checkAvailability": "사용 가능 여부 확인",
+      "available": "사용 가능",
+      "unavailable": "사용 불가"
+    },
+    "memory": {
+      "title": "저장된 메모리",
+      "description": "대화 속 유용한 정보를 기억하고 자동으로 관리하여 답변의 개인화와 관련성을 높입니다.",
+      "loading": "불러오는 중...",
+      "noMemories": "아직 저장된 메모리가 없습니다",
+      "delete": "삭제"
+    }
+  },
+  "common": {
+    "back": "뒤로",
+    "loading": "불러오는 중",
+    "settingUpEnvironment": "환경을 설정하는 중..."
+  },
+  "nav": {
+    "home": "홈",
+    "strategy": "전략",
+    "ranking": "랭킹",
+    "market": "마켓",
+    "setting": "설정"
+  },
+  "updates": {
+    "toast": {
+      "checking": "업데이트를 확인하는 중...",
+      "latest": "이미 최신 버전을 사용하고 있습니다",
+      "availableTitle": "업데이트가 있습니다",
+      "availableDesc": "새 버전({{version}})을 사용할 수 있습니다. 지금 설치하시겠습니까?",
+      "install": "설치",
+      "later": "나중에",
+      "downloading": "업데이트를 다운로드하는 중... {{percentage}}%",
+      "installedTitle": "업데이트가 성공적으로 설치되었습니다!",
+      "installedDesc": "업데이트를 적용하려면 앱을 다시 시작해야 합니다.",
+      "relaunch": "다시 시작",
+      "downloadFailed": "업데이트 다운로드 실패: {{error}}",
+      "checkFailed": "업데이트 확인 실패: {{error}}"
+    }
+  },
+  "market": {
+    "title": "에이전트 마켓"
+  },
+  "agent": {
+    "welcome": "{{name}}에 오신 것을 환영합니다!",
+    "unknown": "알 수 없는 에이전트",
+    "status": {
+      "running": "실행 중"
+    },
+    "action": {
+      "view": "보기"
+    },
+    "config": {
+      "disable": "비활성화",
+      "chat": "채팅",
+      "collectAndChat": "저장하고 채팅하기"
+    }
+  },
+  "chat": {
+    "input": {
+      "placeholder": "메시지를 입력하세요..."
+    },
+    "newConversation": "새 대화",
+    "settings": "설정",
+    "conversationList": {
+      "title": "대화 목록",
+      "loading": "불러오는 중...",
+      "empty": "아직 대화가 없습니다"
+    },
+    "action": {
+      "delete": "삭제"
+    }
+  },
+  "strategy": {
+    "types": {
+      "PromptBasedStrategy": "프롬프트 기반 전략",
+      "GridStrategy": "그리드 전략"
+    },
+    "providers": {
+      "azure": "Azure OpenAI",
+      "dashscope": "알리바바 클라우드",
+      "deepseek": "딥시크",
+      "google": "Google Cloud",
+      "openai": "OpenAI",
+      "openai-compatible": "OpenAI 호환 API",
+      "openrouter": "OpenRouter",
+      "siliconflow": "SiliconFlow"
+    },
+    "title": "트레이딩 전략",
+    "add": "트레이딩 전략 추가",
+    "noStrategies": "트레이딩 전략이 없습니다",
+    "createFirst": "첫 전략을 만들어 트레이딩을 시작하세요",
+    "status": {
+      "running": "실행 중",
+      "stopped": "중지됨",
+      "live": "실전",
+      "virtual": "모의"
+    },
+    "action": {
+      "stop": "트레이딩 전략을 중지할까요?",
+      "stopDesc": "전략 \"{{name}}\"을(를) 중지하면 즉시 멈추고 강제 청산이 실행됩니다. 계속하시겠습니까?",
+      "confirmStop": "중지 확인",
+      "delete": "삭제",
+      "deleteTitle": "전략을 삭제할까요?",
+      "deleteDesc": "전략 \"{{name}}\"을(를) 삭제하면 즉시 멈추고 강제 청산이 실행됩니다. 계속하시겠습니까?",
+      "confirmDelete": "삭제 확인",
+      "details": "상세 정보",
+      "duplicate": "복제",
+      "cancel": "취소",
+      "back": "뒤로",
+      "next": "다음",
+      "confirm": "확인",
+      "publish": "게시",
+      "shareToSocial": "소셜에 공유",
+      "shareToRanking": "랭킹에 공유"
+    },
+    "portfolio": {
+      "title": "포트폴리오 가치 추이",
+      "totalEquity": "총 자산",
+      "availableBalance": "사용 가능 잔액",
+      "totalPnl": "총 손익",
+      "noData": "포트폴리오 가치 데이터가 없습니다",
+      "noDataDesc": "트레이딩이 시작되면 포트폴리오 가치 차트가 표시됩니다"
+    },
+    "positions": {
+      "title": "포지션",
+      "symbol": "종목",
+      "type": "유형",
+      "leverage": "레버리지",
+      "quantity": "수량",
+      "pnl": "손익",
+      "noOpen": "보유 중인 포지션이 없습니다",
+      "noOpenDesc": "포지션을 진입하면 여기에 표시됩니다"
+    },
+    "create": {
+      "title": "트레이딩 전략 추가",
+      "steps": {
+        "aiModels": "AI 모델",
+        "exchanges": "거래소",
+        "tradingStrategy": "트레이딩 전략"
+      },
+      "error": "전략 생성 오류"
+    },
+    "copy": {
+      "title": "트레이딩 전략 복제",
+      "error": "전략 복제 오류"
+    },
+    "toast": {
+      "published": "전략이 성공적으로 게시되었습니다"
+    },
+    "form": {
+      "strategyType": {
+        "label": "전략 유형",
+        "promptBased": "프롬프트 기반 전략",
+        "grid": "그리드 전략"
+      },
+      "strategyName": {
+        "label": "전략 이름",
+        "placeholder": "전략 이름 입력"
+      },
+      "initialCapital": {
+        "label": "초기 자본금",
+        "placeholder": "초기 자본금 입력"
+      },
+      "maxLeverage": {
+        "label": "최대 레버리지",
+        "placeholder": "최대 레버리지"
+      },
+      "decideInterval": {
+        "label": "판단 주기 (초)",
+        "placeholder": "예: 300"
+      },
+      "tradingSymbols": {
+        "label": "거래 종목",
+        "placeholder": "거래 종목 선택...",
+        "searchPlaceholder": "종목 검색 또는 추가...",
+        "emptyText": "종목을 찾을 수 없습니다."
+      },
+      "promptTemplate": {
+        "label": "시스템 프롬프트 템플릿",
+        "new": "새 프롬프트",
+        "view": "전략 보기"
+      },
+      "aiModels": {
+        "platform": "모델 플랫폼",
+        "model": "모델 선택",
+        "noModels": "사용 가능한 모델이 없습니다",
+        "apiKey": {
+          "label": "API 키",
+          "placeholder": "API 키 입력"
+        }
+      },
+      "exchanges": {
+        "transactionType": "거래 유형",
+        "liveTrading": "실전 매매",
+        "virtualTrading": "모의 매매",
+        "selectExchange": "거래소 선택",
+        "walletAddress": "지갑 주소",
+        "privateKey": "프라이빗 키",
+        "apiKey": "API Key",
+        "secretKey": "Secret Key",
+        "passphrase": "Passphrase",
+        "testConnection": "연결 테스트",
+        "test": {
+          "success": "연결 성공!",
+          "failed": "연결에 실패했습니다. API Key, Secret Key 또는 Passphrase를 확인해 주세요."
+        },
+        "placeholder": {
+          "binance": {
+            "apiKey": "API Key 입력 (64자)",
+            "secretKey": "Secret Key 입력 (64자)"
+          },
+          "okx": {
+            "apiKey": "API Key 입력 (형식: xxxxxxxx-xxxx-...)",
+            "secretKey": "Secret Key 입력 (32자리 대문자와 숫자)",
+            "passphrase": "Passphrase 입력 (API 생성 시 설정)"
+          },
+          "gate": {
+            "apiKey": "API Key 입력 ('key_'로 시작)",
+            "secretKey": "Secret Key 입력 (64자)"
+          },
+          "hyperliquid": {
+            "walletAddress": "지갑 주소 입력 ('0x'로 시작)",
+            "privateKey": "프라이빗 키 입력 (64자)"
+          },
+          "blockchain": {
+            "apiKey": "API Key 입력 (형식: xxxxxxxx-xxxx-...)",
+            "secretKey": "Secret Key 입력"
+          },
+          "coinbase": {
+            "apiKey": "API Key 입력 (또는 Key Name)",
+            "secretKey": "API Secret 입력 (또는 Private Key)",
+            "passphrase": "Passphrase 입력 (Legacy Pro API 필요 시)"
+          },
+          "mexc": {
+            "apiKey": "Access Key 입력 ('mx0'로 시작)",
+            "secretKey": "Secret Key 입력 (보통 32자)"
+          },
+          "default": {
+            "apiKey": "여기에 API Key를 붙여넣으세요",
+            "secretKey": "여기에 Secret Key를 붙여넣으세요",
+            "passphrase": "Passphrase 입력",
+            "walletAddress": "지갑 주소 입력",
+            "privateKey": "프라이빗 키 입력"
+          }
+        }
+      }
+    },
+    "prompt": {
+      "delete": {
+        "title": "전략 프롬프트 삭제",
+        "description": "이 전략 프롬프트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없으며 시스템에서 프롬프트가 영구적으로 삭제됩니다."
+      }
+    },
+    "detail": {
+      "title": "전략 상세 정보",
+      "loading": "상세 정보를 불러오는 중...",
+      "returnRate": "수익률",
+      "strategyType": "전략 유형",
+      "modelProvider": "모델 제공업체",
+      "modelId": "모델 ID",
+      "initialCapital": "초기 자본금",
+      "maxLeverage": "최대 레버리지",
+      "tradingSymbols": "거래 종목",
+      "prompt": "프롬프트"
+    },
+    "history": {
+      "title": "거래 내역",
+      "live": "실전 매매",
+      "virtual": "모의 매매",
+      "cycle": "사이클 #{{index}}",
+      "aiReasoning": "AI 추론 로직",
+      "operation": "실행한 작업",
+      "empty": {
+        "title": "거래 내역이 없습니다",
+        "desc": "완료된 거래가 여기에 표시됩니다"
+      },
+      "details": {
+        "time": "시간",
+        "price": "가격",
+        "quantity": "수량",
+        "holdingTime": "보유 시간",
+        "tradingFee": "거래 수수료",
+        "reasoning": "추론"
+      }
+    }
+  },
+  "rank": {
+    "title": "수익 랭킹",
+    "table": {
+      "rank": "순위",
+      "user": "사용자",
+      "pnl": "손익",
+      "strategy": "전략",
+      "exchange": "거래소",
+      "model": "모델",
+      "details": "상세 정보",
+      "loading": "불러오는 중..."
+    }
+  },
+  "home": {
+    "hello": "👋 안녕하세요, 투자자님!",
+    "welcome": "👋 ValueCell에 오신 것을 환영합니다!",
+    "watchlist": "내 관심 종목",
+    "stock": {
+      "loading": "주식 데이터를 불러오는 중...",
+      "error": "주식 데이터 로딩 실패: {{message}}",
+      "remove": "제거",
+      "removing": "제거하는 중...",
+      "add": "종목 추가",
+      "about": "소개",
+      "sector": "섹터:",
+      "industry": "산업:",
+      "website": "웹사이트:"
+    },
+    "search": {
+      "title": "종목 검색",
+      "placeholder": "종목명 또는 코드로 검색",
+      "searching": "검색하는 중...",
+      "noResults": "관련 종목을 찾을 수 없습니다",
+      "action": {
+        "watch": "관심 종목",
+        "watching": "추가하는 중...",
+        "watched": "관심 종목에 추가됨"
+      }
+    },
+    "suggestions": {
+      "research": {
+        "title": "심층 리서치",
+        "description": "SEC 공시 자료를 분석해 심층 주식 분석 리포트를 생성합니다."
+      },
+      "strategy": {
+        "title": "자동 매매",
+        "description": "다중 전략 스마트 트레이딩으로 나만의 전략을 자동 실행합니다."
+      },
+      "news": {
+        "title": "뉴스 알림",
+        "description": "맞춤 일정에 따라 개인화된 뉴스를 전달합니다."
+      }
+    }
+  }
+}

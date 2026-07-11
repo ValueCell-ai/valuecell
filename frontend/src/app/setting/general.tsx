@@ -108,6 +108,9 @@ export default function GeneralPage() {
               <SelectItem value="ja">
                 {t("general.language.options.ja")}
               </SelectItem>
+              <SelectItem value="ko">
+                {t("general.language.options.ko")}
+              </SelectItem>
             </SelectContent>
           </Select>
         </Field>

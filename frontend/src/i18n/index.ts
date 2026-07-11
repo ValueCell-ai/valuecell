@@ -3,6 +3,7 @@ import { initReactI18next } from "react-i18next";
 
 import en from "@/i18n/locales/en.json";
 import ja from "@/i18n/locales/ja.json";
+import ko from "@/i18n/locales/ko.json";
 import zhCN from "@/i18n/locales/zh_CN.json";
 import zhTW from "@/i18n/locales/zh_TW.json";
 import { DEFAULT_LANGUAGE, useSettingsStore } from "@/store/settings-store";
@@ -11,6 +12,7 @@ const resources = Object.fromEntries(
   [
     ["en", en],
     ["ja", ja],
+    ["ko", ko],
     ["zh_CN", zhCN],
     ["zh_TW", zhTW],
   ].map(([locale, translation]) => [locale, { translation }]),
