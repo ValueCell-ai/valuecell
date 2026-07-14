@@ -130,6 +130,7 @@ def create_models_router() -> APIRouter:
             "google": "https://aistudio.google.com/app/api-keys",
             "openrouter": "https://openrouter.ai/settings/keys",
             "openai": "https://platform.openai.com/api-keys",
+            "minimax": "https://platform.minimax.io/docs/api-reference/api-overview",
             "azure": "https://azure.microsoft.com/en-us/products/ai-foundry/models/openai/",
             "siliconflow": "https://cloud.siliconflow.cn/account/ak",
             "deepseek": "https://platform.deepseek.com/api_keys",

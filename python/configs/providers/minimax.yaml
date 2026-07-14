@@ -1,0 +1,77 @@
+# ============================================
+# MiniMax Provider Configuration
+# ============================================
+name: "MiniMax"
+provider_type: "minimax"
+enabled: true
+
+connection:
+  base_url: "${MINIMAX_BASE_URL:https://api.minimax.io/v1}"
+  api_key_env: "MINIMAX_API_KEY"
+
+default_model: "MiniMax-M3"
+
+defaults: {}
+
+endpoints:
+  global_en:
+    openai_base_url: "https://api.minimax.io/v1"
+    anthropic_base_url: "https://api.minimax.io/anthropic"
+    docs_root: "https://platform.minimax.io/docs"
+  cn_zh:
+    openai_base_url: "https://api.minimaxi.com/v1"
+    anthropic_base_url: "https://api.minimaxi.com/anthropic"
+    docs_root: "https://platform.minimaxi.com/docs"
+
+models:
+  - id: "MiniMax-M3"
+    name: "MiniMax M3"
+    context_length: 1000000
+    supported_inputs: ["text", "image", "video"]
+    supported_outputs: ["text"]
+    thinking: ["adaptive", "disabled"]
+    pricing_usd_per_million_tokens:
+      input: 0.3
+      output: 1.2
+      cache_read: 0.06
+      cache_write: null
+    pricing_tiers_usd_per_million_tokens:
+      - service_tier: "standard"
+        input_tokens_lte: 512000
+        input: 0.3
+        output: 1.2
+        cache_read: 0.06
+        cache_write: null
+      - service_tier: "standard"
+        input_tokens_gt: 512000
+        input: 0.6
+        output: 2.4
+        cache_read: 0.12
+        cache_write: null
+      - service_tier: "priority"
+        input_tokens_lte: 512000
+        input: 0.45
+        output: 1.8
+        cache_read: 0.09
+        cache_write: null
+      - service_tier: "priority"
+        input_tokens_gt: 512000
+        input: 0.9
+        output: 3.6
+        cache_read: 0.18
+        cache_write: null
+
+  - id: "MiniMax-M2.7"
+    name: "MiniMax M2.7"
+    context_length: 204800
+    supported_inputs: ["text"]
+    supported_outputs: ["text"]
+    thinking: ["always_on"]
+    pricing_usd_per_million_tokens:
+      input: 0.3
+      output: 1.2
+      cache_read: 0.06
+      cache_write: 0.375
+
+env_overrides:
+  MINIMAX_DEFAULT_MODEL: "default_model"
