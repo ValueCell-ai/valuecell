@@ -37,6 +37,19 @@ except Exception:  # pragma: no cover - constants may not exist in minimal env
     DEFAULT_AGENT_MODEL = "gpt-4o"
 
 
+def _resolve_minimax_probe_endpoint(base_url: str) -> tuple[str | None, str]:
+    """Resolve a MiniMax base URL to its direct probe endpoint and request style."""
+    normalized = (base_url or "").strip().rstrip("/")
+    if not normalized:
+        return None, "openai_like"
+
+    if normalized.lower().endswith("/anthropic"):
+        return f"{normalized}/v1/messages", "anthropic"
+    if normalized.lower().endswith("/v1"):
+        return f"{normalized}/chat/completions", "openai_like"
+    return f"{normalized}/v1/chat/completions", "openai_like"
+
+
 def create_models_router() -> APIRouter:
     """Create models-related router with endpoints for model configs and provider management."""
 
@@ -604,6 +617,54 @@ def create_models_router() -> APIRouter:
                 result.ok = True
                 return True
 
+            async def _direct_anthropic_ping(endpoint: str) -> bool:
+                headers = {
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "Content-Type": "application/json",
+                }
+                json_body = {
+                    "model": model_id,
+                    "max_tokens": 1,
+                    "messages": [{"role": "user", "content": "ping"}],
+                }
+                async with httpx.AsyncClient(timeout=direct_timeout_s) as client:
+                    resp = await client.post(endpoint, headers=headers, json=json_body)
+
+                if resp.status_code in (401, 403):
+                    try:
+                        err_json = resp.json()
+                        msg = err_json.get("error", {}).get("message") or str(err_json)
+                    except Exception:
+                        msg = resp.text
+                    result.ok = False
+                    result.status = "auth_failed"
+                    result.error = msg or "Unauthorized"
+                    return False
+                if resp.status_code >= 400:
+                    try:
+                        err_json = resp.json()
+                        msg = err_json.get("error", {}).get("message") or str(err_json)
+                    except Exception:
+                        msg = resp.text
+                    result.ok = False
+                    result.status = "request_failed"
+                    result.error = msg or f"HTTP {resp.status_code}"
+                    return False
+
+                try:
+                    data = resp.json()
+                except Exception:
+                    data = None
+                if not data or "content" not in data:
+                    result.ok = False
+                    result.status = "request_failed"
+                    result.error = "Unexpected response structure"
+                    return False
+                result.status = "reachable"
+                result.ok = True
+                return True
+
             async def _direct_google_ping(endpoint: str) -> bool:
                 # Gemini REST uses api key via query param `key`, but we also
                 # set header to be safe.
@@ -746,6 +807,8 @@ def create_models_router() -> APIRouter:
                             f"{bu}/compatible-mode/v1/chat/completions",
                             "openai_like",
                         )
+                    if provider == "minimax":
+                        return _resolve_minimax_probe_endpoint(bu)
                     # If base_url provided but host is unrecognized:
                     # - For openai-compatible, treat as generic OpenAI-like
                     # - For Google/Azure, ignore base_url and fall through to provider fallback
@@ -807,6 +870,7 @@ def create_models_router() -> APIRouter:
                         "openrouter",
                         "deepseek",
                         "siliconflow",
+                        "minimax",
                         "azure",
                         "google",
                     }:
@@ -819,7 +883,11 @@ def create_models_router() -> APIRouter:
 
                 if endpoint:
                     # Perform direct ping with timeout
-                    if style == "google":
+                    if style == "anthropic":
+                        completed_via_direct = await asyncio.wait_for(
+                            _direct_anthropic_ping(endpoint), timeout=direct_timeout_s
+                        )
+                    elif style == "google":
                         completed_via_direct = await asyncio.wait_for(
                             _direct_google_ping(endpoint), timeout=direct_timeout_s
                         )

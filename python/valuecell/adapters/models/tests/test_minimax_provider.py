@@ -9,6 +9,7 @@ from valuecell.adapters.models.factory import (
     ModelFactory,
 )
 from valuecell.config.manager import ProviderConfig
+from valuecell.server.api.routers.models import _resolve_minimax_probe_endpoint
 
 
 def _provider_config(base_url: str) -> ProviderConfig:
@@ -124,3 +125,28 @@ def test_provider_yaml_contains_target_models_and_endpoints() -> None:
         "cache_read": 0.06,
         "cache_write": 0.375,
     }
+
+
+@pytest.mark.parametrize(
+    ("base_url", "expected"),
+    [
+        (
+            "https://api.minimax.io/v1",
+            ("https://api.minimax.io/v1/chat/completions", "openai_like"),
+        ),
+        (
+            "https://api.minimaxi.com/v1",
+            ("https://api.minimaxi.com/v1/chat/completions", "openai_like"),
+        ),
+        (
+            "https://api.minimax.io/anthropic",
+            ("https://api.minimax.io/anthropic/v1/messages", "anthropic"),
+        ),
+        (
+            "https://api.minimaxi.com/anthropic",
+            ("https://api.minimaxi.com/anthropic/v1/messages", "anthropic"),
+        ),
+    ],
+)
+def test_minimax_probe_endpoints(base_url: str, expected: tuple[str, str]) -> None:
+    assert _resolve_minimax_probe_endpoint(base_url) == expected
