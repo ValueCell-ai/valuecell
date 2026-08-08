@@ -23,6 +23,7 @@ export const MODEL_PROVIDER_ICONS = {
   siliconflow: SiliconFlowPng,
   openai: OpenAiPng,
   "openai-compatible": OpenAiCompatiblePng,
+  minimax: OpenAiCompatiblePng,
   deepseek: DeepSeekPng,
   google: GooglePng,
   azure: AzurePng,
