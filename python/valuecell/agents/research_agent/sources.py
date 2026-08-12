@@ -12,6 +12,7 @@ from edgar import Company
 from edgar.entity.filings import EntityFilings
 from loguru import logger
 
+from valuecell.agents.common.web_search import search_tavily
 from valuecell.agents.sources import (
     get_person_detail,
     get_project_detail,
@@ -243,10 +244,11 @@ async def fetch_event_sec_filings(
 
 
 async def web_search(query: str) -> str:
-    """Search web for the given query and return a summary of the top results.
+    """Search web using the configured backend.
 
     This function uses the centralized configuration system to create model instances.
     It supports multiple search providers:
+    - Tavily - when WEB_SEARCH_PROVIDER=tavily and TAVILY_API_KEY is set
     - Google (Gemini with search enabled) - when WEB_SEARCH_PROVIDER=google and GOOGLE_API_KEY is set
     - Perplexity (via OpenRouter) - default fallback
 
@@ -254,14 +256,15 @@ async def web_search(query: str) -> str:
         query: The search query string.
 
     Returns:
-        A summary of the top search results.
+        A source-oriented result list with URLs and content snippets.
     """
     from valuecell.utils.model import create_model_with_provider
 
     # Check which provider to use based on environment configuration
-    if os.getenv("WEB_SEARCH_PROVIDER", "google").lower() == "google" and os.getenv(
-        "GOOGLE_API_KEY"
-    ):
+    provider = os.getenv("WEB_SEARCH_PROVIDER", "google").lower()
+    if provider == "tavily":
+        return await search_tavily(query)
+    if provider == "google" and os.getenv("GOOGLE_API_KEY"):
         return await _web_search_google(query)
 
     # Use Perplexity Sonar via OpenRouter for web search
@@ -284,7 +287,7 @@ async def _web_search_google(query: str) -> str:
         query: The search query string.
 
     Returns:
-        A summary of the top search results.
+        A source-oriented result list with URLs and content snippets.
     """
     from valuecell.utils.model import create_model_with_provider
 
