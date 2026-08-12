@@ -8,13 +8,15 @@ from agno.agent import Agent
 from loguru import logger
 
 from valuecell.adapters.models import create_model
+from valuecell.agents.common.web_search import search_tavily
 
 
 async def web_search(query: str) -> str:
-    """Search web for the given query and return a summary of the top results.
+    """Search web using the configured backend.
 
     This function uses the centralized configuration system to create model instances.
     It supports multiple search providers:
+    - Tavily - when WEB_SEARCH_PROVIDER=tavily and TAVILY_API_KEY is set
     - Google (Gemini with search enabled) - when WEB_SEARCH_PROVIDER=google and GOOGLE_API_KEY is set
     - Perplexity (via OpenRouter) - default fallback
 
@@ -22,12 +24,13 @@ async def web_search(query: str) -> str:
         query: The search query string.
 
     Returns:
-        A summary of the top search results.
+        A source-oriented result list with URLs and content snippets.
     """
     # Check which provider to use based on environment configuration
-    if os.getenv("WEB_SEARCH_PROVIDER", "google").lower() == "google" and os.getenv(
-        "GOOGLE_API_KEY"
-    ):
+    provider = os.getenv("WEB_SEARCH_PROVIDER", "google").lower()
+    if provider == "tavily":
+        return await search_tavily(query)
+    if provider == "google" and os.getenv("GOOGLE_API_KEY"):
         return await _web_search_google(query)
 
     # Use Perplexity Sonar via OpenRouter for web search
@@ -50,7 +53,7 @@ async def _web_search_google(query: str) -> str:
         query: The search query string.
 
     Returns:
-        A summary of the top search results.
+        A source-oriented result list with URLs and content snippets.
     """
     # Use Google Gemini with search enabled
     # The search=True parameter enables Google Search grounding for real-time information
