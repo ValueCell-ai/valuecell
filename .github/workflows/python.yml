@@ -79,6 +79,13 @@ jobs:
       - name: Run tests
         run: uv run pytest valuecell/core/ --cov=valuecell.core --cov-report=xml --cov-report=term
 
+      - name: Run search integration tests
+        run: >-
+          uv run pytest valuecell/agents/common/tests/
+          --cov=valuecell.agents.common.search
+          --cov=valuecell.agents.news_agent.tools --cov=valuecell.agents.research_agent.sources
+          --cov-append --cov-report=xml --cov-report=term
+
       - name: Check coverage
         run: |
           uv run diff-cover coverage.xml --fail-under=90

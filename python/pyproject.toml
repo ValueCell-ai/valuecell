@@ -31,7 +31,9 @@ dependencies = [
     "ccxt>=4.5.15",
     "baostock>=0.8.9",
     "func-timeout>=4.3.5",
-    "pymysql>=1.1.0"
+    "pymysql>=1.1.0",
+    "mcp>=1.27,<2",
+    "httpx>=0.28,<1",
 ]
 
 [project.optional-dependencies]

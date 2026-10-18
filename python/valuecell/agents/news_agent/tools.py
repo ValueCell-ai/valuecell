@@ -1,6 +1,5 @@
 """News-related tools for the News Agent."""
 
-import os
 from datetime import datetime
 from typing import Optional
 
@@ -8,15 +7,14 @@ from agno.agent import Agent
 from loguru import logger
 
 from valuecell.adapters.models import create_model
+from valuecell.agents.common.search import resolve_web_search_provider, search_parallel
 
 
 async def web_search(query: str) -> str:
-    """Search web for the given query and return a summary of the top results.
+    """Search for current information and source URLs using the saved provider.
 
-    This function uses the centralized configuration system to create model instances.
-    It supports multiple search providers:
-    - Google (Gemini with search enabled) - when WEB_SEARCH_PROVIDER=google and GOOGLE_API_KEY is set
-    - Perplexity (via OpenRouter) - default fallback
+    Unconfigured search uses anonymous Parallel MCP. Auto mode keeps configured
+    Google or OpenRouter credentials on their existing search provider.
 
     Args:
         query: The search query string.
@@ -24,10 +22,10 @@ async def web_search(query: str) -> str:
     Returns:
         A summary of the top search results.
     """
-    # Check which provider to use based on environment configuration
-    if os.getenv("WEB_SEARCH_PROVIDER", "google").lower() == "google" and os.getenv(
-        "GOOGLE_API_KEY"
-    ):
+    provider = resolve_web_search_provider("news_agent")
+    if provider == "parallel":
+        return await search_parallel(query)
+    if provider == "google":
         return await _web_search_google(query)
 
     # Use Perplexity Sonar via OpenRouter for web search
@@ -36,6 +34,7 @@ async def web_search(query: str) -> str:
         provider="openrouter",
         model_id="perplexity/sonar",
         max_tokens=None,
+        use_fallback=False,
     )
     response = await Agent(model=model).arun(query)
     return response.content
@@ -58,6 +57,7 @@ async def _web_search_google(query: str) -> str:
         provider="google",
         model_id="gemini-2.5-flash",
         search=True,  # Enable Google Search grounding
+        use_fallback=False,
     )
     response = await Agent(model=model).arun(query)
     return response.content
