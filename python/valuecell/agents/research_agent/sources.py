@@ -1,5 +1,4 @@
 import asyncio
-import os
 import re
 from datetime import date, datetime
 from pathlib import Path
@@ -12,6 +11,7 @@ from edgar import Company
 from edgar.entity.filings import EntityFilings
 from loguru import logger
 
+from valuecell.agents.common.search import resolve_web_search_provider, search_parallel
 from valuecell.agents.sources import (
     get_person_detail,
     get_project_detail,
@@ -243,12 +243,10 @@ async def fetch_event_sec_filings(
 
 
 async def web_search(query: str) -> str:
-    """Search web for the given query and return a summary of the top results.
+    """Search for current information and source URLs using the saved provider.
 
-    This function uses the centralized configuration system to create model instances.
-    It supports multiple search providers:
-    - Google (Gemini with search enabled) - when WEB_SEARCH_PROVIDER=google and GOOGLE_API_KEY is set
-    - Perplexity (via OpenRouter) - default fallback
+    Unconfigured search uses anonymous Parallel MCP. Auto mode keeps configured
+    Google or OpenRouter credentials on their existing search provider.
 
     Args:
         query: The search query string.
@@ -256,13 +254,13 @@ async def web_search(query: str) -> str:
     Returns:
         A summary of the top search results.
     """
-    from valuecell.utils.model import create_model_with_provider
-
-    # Check which provider to use based on environment configuration
-    if os.getenv("WEB_SEARCH_PROVIDER", "google").lower() == "google" and os.getenv(
-        "GOOGLE_API_KEY"
-    ):
+    provider = resolve_web_search_provider("research_agent")
+    if provider == "parallel":
+        return await search_parallel(query)
+    if provider == "google":
         return await _web_search_google(query)
+
+    from valuecell.utils.model import create_model_with_provider
 
     # Use Perplexity Sonar via OpenRouter for web search
     # Perplexity models are optimized for web search and real-time information

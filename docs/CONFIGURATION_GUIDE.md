@@ -15,6 +15,35 @@ This hierarchy allows you to:
 - Override settings at runtime via environment variables
 - Maintain sensible defaults in YAML files
 
+## Web Search
+
+The Research and News agents share a search provider setting. Their default
+`auto` mode uses Google search grounding when Google credentials are configured,
+then Perplexity Sonar when OpenRouter credentials are configured. Without either,
+it uses free, anonymous [Parallel Search MCP](https://docs.parallel.ai/integrations/mcp/search-mcp)
+at `https://search.parallel.ai/mcp`. Parallel search uses Fast mode and returns
+source excerpts with URLs. No Parallel account or API key is required; anonymous
+service limits apply. The agent's language model still needs its usual configuration.
+
+Set `WEB_SEARCH_PROVIDER` in your system ValueCell `.env` or environment:
+
+| Value | Behavior |
+| --- | --- |
+| `auto` | Keep configured Google/OpenRouter search; otherwise use Parallel. |
+| `parallel` | Use anonymous Parallel MCP, including when other keys are configured. |
+| `google` | Use Gemini search grounding with your Google credentials. |
+| `perplexity` | Use Perplexity Sonar with your OpenRouter credentials. |
+| `none` | Disable web search. |
+
+When the environment setting is absent, `capabilities.web_search.provider` in
+each agent's YAML selects the provider. Existing saved selections take precedence
+over `auto`. Setting `capabilities.web_search.enabled: false` or
+`tools.web_search.enabled: false` prevents search, including calls from the News
+agent's breaking and financial news tools. Agent tool permissions still apply.
+
+A selected provider's errors remain visible; search does not silently switch
+services. Parallel requests time out after 30 seconds and support cancellation.
+
 ## Quick Start
 
 ### Step 1: Get API Keys

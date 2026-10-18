@@ -4,6 +4,11 @@
 name: "Research Agent"
 enabled: true
 
+capabilities:
+  web_search:
+    enabled: true
+    provider: "auto"  # Configured Google/OpenRouter credentials, otherwise Parallel MCP
+
 # Model Configuration
 # Priority: Environment Variables > .env > YAML
 models:
