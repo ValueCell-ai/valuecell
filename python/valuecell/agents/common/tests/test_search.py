@@ -16,6 +16,8 @@ from agno.tools.function import Function
 from valuecell.agents.common import search
 from valuecell.agents.news_agent import core as news_core
 from valuecell.agents.news_agent import tools as news_tools
+from valuecell.agents.research_agent import core as research_core
+from valuecell.agents.research_agent import sources as research_sources
 from valuecell.config.loader import ConfigLoader
 from valuecell.config.manager import ConfigManager
 
@@ -127,15 +129,6 @@ class ModelPeer:
 
 
 @pytest.fixture
-def research_modules():
-    # Match the existing research tests' lazy imports: importing the optional
-    # document stack during collection interferes with NumPy's initialization.
-    from valuecell.agents.research_agent import core, sources
-
-    return core, sources
-
-
-@pytest.fixture
 def configuration(monkeypatch, tmp_path):
     for key in list(os.environ):
         if key.endswith("_API_KEY") or key == "WEB_SEARCH_PROVIDER":
@@ -164,9 +157,8 @@ def mcp_peer(monkeypatch):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("agent_name", ["research", "news"])
 async def test_agent_stream_consumes_anonymous_search(
-    agent_name, configuration, mcp_peer, monkeypatch, research_modules
+    agent_name, configuration, mcp_peer, monkeypatch
 ):
-    research_core, _ = research_modules
     peer = ModelPeer()
     async with REAL_ASYNC_CLIENT(transport=httpx.MockTransport(peer.handle)) as client:
         model = OpenAIChat(id="scripted", api_key="fixture", http_client=client)
@@ -215,9 +207,8 @@ def test_defaults_credentials_and_overrides(configuration, monkeypatch, agent_na
 @pytest.mark.parametrize("provider", ["google", "perplexity"])
 @pytest.mark.parametrize("agent_name", ["news", "research"])
 async def test_existing_provider_dispatch(
-    configuration, mcp_peer, monkeypatch, provider, agent_name, research_modules
+    configuration, mcp_peer, monkeypatch, provider, agent_name
 ):
-    research_core, research_sources = research_modules
     module = news_tools if agent_name == "news" else research_sources
     monkeypatch.setenv("WEB_SEARCH_PROVIDER", provider)
     create_model = Mock()
@@ -242,10 +233,9 @@ async def test_existing_provider_dispatch(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("agent_name", ["research", "news"])
 async def test_explicit_provider_error_never_switches(
-    agent_name, configuration, mcp_peer, monkeypatch, research_modules
+    agent_name, configuration, mcp_peer, monkeypatch
 ):
     monkeypatch.setenv("WEB_SEARCH_PROVIDER", "google")
-    _, research_sources = research_modules
     module = research_sources if agent_name == "research" else news_tools
     monkeypatch.setattr(
         module, "_web_search_google", AsyncMock(side_effect=ValueError("missing key"))
