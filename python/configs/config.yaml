@@ -38,6 +38,10 @@ models:
     openai-compatible:
       config_file: "providers/openai-compatible.yaml"
       api_key_env: "OPENAI_COMPATIBLE_API_KEY"
+
+    minimax:
+      config_file: "providers/minimax.yaml"
+      api_key_env: "MINIMAX_API_KEY"
     
     azure:
       config_file: "providers/azure.yaml"
@@ -64,4 +68,3 @@ agents:
   
   auto_trading_agent:
     config_file: "agents/auto_trading_agent.yaml"
-

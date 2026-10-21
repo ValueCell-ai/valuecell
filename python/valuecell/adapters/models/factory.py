@@ -470,6 +470,82 @@ class OpenAICompatibleProvider(ModelProvider):
         return bool(self.config.api_key and self.config.base_url)
 
 
+class MiniMaxProvider(ModelProvider):
+    """MiniMax provider with OpenAI-compatible and Anthropic-compatible APIs."""
+
+    def create_model(self, model_id: Optional[str] = None, **kwargs):
+        """Create a MiniMax model using the protocol selected by the base URL."""
+        model_id = model_id or self.config.default_model
+        base_url = (self.config.base_url or "").rstrip("/")
+        if not base_url:
+            raise ValueError("MiniMax base URL is required")
+
+        model_config = next(
+            (model for model in self.config.models if model.get("id") == model_id),
+            {},
+        )
+        model_request = model_config.get("request", {})
+        params = {**model_request, **self.config.parameters, **kwargs}
+        logger.info(f"Creating MiniMax model: {model_id}")
+
+        if base_url.endswith("/anthropic"):
+            try:
+                from agno.models.anthropic import Claude
+            except ImportError:
+                raise ImportError(
+                    "agno package with Anthropic support not installed. "
+                    "Install with: pip install agno[anthropic]"
+                )
+
+            model_params: Dict[str, Any] = {
+                "id": model_id,
+                "api_key": self.config.api_key,
+                "client_params": {"base_url": base_url},
+            }
+            request_params = {
+                **(params.get("anthropic_request_params") or {}),
+                **(params.get("request_params") or {}),
+            }
+            for key in (
+                "max_tokens",
+                "temperature",
+                "top_p",
+                "top_k",
+                "stop_sequences",
+                "thinking",
+            ):
+                if params.get(key) is not None:
+                    model_params[key] = params[key]
+            if request_params:
+                model_params["request_params"] = request_params
+            return Claude(**model_params)
+
+        try:
+            from agno.models.openai import OpenAILike
+        except ImportError:
+            raise ImportError(
+                "agno package not installed. Install with: pip install agno"
+            )
+
+        request_params = params.get("request_params")
+        return OpenAILike(
+            id=model_id,
+            api_key=self.config.api_key,
+            base_url=base_url,
+            temperature=params.get("temperature"),
+            max_tokens=params.get("max_tokens"),
+            top_p=params.get("top_p"),
+            frequency_penalty=params.get("frequency_penalty"),
+            presence_penalty=params.get("presence_penalty"),
+            reasoning_effort=params.get("reasoning_effort"),
+            request_params=request_params,
+        )
+
+    def is_available(self) -> bool:
+        """Check whether the API key and base URL are configured."""
+        return bool(self.config.api_key and self.config.base_url)
+
+
 class DeepSeekProvider(ModelProvider):
     """DeepSeek model provider
 
@@ -606,6 +682,7 @@ class ModelFactory:
         "siliconflow": SiliconFlowProvider,
         "openai": OpenAIProvider,
         "openai-compatible": OpenAICompatibleProvider,
+        "minimax": MiniMaxProvider,
         "deepseek": DeepSeekProvider,
         "dashscope": DashScopeProvider,
         "ollama": OllamaProvider,
