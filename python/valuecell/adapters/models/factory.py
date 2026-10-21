@@ -480,7 +480,12 @@ class MiniMaxProvider(ModelProvider):
         if not base_url:
             raise ValueError("MiniMax base URL is required")
 
-        params = {**self.config.parameters, **kwargs}
+        model_config = next(
+            (model for model in self.config.models if model.get("id") == model_id),
+            {},
+        )
+        model_request = model_config.get("request", {})
+        params = {**model_request, **self.config.parameters, **kwargs}
         logger.info(f"Creating MiniMax model: {model_id}")
 
         if base_url.endswith("/anthropic"):
@@ -497,6 +502,10 @@ class MiniMaxProvider(ModelProvider):
                 "api_key": self.config.api_key,
                 "client_params": {"base_url": base_url},
             }
+            request_params = {
+                **(params.get("anthropic_request_params") or {}),
+                **(params.get("request_params") or {}),
+            }
             for key in (
                 "max_tokens",
                 "temperature",
@@ -504,10 +513,11 @@ class MiniMaxProvider(ModelProvider):
                 "top_k",
                 "stop_sequences",
                 "thinking",
-                "request_params",
             ):
                 if params.get(key) is not None:
                     model_params[key] = params[key]
+            if request_params:
+                model_params["request_params"] = request_params
             return Claude(**model_params)
 
         try:
@@ -517,6 +527,7 @@ class MiniMaxProvider(ModelProvider):
                 "agno package not installed. Install with: pip install agno"
             )
 
+        request_params = params.get("request_params")
         return OpenAILike(
             id=model_id,
             api_key=self.config.api_key,
@@ -526,6 +537,8 @@ class MiniMaxProvider(ModelProvider):
             top_p=params.get("top_p"),
             frequency_penalty=params.get("frequency_penalty"),
             presence_penalty=params.get("presence_penalty"),
+            reasoning_effort=params.get("reasoning_effort"),
+            request_params=request_params,
         )
 
     def is_available(self) -> bool:
