@@ -45,6 +45,11 @@ class Settings:
         self.API_PORT = int(os.getenv("API_PORT", "8000"))
         self.API_DEBUG = os.getenv("API_DEBUG", "false").lower() == "true"
 
+        self.AUTH_API_URL = os.getenv(
+            "AUTH_API_URL", "https://backend.valuecell.ai/api/v1"
+        ).rstrip("/")
+        self.AUTH_TIMEOUT_SECONDS = float(os.getenv("AUTH_TIMEOUT_SECONDS", "5"))
+
         # CORS Configuration
         cors_origins = os.getenv("CORS_ORIGINS", "*")
         self.CORS_ORIGINS = cors_origins.split(",") if cors_origins != "*" else ["*"]

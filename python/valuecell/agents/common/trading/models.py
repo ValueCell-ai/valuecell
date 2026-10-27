@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from valuecell.config.constants import MASKED_API_KEY
 from valuecell.utils.ts import get_current_timestamp_ms
 
 from .constants import (
@@ -114,7 +115,7 @@ class LLMModelConfig(BaseModel):
                     or DEFAULT_AGENT_MODEL,
                 )
                 # If api_key not provided by client, use provider config api_key
-                if values.get("api_key") is None and getattr(
+                if values.get("api_key") in {None, MASKED_API_KEY} and getattr(
                     provider_cfg, "api_key", None
                 ):
                     values["api_key"] = provider_cfg.api_key
