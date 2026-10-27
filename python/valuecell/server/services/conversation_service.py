@@ -75,10 +75,13 @@ class ConversationService:
 
         # Apply pagination
         total = len(conversations)
+        start = max(0, offset)
+        end = start + max(0, limit)
+        paginated_conversations = conversations[start:end]
 
         # Convert to response format
         conversation_items = []
-        for conv in conversations:
+        for conv in paginated_conversations:
             conversation_item = ConversationListItem(
                 conversation_id=conv.conversation_id,
                 title=conv.title or f"Conversation {conv.conversation_id}",
