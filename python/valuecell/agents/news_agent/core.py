@@ -75,7 +75,7 @@ class NewsAgent(BaseAgent):
         except Exception as e:
             logger.error(f"Error processing news query: {str(e)}")
             logger.exception("Full error details:")
-            yield {"type": "error", "content": f"Error processing news query: {str(e)}"}
+            yield streaming.failed(f"Error processing news query: {str(e)}")
 
     async def run(self, query: str, **kwargs) -> str:
         """Run news agent and return response."""
