@@ -5,13 +5,14 @@ from pathlib import Path
 from typing import List
 
 import yaml
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
-from valuecell.config.constants import CONFIG_DIR
+from valuecell.config.constants import CONFIG_DIR, MASKED_API_KEY
 from valuecell.config.loader import get_config_loader
 from valuecell.config.manager import get_config_manager
 from valuecell.utils.env import get_system_env_path
 
+from ..auth import get_current_user
 from ..schemas import SuccessResponse
 from ..schemas.model import (
     AddModelRequest,
@@ -138,6 +139,9 @@ def create_models_router() -> APIRouter:
         }
         return mapping.get(provider)
 
+    def _mask_api_key(api_key: str | None) -> str | None:
+        return MASKED_API_KEY if api_key else None
+
     @router.get(
         "/providers",
         response_model=SuccessResponse[List[ModelProviderSummary]],
@@ -171,6 +175,7 @@ def create_models_router() -> APIRouter:
     @router.get(
         "/providers/{provider}",
         response_model=SuccessResponse[ProviderDetailData],
+        dependencies=[Depends(get_current_user)],
         summary="Get provider details",
         description="Get configuration and models for a provider.",
     )
@@ -192,7 +197,7 @@ def create_models_router() -> APIRouter:
                             ProviderModelEntry(model_id=mid, model_name=name)
                         )
             detail = ProviderDetailData(
-                api_key=cfg.api_key,
+                api_key=_mask_api_key(cfg.api_key),
                 base_url=cfg.base_url,
                 is_default=(cfg.name == manager.primary_provider),
                 default_model_id=cfg.default_model,
@@ -210,6 +215,7 @@ def create_models_router() -> APIRouter:
     @router.put(
         "/providers/{provider}/config",
         response_model=SuccessResponse[ProviderDetailData],
+        dependencies=[Depends(get_current_user)],
         summary="Update provider config",
         description="Update provider API key and host, then refresh configs.",
     )
@@ -230,7 +236,11 @@ def create_models_router() -> APIRouter:
 
             # Update API key via env var
             # Accept empty string as a deliberate clear; skip only when field is omitted
-            if api_key_env and (payload.api_key is not None):
+            if (
+                api_key_env
+                and payload.api_key is not None
+                and payload.api_key != MASKED_API_KEY
+            ):
                 _set_env(api_key_env, payload.api_key)
 
             # Update base_url via env when endpoint_env exists (Azure),
@@ -280,7 +290,7 @@ def create_models_router() -> APIRouter:
             ]
 
             detail = ProviderDetailData(
-                api_key=cfg.api_key,
+                api_key=_mask_api_key(cfg.api_key),
                 base_url=cfg.base_url,
                 is_default=(cfg.name == manager.primary_provider),
                 default_model_id=cfg.default_model,
@@ -468,7 +478,7 @@ def create_models_router() -> APIRouter:
                 if isinstance(m, dict)
             ]
             detail = ProviderDetailData(
-                api_key=cfg.api_key,
+                api_key=_mask_api_key(cfg.api_key),
                 base_url=cfg.base_url,
                 is_default=(cfg.name == manager.primary_provider),
                 default_model_id=cfg.default_model,
@@ -533,7 +543,10 @@ def create_models_router() -> APIRouter:
 
             # Prefer a direct minimal request for OpenAI-compatible providers.
             # This avoids hidden fallbacks and validates API key/auth.
-            api_key = (payload.api_key or cfg.api_key or "").strip()
+            supplied_api_key = (
+                None if payload.api_key == MASKED_API_KEY else payload.api_key
+            )
+            api_key = (supplied_api_key or cfg.api_key or "").strip()
             base_url = (getattr(cfg, "base_url", None) or "").strip()
             # Use direct request timeout only (no agent fallback)
             direct_timeout_s = 5.0

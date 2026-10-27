@@ -57,6 +57,7 @@ export const useGetModelProviderDetail = (provider: string | undefined) => {
     queryFn: () =>
       apiClient.get<ApiResponse<ProviderDetail>>(
         `/models/providers/${provider}`,
+        { requiresAuth: true },
       ),
     select: (data) => data.data,
   });
@@ -77,6 +78,7 @@ export const useUpdateProviderConfig = () => {
           api_key: params.api_key,
           base_url: params.base_url,
         },
+        { requiresAuth: true },
       ),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
@@ -198,6 +200,7 @@ export const useGetSortedModelProviders = () => {
       queryFn: () =>
         apiClient.get<ApiResponse<ProviderDetail>>(
           `/models/providers/${p.provider}`,
+          { requiresAuth: true },
         ),
       select: (data: ApiResponse<ProviderDetail>) => ({
         provider: p.provider,

@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 5
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -3677,6 +3677,7 @@ dependencies = [
     { name = "edgartools" },
     { name = "fastapi" },
     { name = "func-timeout" },
+    { name = "httpx" },
     { name = "loguru" },
     { name = "markdown" },
     { name = "pydantic" },
@@ -3737,6 +3738,7 @@ requires-dist = [
     { name = "edgartools", specifier = ">=4.12.2" },
     { name = "fastapi", specifier = ">=0.104.0" },
     { name = "func-timeout", specifier = ">=4.3.5" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "markdown", specifier = ">=3.9" },
     { name = "pydantic", specifier = ">=2.0.0" },

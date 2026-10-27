@@ -9,6 +9,7 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 # Configuration Directory
 CONFIG_DIR = PROJECT_ROOT / "configs"
+MASKED_API_KEY = "********"
 
 # Supported Languages Configuration
 SUPPORTED_LANGUAGES: List[Tuple[str, str]] = [
