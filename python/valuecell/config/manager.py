@@ -134,6 +134,7 @@ class ConfigManager:
                     "google",
                     "openai",
                     "openai-compatible",
+                    "minimax",
                     "azure",
                     "ollama",
                 ]

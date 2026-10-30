@@ -27,6 +27,7 @@ ValueCell supports multiple LLM providers. Choose at least one:
 | **SiliconFlow** | [siliconflow.cn](https://www.siliconflow.cn/)       |
 | **Google**      | [ai.google.dev](https://ai.google.dev/)             |
 | **OpenAI**      | [platform.openai.com](https://platform.openai.com/) |
+| **MiniMax**     | [platform.minimax.io](https://platform.minimax.io/docs/api-reference/api-overview) |
 | **DashScope**   | [bailian.console.aliyun.com](https://bailian.console.aliyun.com/#/home) |
 
 ### Step 2: Configure .env File
@@ -197,6 +198,9 @@ models:
     google:
       config_file: "providers/google.yaml"
       api_key_env: "GOOGLE_API_KEY"
+    minimax:
+      config_file: "providers/minimax.yaml"
+      api_key_env: "MINIMAX_API_KEY"
     dashscope:
       config_file: "providers/dashscope.yaml"
       api_key_env: "DASHSCOPE_API_KEY"
@@ -428,7 +432,25 @@ OPENAI_API_VERSION=2024-10-21
 
 # DashScope (Alibaba Cloud Qwen3 models)
 DASHSCOPE_API_KEY=sk-xxxxxxxxxxxxx
+
+# MiniMax
+MINIMAX_API_KEY=your-minimax-api-key
+MINIMAX_BASE_URL=https://api.minimax.io/v1
 ```
+
+#### MiniMax API Hosts
+
+Set `MINIMAX_BASE_URL` in the environment or update API Host in model settings.
+
+| Region | Protocol | Base URL | Documentation |
+| ------ | -------- | -------- | ------------- |
+| Global | OpenAI-compatible | `https://api.minimax.io/v1` | [Global documentation](https://platform.minimax.io/docs) |
+| Global | Anthropic-compatible | `https://api.minimax.io/anthropic` | [Global documentation](https://platform.minimax.io/docs) |
+| China | OpenAI-compatible | `https://api.minimaxi.com/v1` | [China documentation](https://platform.minimaxi.com/docs) |
+| China | Anthropic-compatible | `https://api.minimaxi.com/anthropic` | [China documentation](https://platform.minimaxi.com/docs) |
+
+For Anthropic-compatible hosts, configure the base URL exactly as shown. The
+client appends `/v1/messages` when it sends a request.
 
 ### Model Configuration
 
