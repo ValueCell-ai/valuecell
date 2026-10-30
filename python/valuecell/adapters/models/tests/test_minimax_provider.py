@@ -135,13 +135,13 @@ def test_anthropic_flash_boundary_sends_output_effort(base_url: str) -> None:
         )
 
     model.client_params = {
+        **model.client_params,
         "http_client": httpx.Client(transport=httpx.MockTransport(capture)),
     }
     client = model.get_client()
     try:
         client.messages.create(
             model=model.id,
-            max_tokens=1,
             messages=[{"role": "user", "content": "hello"}],
             **model.get_request_params(),
         )
@@ -153,7 +153,7 @@ def test_anthropic_flash_boundary_sends_output_effort(base_url: str) -> None:
             f"{base_url}/v1/messages",
             {
                 "model": "MiniMax-M3.1-Flash",
-                "max_tokens": 1,
+                "max_tokens": 4096,
                 "messages": [{"role": "user", "content": "hello"}],
                 "output_config": {"effort": "max"},
             },
@@ -257,6 +257,11 @@ def test_provider_yaml_contains_target_models_and_endpoints() -> None:
     }
     assert models["MiniMax-M3.1-Flash"]["context_length"] == 1000000
     assert models["MiniMax-M3.1-Flash"]["max_output_tokens"] == 524288
+    assert models["MiniMax-M3.1-Flash"]["supported_inputs"] == [
+        "text",
+        "image",
+        "video",
+    ]
     assert models["MiniMax-M3.1-Flash"]["thinking"] == ["adaptive"]
     assert models["MiniMax-M3.1-Flash"]["request"] == {
         "reasoning_effort": "max",
@@ -271,6 +276,12 @@ def test_provider_yaml_contains_target_models_and_endpoints() -> None:
     assert models["MiniMax-M3"]["context_length"] == 1000000
     assert models["MiniMax-M3"]["supported_inputs"] == ["text", "image", "video"]
     assert models["MiniMax-M3"]["thinking"] == ["adaptive", "disabled"]
+    assert models["MiniMax-M3"]["pricing_usd_per_million_tokens"] == {
+        "input": 0.3,
+        "output": 1.2,
+        "cache_read": 0.06,
+        "cache_write": None,
+    }
     assert "MiniMax-M2.7" not in models
 
 
